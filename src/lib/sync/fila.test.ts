@@ -76,6 +76,19 @@ describe("fila local idempotente (conexão instável)", () => {
     expect(lerFila(st, "s1")).toEqual([]);
   });
 
+  it("operação enfileirada DURANTE o envio não se perde (bug clássico de sobrescrita)", async () => {
+    const st = memStorage();
+    enfileirar(st, "s1", { tipo: "serie", sessionId: "s1", clientKey: "k1", payload: {} });
+    const enviados: string[] = [];
+    await drenar(st, "s1", async (op) => {
+      enviados.push(op.clientKey);
+      if (op.clientKey === "k1") enfileirar(st, "s1", { tipo: "serie", sessionId: "s1", clientKey: "k2", payload: {} }); // chega enquanto k1 está em voo
+      return { ok: true };
+    });
+    expect(enviados).toEqual(["k1", "k2"]);
+    expect(lerFila(st, "s1")).toEqual([]);
+  });
+
   it("reconciliar prefere o estado confirmado pelo servidor", () => {
     const locais = new Map([["k1", { client_key: "k1", reps: 10 }], ["k2", { client_key: "k2", reps: 8 }]]);
     const r = reconciliar(locais, [{ client_key: "k1", reps: 12 }]);

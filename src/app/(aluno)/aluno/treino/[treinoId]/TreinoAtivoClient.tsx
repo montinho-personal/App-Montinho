@@ -75,7 +75,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
   const [iniciando, setIniciando] = useState(false);
   const [series, setSeries] = useState<Record<string, SerieLocal[]>>({}); // session_exercise_id → séries
-  const [aberto, setAberto] = useState<string | null>(null);
+  const [aberto, setAberto] = useState<string | null>(() => sessaoInicial?.exercicios.find((e) => e.status === "pendente")?.id ?? sessaoInicial?.exercicios[0]?.id ?? null);
   const [timer, setTimer] = useState<{ seg: number; key: number } | null>(null);
   const [sync, setSync] = useState<EstadoSync>("sincronizado");
   const [pendentes, setPendentes] = useState(0);
@@ -246,7 +246,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     atualizar(seId, idx, { concluida: true, sincronizada: false });
     setPendentes((n) => n + 1);
     setSync("pendente");
-    if (ex.descanso_seg && ex.descanso_seg > 0 && s.tipo === "valida") setTimer({ seg: ex.descanso_seg, key: Date.now() });
+    if (ex.descanso_seg && ex.descanso_seg > 0 && s.tipo === "valida") {
+      const seg = ex.descanso_seg;
+      setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }));
+    }
     if (navigator.vibrate) navigator.vibrate(30);
     void sincronizar();
   }
@@ -557,7 +560,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                             <button
                               type="button"
                               onClick={() => concluirSerie(se.id, i, ex)}
-                              aria-label={s.concluida ? `Série ${s.serie} concluída. Toque para registrar de novo.` : `Concluir série ${s.serie}`}
+                              aria-label={s.concluida ? `Concluir série ${s.serie} novamente (já registrada${s.sincronizada ? "" : ", aguardando sincronização"})` : `Concluir série ${s.serie}`}
                               className={`h-11 w-11 rounded-md flex items-center justify-center border transition-colors ${s.concluida ? (s.sincronizada ? "bg-success text-bg border-success" : "bg-warning/80 text-bg border-warning") : "bg-accent text-bg border-accent hover:bg-accent-hover"}`}
                             >
                               <Icon name="check" size={18} />

@@ -208,8 +208,13 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   // --- frequência e volume (tempo real) ---------------------------------------
   const frequencia = useMemo<Frequencia>(() => {
     const f = frequenciaDoCalendario(estado.programa.calendario);
-    // letras sem dia no calendário usam a frequência manual (ou 1 se tiverem exercícios)
-    for (const t of estado.treinos) if (t.ativo && f[t.letra] == null) f[t.letra] = Number(estado.programa.frequenciaManual[t.letra] ?? 1);
+    const calendarioVazio = Object.keys(f).length === 0;
+    for (const t of estado.treinos) {
+      if (!t.ativo) continue;
+      // Sem calendário definido: cada letra 1×/semana (ou frequência manual salva).
+      // Com calendário definido: letra fora da semana/ciclo = 0 (o treinador vê o aviso na linha).
+      if (f[t.letra] == null) f[t.letra] = calendarioVazio ? Number(estado.programa.frequenciaManual[t.letra] ?? 1) : 0;
+    }
     return f;
   }, [estado.programa.calendario, estado.programa.frequenciaManual, estado.treinos]);
 
@@ -233,7 +238,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
 
   // --- histórico (desfazer/refazer) -------------------------------------------
   const estadoRef = useRef(estado);
-  estadoRef.current = estado;
+  useEffect(() => {
+    estadoRef.current = estado;
+  }, [estado]);
   const commit = useCallback((fn: (e: Estado) => Estado) => {
     const cur = estadoRef.current;
     passado.current = [...passado.current.slice(-49), cur];
@@ -614,7 +621,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 flex-wrap">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/30 text-lg font-black text-accent shrink-0" aria-hidden>{t.letra}</div>
                   <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />
-                  <span className="text-[11px] text-fg-subtle font-mono shrink-0">{totalT} séries válidas · ×{frequencia[t.letra] ?? 0}/sem</span>
+                  <span className={`text-[11px] font-mono shrink-0 ${t.ativo && !(frequencia[t.letra] ?? 0) ? "text-warning" : "text-fg-subtle"}`} title={t.ativo && !(frequencia[t.letra] ?? 0) ? "Este treino não está na semana/ciclo: não entra no volume semanal" : undefined}>{totalT} séries válidas · ×{frequencia[t.letra] ?? 0}/sem{t.ativo && !(frequencia[t.letra] ?? 0) ? " (fora da semana)" : ""}</span>
                   <label className="inline-flex items-center gap-1 text-[11px] text-fg-muted"><input type="checkbox" checked={t.ativo} onChange={(e) => updTreino(t.key, { ativo: e.target.checked })} /> ativo</label>
                   <select aria-label={`Copiar outro treino para ${t.letra}`} value="" onChange={(e) => e.target.value && copiarDe(t.key, e.target.value)} className="h-8 rounded-md border border-border bg-bg px-1.5 text-[11px] text-fg-muted">
                     <option value="">copiar de…</option>

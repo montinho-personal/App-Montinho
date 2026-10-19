@@ -69,7 +69,7 @@ export function TabelaVolume(props: Props) {
                   <Icon name="x" />
                 </button>
               </div>
-              <Conteudo {...props} />
+              <Conteudo {...props} semTitulo />
             </div>
           </div>
         ) : null}
@@ -78,7 +78,7 @@ export function TabelaVolume(props: Props) {
   );
 }
 
-function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario }: Props) {
+function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario, semTitulo = false }: Props & { semTitulo?: boolean }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("padrao");
   const [compacto, setCompacto] = useState(false);
@@ -117,7 +117,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
   return (
     <div className="p-3 space-y-3 text-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-extrabold">Volume semanal</h3>
+        {semTitulo ? <span /> : <h3 className="font-extrabold">Volume semanal</h3>}
         <span className="text-[11px] text-fg-subtle">
           {resultado.sessoesSemana} sessões/sem · {resultado.subtotais.total} séries válidas
         </span>

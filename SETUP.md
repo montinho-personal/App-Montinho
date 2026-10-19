@@ -1,4 +1,4 @@
-# 🔧 SETUP — banco de dados e publicação
+# 🔧 SETUP — banco de dados e publicação (Montinho Personal Trainer)
 
 Guia técnico para sair do **modo demonstração** e colocar o app no ar com dados
 reais. Cada serviço aqui é **uma conta sua** (GitHub, Supabase, Vercel) — tudo
@@ -15,7 +15,7 @@ A ordem recomendada: **Supabase → GitHub → Vercel**.
 
 ### A1. Criar o projeto
 1. Crie uma conta em <https://supabase.com> (pode entrar com o GitHub).
-2. Clique **New project**. Dê um nome (ex: `meu-squad`), escolha uma região
+2. Clique **New project**. Dê um nome (ex: `montinho-app`), escolha uma região
    próxima (ex: *South America (São Paulo)*) e defina uma senha de banco.
 3. Aguarde ~2 minutos até o projeto ficar pronto.
 
@@ -23,8 +23,10 @@ A ordem recomendada: **Supabase → GitHub → Vercel**.
 1. No menu lateral do Supabase, abra **SQL Editor**.
 2. Abra a pasta `supabase/migrations/` deste projeto. Você verá vários arquivos
    `.sql` numerados (`0001_...`, `0002_...`, etc.).
-3. **Na ordem numérica**, abra cada arquivo, copie todo o conteúdo, cole no SQL
+3. **Na ordem numérica** (0001 → 0009), abra cada arquivo, copie todo o conteúdo, cole no SQL
    Editor e clique **Run**. Faça um de cada vez, do menor número ao maior.
+   A 0008 só cria valores de enum; a 0009 cria sessões, versões e memória e
+   migra o logbook antigo sem apagar nada (rode fora do horário de uso se já houver dados).
 4. Se algum der erro de "já existe", pode seguir — significa que aquela parte já
    foi criada.
 
@@ -52,10 +54,11 @@ No Supabase, vá em **Project Settings → API** e copie:
    NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...   # anon public
    SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...        # service_role (secreta)
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_DEMO_MODE=false
    ```
 
 3. Pare o app (`Ctrl + C`) e suba de novo (`npm run dev`).
-   Agora ele usa o **banco real** em vez dos dados de exemplo.
+   Agora ele usa o **banco real** em vez dos dados de exemplo. (Opcional: `scripts/seed-demo.sql` cria dados fictícios num projeto de teste — nunca em produção.)
 
 ### A5. Criar o primeiro treinador (você)
 O app diferencia **treinador** de **aluno** por um campo `role` na tabela
@@ -75,7 +78,7 @@ O app diferencia **treinador** de **aluno** por um campo `role` na tabela
 
 ### B1. Criar o repositório
 1. Crie uma conta em <https://github.com> (se ainda não tiver).
-2. Clique **New repository**. Nome ex: `meu-squad`. Deixe **Private**. Não marque
+2. Clique **New repository**. Nome ex: `montinho-app`. Deixe **Private**. Não marque
    nenhuma opção de "inicializar com README". Clique **Create**.
 
 ### B2. Subir o código
@@ -86,11 +89,11 @@ git init
 git add .
 git commit -m "primeiro commit do meu app"
 git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/meu-squad.git
+git remote add origin https://github.com/SEU-USUARIO/montinho-app.git
 git push -u origin main
 ```
 
-(Troque `SEU-USUARIO/meu-squad` pelo endereço do seu repositório.)
+(Troque `SEU-USUARIO/montinho-app` pelo endereço do seu repositório.)
 
 > ✅ O arquivo `.gitignore` já garante que `.env.local` e suas senhas **não**
 > sejam enviados ao GitHub. Confira: depois do push, o `.env.local` NÃO deve
@@ -102,7 +105,7 @@ git push -u origin main
 
 ### C1. Importar o projeto
 1. Crie uma conta em <https://vercel.com> e conecte seu GitHub.
-2. Clique **Add New → Project** e selecione o repositório `meu-squad`.
+2. Clique **Add New → Project** e selecione o repositório `montinho-app`.
 3. A Vercel detecta Next.js sozinha — não precisa mudar configuração de build.
 
 ### C2. Variáveis de ambiente
@@ -114,7 +117,9 @@ chaves do seu `.env.local`:
 | `NEXT_PUBLIC_SUPABASE_URL` | sua Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sua anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | sua service_role key |
-| `NEXT_PUBLIC_APP_URL` | a URL final da Vercel (ex: `https://meu-squad.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | a URL final da Vercel (ex: `https://montinho-app.vercel.app`) |
+
+> Não defina `NEXT_PUBLIC_DEMO_MODE=true` na Vercel: produção deve rodar só com dados reais.
 
 > Dica: você pode fazer o primeiro deploy, ver qual URL a Vercel gerou, e então
 > voltar e preencher `NEXT_PUBLIC_APP_URL` com ela.

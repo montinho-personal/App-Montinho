@@ -61,33 +61,34 @@ export function enfileirar(storage: StorageLike, sessionId: string, op: Omit<Ope
 /**
  * Drena a fila em ordem. Para no primeiro erro transitório (mantém a ordem);
  * erros definitivos (4xx de validação) descartam a operação para não travar a fila.
+ * A fila é RELIDA a cada passo: operações enfileiradas durante o envio nunca
+ * são perdidas (cada passo remove só a operação confirmada).
  */
 export async function drenar(storage: StorageLike, sessionId: string, enviar: EnviarFn, maxTentativas = 8): Promise<{ confirmadas: number; restantes: OperacaoFila[]; erro: string | null }> {
-  let fila = lerFila(storage, sessionId);
   let confirmadas = 0;
   let erro: string | null = null;
-  while (fila.length) {
+  const mesma = (a: OperacaoFila, b: OperacaoFila) => a.tipo === b.tipo && a.clientKey === b.clientKey;
+  for (let guard = 0; guard < 500; guard++) {
+    const fila = lerFila(storage, sessionId);
+    if (!fila.length) break;
     const op = fila[0];
     const r = await enviar(op);
+    const atual = lerFila(storage, sessionId); // pode ter crescido durante o envio
     if (r.ok) {
       confirmadas += 1;
-      fila = fila.slice(1);
-      gravarFila(storage, sessionId, fila);
+      gravarFila(storage, sessionId, atual.filter((x) => !mesma(x, op)));
       continue;
     }
     if (r.definitivo || op.tentativas + 1 >= maxTentativas) {
-      // descarta para não bloquear as demais; o erro fica registrado
       erro = r.erro;
-      fila = fila.slice(1);
-      gravarFila(storage, sessionId, fila);
+      gravarFila(storage, sessionId, atual.filter((x) => !mesma(x, op)));
       continue;
     }
-    fila = [{ ...op, tentativas: op.tentativas + 1, ultimoErro: r.erro }, ...fila.slice(1)];
-    gravarFila(storage, sessionId, fila);
     erro = r.erro;
+    gravarFila(storage, sessionId, atual.map((x) => (mesma(x, op) ? { ...x, tentativas: x.tentativas + 1, ultimoErro: r.erro } : x)));
     break;
   }
-  return { confirmadas, restantes: fila, erro };
+  return { confirmadas, restantes: lerFila(storage, sessionId), erro };
 }
 
 /** Reconcilia o estado local com o que o servidor confirmou (séries por client_key). */

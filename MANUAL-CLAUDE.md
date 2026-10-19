@@ -90,8 +90,8 @@ valores entre aspas e os códigos de cor (`#xxxxxx`).
 
 ### Nome
 ```ts
-name: "Squad",            // troque pelo nome curto (ex: "FELIPE TEAM")
-fullName: "Squad App",    // nome completo (ex: "Felipe Team — Consultoria")
+name: "Montinho",            // troque pelo nome curto (ex: "FELIPE TEAM")
+fullName: "Montinho App",    // nome completo (ex: "Felipe Team — Consultoria")
 tagline: "Treino, dieta e evolução no mesmo lugar.",
 ```
 
