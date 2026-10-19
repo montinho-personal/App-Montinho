@@ -37,7 +37,7 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 ## Pendências reais (precisam de você)
 
 1. **Logotipo original**: o app usa o SVG público do site oficial. Se houver arquivo vetorial do designer (com variações de cor), substitua `public/brand/logo.svg`, `logo-fundo-claro.svg` e `mark.svg`.
-2. **Credenciais**: criar projeto Supabase, rodar as migrations 0001→0009 na ordem, configurar `.env.local`/Vercel (SETUP.md). Sem isso o app só roda em demo.
+2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0010 e o deploy na Vercel já estão feitos.
 3. **Primeiro treinador**: após criar sua conta, mudar `role` para `treinador` em `profiles`.
 4. **Biblioteca de exercícios**: revisar grupos (a importação antiga usa `pernas`); classificar os itens em quadríceps/posteriores etc. Enquanto isso, o montador marca “a classificar”.
 5. **WhatsApp de atendimento**: preencher `BRAND.contact.whatsapp` se quiser o botão “Falar com o Montinho”.

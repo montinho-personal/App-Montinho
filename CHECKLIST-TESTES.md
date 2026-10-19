@@ -1,6 +1,6 @@
 # Checklist de testes — Montinho Personal Trainer
 
-Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 local (stub do Supabase), Chromium via Playwright. Sem projeto Supabase real disponível nesta sessão (credenciais não fornecidas) — os cenários que exigem Supabase/Auth real estão marcados como **NÃO EXECUTADO** com o caminho para executá-los.
+Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 local (stub do Supabase), Chromium via Playwright. Projeto Supabase real `app-montinho` criado e migrado (0001→0010) e app publicado na Vercel no fim da sessão; os cenários que exigem login real com dois alunos continuam marcados como **NÃO EXECUTADO** até existir a primeira conta de treinador.
 
 ## Comandos de qualidade
 
@@ -10,7 +10,7 @@ Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 l
 | `npx tsc --noEmit` | PASSOU | sem erros |
 | `npm run build` | PASSOU | 44 rotas compiladas; rotas autenticadas marcadas `force-dynamic` |
 | `npm test` (vitest) | PASSOU | 5 arquivos · **52 testes** |
-| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0009 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T6) |
+| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0010 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T6) |
 
 ## Testes automatizados por tema
 
@@ -46,5 +46,5 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 ## Não executado (com motivo)
 
 - Login real (senha/magic link), convite de aluno por e-mail, storage de fotos e RLS **no Supabase**: sem credenciais nesta sessão. Caminho: SETUP.md → `scripts/seed-demo.sql` (opcional) → repetir cenários C, G, H com dois alunos reais.
-- Deploy na Vercel: sem acesso ao projeto. Caminho: SETUP.md Parte C.
+- Deploy na Vercel: **EXECUTADO** — `https://app-montinho.vercel.app` responde a tela de login real (modo `live`, sem banner de demo); Security Advisor do Supabase após a 0010 só mantém avisos intencionais (`is_treinador`/`aluno_id_atual` são as funções das policies de RLS e `marcar_ultimo_treino` exige login e valida o dono). Falta a chave `service_role` (convite por e-mail) e a URL no Auth — SETUP.md, "Pendências de ativação".
 - Teste em dispositivo físico com rede instável (modo avião): não há dispositivo. A fila local foi validada por unit test e pelo e2e em Chromium.

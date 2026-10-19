@@ -43,7 +43,14 @@ PGHOST=localhost PGPORT=5432 PGUSER=postgres npm run db:test   # migrations + RL
 
 ## Publicar
 
-1. Supabase: rodar `supabase/migrations/0001…0009` na ordem (SQL Editor ou `supabase db push`).
+**Já publicado:** <https://app-montinho.vercel.app> (Vercel, branch `main`) ligado ao
+Supabase `app-montinho` (ref `bixfqkisvzrpxbiscqdd`, migrations 0001→0010). Pendências
+que dependem da conta do dono (chave `service_role`, URL no Auth, primeiro treinador):
+SETUP.md → "Pendências de ativação".
+
+Para recriar do zero:
+
+1. Supabase: rodar `supabase/migrations/0001…0010` na ordem (SQL Editor ou `supabase db push`).
 2. Vercel: importar o repositório e definir `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`. **Não** defina `NEXT_PUBLIC_DEMO_MODE` em produção.
 3. Supabase Auth → URL Configuration: adicionar a URL da Vercel.
 4. Criar sua conta pelo app e mudar `profiles.role` para `treinador`.
@@ -67,7 +74,7 @@ src/
     ├── sync/          fila local idempotente
     ├── validacao/     schemas zod
     └── mock/          dados fictícios do modo demo
-supabase/migrations/   0001–0009
+supabase/migrations/   0001–0010
 scripts/               testes de RLS em Postgres local, seed fictício
 docs/screenshots/      evidências visuais
 ```

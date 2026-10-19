@@ -9,6 +9,15 @@ com plano gratuito suficiente pra começar.
 
 A ordem recomendada: **Supabase → GitHub → Vercel**.
 
+> **Estado atual (19/10/2026): já está no ar.** Supabase `app-montinho`
+> (ref `bixfqkisvzrpxbiscqdd`, São Paulo) com as migrations 0001→0010 aplicadas;
+> código em `main` no GitHub (`montinho-personal/App-Montinho`); Vercel
+> `app-montinho` publicado em <https://app-montinho.vercel.app> com
+> `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `NEXT_PUBLIC_APP_URL`.
+> **Faltam só três coisas que exigem a sua conta** — veja a seção
+> "Pendências de ativação" no fim deste arquivo. O passo a passo abaixo fica
+> como referência para recriar tudo do zero.
+
 ---
 
 ## Parte A — Banco de dados (Supabase)
@@ -23,10 +32,11 @@ A ordem recomendada: **Supabase → GitHub → Vercel**.
 1. No menu lateral do Supabase, abra **SQL Editor**.
 2. Abra a pasta `supabase/migrations/` deste projeto. Você verá vários arquivos
    `.sql` numerados (`0001_...`, `0002_...`, etc.).
-3. **Na ordem numérica** (0001 → 0009), abra cada arquivo, copie todo o conteúdo, cole no SQL
+3. **Na ordem numérica** (0001 → 0010), abra cada arquivo, copie todo o conteúdo, cole no SQL
    Editor e clique **Run**. Faça um de cada vez, do menor número ao maior.
    A 0008 só cria valores de enum; a 0009 cria sessões, versões e memória e
-   migra o logbook antigo sem apagar nada (rode fora do horário de uso se já houver dados).
+   migra o logbook antigo sem apagar nada (rode fora do horário de uso se já houver dados);
+   a 0010 endurece as funções (search_path fixo, trigger de cadastro fora da API).
 4. Se algum der erro de "já existe", pode seguir — significa que aquela parte já
    foi criada.
 
@@ -145,3 +155,31 @@ publicado.
 - [ ] URL da Vercel liberada no Supabase Auth (C4)
 
 Travou em algum item? Copie ele aqui no Claude Code e peça pra te guiar. 🚀
+
+---
+
+## Pendências de ativação (só você consegue fazer)
+
+O ambiente já existe; estes três passos usam chaves ou telas da sua conta.
+
+1. **Chave `service_role` na Vercel** (necessária só para o botão *+ Novo aluno*,
+   que envia o convite por e-mail; o resto do app funciona sem ela).
+   - Supabase → projeto `app-montinho` → **Project Settings → API Keys** → copie **service_role**.
+   - Vercel → projeto `app-montinho` → **Settings → Environment Variables** → *Add*:
+     nome `SUPABASE_SERVICE_ROLE_KEY`, valor colado, ambiente **Production** → *Save*.
+   - Vercel → **Deployments** → menu `⋯` do último deploy → **Redeploy**.
+2. **Liberar a URL do app no login do Supabase** (sem isso o link por e-mail volta para `localhost`).
+   - Supabase → **Authentication → URL Configuration**:
+     **Site URL** = `https://app-montinho.vercel.app`;
+     **Redirect URLs** → *Add URL* = `https://app-montinho.vercel.app/**` → *Save*.
+3. **Sua conta de treinador.**
+   - Abra <https://app-montinho.vercel.app/login>, clique **receber link no e-mail**,
+     informe seu e-mail e entre pelo link (ou crie uma senha pela tela).
+   - Supabase → **Table Editor → profiles** → sua linha → campo **role** = `treinador` → *Save*.
+   - Recarregue o app: você cai no painel do treinador.
+
+> Observação técnica: na Vercel, a *Deployment Protection* ficou ligada só para
+> **previews**; a produção é pública (os alunos entram pelo login do app).
+> No Supabase, a 0009 foi aplicada em duas partes (a remoção das políticas de
+> escrita do aluno no `logbook` virou `alter policy … (false)`, mesmo efeito),
+> por limitação do conector; nada muda para o app.
