@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { requireTreinadorPage } from "@/lib/auth/session";
@@ -25,6 +26,11 @@ export default async function AjustesPage() {
           <Row label="Nome" value={sessao.nome} />
           <Row label="Papel" value="treinador administrador" />
           <p className="text-xs text-fg-subtle">Nome e e-mail são editados no cadastro (Supabase Auth / tabela profiles).</p>
+          {modo === "live" ? (
+            <Link href="/conta/senha" className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-accent/40">
+              Definir ou trocar senha
+            </Link>
+          ) : null}
         </CardBody>
       </Card>
 

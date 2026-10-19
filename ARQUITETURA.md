@@ -80,6 +80,7 @@ Regras garantidas por teste: aquecimento não conta; cardio/outro não contam; d
 ## 6. Autorização
 
 - **Banco**: RLS em todas as tabelas (treinador via `is_treinador()`, aluno via `aluno_id_atual()`; séries via dono da sessão; versões sem update/delete; memória só treinador; storage de fotos por pasta `<aluno_id>/`).
+- **Links de e-mail**: `src/app/auth/callback/route.ts` troca `code` (PKCE) ou `token_hash` por sessão em cookie e segue para `next` (só caminhos relativos); falha → `/login?erro=link`. `/conta/senha` (`updateUser`) define ou troca a senha de quem já está logado.
 - **Servidor**: `getSessao()` resolve papel e `aluno_id` por `auth.uid()`; páginas e APIs nunca recebem o aluno por constante ou parâmetro sem checagem (`podeAcessarAluno`). Página do treino confere `treino.aluno_id === sessao.alunoId` além da RLS.
 - **Demo**: personas fixas; cookie `montinho_demo`; store em memória separado de qualquer dado real; nunca ativa em produção sem flag explícita.
 - **Testes**: `scripts/sql/test-rls.sql` (aluno A não lê/escreve B; aluno não cria template nem lê memória; idempotência; versões imutáveis) e `src/lib/auth/guards.test.ts`.

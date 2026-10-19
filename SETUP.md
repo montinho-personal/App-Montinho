@@ -173,10 +173,23 @@ O ambiente já existe; estes três passos usam chaves ou telas da sua conta.
      **Site URL** = `https://app-montinho.vercel.app`;
      **Redirect URLs** → *Add URL* = `https://app-montinho.vercel.app/**` → *Save*.
 3. **Sua conta de treinador.**
-   - Abra <https://app-montinho.vercel.app/login>, clique **receber link no e-mail**,
-     informe seu e-mail e entre pelo link (ou crie uma senha pela tela).
+   - Abra <https://app-montinho.vercel.app/login>, digite seu e-mail e clique
+     **receber link no e-mail**. Abra o link **uma vez só, no mesmo navegador**
+     em que pediu (cada link vale 1 hora; um link já usado mostra "Esse link não vale mais").
    - Supabase → **Table Editor → profiles** → sua linha → campo **role** = `treinador` → *Save*.
-   - Recarregue o app: você cai no painel do treinador.
+   - Recarregue o app: você cai no painel do treinador. Em **Ajustes → Definir ou
+     trocar senha** crie uma senha para entrar sem depender do link.
+   - Esqueceu a senha? Na tela de entrada, **esqueci a senha** envia um e-mail que
+     leva direto à tela de nova senha.
+
+4. **(Opcional) Links que funcionam em qualquer aparelho.** Por padrão o link do
+   e-mail só completa o login no navegador que o pediu. Para abrir no celular um
+   link pedido no computador, troque os modelos de e-mail do Supabase:
+   **Authentication → Email Templates**, em *Magic Link* e *Confirm signup*
+   substitua `{{ .ConfirmationURL }}` por
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink`
+   e, em *Reset Password*, por
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery`.
 
 > Observação técnica: na Vercel, a *Deployment Protection* ficou ligada só para
 > **previews**; a produção é pública (os alunos entram pelo login do app).

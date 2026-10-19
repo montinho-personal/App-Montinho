@@ -1,18 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldHint } from "@/components/ui/Input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { BRAND } from "@/config/brand";
 
-export function LoginClient({ next }: { next: string }) {
+const MSG_LINK = "Esse link não vale mais: ele já foi usado ou passou do prazo. Digite seu e-mail e peça um novo link.";
+
+export function LoginClient({ next, erroInicial = null }: { next: string; erroInicial?: "link" | null }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(erroInicial === "link" ? MSG_LINK : null);
+  const [sent, setSent] = useState<"link" | "senha" | false>(false);
+
+  // O Supabase devolve erros de link no fragmento (#error=...), invisível ao servidor.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash.includes("error=")) return;
+    const t = setTimeout(() => {
+      setError(MSG_LINK);
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -40,11 +52,32 @@ export function LoginClient({ next }: { next: string }) {
     setLoading(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/` } });
+      const redirect = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || "/")}`;
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect } });
       if (error) throw error;
-      setSent(true);
+      setSent("link");
     } catch {
       setError("Não foi possível enviar o link agora. Tente de novo em instantes.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEsqueciSenha() {
+    if (!email) {
+      setError("Digite seu e-mail primeiro.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const redirect = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/conta/senha")}`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+      if (error) throw error;
+      setSent("senha");
+    } catch {
+      setError("Não foi possível enviar o e-mail agora. Tente de novo em instantes.");
     } finally {
       setLoading(false);
     }
@@ -60,10 +93,11 @@ export function LoginClient({ next }: { next: string }) {
         {sent ? (
           <div className="text-center py-6" role="status">
             <div className="text-accent text-4xl mb-3" aria-hidden>✉</div>
-            <p className="font-semibold">Link enviado!</p>
+            <p className="font-semibold">{sent === "senha" ? "E-mail enviado!" : "Link enviado!"}</p>
             <p className="text-sm text-fg-muted mt-2">
-              Confira o e-mail <span className="text-fg">{email}</span> e toque no link para entrar.
+              Confira o e-mail <span className="text-fg">{email}</span> e toque no link {sent === "senha" ? "para definir uma nova senha" : "para entrar"}.
             </p>
+            <p className="text-xs text-fg-subtle mt-3">Abra o link neste mesmo aparelho e navegador, uma vez só. Cada link vale por 1 hora; se não chegar, veja a caixa de spam.</p>
           </div>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4" noValidate>
@@ -78,6 +112,10 @@ export function LoginClient({ next }: { next: string }) {
                 Ou{" "}
                 <button type="button" onClick={handleMagicLink} className="text-accent underline-offset-2 hover:underline">
                   receber link no e-mail
+                </button>
+                {" · "}
+                <button type="button" onClick={handleEsqueciSenha} className="text-accent underline-offset-2 hover:underline">
+                  esqueci a senha
                 </button>
               </FieldHint>
             </div>

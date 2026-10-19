@@ -9,6 +9,7 @@ import { listAdaptacoes, listIntervencoes } from "@/lib/data/acompanhamento";
 import { dataBR } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { SairButton } from "./SairButton";
+import { appMode } from "@/lib/env";
 
 export const metadata = { title: "Perfil" };
 
@@ -128,6 +129,12 @@ export default async function PerfilPage() {
         <a href={`https://wa.me/${BRAND.contact.whatsapp}`} target="_blank" rel="noreferrer" className="touch inline-flex w-full items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold hover:border-accent/40">
           Falar com o {BRAND.name} no WhatsApp
         </a>
+      ) : null}
+
+      {appMode() === "live" ? (
+        <Link href="/conta/senha" className="touch inline-flex w-full items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold hover:border-accent/40">
+          Definir ou trocar senha
+        </Link>
       ) : null}
 
       <SairButton />
