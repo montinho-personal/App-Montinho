@@ -1,9 +1,12 @@
 // Tipos das tabelas adicionadas em 0003_features_expansion.sql
 
+// Espelha o enum grupo_muscular (0003 + 0008). "pernas" é LEGADO ("a classificar").
 export type GrupoMuscular =
-  | "peito" | "costas" | "pernas" | "gluteo" | "ombros"
-  | "biceps" | "triceps" | "antebraco" | "abdomen" | "core"
-  | "panturrilha" | "cardio" | "full_body" | "outro";
+  | "peito" | "costas" | "ombros" | "ombro_anterior" | "ombro_lateral" | "ombro_posterior"
+  | "trapezio" | "biceps" | "triceps" | "antebraco"
+  | "quadriceps" | "posteriores" | "gluteo" | "adutores" | "abdutores" | "panturrilha"
+  | "abdomen" | "core" | "lombar"
+  | "cardio" | "full_body" | "pernas" | "nao_classificado" | "outro";
 
 export type Equipamento =
   | "barra" | "halter" | "maquina" | "polia" | "peso_corporal"
@@ -28,6 +31,8 @@ export type ExercicioBiblioteca = {
   observacoes: string | null;
   dificuldade: number | null;
   arquivado: boolean;
+  sinonimos?: string[];
+  video_validado?: boolean;
   created_at: string;
   updated_at: string;
 };

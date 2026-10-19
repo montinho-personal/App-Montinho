@@ -55,21 +55,35 @@ export type VolumeRange = {
   mrv: number;  // Maximum Recoverable Volume — teto absoluto
 };
 
+// AVISO (Prompt Mestre §4.1.6): estes números são REFERÊNCIAS HEURÍSTICAS, não
+// limites clínicos nem classificação automática "ideal/sobrecarga". A Tabela de
+// Volume usa metas definidas por aluno (src/lib/volume/referencias.ts) com
+// rótulos neutros. Mantido aqui por compatibilidade com telas antigas.
 export const VOLUME_POR_GRUPO: Record<GrupoMuscular, VolumeRange> = {
-  peito:       { mv: 8,  mev: 10, mav: 16, mrv: 22 },
-  costas:      { mv: 8,  mev: 10, mav: 18, mrv: 25 },
-  pernas:      { mv: 6,  mev: 8,  mav: 14, mrv: 20 },
-  gluteo:      { mv: 0,  mev: 4,  mav: 12, mrv: 16 },
-  ombros:      { mv: 6,  mev: 8,  mav: 16, mrv: 22 },
-  biceps:      { mv: 5,  mev: 8,  mav: 14, mrv: 20 },
-  triceps:     { mv: 4,  mev: 6,  mav: 12, mrv: 18 },
-  antebraco:   { mv: 0,  mev: 2,  mav: 8,  mrv: 12 },
-  abdomen:     { mv: 0,  mev: 0,  mav: 12, mrv: 25 },
-  core:        { mv: 0,  mev: 0,  mav: 12, mrv: 25 },
-  panturrilha: { mv: 6,  mev: 8,  mav: 14, mrv: 20 },
-  cardio:      { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
-  full_body:   { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
-  outro:       { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
+  peito:            { mv: 8,  mev: 10, mav: 16, mrv: 22 },
+  costas:           { mv: 8,  mev: 10, mav: 18, mrv: 25 },
+  ombros:           { mv: 6,  mev: 8,  mav: 16, mrv: 22 },
+  ombro_anterior:   { mv: 0,  mev: 0,  mav: 6,  mrv: 10 },
+  ombro_lateral:    { mv: 4,  mev: 6,  mav: 12, mrv: 18 },
+  ombro_posterior:  { mv: 4,  mev: 6,  mav: 12, mrv: 18 },
+  trapezio:         { mv: 0,  mev: 4,  mav: 10, mrv: 16 },
+  biceps:           { mv: 5,  mev: 8,  mav: 14, mrv: 20 },
+  triceps:          { mv: 4,  mev: 6,  mav: 12, mrv: 18 },
+  antebraco:        { mv: 0,  mev: 2,  mav: 8,  mrv: 12 },
+  quadriceps:       { mv: 6,  mev: 8,  mav: 14, mrv: 20 },
+  posteriores:      { mv: 4,  mev: 6,  mav: 12, mrv: 16 },
+  gluteo:           { mv: 0,  mev: 4,  mav: 12, mrv: 16 },
+  adutores:         { mv: 0,  mev: 2,  mav: 6,  mrv: 10 },
+  abdutores:        { mv: 0,  mev: 2,  mav: 6,  mrv: 10 },
+  panturrilha:      { mv: 6,  mev: 8,  mav: 14, mrv: 20 },
+  abdomen:          { mv: 0,  mev: 0,  mav: 12, mrv: 25 },
+  core:             { mv: 0,  mev: 0,  mav: 12, mrv: 25 },
+  lombar:           { mv: 0,  mev: 0,  mav: 6,  mrv: 10 },
+  cardio:           { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
+  full_body:        { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
+  pernas:           { mv: 6,  mev: 8,  mav: 14, mrv: 20 }, // legado
+  nao_classificado: { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
+  outro:            { mv: 0,  mev: 0,  mav: 0,  mrv: 0 },
 };
 
 export type VolumeStatus = "abaixo_mv" | "manutencao" | "produtivo" | "otimo" | "sobrecarga";
@@ -236,20 +250,30 @@ export function volumeSemanal(
 // Treinar cada grupo 2x/semana > 1x/semana para hipertrofia.
 // ============================================================================
 export const FREQUENCIA_RECOMENDADA: Record<GrupoMuscular, { min: number; ideal: number; max: number }> = {
-  peito:       { min: 1, ideal: 2, max: 3 },
-  costas:      { min: 1, ideal: 2, max: 3 },
-  pernas:      { min: 1, ideal: 2, max: 3 },
-  gluteo:      { min: 1, ideal: 2, max: 4 },
-  ombros:      { min: 1, ideal: 2, max: 4 },
-  biceps:      { min: 2, ideal: 3, max: 5 },
-  triceps:     { min: 2, ideal: 3, max: 5 },
-  antebraco:   { min: 1, ideal: 2, max: 4 },
-  abdomen:     { min: 2, ideal: 3, max: 6 },
-  core:        { min: 2, ideal: 3, max: 6 },
-  panturrilha: { min: 2, ideal: 3, max: 6 },
-  cardio:      { min: 2, ideal: 3, max: 6 },
-  full_body:   { min: 2, ideal: 3, max: 4 },
-  outro:       { min: 1, ideal: 2, max: 4 },
+  peito:            { min: 1, ideal: 2, max: 3 },
+  costas:           { min: 1, ideal: 2, max: 3 },
+  ombros:           { min: 1, ideal: 2, max: 4 },
+  ombro_anterior:   { min: 1, ideal: 2, max: 4 },
+  ombro_lateral:    { min: 1, ideal: 2, max: 4 },
+  ombro_posterior:  { min: 1, ideal: 2, max: 4 },
+  trapezio:         { min: 1, ideal: 2, max: 3 },
+  biceps:           { min: 2, ideal: 3, max: 5 },
+  triceps:          { min: 2, ideal: 3, max: 5 },
+  antebraco:        { min: 1, ideal: 2, max: 4 },
+  quadriceps:       { min: 1, ideal: 2, max: 3 },
+  posteriores:      { min: 1, ideal: 2, max: 3 },
+  gluteo:           { min: 1, ideal: 2, max: 4 },
+  adutores:         { min: 1, ideal: 2, max: 3 },
+  abdutores:        { min: 1, ideal: 2, max: 3 },
+  panturrilha:      { min: 2, ideal: 3, max: 6 },
+  abdomen:          { min: 2, ideal: 3, max: 6 },
+  core:             { min: 2, ideal: 3, max: 6 },
+  lombar:           { min: 1, ideal: 2, max: 3 },
+  cardio:           { min: 2, ideal: 3, max: 6 },
+  full_body:        { min: 2, ideal: 3, max: 4 },
+  pernas:           { min: 1, ideal: 2, max: 3 },
+  nao_classificado: { min: 1, ideal: 2, max: 4 },
+  outro:            { min: 1, ideal: 2, max: 4 },
 };
 
 // ============================================================================
