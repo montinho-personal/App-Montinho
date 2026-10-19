@@ -1,0 +1,181 @@
+-- ============================================================================
+-- Testes de autorização (RLS) e da migração do logbook legado.
+-- Roda no Postgres local (scripts/db-local-test.sh). Cada bloco levanta
+-- exceção se a expectativa falhar; a saída "TODOS OS TESTES PASSARAM" é a prova.
+-- ============================================================================
+\set ON_ERROR_STOP on
+\set QUIET on
+
+-- Helpers para "logar" como alguém (simula o JWT do Supabase)
+create or replace function test_login(uid uuid) returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claim.sub', uid::text, false);
+  perform set_config('request.jwt.claim.role', 'authenticated', false);
+  perform set_config('role', 'authenticated', false);
+end $$;
+create or replace function test_logout() returns void language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', false);
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- T1. Migração do logbook legado
+-- ---------------------------------------------------------------------------
+do $$
+declare n int;
+begin
+  select count(*) into n from training_sessions where origem = 'legado_logbook';
+  if n <> 3 then raise exception 'T1a: esperava 3 sessões legadas (A 05-01, A 05-03, B 05-02), obteve %', n; end if;
+  select count(*) into n from session_sets;
+  if n <> 6 then raise exception 'T1b: esperava 6 séries migradas, obteve %', n; end if;
+  select count(*) into n from logbook where session_set_id is null;
+  if n <> 0 then raise exception 'T1c: % linhas do logbook ficaram sem migrar', n; end if;
+  select series_concluidas into n from training_sessions where client_key like 'legado:aaaaaaaa%2026-05-01%';
+  if n <> 4 then raise exception 'T1d: sessão de 05-01 deveria ter 4 séries válidas (inclui duplicata preservada), obteve %', n; end if;
+  raise notice 'T1 OK: logbook legado migrado sem perda';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- T2. Aluno A só vê os próprios dados
+-- ---------------------------------------------------------------------------
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int;
+begin
+  select count(*) into n from treinos;
+  if n <> 1 then raise exception 'T2a: aluno A deveria ver 1 treino, viu %', n; end if;
+  select count(*) into n from treinos where aluno_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  if n <> 0 then raise exception 'T2b: aluno A viu treino do aluno B'; end if;
+  select count(*) into n from training_sessions;
+  if n <> 2 then raise exception 'T2c: aluno A deveria ver 2 sessões, viu %', n; end if;
+  select count(*) into n from session_sets;
+  if n <> 5 then raise exception 'T2d: aluno A deveria ver 5 séries, viu %', n; end if;
+  select count(*) into n from exercicios where treino_id = 'cccccccc-cccc-cccc-cccc-ccccccccccc2';
+  if n <> 0 then raise exception 'T2e: aluno A viu exercícios do aluno B'; end if;
+  select count(*) into n from storage.objects where name like 'bbbbbbbb%';
+  if n <> 0 then raise exception 'T2f: aluno A viu foto do aluno B no storage'; end if;
+  select count(*) into n from storage.objects where name like 'aaaaaaaa%';
+  if n <> 1 then raise exception 'T2g: aluno A deveria ver a própria foto'; end if;
+  raise notice 'T2 OK: isolamento de leitura entre alunos';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- T3. Aluno A não escreve em nome do aluno B nem em tabelas administrativas
+-- ---------------------------------------------------------------------------
+do $$
+declare ok boolean := false; n int;
+begin
+  begin
+    insert into training_sessions (aluno_id, client_key) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'ataque-1');
+  exception when insufficient_privilege or others then ok := true; end;
+  if not ok then raise exception 'T3a: aluno A criou sessão para o aluno B'; end if;
+
+  ok := false;
+  begin
+    insert into templates_treino (nome, estrutura) values ('hack', '{}'::jsonb);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T3b: aluno criou template'; end if;
+
+  ok := false;
+  begin
+    insert into logbook (aluno_id, exercicio_id, data, serie, reps) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','dddddddd-dddd-dddd-dddd-dddddddddddd', current_date, 1, 10);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T3c: aluno ainda escreve no logbook legado'; end if;
+
+  ok := false;
+  begin
+    insert into biblioteca_programas (hash_estrutura, nome, estrutura) values ('h','x','{}'::jsonb);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T3d: aluno escreveu na memória de prescrições'; end if;
+
+  select count(*) into n from biblioteca_programas;
+  if n <> 0 then raise exception 'T3e: aluno leu a memória de prescrições'; end if;
+
+  -- update em treino alheio não afeta linhas (RLS filtra silenciosamente)
+  update treinos set nome = 'hackeado' where id = 'cccccccc-cccc-cccc-cccc-ccccccccccc2';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T3f: aluno A alterou treino do aluno B'; end if;
+  update treinos set nome = 'hackeado' where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T3g: aluno alterou o próprio plano prescrito'; end if;
+
+  delete from programa_versoes;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T3h: aluno apagou versões'; end if;
+  raise notice 'T3 OK: escrita bloqueada fora do escopo do aluno';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- T4. Aluno A registra sessão própria com idempotência
+-- ---------------------------------------------------------------------------
+do $$
+declare sid uuid; seid uuid; n int; ok boolean := false;
+begin
+  insert into training_sessions (aluno_id, treino_id, client_key, letra, nome_treino)
+  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','cccccccc-cccc-cccc-cccc-cccccccccccc','dev-1:sessao-1','A','Treino A')
+  returning id into sid;
+  insert into session_exercises (session_id, exercicio_id, client_key, ordem, nome, series_planejadas)
+  values (sid, 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'ex-1', 0, 'Supino reto', 3) returning id into seid;
+  insert into session_sets (session_id, session_exercise_id, client_key, serie, carga_kg, reps)
+  values (sid, seid, 'set-1', 1, 30, 10);
+  -- reenvio da mesma série (rede instável): deve ser rejeitado pelo UNIQUE, não duplicado
+  begin
+    insert into session_sets (session_id, session_exercise_id, client_key, serie, carga_kg, reps)
+    values (sid, seid, 'set-1', 1, 30, 10);
+  exception when unique_violation then ok := true; end;
+  if not ok then raise exception 'T4a: reenvio duplicou série'; end if;
+  -- mesmo exercício duas vezes no mesmo dia: segunda sessão com outro client_key é permitida
+  insert into training_sessions (aluno_id, treino_id, client_key, letra, nome_treino)
+  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','cccccccc-cccc-cccc-cccc-cccccccccccc','dev-1:sessao-2','A','Treino A');
+  select count(*) into n from training_sessions where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and status = 'em_andamento';
+  if n <> 2 then raise exception 'T4b: esperava 2 sessões em andamento, obteve %', n; end if;
+  update training_sessions set status = 'concluida', finalizado_em = now() where id = sid;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'T4c: aluno não conseguiu finalizar a própria sessão'; end if;
+  raise notice 'T4 OK: sessão própria idempotente';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- T5. Aluno B não enxerga nem altera a sessão nova de A
+-- ---------------------------------------------------------------------------
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from training_sessions where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if n <> 0 then raise exception 'T5a: aluno B viu sessões de A'; end if;
+  select count(*) into n from session_sets where client_key = 'set-1';
+  if n <> 0 then raise exception 'T5b: aluno B viu séries de A'; end if;
+  update training_sessions set feedback_comentario = 'x' where client_key = 'dev-1:sessao-1';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T5c: aluno B alterou sessão de A'; end if;
+  select count(*) into n from adaptacoes;
+  if n <> 0 then raise exception 'T5d: adaptações vazaram'; end if;
+  raise notice 'T5 OK: aluno B isolado de A';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- T6. Treinador vê tudo, cria versão e memória; versão é imutável
+-- ---------------------------------------------------------------------------
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int; vid uuid;
+begin
+  select count(*) into n from training_sessions;
+  if n < 5 then raise exception 'T6a: treinador deveria ver todas as sessões, viu %', n; end if;
+  insert into programa_versoes (aluno_id, versao, autor_id, snapshot)
+  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, '11111111-1111-1111-1111-111111111111', '{"treinos":[]}'::jsonb)
+  returning id into vid;
+  update programa_versoes set motivo = 'tentativa' where id = vid;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T6b: versão deveria ser imutável (sem policy de update)'; end if;
+  insert into biblioteca_programas (hash_estrutura, nome, estrutura, metadados)
+  values ('hash-1', 'Upper/Lower 4 dias', '{"treinos":[]}'::jsonb, '{"dias":4}'::jsonb);
+  select count(*) into n from biblioteca_programas;
+  if n <> 1 then raise exception 'T6c: treinador não leu a memória'; end if;
+  raise notice 'T6 OK: treinador autorizado, versões imutáveis';
+end $$;
+
+select test_logout();
+\echo 'TODOS OS TESTES PASSARAM'
