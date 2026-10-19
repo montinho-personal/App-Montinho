@@ -18,9 +18,9 @@ import type {
 // ============================================================================
 export const mockProfiles: Profile[] = [
   {
-    id: "trainer-pedro",
+    id: "trainer-montinho",
     email: "treinador@exemplo.com",
-    nome: "Treinador Demo",
+    nome: "Montinho (demo)",
     role: "treinador",
     avatar_url: null,
     created_at: "2026-01-01T00:00:00Z",

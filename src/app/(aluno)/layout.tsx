@@ -1,25 +1,29 @@
+export const dynamic = "force-dynamic";
+
 import { Logo } from "@/components/brand/Logo";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
+import { requireAlunoPage } from "@/lib/auth/session";
 
 const TABS = [
-  { label: "Treino", href: "/aluno", icon: "🏋" },
-  { label: "Dieta", href: "/aluno/dieta", icon: "🥗" },
-  { label: "Evolução", href: "/aluno/evolucao", icon: "📈" },
-  { label: "Perfil", href: "/aluno/perfil", icon: "👤" },
-];
+  { label: "Início", href: "/aluno", icon: "home" },
+  { label: "Treinar", href: "/aluno/treinar", icon: "dumbbell" },
+  { label: "Evolução", href: "/aluno/evolucao", icon: "chart" },
+  { label: "Perfil", href: "/aluno/perfil", icon: "user" },
+] as const;
 
-export default function AlunoLayout({ children }: { children: React.ReactNode }) {
+export default async function AlunoLayout({ children }: { children: React.ReactNode }) {
+  await requireAlunoPage();
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <header className="px-5 py-4 border-b border-border bg-surface/50">
-        <div className="max-w-md mx-auto">
-          <Logo variant="full" color="white" height={28} priority />
+      <header className="px-5 py-3 border-b border-border bg-surface/60 backdrop-blur">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <Logo variant="full" height={34} priority />
         </div>
       </header>
-      <main className="flex-1 pb-24">
-        <div className="max-w-md mx-auto px-5 py-6">{children}</div>
+      <main id="conteudo" className="flex-1 pb-28">
+        <div className="max-w-md mx-auto px-4 py-5">{children}</div>
       </main>
-      <MobileTabBar items={TABS} />
+      <MobileTabBar items={[...TABS]} />
     </div>
   );
 }

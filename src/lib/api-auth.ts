@@ -1,33 +1,29 @@
-// Helper reutilizável para validar auth em API routes.
+// Helpers de autenticação para Route Handlers (compatibilidade com rotas antigas).
+// Devolvem um cliente AUTENTICADO (RLS). A service role fica restrita a
+// src/lib/supabase/admin.ts e só é usada com checagem explícita (convites, cron).
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getSessao } from "@/lib/auth/session";
+import { getDb } from "@/lib/supabase/rls";
+import { isDemoMode } from "@/lib/env";
 
-export async function requireTreinador() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { user: null, admin: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
-  }
-  const admin = createSupabaseAdminClient();
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "treinador") {
-    return { user: null, admin: null, error: NextResponse.json({ error: "Apenas o treinador pode fazer isso" }, { status: 403 }) };
-  }
-  return { user, admin, error: null };
+type Db = Awaited<ReturnType<typeof getDb>>;
+
+export async function requireTreinador(): Promise<
+  { user: { id: string; nome: string }; db: Db; error: null } | { user: null; db: null; error: NextResponse }
+> {
+  const s = await getSessao();
+  if (!s) return { user: null, db: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
+  if (s.role !== "treinador") return { user: null, db: null, error: NextResponse.json({ error: "Apenas o treinador pode fazer isso" }, { status: 403 }) };
+  if (isDemoMode()) return { user: null, db: null, error: NextResponse.json({ error: "Operação indisponível no modo demonstração" }, { status: 501 }) };
+  return { user: { id: s.userId, nome: s.nome }, db: await getDb(), error: null };
 }
 
-export async function requireAuth() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { user: null, admin: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
-  }
-  const admin = createSupabaseAdminClient();
-  return { user, admin, error: null };
+export async function requireAuth(): Promise<
+  { user: { id: string; nome: string; role: "treinador" | "aluno"; alunoId: string | null }; db: Db; error: null } | { user: null; db: null; error: NextResponse }
+> {
+  const s = await getSessao();
+  if (!s) return { user: null, db: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
+  if (isDemoMode()) return { user: null, db: null, error: NextResponse.json({ error: "Operação indisponível no modo demonstração" }, { status: 501 }) };
+  return { user: { id: s.userId, nome: s.nome, role: s.role, alunoId: s.alunoId }, db: await getDb(), error: null };
 }

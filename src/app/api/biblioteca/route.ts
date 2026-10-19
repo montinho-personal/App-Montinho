@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { requireTreinador } from "@/lib/api-auth";
 
 export async function GET() {
-  const { admin, error } = await requireTreinador();
+  const { db, error } = await requireTreinador();
   if (error) return error;
-  const { data } = await admin!.from("exercicios_biblioteca").select("*").eq("arquivado", false).order("nome");
+  const { data } = await db!.from("exercicios_biblioteca").select("*").eq("arquivado", false).order("nome");
   return NextResponse.json(data ?? []);
 }
 
 export async function POST(request: Request) {
-  const { admin, error } = await requireTreinador();
+  const { db, error } = await requireTreinador();
   if (error) return error;
 
   const body = await request.json().catch(() => null);
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "nome e grupo_muscular são obrigatórios" }, { status: 400 });
   }
 
-  const { data, error: dbErr } = await admin!
+  const { data, error: dbErr } = await db!
     .from("exercicios_biblioteca")
     .insert({
       nome: body.nome,

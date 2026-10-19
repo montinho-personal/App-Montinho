@@ -2,77 +2,117 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { Icon, type IconName } from "@/components/ui/Icon";
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon?: React.ReactNode;
-};
+type NavItem = { label: string; href: string; icon: IconName };
 
-type SidebarProps = {
-  items: NavItem[];
-  footer?: React.ReactNode;
-};
+type SidebarProps = { items: NavItem[]; usuario?: { nome: string } };
 
-export function Sidebar({ items, footer }: SidebarProps) {
+function lerColapsado(): boolean {
+  try {
+    return window.localStorage.getItem("montinho-sidebar") === "collapsed";
+  } catch {
+    return false;
+  }
+}
+function subscribeSidebar(cb: () => void) {
+  window.addEventListener("montinho-sidebar", cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    window.removeEventListener("montinho-sidebar", cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+export function Sidebar({ items, usuario }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("squad-sidebar") === "collapsed";
-  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+  // Preferência persistida (localStorage é um sistema externo → useSyncExternalStore)
+  const collapsed = useSyncExternalStore(subscribeSidebar, () => lerColapsado(), () => false);
 
   function toggle() {
-    setCollapsed((value) => {
-      const next = !value;
-      localStorage.setItem("squad-sidebar", next ? "collapsed" : "open");
-      return next;
-    });
+    try {
+      localStorage.setItem("montinho-sidebar", collapsed ? "open" : "collapsed");
+    } catch {
+      /* sem storage */
+    }
+    window.dispatchEvent(new Event("montinho-sidebar"));
   }
 
+  async function sair() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    window.location.href = "/login";
+  }
+
+  const nav = (
+    <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1" aria-label="Menu do treinador">
+      {items.map((item) => {
+        const active = item.href === "/treinador" ? pathname === "/treinador" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            title={collapsed ? item.label : undefined}
+            aria-current={active ? "page" : undefined}
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${collapsed ? "justify-center" : ""} ${active ? "bg-accent/10 text-accent border border-accent/20" : "text-fg-muted hover:bg-card hover:text-fg"}`}
+          >
+            <Icon name={item.icon} size={18} />
+            {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  const rodape = (
+    <div className="border-t border-border p-3 space-y-2">
+      {!collapsed && usuario ? <p className="text-xs text-fg-subtle truncate px-1">{usuario.nome}</p> : null}
+      <button type="button" onClick={sair} className={`flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-fg-muted hover:bg-card hover:text-fg min-h-[44px] ${collapsed ? "justify-center" : ""}`}>
+        <Icon name="logout" size={16} />
+        {collapsed ? <span className="sr-only">Sair</span> : "Sair"}
+      </button>
+    </div>
+  );
+
   return (
-    <aside
-      className={`${collapsed ? "w-[68px]" : "w-64"} shrink-0 bg-surface border-r border-border flex flex-col h-screen sticky top-0 transition-[width] duration-200`}
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-5">
-        {collapsed ? (
-          <Logo variant="mark" color="white" height={28} priority />
-        ) : (
-          <Logo variant="full" color="white" height={32} priority />
-        )}
-        <button
-          onClick={toggle}
-          title={collapsed ? "Abrir menu" : "Fechar menu"}
-          aria-label={collapsed ? "Abrir menu" : "Fechar menu"}
-          className="grid h-8 w-8 place-items-center rounded-md border border-border text-xs text-fg-muted hover:text-fg shrink-0"
-        >
-          <span aria-hidden>{collapsed ? "›" : "‹"}</span>
+    <>
+      {/* Mobile: barra superior + gaveta */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b border-border bg-surface/95 backdrop-blur px-3 py-2">
+        <Logo variant="full" height={30} priority />
+        <button type="button" onClick={() => setMobileOpen(true)} className="touch rounded-md border border-border px-3 text-fg-muted" aria-label="Abrir menu" aria-expanded={mobileOpen}>
+          <Icon name="menu" />
         </button>
       </div>
-      <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
-        {items.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                collapsed ? "justify-center" : ""
-              } ${
-                active
-                  ? "bg-accent/10 text-accent border border-accent/20"
-                  : "text-fg-muted hover:bg-card hover:text-fg"
-              }`}
-            >
-              {item.icon ? <span className="opacity-80">{item.icon}</span> : null}
-              {collapsed ? null : item.label}
-            </Link>
-          );
-        })}
-      </nav>
-      {!collapsed && footer ? <div className="border-t border-border p-3">{footer}</div> : null}
-    </aside>
+      <div className="md:hidden h-[52px]" aria-hidden />
+      {mobileOpen ? (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/60" onClick={() => setMobileOpen(false)}>
+          <aside className="h-full w-72 bg-surface border-r border-border flex flex-col" onClick={(e) => e.stopPropagation()} aria-label="Menu">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+              <Logo variant="full" height={30} />
+              <button type="button" onClick={() => setMobileOpen(false)} className="touch text-fg-muted" aria-label="Fechar menu">
+                <Icon name="x" />
+              </button>
+            </div>
+            {nav}
+            {rodape}
+          </aside>
+        </div>
+      ) : null}
+
+      {/* Desktop */}
+      <aside className={`hidden md:flex ${collapsed ? "w-[72px]" : "w-64"} shrink-0 bg-surface border-r border-border flex-col h-screen sticky top-0 transition-[width] duration-200`}>
+        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-4">
+          {collapsed ? <Logo variant="mark" height={36} priority /> : <Logo variant="full" height={38} priority />}
+          <button type="button" onClick={toggle} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} className="grid h-8 w-8 place-items-center rounded-md border border-border text-xs text-fg-muted hover:text-fg shrink-0">
+            <span aria-hidden>{collapsed ? "›" : "‹"}</span>
+          </button>
+        </div>
+        {nav}
+        {rodape}
+      </aside>
+    </>
   );
 }

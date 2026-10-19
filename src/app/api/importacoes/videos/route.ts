@@ -11,7 +11,7 @@ function youtubeId(url: string) {
  * Atualiza o vídeo dos exercícios da biblioteca com nome correspondente.
  */
 export async function POST(req: Request) {
-  const { admin, error } = await requireTreinador();
+  const { db, error } = await requireTreinador();
   if (error) return error;
 
   const body = await req.json().catch(() => null);
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const link = linkRaw?.trim();
     if (!nome || !link) continue;
     const id = youtubeId(link);
-    const update = await admin!
+    const update = await db!
       .from("exercicios_biblioteca")
       .update({
         video_provider: "youtube",
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     updates.push({ nome, link, id, count: update.data?.length ?? 0 });
   }
 
-  await admin!.from("squad_import_jobs").insert({
+  await db!.from("squad_import_jobs").insert({
     tipo: "videos",
     status: "processado",
     raw_text: body?.raw_text ?? "",

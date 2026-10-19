@@ -1,0 +1,82 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { SessaoCompleta } from "@/lib/data/sessoes";
+import { evolucaoExercicio } from "@/lib/relatorios/calcular";
+import { dataBR } from "@/lib/format";
+
+/** Seleciona um exercício e mostra sua evolução (carga máxima e e1RM por data) em gráfico simples + tabela. */
+export function EvolucaoExercicioClient({ sessoes, exercicios }: { sessoes: SessaoCompleta[]; exercicios: Array<{ chave: string; nome: string }> }) {
+  const [chave, setChave] = useState(exercicios[0]?.chave ?? "");
+  const pontos = useMemo(() => evolucaoExercicio(sessoes, chave), [sessoes, chave]);
+  const valores = pontos.map((p) => p.cargaMax ?? 0);
+  const max = Math.max(1, ...valores);
+  const min = Math.min(...valores.filter((v) => v > 0), max);
+  const W = 320;
+  const H = 110;
+  const path = pontos
+    .map((p, i) => {
+      const x = pontos.length > 1 ? (i / (pontos.length - 1)) * (W - 20) + 10 : W / 2;
+      const y = H - 10 - ((Math.max(0, p.cargaMax ?? 0) - min) / Math.max(1, max - min)) * (H - 20);
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  if (!exercicios.length) return null;
+  return (
+    <div className="mt-4 space-y-2">
+      <label className="block text-xs font-semibold text-fg-muted" htmlFor="sel-exercicio">
+        Evolução por exercício
+      </label>
+      <select id="sel-exercicio" value={chave} onChange={(e) => setChave(e.target.value)} className="h-10 w-full rounded-md border border-border bg-bg px-2 text-sm">
+        {exercicios.map((e) => (
+          <option key={e.chave} value={e.chave}>
+            {e.nome}
+          </option>
+        ))}
+      </select>
+      {pontos.length < 2 ? (
+        <p className="text-xs text-fg-subtle">Ainda há só {pontos.length} registro para este exercício — a linha aparece a partir de 2.</p>
+      ) : (
+        <figure>
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-28" role="img" aria-label={`Carga máxima por sessão: ${pontos.map((p) => `${dataBR(p.data)} ${p.cargaMax ?? 0} kg`).join(", ")}`}>
+            <line x1="10" y1={H - 10} x2={W - 10} y2={H - 10} stroke="var(--color-border)" />
+            <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="2" />
+            {pontos.map((p, i) => {
+              const x = pontos.length > 1 ? (i / (pontos.length - 1)) * (W - 20) + 10 : W / 2;
+              const y = H - 10 - ((Math.max(0, p.cargaMax ?? 0) - min) / Math.max(1, max - min)) * (H - 20);
+              return <circle key={p.data} cx={x} cy={y} r="3" fill="var(--color-accent)" />;
+            })}
+          </svg>
+          <figcaption className="text-[11px] text-fg-subtle">Eixo vertical: carga máxima (kg) · eixo horizontal: sessões em ordem cronológica ({dataBR(pontos[0].data)} → {dataBR(pontos.at(-1)!.data)}).</figcaption>
+        </figure>
+      )}
+      <table className="w-full text-xs">
+        <thead className="text-[10px] uppercase tracking-wider text-fg-subtle">
+          <tr>
+            <th className="text-left py-1">Data</th>
+            <th className="text-right py-1">Carga máx.</th>
+            <th className="text-right py-1">e1RM</th>
+            <th className="text-right py-1">Séries</th>
+            <th className="text-right py-1">Tonelagem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pontos
+            .slice()
+            .reverse()
+            .slice(0, 8)
+            .map((p) => (
+              <tr key={p.data} className="border-t border-border font-mono">
+                <td className="py-1 font-sans">{dataBR(p.data)}</td>
+                <td className="py-1 text-right">{p.cargaMax ?? "—"}</td>
+                <td className="py-1 text-right">{p.e1rmMax ?? "—"}</td>
+                <td className="py-1 text-right">{p.series}</td>
+                <td className="py-1 text-right">{p.tonelagem}</td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { appMode, DEMO_COOKIE } from "@/lib/env";
+import { redirecionamentoPorPapel, sessaoDoCookieDemo } from "@/lib/auth/guards";
+import { DEMO_PERSONAS } from "@/lib/mock/personas";
 
-const PUBLIC_PATHS = new Set([
-  "/",
-  "/login",
-  "/cadastro",
-  "/pagamento/sucesso",
-]);
+// Proxy = checagem OTIMISTA de rota (Next 16). A autorização de verdade acontece
+// no servidor (src/lib/auth/session.ts) e no banco (RLS). Não confie só aqui.
 
-const PUBLIC_PREFIXES = ["/api/webhook", "/api/cron", "/api/public", "/f/", "/_next", "/favicon"];
+const PUBLIC_PATHS = new Set(["/", "/login", "/cadastro", "/configuracao-pendente", "/pagamento/sucesso"]);
+const PUBLIC_PREFIXES = ["/api/webhook", "/api/cron", "/api/public", "/api/auth", "/f/", "/_next", "/favicon", "/brand/"];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
@@ -18,24 +18,40 @@ function isPublicPath(pathname: string): boolean {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (isPublicPath(pathname)) return NextResponse.next();
 
-  // Rotas públicas: passa direto.
-  if (isPublicPath(pathname)) {
+  const mode = appMode();
+
+  // Nada configurado: NUNCA libera páginas privadas (nem em dev).
+  if (mode === "nao_configurado") {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Aplicação não configurada (Supabase ou modo demo)" }, { status: 503 });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/configuracao-pendente";
+    return NextResponse.redirect(url);
+  }
+
+  // Demo: identidade vem do cookie explícito escolhido em /login.
+  if (mode === "demo") {
+    const sessao = sessaoDoCookieDemo(request.cookies.get(DEMO_COOKIE)?.value, DEMO_PERSONAS);
+    const destino = redirecionamentoPorPapel(sessao?.role ?? null, pathname);
+    if (destino && !pathname.startsWith("/api/")) {
+      const url = request.nextUrl.clone();
+      const [path, query] = destino.split("?");
+      url.pathname = path;
+      url.search = query ? `?${query}` : "";
+      return NextResponse.redirect(url);
+    }
+    if (!sessao && pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    }
     return NextResponse.next();
   }
 
-  // Cria response que o Supabase vai usar pra atualizar cookies.
+  // Live: sessão Supabase via cookies.
   let response = NextResponse.next({ request });
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  // Se Supabase ainda não foi configurado, deixa passar (dev mode pré-credenciais).
-  if (!supabaseUrl || !supabaseAnon) {
-    return response;
-  }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -43,9 +59,7 @@ export async function proxy(request: NextRequest) {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
-        );
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
   });
@@ -55,23 +69,20 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  // Bloqueio por role: rotas /treinador exigem role=treinador
-  if (pathname.startsWith("/treinador")) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profile?.role !== "treinador") {
+  if (pathname.startsWith("/treinador") || pathname.startsWith("/aluno")) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const destino = redirecionamentoPorPapel((profile?.role as "treinador" | "aluno" | undefined) ?? null, pathname);
+    if (destino) {
       const url = request.nextUrl.clone();
-      url.pathname = "/aluno";
+      url.pathname = destino.split("?")[0];
+      url.search = "";
       return NextResponse.redirect(url);
     }
   }
@@ -80,11 +91,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Roda em todas as rotas exceto:
-     * - _next/static, _next/image, favicon, imagens públicas
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

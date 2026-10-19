@@ -1,126 +1,92 @@
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/ui/StatCard";
-import { SimpleBars } from "@/components/ui/SimpleChart";
 import { Avatar } from "@/components/ui/Avatar";
 import { AlunoStatusPill } from "@/components/ui/StatusPill";
-import { Button } from "@/components/ui/Button";
-import { listAlunos, getDashboardMetrics } from "@/lib/db";
-import { tempoRelativo, dataBR, diasAte } from "@/lib/format";
+import { requireTreinadorPage } from "@/lib/auth/session";
+import { listAlunos, getDashboardMetrics, listCheckIns } from "@/lib/db";
+import { listSessoes } from "@/lib/data/sessoes";
+import { getPlanoAtivo } from "@/lib/data/programas";
+import { listAdaptacoes } from "@/lib/data/acompanhamento";
+import { alertasDoAluno, resumoPeriodo, type AlertaTreinador } from "@/lib/relatorios/calcular";
+import { tempoRelativo, dataBR } from "@/lib/format";
+import { NovoAlunoButton } from "./alunos/NovoAlunoModal";
+
+export const metadata = { title: "Visão geral" };
 
 export default async function TreinadorDashboardPage() {
-  const [m, alunos] = await Promise.all([
-    getDashboardMetrics(),
-    listAlunos(),
-  ]);
-  const agora = new Date();
-  const agoraMs = agora.getTime();
-  const hojeLabel = agora.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  });
+  const sessao = await requireTreinadorPage();
+  const [m, alunos, adaptacoes] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true)]);
+  const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
-  const alunosOrdenados = alunos
-    .slice()
-    .sort((a, b) => {
-      const aMs = a.ultimo_treino_em ? new Date(a.ultimo_treino_em).getTime() : 0;
-      const bMs = b.ultimo_treino_em ? new Date(b.ultimo_treino_em).getTime() : 0;
-      return bMs - aMs;
-    });
-
-  const inativos = alunos.filter((a) => {
-    if (a.status !== "ativo" || !a.ultimo_treino_em) return false;
-    const dias = (agoraMs - new Date(a.ultimo_treino_em).getTime()) / (1000 * 60 * 60 * 24);
-    return dias > 5;
-  });
-
-  const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const treinosSemana = diasSemana.map((label) => ({ label, value: 0 }));
-  for (const aluno of alunos) {
-    if (!aluno.ultimo_treino_em) continue;
-    const data = new Date(aluno.ultimo_treino_em);
-    const diff = (agoraMs - data.getTime()) / (1000 * 60 * 60 * 24);
-    if (diff >= 0 && diff <= 7) treinosSemana[data.getDay()].value += 1;
-  }
+  // Dados por aluno ativo (limitado para manter o painel rápido)
+  const ativos = alunos.filter((a) => a.status === "ativo").slice(0, 40);
+  const porAluno = await Promise.all(
+    ativos.map(async (a) => {
+      const [sessoes, plano, checkins] = await Promise.all([listSessoes(a.id, { limite: 80 }), getPlanoAtivo(a.id), listCheckIns(a.id, 7)]);
+      const alertas = alertasDoAluno({
+        alunoId: a.id,
+        alunoNome: a.profile?.nome ?? "Aluno",
+        status: a.status,
+        sessoes,
+        frequencia: plano.programa?.frequencia,
+        temPlano: plano.treinos.some((t) => t.ativo),
+        adaptacoesAbertas: adaptacoes.filter((x) => x.aluno_id === a.id).length,
+        checkinsDorAlta: checkins.filter((c) => (c.dor ?? 0) >= 7).length,
+      });
+      const r7 = resumoPeriodo(sessoes, plano.programa?.frequencia, 7);
+      const ultima = sessoes[0] ?? null;
+      return { aluno: a, alertas, r7, ultima };
+    })
+  );
+  const alertas: AlertaTreinador[] = porAluno.flatMap((x) => x.alertas).sort((a, b) => a.prioridade - b.prioridade);
+  const treinaramSemana = porAluno.filter((x) => x.r7.sessoesFeitas > 0).length;
+  const recentes = porAluno.filter((x) => x.ultima).sort((a, b) => (a.ultima!.iniciado_em < b.ultima!.iniciado_em ? 1 : -1)).slice(0, 8);
 
   return (
     <div className="space-y-8">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <Badge tone="accent">Visão Geral</Badge>
-          <h1 className="text-3xl font-bold mt-3">Olá, Pedro</h1>
-          <p className="text-fg-muted text-sm mt-1">
-            Seu squad em um relance — {hojeLabel}
-          </p>
+          <p className="text-xs uppercase tracking-wider text-accent font-bold">Visão geral</p>
+          <h1 className="text-3xl font-bold mt-1">Olá, {sessao.nome.split(" ")[0]}</h1>
+          <p className="text-fg-muted text-sm mt-1">{hojeLabel} · quem precisa da sua atenção aparece primeiro.</p>
         </div>
-        <Link href="/treinador/alunos">
-          <Button variant="primary">+ Novo aluno</Button>
-        </Link>
+        <NovoAlunoButton />
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard
-          label="Alunos ativos"
-          value={String(m.ativos)}
-          hint={`de ${m.total_alunos} no total`}
-          tone="success"
-          trend={{ value: "+2 este mês", direction: "up" }}
-        />
-        <StatCard
-          label="Pendentes"
-          value={String(m.pendentes)}
-          hint="aguardando ativação"
-          tone="gold"
-        />
-        <StatCard
-          label="Inativos"
-          value={String(m.inadimplentes)}
-          hint="acesso expirado"
-          tone={m.inadimplentes > 0 ? "red" : "neutral"}
-        />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Alunos ativos" value={String(m.ativos)} hint={`de ${m.total_alunos} no total`} tone="success" />
+        <StatCard label="Treinaram nos últimos 7 dias" value={String(treinaramSemana)} hint={`de ${ativos.length} ativos`} tone={treinaramSemana >= ativos.length * 0.6 ? "success" : "gold"} />
+        <StatCard label="Pedidos de adaptação" value={String(adaptacoes.length)} hint="aguardando resposta" tone={adaptacoes.length ? "gold" : "neutral"} />
+        <StatCard label="Pendentes / pausados" value={`${m.pendentes} / ${m.pausados}`} hint="cadastro ou acesso" tone="neutral" />
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Últimos treinos registrados por dia</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <SimpleBars data={treinosSemana} height={160} tone="accent" />
-        </CardBody>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Alunos inativos {">"} 5 dias</span>
-              {inativos.length > 0 ? (
-                <Badge tone="red">{inativos.length}</Badge>
-              ) : (
-                <Badge tone="success">tudo em dia</Badge>
-              )}
+              <span>Precisa de atenção</span>
+              <span className="text-xs font-normal text-fg-subtle">evidência · janela · ação</span>
             </CardTitle>
           </CardHeader>
-          <CardBody>
-            {inativos.length === 0 ? (
-              <p className="text-sm text-fg-subtle text-center py-6">
-                Todos os alunos treinaram recentemente.
-              </p>
+          <CardBody className="p-0">
+            {alertas.length === 0 ? (
+              <p className="text-sm text-fg-subtle text-center py-8">Nenhum alerta. Todos os alunos ativos estão dentro do esperado.</p>
             ) : (
-              <ul className="space-y-3">
-                {inativos.map((a) => (
-                  <li key={a.id} className="flex items-center gap-3">
-                    <Avatar nome={a.profile?.nome ?? "?"} size={36} />
+              <ul className="divide-y divide-border">
+                {alertas.slice(0, 12).map((al, i) => (
+                  <li key={`${al.alunoId}-${al.tipo}-${i}`} className="px-5 py-3 flex items-start gap-3">
+                    <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${al.prioridade === 1 ? "bg-red" : al.prioridade === 2 ? "bg-warning" : "bg-fg-subtle"}`} aria-hidden />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold truncate">{a.profile?.nome}</div>
-                      <div className="text-xs text-fg-subtle">
-                        último treino {tempoRelativo(a.ultimo_treino_em)}
-                      </div>
+                      <p className="text-sm font-semibold">
+                        {al.alunoNome}: <span className="font-normal">{al.evidencia}</span>
+                      </p>
+                      <p className="text-xs text-fg-subtle">
+                        {al.janela} · {al.acao}
+                      </p>
                     </div>
-                    <Link href={`/treinador/alunos/${a.id}`}>
-                      <Button variant="ghost" size="sm">Ver</Button>
+                    <Link href={al.tipo === "sem_plano" ? `/treinador/alunos/${al.alunoId}/treinos` : `/treinador/alunos/${al.alunoId}`} className="text-xs text-accent underline-offset-2 hover:underline shrink-0">
+                      {al.tipo === "sem_plano" ? "Montar" : al.tipo === "adaptacao" ? "Responder" : "Abrir"}
                     </Link>
                   </li>
                 ))}
@@ -131,31 +97,63 @@ export default async function TreinadorDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Atividade recente dos alunos</CardTitle>
+            <CardTitle>Treinos recentes</CardTitle>
           </CardHeader>
-          <CardBody>
-            <ul className="space-y-3">
-              {alunosOrdenados.slice(0, 5).map((a) => (
-                <li key={a.id} className="flex items-center gap-3">
-                  <Avatar nome={a.profile?.nome ?? "?"} size={36} />
+          <CardBody className="p-0">
+            {recentes.length === 0 ? (
+              <p className="text-sm text-fg-subtle text-center py-8">Nenhuma sessão registrada ainda.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {recentes.map(({ aluno, ultima, r7 }) => (
+                  <li key={aluno.id} className="px-5 py-3 flex items-center gap-3">
+                    <Avatar nome={aluno.profile?.nome ?? "?"} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Link href={`/treinador/alunos/${aluno.id}`} className="text-sm font-semibold truncate hover:text-accent">
+                          {aluno.profile?.nome}
+                        </Link>
+                        <AlunoStatusPill status={aluno.status} />
+                      </div>
+                      <p className="text-xs text-fg-subtle mt-0.5">
+                        {ultima!.letra ? `Treino ${ultima!.letra}` : "Sessão"} {tempoRelativo(ultima!.finalizado_em ?? ultima!.iniciado_em)} · {ultima!.series_concluidas}/{ultima!.series_planejadas} séries · semana: {r7.sessoesFeitas}/{r7.sessoesPlanejadas || "—"}
+                        {ultima!.feedback_percepcao === "dor" ? <span className="text-warning"> · relatou dor</span> : null}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+
+      {adaptacoes.length ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pedidos de adaptação em aberto</CardTitle>
+          </CardHeader>
+          <CardBody className="p-0">
+            <ul className="divide-y divide-border">
+              {adaptacoes.slice(0, 8).map((a) => (
+                <li key={a.id} className="px-5 py-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold truncate">{a.profile?.nome}</span>
-                      <AlunoStatusPill status={a.status} />
-                    </div>
-                    <div className="text-xs text-fg-subtle mt-0.5">
-                      treinou {tempoRelativo(a.ultimo_treino_em)} · acesso até {dataBR(a.acesso_ate)}{" "}
-                      {diasAte(a.acesso_ate) !== null && diasAte(a.acesso_ate)! >= 0 && (
-                        <span className="text-fg-muted">({diasAte(a.acesso_ate)}d)</span>
-                      )}
-                    </div>
+                    <p className="text-sm font-semibold">
+                      {a.aluno_nome ?? "Aluno"} · {a.exercicio_nome ?? "exercício"}
+                    </p>
+                    <p className="text-xs text-fg-subtle">
+                      {a.motivo.replace("_", " ")} · {dataBR(a.created_at)}
+                      {a.descricao ? ` · “${a.descricao}”` : ""}
+                    </p>
                   </div>
+                  <Link href={`/treinador/alunos/${a.aluno_id}#adaptacoes`} className="text-xs text-accent underline-offset-2 hover:underline">
+                    Responder
+                  </Link>
                 </li>
               ))}
             </ul>
           </CardBody>
         </Card>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -514,3 +514,22 @@ drop policy if exists "Aluno atualiza próprio logbook" on logbook;
 
 -- Templates: aluno nunca lê nem escreve (já era só treinador) — reforço explícito.
 -- Storage: fotos continuam privadas (bucket fotos-evolucao, policies da 0002).
+
+-- ---------------------------------------------------------------------------
+-- 11. RPC segura: aluno marca o próprio "último treino" ao concluir sessão
+-- (a tabela alunos não tem policy de update para o aluno; a função valida o dono).
+-- ---------------------------------------------------------------------------
+create or replace function public.marcar_ultimo_treino(p_aluno_id uuid)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if p_aluno_id is null or (p_aluno_id <> public.aluno_id_atual() and not public.is_treinador()) then
+    raise exception 'acesso negado' using errcode = '42501';
+  end if;
+  update public.alunos set ultimo_treino_em = now() where id = p_aluno_id;
+end;
+$$;
+revoke all on function public.marcar_ultimo_treino(uuid) from public;
+grant execute on function public.marcar_ultimo_treino(uuid) to authenticated;

@@ -1,184 +1,182 @@
 import Link from "next/link";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
+import { requireAlunoPage } from "@/lib/auth/session";
+import { getAluno, listDieta, getCheckInHoje } from "@/lib/db";
+import { getPlanoAtivo } from "@/lib/data/programas";
+import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
+import { listIntervencoes } from "@/lib/data/acompanhamento";
+import { estadoSemana, resumoPeriodo } from "@/lib/relatorios/calcular";
+import { dataBR, tempoRelativo } from "@/lib/format";
 import { CheckInDiario } from "@/components/aluno/CheckInDiario";
-import { getAluno, getCheckInHoje, listLogbookByAluno, listTreinos } from "@/lib/db";
-import { tempoRelativo, diasAte } from "@/lib/format";
+import { BRAND } from "@/config/brand";
 
-// Em produção, o aluno será resolvido da sessão.
-// Por ora usamos a Aline como padrão.
-const ALUNO_ID = "aline";
-
-const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-const CRONOGRAMA: Array<{ dia: number; treinoLetra: "A" | "B" | "C" | "D" | "E" | null }> = [
-  { dia: 0, treinoLetra: null },   // Dom descanso
-  { dia: 1, treinoLetra: "A" },    // Seg
-  { dia: 2, treinoLetra: "B" },    // Ter
-  { dia: 3, treinoLetra: "C" },    // Qua
-  { dia: 4, treinoLetra: "D" },    // Qui
-  { dia: 5, treinoLetra: "E" },    // Sex
-  { dia: 6, treinoLetra: null },   // Sáb descanso
-];
+export const metadata = { title: "Início" };
 
 export default async function AlunoHomePage() {
-  const [aluno, treinos, checkInHoje, logbook] = await Promise.all([
-    getAluno(ALUNO_ID),
-    listTreinos(ALUNO_ID),
-    getCheckInHoje(ALUNO_ID),
-    listLogbookByAluno(ALUNO_ID, 200),
+  const sessao = await requireAlunoPage();
+  const alunoId = sessao.alunoId;
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta] = await Promise.all([
+    getAluno(alunoId),
+    getPlanoAtivo(alunoId),
+    getSessaoEmAndamento(alunoId),
+    listSessoes(alunoId, { limite: 120 }),
+    listIntervencoes(alunoId, 3),
+    getCheckInHoje(alunoId),
+    listDieta(alunoId),
   ]);
   if (!aluno) return null;
 
-  const treinosMap = new Map(treinos.map((t) => [t.letra, t]));
-  const hojeDow = new Date().getDay();
-  const hojeCfg = CRONOGRAMA.find((c) => c.dia === hojeDow);
-  const treinoHoje = hojeCfg?.treinoLetra ? treinosMap.get(hojeCfg.treinoLetra) : null;
-  const dias = diasAte(aluno.acesso_ate);
-  const seteDiasAtras = new Date();
-  seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-  const logsSemana = logbook.filter((log) => new Date(log.data) >= seteDiasAtras);
-  const volumeSemana = logsSemana.reduce(
-    (acc, log) => acc + (log.carga_kg ?? 0) * (log.reps ?? 0),
-    0
-  );
-  const maiorCarga = logbook.reduce((max, log) => Math.max(max, log.carga_kg ?? 0), 0);
+  const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
+  const treinos = plano.treinos.filter((t) => t.ativo);
+  const letras = treinos.map((t) => t.letra);
+  const semana = estadoSemana(sessoes, plano.programa?.frequencia, letras);
+  const proximo = treinos.find((t) => t.letra === semana.proximaLetra) ?? treinos[0] ?? null;
+  const resumo30 = resumoPeriodo(sessoes, plano.programa?.frequencia, 30);
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const duracaoEstimada = proximo?.duracao_estimada_min ?? estimarDuracao(sessoes, proximo?.letra ?? null);
+  const visiveis = intervencoes.filter((i) => i.visivel_aluno);
 
   return (
-    <div className="space-y-6">
-      {/* Saudação */}
-      <header className="flex items-center gap-3">
-        <Avatar nome={aluno.profile?.nome ?? "?"} size={48} />
-        <div className="flex-1">
-          <div className="text-xs text-fg-subtle uppercase tracking-wider">
-            {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-          </div>
-          <h1 className="text-xl font-bold leading-tight">
-            Bom treino, <span className="text-accent">{aluno.profile?.nome.split(" ")[0]}</span>
-          </h1>
-        </div>
+    <div className="space-y-5">
+      <header>
+        <p className="text-xs text-fg-subtle uppercase tracking-wider">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <h1 className="text-2xl font-bold leading-tight mt-1">
+          {saudacao}, <span className="text-accent">{primeiroNome}</span>
+        </h1>
       </header>
 
-      {/* Check-in diário */}
-      <CheckInDiario jaRespondido={!!checkInHoje} />
-
-      {/* Card de status de acesso */}
-      {dias !== null && dias <= 7 ? (
-        <Card className={dias < 0 ? "border-red/40 bg-red/5" : "border-gold/40 bg-gold/5"}>
-          <CardBody className="flex items-center gap-3">
-            <span className="text-2xl">{dias < 0 ? "🔒" : "⏰"}</span>
-            <div className="flex-1">
-              <div className="font-semibold text-sm">
-                {dias < 0
-                  ? `Acesso vencido há ${Math.abs(dias)} dias`
-                  : `Sua mensalidade vence em ${dias} dias`}
-              </div>
-              <div className="text-xs text-fg-subtle">
-                {dias < 0 ? "Renove para continuar treinando." : "Renove para continuidade ininterrupta."}
-              </div>
-            </div>
-            <Button variant={dias < 0 ? "danger" : "gold"} size="sm">
-              Renovar
-            </Button>
+      {/* 1. Sessão em andamento ou próximo treino — CTA prioritário */}
+      {emAndamento ? (
+        <Card className="border-accent/50 bg-grain-strong">
+          <CardBody className="space-y-3">
+            <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Treino em andamento</p>
+            <h2 className="text-lg font-bold leading-tight">
+              {emAndamento.letra ? `Treino ${emAndamento.letra} · ` : ""}
+              {emAndamento.nome_treino}
+            </h2>
+            <p className="text-sm text-fg-muted">
+              {emAndamento.series_concluidas} de {emAndamento.series_planejadas} séries registradas · iniciado {tempoRelativo(emAndamento.iniciado_em)}
+            </p>
+            <Link href={`/aluno/treino/${emAndamento.treino_id}?sessao=${emAndamento.id}`} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
+              <Icon name="play" /> Continuar treino
+            </Link>
           </CardBody>
         </Card>
-      ) : null}
-
-      {/* Treino do dia */}
-      {treinoHoje ? (
-        <Link href={`/aluno/treino/${treinoHoje.id}`}>
-          <Card className="border-accent/40 bg-grain-strong relative overflow-hidden hover:scale-[1.01] transition-transform cursor-pointer">
-            <CardBody>
-              <Badge tone="accent">Treino de hoje · {DIAS[hojeDow]}</Badge>
-              <div className="flex items-center gap-4 mt-3">
-                <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center shrink-0">
-                  <span className="text-3xl font-black text-bg">{treinoHoje.letra}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-bold text-lg leading-tight">{treinoHoje.nome}</h2>
-                  <p className="text-xs text-fg-subtle mt-1">Toque pra começar o treino →</p>
-                </div>
+      ) : proximo ? (
+        <Card className="border-accent/40 bg-grain-strong">
+          <CardBody className="space-y-3">
+            <p className="text-[11px] uppercase tracking-wider text-accent font-bold">{semana.retomada ? "Seu treino continua aqui" : "Seu próximo treino"}</p>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center shrink-0" aria-hidden>
+                <span className="text-2xl font-black text-bg">{proximo.letra}</span>
               </div>
-            </CardBody>
-          </Card>
-        </Link>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold leading-tight">{proximo.nome}</h2>
+                <p className="text-sm text-fg-muted mt-0.5">
+                  {proximo.exercicios.length} exercícios
+                  {duracaoEstimada ? ` · ~${duracaoEstimada} min` : ""}
+                </p>
+              </div>
+            </div>
+            {semana.retomada ? <p className="text-sm text-fg-muted">Faz {semana.diasSemUltimoTreino} dias desde o último registro. Vamos retomar no seu ritmo?</p> : null}
+            <Link href={`/aluno/treino/${proximo.id}`} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
+              <Icon name="play" /> Começar treino
+            </Link>
+            {treinos.length > 1 ? (
+              <Link href="/aluno/treinar" className="block text-center text-sm text-fg-muted hover:text-fg">
+                Prefere outro treino hoje? Ver todos
+              </Link>
+            ) : null}
+          </CardBody>
+        </Card>
       ) : (
-        <Card className="border-success/30 bg-success/5">
-          <CardBody className="text-center py-6">
-            <div className="text-3xl mb-2">😌</div>
-            <div className="font-bold text-success">Dia de descanso</div>
-            <div className="text-xs text-fg-subtle mt-1">Foque na recuperação. Volta forte amanhã.</div>
+        <Card className="border-dashed">
+          <CardBody className="text-center py-8 space-y-2">
+            <Icon name="dumbbell" size={32} className="mx-auto text-fg-subtle" />
+            <h2 className="font-bold">Ainda não há treino liberado</h2>
+            <p className="text-sm text-fg-muted">O {BRAND.name} está preparando seu programa. Assim que ele for publicado, aparece aqui.</p>
+            {BRAND.contact.whatsapp ? (
+              <a className="inline-block text-sm text-accent underline-offset-2 hover:underline" href={`https://wa.me/${BRAND.contact.whatsapp}`} target="_blank" rel="noreferrer">
+                Falar com o {BRAND.name}
+              </a>
+            ) : null}
           </CardBody>
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Seu logbook</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <div className="grid grid-cols-3 gap-3">
-            <AlunoMetric label="Séries na semana" value={String(logsSemana.length)} />
-            <AlunoMetric label="Volume registrado" value={`${Math.round(volumeSemana)}kg`} />
-            <AlunoMetric label="Maior carga" value={maiorCarga ? `${maiorCarga}kg` : "—"} />
-          </div>
-          <p className="mt-4 text-xs text-fg-subtle">
-            Registre carga e reps durante o treino para o Pedro ajustar progressão com histórico real.
-          </p>
-        </CardBody>
-      </Card>
+      {/* 2. Progresso da semana (denominador = frequência do programa) */}
+      {treinos.length ? (
+        <Card>
+          <CardBody className="flex items-center gap-4">
+            <div className="flex-1">
+              <p className="text-[11px] uppercase tracking-wider text-fg-subtle font-semibold">Esta semana</p>
+              <p className="text-lg font-bold mt-0.5">
+                {semana.feitasSemana} de {semana.planejadasSemana || treinos.length} treinos
+              </p>
+              <p className="text-xs text-fg-muted">{semana.letrasFeitasSemana.length ? `Feitos: ${semana.letrasFeitasSemana.join(", ")}` : "Nenhum ainda — a semana é flexível, sem culpa."}</p>
+            </div>
+            <div className="w-24 h-2 rounded-full bg-bg border border-border overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={semana.planejadasSemana || treinos.length} aria-valuenow={semana.feitasSemana} aria-label="Progresso da semana">
+              <div className="h-full bg-accent" style={{ width: `${Math.min(100, (semana.feitasSemana / Math.max(1, semana.planejadasSemana || treinos.length)) * 100)}%` }} />
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
 
-      {/* Cards de todos os treinos */}
-      <section>
-        <h2 className="text-sm font-bold uppercase tracking-wider text-fg-muted mb-3">
-          Sua rotina semanal
-        </h2>
-        <div className="space-y-3">
-          {treinos.map((t) => {
-            const isHoje = treinoHoje?.id === t.id;
-            return (
-              <Link key={t.id} href={`/aluno/treino/${t.id}`}>
-                <Card className={`hover:border-accent/40 transition-colors cursor-pointer ${isHoje ? "border-accent/40" : ""}`}>
-                  <CardBody className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      isHoje ? "bg-accent text-bg" : "bg-accent/10 border border-accent/30 text-accent"
-                    }`}>
-                      <span className="text-xl font-black">{t.letra}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm leading-tight truncate">{t.nome}</div>
-                      <div className="text-xs text-fg-subtle mt-0.5">
-                        {DIAS[CRONOGRAMA.find((c) => c.treinoLetra === t.letra)?.dia ?? 0]}
-                      </div>
-                    </div>
-                    <span className="text-fg-subtle text-lg">→</span>
-                  </CardBody>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      {/* 3. Último progresso relevante */}
+      {resumo30.conquistas.length ? (
+        <Card className="border-success/30">
+          <CardBody>
+            <p className="text-[11px] uppercase tracking-wider text-success font-semibold">Progresso real (30 dias)</p>
+            <p className="font-bold mt-1">{resumo30.conquistas[0].titulo}</p>
+            <p className="text-sm text-fg-muted">{resumo30.conquistas[0].detalhe}</p>
+            <Link href="/aluno/evolucao" className="inline-block mt-2 text-sm text-accent underline-offset-2 hover:underline">
+              Ver evolução
+            </Link>
+          </CardBody>
+        </Card>
+      ) : null}
 
-      {/* Streak */}
-      <Card className="border-gold/30 bg-gold/5">
-        <CardBody className="text-center py-6">
-          <div className="text-3xl mb-1">🔥</div>
-          <div className="font-bold text-gold text-lg">7 dias de sequência</div>
-          <div className="text-xs text-fg-muted mt-1">Continue assim, atleta. Último treino {tempoRelativo(aluno.ultimo_treino_em)}.</div>
-        </CardBody>
-      </Card>
+      <CheckInDiario jaRespondido={!!checkInHoje} />
+
+      {/* Mensagens reais do treinador (autoria identificada) */}
+      {visiveis.length ? (
+        <section className="space-y-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-fg-muted">Do {BRAND.name} para você</h2>
+          {visiveis.map((i) => (
+            <Card key={i.id}>
+              <CardBody className="py-3">
+                <p className="text-sm">{i.descricao}</p>
+                <p className="text-[11px] text-fg-subtle mt-1">
+                  {i.autor?.nome ?? BRAND.name} · {dataBR(i.created_at)}
+                </p>
+              </CardBody>
+            </Card>
+          ))}
+        </section>
+      ) : null}
+
+      {dieta.length ? (
+        <Link href="/aluno/dieta" className="block">
+          <Card className="hover:border-accent/40 transition-colors">
+            <CardBody className="flex items-center gap-3 py-3">
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Plano alimentar</p>
+                <p className="text-xs text-fg-subtle">{dieta.length} refeições cadastradas</p>
+              </div>
+              <Icon name="chevron" className="text-fg-subtle" />
+            </CardBody>
+          </Card>
+        </Link>
+      ) : null}
     </div>
   );
 }
 
-function AlunoMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-bg px-3 py-3">
-      <div className="text-[10px] uppercase tracking-wider text-fg-subtle">{label}</div>
-      <div className="mt-1 text-lg font-black text-fg">{value}</div>
-    </div>
-  );
+function estimarDuracao(sessoes: Awaited<ReturnType<typeof listSessoes>>, letra: string | null): number | null {
+  if (!letra) return null;
+  const d = sessoes.filter((s) => s.letra === letra && s.status === "concluida" && s.duracao_seg).slice(0, 5).map((s) => s.duracao_seg as number);
+  if (d.length < 2) return null; // só mostra quando há dados confiáveis
+  return Math.round(d.reduce((a, b) => a + b, 0) / d.length / 60);
 }

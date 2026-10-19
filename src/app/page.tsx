@@ -1,24 +1,13 @@
+export const dynamic = "force-dynamic";
+
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { appMode } from "@/lib/env";
+import { getSessao } from "@/lib/auth/session";
 
 export default async function RootPage() {
-  // Sem Supabase configurado → modo dev com dados mock, acessa como treinador.
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    redirect("/treinador");
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  redirect(profile?.role === "treinador" ? "/treinador" : "/aluno");
+  const mode = appMode();
+  if (mode === "nao_configurado") redirect("/configuracao-pendente");
+  const s = await getSessao();
+  if (!s) redirect("/login");
+  redirect(s.role === "treinador" ? "/treinador" : "/aluno");
 }

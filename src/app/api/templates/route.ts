@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireTreinador } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
-  const { admin, error } = await requireTreinador();
+  const { db, error } = await requireTreinador();
   if (error) return error;
 
   const body = await request.json().catch(() => null);
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "nome e estrutura são obrigatórios" }, { status: 400 });
   }
 
-  const { data, error: dbErr } = await admin!
+  const { data, error: dbErr } = await db!
     .from("templates_treino")
     .insert({
       nome: body.nome,

@@ -5,7 +5,7 @@ export type UserRole = "treinador" | "aluno";
 export type AlunoStatus = "ativo" | "pendente" | "inadimplente" | "pausado" | "arquivado";
 export type PagamentoStatus = "pendente" | "pago" | "atrasado" | "cancelado" | "falhou";
 export type PagamentoMetodo = "pix" | "credito" | "debito" | "recorrente";
-export type TreinoLetra = "A" | "B" | "C" | "D" | "E";
+export type TreinoLetra = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H";
 export type Sexo = "M" | "F" | "NI";
 
 export type Profile = {
@@ -43,6 +43,9 @@ export type Treino = {
   observacoes: string | null;
   ordem: number;
   ativo: boolean;
+  versao?: number;
+  programa_id?: string | null;
+  duracao_estimada_min?: number | null;
   created_at: string;
   updated_at: string;
 };

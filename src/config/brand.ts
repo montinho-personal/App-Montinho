@@ -1,70 +1,70 @@
 /**
  * ============================================================
- *  IDENTIDADE VISUAL DO APP — EDITE AQUI (e basicamente só aqui)
+ *  IDENTIDADE VISUAL — MONTINHO PERSONAL TRAINER
  * ============================================================
- * Este é o lugar central para deixar o app com a SUA cara:
- * nome, cores, logo e contatos.
+ * Fonte única da marca no app. As cores viram variáveis CSS em runtime
+ * (src/app/layout.tsx) e re-tematizam tudo.
  *
- * Depois de editar, rode `npm run dev` e veja a mudança na hora.
- *
- * Não sabe mexer no código? Abra o Claude Code nesta pasta e peça,
- * por exemplo:
- *   "troque a cor de destaque para verde #16a34a e o nome para FELIPE TEAM"
- *   "use minha logo que salvei em public/brand/logo.svg"
- * O Claude edita este arquivo por você. Veja MANUAL-CLAUDE.md.
+ * ORIGEM DOS ATIVOS (ver AUDITORIA-INICIAL.md e ROADMAP.md):
+ *  • Logotipo: arquivo público do site oficial (montinhopersonal.com.br/logo.svg),
+ *    com variante para fundo escuro (texto claro) e o símbolo (halter "M")
+ *    recortado sem distorção. Substitua por um vetor original do designer
+ *    quando disponível: basta trocar os arquivos em /public/brand/.
+ *  • Cores: dourado #ba9e50 (destaque do site), fundo #0a0a0a e texto #fafafa.
+ *  • Tipografia: DM Sans (a mesma do site), carregada via next/font.
  * ============================================================
  */
 
 export const BRAND = {
-  /** Nome curto — aparece no topo, no menu e no título da aba do navegador. */
-  name: "Squad",
+  /** Nome curto — menu, saudações, título da aba. */
+  name: "Montinho",
 
-  /** Nome completo — tela de login, rodapés e metadados do site. */
-  fullName: "Squad App",
+  /** Nome completo — login, rodapés, metadados. */
+  fullName: "Montinho Personal Trainer",
 
-  /** Frase curta de apoio (tela de login e abertura). */
-  tagline: "Treino, dieta e evolução no mesmo lugar.",
+  /** Frase central do posicionamento. */
+  tagline: "Não é só sobre começar. É sobre conseguir continuar.",
+
+  /** Descrição curta para metadados/SEO. */
+  description: "Treino prescrito, registrado e acompanhado pelo Montinho. Volume semanal em tempo real para quem prescreve e clareza para quem treina.",
 
   /**
-   * LOGO
-   * Coloque seus arquivos em /public/brand/ e aponte os caminhos abaixo.
-   * Prefere não usar imagem? Deixe `useText: true` que o app desenha o
-   * seu `name` como logotipo automaticamente — funciona muito bem.
+   * LOGO — arquivos em /public/brand/.
+   * `useText: false` usa as imagens; `true` desenha o nome em texto (fallback).
    */
   logo: {
-    useText: true, // true = usa o texto `name` como logo. false = usa os SVGs abaixo.
-    full: "/brand/logo.svg", // logo horizontal (usada quando useText = false)
-    mark: "/brand/mark.svg", // símbolo/ícone quadrado (favicon, avatar)
+    useText: false,
+    /** Variante para fundo escuro (texto claro). */
+    full: "/brand/logo.svg",
+    /** Variante original para fundo claro. */
+    fullLight: "/brand/logo-fundo-claro.svg",
+    /** Símbolo (halter "M") — avatar, menu recolhido, ícone. */
+    mark: "/brand/mark.svg",
+    /** Proporção largura/altura do logotipo completo (viewBox 469×321). */
+    ratio: 469 / 321,
   },
 
-  /**
-   * CORES — troque os HEX pela sua identidade.
-   * `accent` é a cor principal (botões, destaques, gráficos).
-   * O resto define o tema escuro; mude só se quiser.
-   * Essas cores são injetadas como variáveis CSS em runtime,
-   * então editar aqui re-tematiza o app inteiro sem mais nada.
-   */
+  /** CORES — tokens principais (o restante do tema fica em globals.css). */
   colors: {
-    accent: "#7c3aed", // cor principal (botões, links, destaques)
-    accentHover: "#8b5cf6", // estado hover
-    accentPress: "#6d28d9", // estado pressionado
+    accent: "#ba9e50", // dourado Montinho
+    accentHover: "#cbb06a",
+    accentPress: "#a58b45",
+    accentSoft: "#2a2415", // fundo sutil para chips/realces
 
-    bg: "#0a0a0a", // fundo geral
-    surface: "#131313", // fundo de seções
-    card: "#1a1a1a", // cartões
+    bg: "#0a0a0a",
+    surface: "#111111",
+    card: "#171717",
 
-    fg: "#fafafa", // texto principal
-    fgMuted: "#a1a1a1", // texto secundário
+    fg: "#fafafa",
+    fgMuted: "#a6a6a6",
   },
 
-  /**
-   * CONTATOS — aparecem em telas de perfil/ajuda.
-   * Deixe "" (vazio) para ocultar o item.
-   */
+  /** CONTATOS — vazios ficam ocultos. */
   contact: {
-    whatsapp: "", // só números, ex: "5511999999999"
-    email: "", // ex: "contato@seudominio.com.br"
-    instagram: "", // sem @, ex: "seu_perfil"
+    whatsapp: "", // só números, ex: "5511999999999" (preencher com o número de atendimento)
+    email: "",
+    instagram: "montinho_personal",
+    site: "https://www.montinhopersonal.com.br/",
   },
 
   /** URL pública do app em produção (preenchida pela Vercel). */
@@ -73,22 +73,20 @@ export const BRAND = {
 
 export type Brand = typeof BRAND;
 
-/**
- * String de variáveis CSS gerada a partir das cores acima.
- * É injetada em <style> pelo layout raiz (src/app/layout.tsx),
- * sobrescrevendo os valores padrão definidos em globals.css.
- * Você normalmente NÃO precisa mexer aqui.
- */
+/** Variáveis CSS geradas a partir das cores (injetadas no layout raiz). */
 export function brandCssVars(): string {
   const c = BRAND.colors;
-  return `:root{` +
+  return (
+    `:root{` +
     `--color-accent:${c.accent};` +
     `--color-accent-hover:${c.accentHover};` +
     `--color-accent-press:${c.accentPress};` +
+    `--color-accent-soft:${c.accentSoft};` +
     `--color-bg:${c.bg};` +
     `--color-surface:${c.surface};` +
     `--color-card:${c.card};` +
     `--color-fg:${c.fg};` +
     `--color-fg-muted:${c.fgMuted};` +
-    `}`;
+    `}`
+  );
 }

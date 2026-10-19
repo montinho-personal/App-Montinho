@@ -39,9 +39,9 @@ export default async function AlunosListPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <Badge tone="accent">Squad</Badge>
+          <Badge tone="accent">Alunos</Badge>
           <h1 className="text-3xl font-bold mt-3">Alunos</h1>
-          <p className="text-fg-muted text-sm mt-1">Gestão completa dos seus atletas.</p>
+          <p className="text-fg-muted text-sm mt-1">Cadastro, status de acesso e acompanhamento de cada aluno.</p>
         </div>
         <NovoAlunoButton />
       </header>

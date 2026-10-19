@@ -1,38 +1,25 @@
 import { NextResponse } from "next/server";
-import { requireTreinador } from "@/lib/api-auth";
+import { z } from "zod";
+import { requireTreinadorApi } from "@/lib/auth/session";
+import { arquivarTreino, getTreinoComExercicios } from "@/lib/data/programas";
+import { lerJson } from "@/lib/validacao/schemas";
 
-/** PATCH /api/treinos/[treinoId] — finalizar/arquivar (ativo:false), renomear, obs. */
-export async function PATCH(req: Request, { params }: { params: Promise<{ treinoId: string }> }) {
-  const { admin, error } = await requireTreinador();
-  if (error) return error;
+type Ctx = { params: Promise<{ treinoId: string }> };
 
+/**
+ * PATCH /api/treinos/[treinoId] — finalizar/arquivar um treino (ativo:false).
+ * Não existe DELETE: exercícios com histórico nunca são apagados.
+ */
+export async function PATCH(request: Request, { params }: Ctx) {
   const { treinoId } = await params;
-  const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
-
-  const { data, error: dbErr } = await admin!
-    .from("treinos")
-    .update({
-      ativo: typeof body.ativo === "boolean" ? body.ativo : undefined,
-      nome: typeof body.nome === "string" ? body.nome : undefined,
-      observacoes: body.observacoes ?? undefined,
-    })
-    .eq("id", treinoId)
-    .select("*")
-    .single();
-
-  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
-  return NextResponse.json(data);
-}
-
-/** DELETE /api/treinos/[treinoId] — remove treino + exercícios (cascade). */
-export async function DELETE(_: Request, { params }: { params: Promise<{ treinoId: string }> }) {
-  const { admin, error } = await requireTreinador();
+  const { error } = await requireTreinadorApi();
   if (error) return error;
-
-  const { treinoId } = await params;
-  const { error: dbErr } = await admin!.from("treinos").delete().eq("id", treinoId);
-  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
-
+  const { data, error: vErr } = await lerJson(request, z.object({ ativo: z.literal(false) }));
+  if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
+  const treino = await getTreinoComExercicios(treinoId);
+  if (!treino) return NextResponse.json({ error: "Treino não encontrado" }, { status: 404 });
+  const ok = await arquivarTreino(treino.aluno_id, treinoId);
+  if (!ok) return NextResponse.json({ error: "Treino não encontrado" }, { status: 404 });
+  void data;
   return NextResponse.json({ ok: true });
 }

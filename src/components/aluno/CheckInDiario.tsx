@@ -61,7 +61,7 @@ export function CheckInDiario({ jaRespondido = false }: CheckInDiarioProps) {
           <span className="text-xl">✓</span>
           <div className="flex-1">
             <div className="font-semibold text-sm">Check-in de hoje completo</div>
-            <div className="text-[11px] text-fg-subtle">Pedro recebeu seu status.</div>
+            <div className="text-[11px] text-fg-subtle">Enviado. Isso ajuda o Montinho a ajustar o treino.</div>
           </div>
           <button
             onClick={() => setAberto(true)}

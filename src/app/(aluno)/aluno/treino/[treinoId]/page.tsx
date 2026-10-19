@@ -1,79 +1,65 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, CardBody } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { getTreinoComExercicios, listLogbookByExercicio } from "@/lib/db";
-import { ExercicioCard } from "./ExercicioCard";
-import { FinalizarTreinoButton } from "./FinalizarTreinoButton";
+import { requireAlunoPage } from "@/lib/auth/session";
+import { getTreinoComExercicios } from "@/lib/data/programas";
+import { getSessao, getSessaoEmAndamento, ultimasExecucoes } from "@/lib/data/sessoes";
+import { listBiblioteca } from "@/lib/db";
+import { normalizarNome } from "@/lib/grupos";
+import { TreinoAtivoClient } from "./TreinoAtivoClient";
+import type { ExercicioBiblioteca } from "@/lib/supabase/types-extended";
 
-type PageProps = { params: Promise<{ treinoId: string }> };
+type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string }> };
 
-const ALUNO_ID = "aline";
+export const metadata = { title: "Treino" };
 
-export default async function TreinoExecucaoPage({ params }: PageProps) {
+export default async function TreinoExecucaoPage({ params, searchParams }: PageProps) {
+  const sessao = await requireAlunoPage();
   const { treinoId } = await params;
-  const treino = await getTreinoComExercicios(treinoId);
-  if (!treino) notFound();
+  const { sessao: sessaoId } = await searchParams;
 
-  // Carrega último logbook de cada exercício
-  const exerciciosComUltimo = await Promise.all(
-    treino.exercicios.map(async (e: (typeof treino.exercicios)[number]) => {
-      const lb = await listLogbookByExercicio(ALUNO_ID, e.id);
-      const ultimoPorSerie = new Map<number, { carga_kg: number | null; reps: number | null; ie: number | null }>();
-      lb.forEach((l) => {
-        if (!ultimoPorSerie.has(l.serie)) {
-          ultimoPorSerie.set(l.serie, { carga_kg: l.carga_kg, reps: l.reps, ie: l.ie });
-        }
-      });
-      return { exercicio: e, ultimo: ultimoPorSerie };
-    })
-  );
+  const treino = await getTreinoComExercicios(treinoId);
+  // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
+  if (!treino || treino.aluno_id !== sessao.alunoId) notFound();
+
+  const [emAndamento, ultimas, biblioteca] = await Promise.all([
+    sessaoId ? getSessao(sessao.alunoId, sessaoId) : getSessaoEmAndamento(sessao.alunoId),
+    ultimasExecucoes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
+    listBiblioteca(),
+  ]);
+
+  if (!treino.ativo && !emAndamento) {
+    return (
+      <div className="space-y-4">
+        <Link href="/aluno/treinar" className="text-fg-muted text-sm hover:text-fg">
+          ← Voltar
+        </Link>
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Este treino não está mais liberado. Veja seus treinos atuais em “Treinar”.</div>
+      </div>
+    );
+  }
+
+  const bib = new Map((biblioteca as ExercicioBiblioteca[]).map((b) => [normalizarNome(b.nome), b]));
+  const exercicios = treino.exercicios.map((e) => {
+    const b = bib.get(normalizarNome(e.nome));
+    return {
+      ...e,
+      video: b?.video_provider && b?.video_id ? { provider: b.video_provider, id: b.video_id } : null,
+      instrucoes: b?.instrucoes ?? [],
+      descricao: b?.descricao ?? null,
+    };
+  });
+
+  const sessaoAtiva = emAndamento && emAndamento.treino_id === treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
+  const outraSessao = emAndamento && emAndamento.treino_id !== treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
 
   return (
-    <div className="space-y-5">
-      <Link href="/aluno" className="text-fg-muted text-sm hover:text-fg flex items-center gap-1">
-        ← Voltar
-      </Link>
-
-      {/* Cabeçalho do treino */}
-      <Card className="border-accent/40 bg-grain-strong">
-        <CardBody className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center shrink-0">
-            <span className="text-3xl font-black text-bg">{treino.letra}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <Badge tone="accent">Treino {treino.letra}</Badge>
-            <h1 className="font-bold text-lg leading-tight mt-2">{treino.nome}</h1>
-            <p className="text-xs text-fg-subtle mt-1">{treino.exercicios.length} exercícios</p>
-          </div>
-        </CardBody>
-      </Card>
-
-      {treino.observacoes ? (
-        <Card className="border-gold/20 bg-gold/5">
-          <CardBody className="text-xs text-fg-muted">
-            <span className="text-gold mr-1">⚠</span> {treino.observacoes}
-          </CardBody>
-        </Card>
-      ) : null}
-
-      <div className="space-y-3">
-        {exerciciosComUltimo.map(({ exercicio, ultimo }, idx) => (
-          <ExercicioCard
-            key={exercicio.id}
-            exercicio={exercicio}
-            index={idx + 1}
-            ultimo={ultimo}
-          />
-        ))}
-      </div>
-
-      <Card className="border-success/30 bg-success/5">
-        <CardBody className="text-center py-5">
-          <div className="text-sm text-fg-muted">Quando terminar todos os exercícios:</div>
-          <FinalizarTreinoButton treinoId={treino.id} />
-        </CardBody>
-      </Card>
-    </div>
+    <TreinoAtivoClient
+      treino={{ id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes }}
+      exercicios={exercicios}
+      ultimas={ultimas}
+      sessaoInicial={sessaoAtiva}
+      outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino } : null}
+      sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
+    />
   );
 }

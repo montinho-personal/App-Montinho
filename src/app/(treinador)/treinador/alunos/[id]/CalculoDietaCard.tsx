@@ -56,7 +56,7 @@ export function CalculoDietaCard({
   return (
     <Card className="border-accent/20">
       <CardHeader>
-        <CardTitle>Calculadora do método Pedro</CardTitle>
+        <CardTitle>Calculadora de macros (proteína e gordura por kg)</CardTitle>
         <p className="text-xs text-fg-muted">
           Base editável: proteína 2,2 g/kg e gordura 0,5 g/kg. Carboidrato fecha as calorias.
         </p>

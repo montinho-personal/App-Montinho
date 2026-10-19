@@ -1,47 +1,46 @@
 import { NextResponse } from "next/server";
-import { requireTreinador } from "@/lib/api-auth";
+import { z } from "zod";
+import { requireTreinadorApi } from "@/lib/auth/session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isDemoMode } from "@/lib/env";
+import { lerJson } from "@/lib/validacao/schemas";
+import { criarIntervencao } from "@/lib/data/acompanhamento";
+
+const schema = z.object({
+  nome: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(160),
+  telefone: z.string().trim().max(30).nullable().optional(),
+  data_nascimento: z.string().max(10).nullable().optional(),
+  sexo: z.enum(["M", "F", "NI"]).nullable().optional(),
+  objetivo: z.string().trim().max(300).nullable().optional(),
+  observacoes: z.string().trim().max(1000).nullable().optional(),
+  data_inicio: z.string().max(10).nullable().optional(),
+  acesso_ate: z.string().max(10).nullable().optional(),
+});
 
 /**
- * POST /api/alunos
- * Cria aluno: invite Supabase Auth → profile criado por trigger → INSERT alunos.
- * Body: { nome, email, telefone?, data_nascimento?, sexo?, objetivo?, observacoes?,
- *         valor_mensalidade_centavos?, data_inicio? }
+ * POST /api/alunos — cadastra aluno por convite.
+ * ÚNICO ponto que usa a service role (convite em auth.users). A autorização é
+ * verificada explicitamente antes (treinador autenticado) e a ação fica
+ * registrada em `intervencoes` para auditoria.
  */
 export async function POST(request: Request) {
-  const { error } = await requireTreinador();
+  const { sessao, error } = await requireTreinadorApi();
   if (error) return error;
+  if (isDemoMode()) return NextResponse.json({ error: "No modo demonstração não é possível convidar alunos." }, { status: 501 });
 
-  const body = await request.json().catch(() => null);
-  if (!body?.nome || !body?.email) {
-    return NextResponse.json({ error: "nome e email são obrigatórios" }, { status: 400 });
-  }
+  const { data: body, error: vErr } = await lerJson(request, schema);
+  if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
 
   const admin = createSupabaseAdminClient();
-
-  // 1. Invita usuário via Supabase Auth — o trigger on_auth_user_created cria o profile
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-    body.email,
-    {
-      data: {
-        nome: body.nome,
-        role: "aluno",
-      },
-    }
-  );
-
+  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(body.email, { data: { nome: body.nome, role: "aluno" } });
   if (inviteErr) {
-    return NextResponse.json({ error: `Convite falhou: ${inviteErr.message}` }, { status: 422 });
+    // anti-enumeração: mensagem genérica para e-mails já cadastrados
+    const msg = /already|registered|exists/i.test(inviteErr.message) ? "Não foi possível enviar o convite para este e-mail." : `Convite falhou: ${inviteErr.message}`;
+    return NextResponse.json({ error: msg }, { status: 422 });
   }
 
-  // 2. Aguarda o profile ser criado pelo trigger (normalmente instantâneo)
-  // Garante que o profile existe antes de criar o aluno
-  await admin
-    .from("profiles")
-    .update({ nome: body.nome, role: "aluno" })
-    .eq("id", invited.user.id);
-
-  // 3. Cria registro em alunos
+  await admin.from("profiles").update({ nome: body.nome, role: "aluno" }).eq("id", invited.user.id);
   const { data: aluno, error: alunoErr } = await admin
     .from("alunos")
     .insert({
@@ -57,10 +56,8 @@ export async function POST(request: Request) {
     })
     .select("*, profile:profiles(*)")
     .single();
+  if (alunoErr) return NextResponse.json({ error: `Erro ao criar aluno: ${alunoErr.message}` }, { status: 500 });
 
-  if (alunoErr) {
-    return NextResponse.json({ error: `Erro ao criar aluno: ${alunoErr.message}` }, { status: 500 });
-  }
-
+  await criarIntervencao(aluno.id, sessao.userId, { tipo: "decisao", titulo: "Aluno cadastrado", descricao: "Convite de acesso enviado por e-mail.", referencia: { origem: "api/alunos" } }).catch(() => undefined);
   return NextResponse.json(aluno, { status: 201 });
 }

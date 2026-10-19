@@ -754,9 +754,9 @@ export const mockSolicitacoes: Solicitacao[] = [
 // Mensagens — exemplo de chat treinador ↔ Aline
 // ============================================================================
 export const mockMensagens: Mensagem[] = [
-  { id: "m-1", aluno_id: "aline", remetente_id: "trainer-pedro", tipo: "texto", conteudo: "Aline, ótimo trabalho ontem no treino A! Vi que aumentou 2kg no supino. 💪", anexo_url: null, lida_em: "2026-05-15T08:00:00Z", created_at: "2026-05-14T20:00:00Z" },
+  { id: "m-1", aluno_id: "aline", remetente_id: "trainer-montinho", tipo: "texto", conteudo: "Aline, ótimo trabalho ontem no treino A! Vi que aumentou 2kg no supino. 💪", anexo_url: null, lida_em: "2026-05-15T08:00:00Z", created_at: "2026-05-14T20:00:00Z" },
   { id: "m-2", aluno_id: "aline", remetente_id: "aluno-aline",   tipo: "texto", conteudo: "Obrigada Pedro! Foi pesado mas consegui completar todas as séries.", anexo_url: null, lida_em: "2026-05-15T08:00:00Z", created_at: "2026-05-14T20:15:00Z" },
-  { id: "m-3", aluno_id: "aline", remetente_id: "trainer-pedro", tipo: "texto", conteudo: "Lembra que amanhã é dia C (pernas). Vai com tudo!", anexo_url: null, lida_em: null, created_at: "2026-05-15T19:00:00Z" },
+  { id: "m-3", aluno_id: "aline", remetente_id: "trainer-montinho", tipo: "texto", conteudo: "Lembra que amanhã é dia C (pernas). Vai com tudo!", anexo_url: null, lida_em: null, created_at: "2026-05-15T19:00:00Z" },
 ];
 
 // ============================================================================

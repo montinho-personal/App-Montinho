@@ -1,100 +1,162 @@
 import { NextResponse } from "next/server";
-import { requireTreinador } from "@/lib/api-auth";
-import type { TemplateTreinoEstrutura } from "@/lib/supabase/types-extended";
+import { z } from "zod";
+import { requireTreinadorApi } from "@/lib/auth/session";
+import { getMemoria } from "@/lib/data/memoria";
+import { getPlanoAtivo, salvarPlano, type TreinoInput } from "@/lib/data/programas";
+import { listTemplates } from "@/lib/db";
+import { lerJson, LETRAS } from "@/lib/validacao/schemas";
+import type { TemplateTreino, TemplateTreinoEstrutura } from "@/lib/supabase/types-extended";
+import { detectarGrupo } from "@/lib/grupos";
+import type { TreinoLetra } from "@/lib/supabase/types-sessoes";
 
-type ExercicioInsert = {
-  treino_id: string;
-  ordem: number;
-  nome: string;
-  series: number;
-  reps: string;
-  ie: number | null;
-  descanso_seg: number | null;
-  biblioteca_id: string | null;
-};
+const schema = z.object({
+  aluno_id: z.string().min(1).max(64),
+  template_id: z.string().max(64).optional(),
+  memoria_id: z.string().max(64).optional(),
+  somente_letra: z.enum(LETRAS).optional(), // "Usar só este dia"
+  observacoes: z.string().trim().max(500).nullable().optional(),
+  substituir: z.boolean().default(true),
+});
 
 /**
- * POST /api/treinos
- * Cria treinos para um aluno a partir de um template.
- * Body: { aluno_id, template_id?, estrutura? }
- * Aceita estrutura diretamente ou busca pelo template_id.
+ * POST /api/treinos — aplica um template legado ou um programa da memória
+ * como NOVO plano do aluno (clonado, com origem preservada). Os treinos
+ * anteriores são arquivados (ativo=false), nunca apagados.
  */
 export async function POST(request: Request) {
-  const { admin, error } = await requireTreinador();
+  const { sessao, error } = await requireTreinadorApi();
   if (error) return error;
+  const { data, error: vErr } = await lerJson(request, schema);
+  if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
 
-  const body = await request.json().catch(() => null);
-  if (!body?.aluno_id) {
-    return NextResponse.json({ error: "aluno_id é obrigatório" }, { status: 400 });
-  }
+  let treinos: TreinoInput[] = [];
+  let origem = "";
+  let programa = { nome: "Programa atual", objetivo: null as string | null, nivel: null as string | null, split: null as string | null, frequencia: {} as Record<string, number>, prioridades: [] as string[], equipamentos: [] as string[], duracao_min: null as number | null };
 
-  let estrutura: TemplateTreinoEstrutura | null = body.estrutura ?? null;
-  // Busca estrutura do template se fornecido template_id
-  if (body.template_id && !estrutura) {
-    const { data: tpl } = await admin!
-      .from("templates_treino")
-      .select("*")
-      .eq("id", body.template_id)
-      .maybeSingle();
-    if (!tpl) return NextResponse.json({ error: "Template não encontrado" }, { status: 404 });
-    estrutura = tpl.estrutura as TemplateTreinoEstrutura;
-
-    // Incrementa uso_count
-    await admin!
-      .from("templates_treino")
-      .update({ uso_count: (tpl.uso_count ?? 0) + 1 })
-      .eq("id", body.template_id);
-  }
-
-  if (!estrutura) {
-    return NextResponse.json({ error: "template_id ou estrutura são obrigatórios" }, { status: 400 });
-  }
-
-  // Remove treinos anteriores do aluno (substitui)
-  if (body.substituir !== false) {
-    await admin!.from("treinos").update({ ativo: false }).eq("aluno_id", body.aluno_id);
-  }
-
-  const letras = Object.keys(estrutura) as Array<keyof typeof estrutura>;
-  const treinosCriados: unknown[] = [];
-
-  for (let i = 0; i < letras.length; i++) {
-    const letra = letras[i] as "A" | "B" | "C" | "D" | "E";
-    const secao = estrutura[letra]!;
-
-    const { data: treino, error: tErr } = await admin!
-      .from("treinos")
-      .insert({
-        aluno_id: body.aluno_id,
-        letra,
-        nome: secao.nome,
-        observacoes: body.observacoes ?? null,
-        ordem: i,
+  if (data.memoria_id) {
+    const m = await getMemoria(data.memoria_id);
+    if (!m) return NextResponse.json({ error: "Programa da memória não encontrado" }, { status: 404 });
+    origem = `memória:${m.id}`;
+    programa = { nome: m.nome, objetivo: m.metadados.objetivo, nivel: m.metadados.nivel, split: m.metadados.split, frequencia: m.estrutura.programa.frequencia ?? {}, prioridades: m.metadados.prioridades ?? [], equipamentos: m.metadados.equipamentos ?? [], duracao_min: m.metadados.duracao_min };
+    treinos = m.estrutura.treinos
+      .filter((t) => !data.somente_letra || t.letra === data.somente_letra)
+      .map((t) => ({
+        letra: t.letra,
+        nome: t.nome,
         ativo: true,
-      })
-      .select()
-      .single();
-
-    if (tErr || !treino) continue;
-
-    // Insere exercícios do treino
-    const exerciciosPayload: ExercicioInsert[] = secao.exercicios.map((ex, ordem) => ({
-      treino_id: treino.id,
-      ordem,
-      nome: ex.nome,
-      series: ex.series,
-      reps: ex.reps,
-      ie: ex.ie ?? null,
-      descanso_seg: ex.descanso_seg ?? null,
-      biblioteca_id: ex.biblioteca_id ?? null,
-    }));
-
-    if (exerciciosPayload.length > 0) {
-      await admin!.from("exercicios").insert(exerciciosPayload as never);
-    }
-
-    treinosCriados.push(treino);
+        observacoes: data.observacoes ?? null,
+        exercicios: t.exercicios.map((e) => ({
+          nome: e.nome,
+          series: e.series,
+          reps: e.reps,
+          ie: e.ie,
+          rir: e.rir,
+          descanso_seg: e.descanso_seg,
+          observacoes: null,
+          grupo_muscular: e.grupo_muscular,
+          grupos_secundarios: e.grupos_secundarios ?? [],
+          grupo_origem: e.grupo_muscular ? "manual" : null,
+          grupo_confianca: e.grupo_muscular ? "alta" : null,
+          series_aquecimento: e.series_aquecimento ?? 0,
+          tecnica: e.tecnica ?? "normal",
+          bloco: e.bloco ?? null,
+          unilateral: e.unilateral ?? false,
+          carga_alvo: null,
+          conta_volume: e.grupo_muscular !== "cardio",
+          series_config: e.series_config ?? null,
+        })),
+      }));
+  } else if (data.template_id) {
+    const tpl = ((await listTemplates()) as TemplateTreino[]).find((t) => t.id === data.template_id);
+    if (!tpl) return NextResponse.json({ error: "Template não encontrado" }, { status: 404 });
+    origem = `template:${tpl.id}`;
+    const estrutura = tpl.estrutura as TemplateTreinoEstrutura;
+    programa = { ...programa, nome: tpl.nome, frequencia: Object.fromEntries(Object.keys(estrutura).map((l) => [l, 1])) };
+    treinos = (Object.keys(estrutura) as TreinoLetra[])
+      .filter((l) => !data.somente_letra || l === data.somente_letra)
+      .map((letra) => ({
+        letra,
+        nome: estrutura[letra].nome,
+        ativo: true,
+        observacoes: data.observacoes ?? null,
+        exercicios: estrutura[letra].exercicios.map((e) => {
+          const g = detectarGrupo(e.nome);
+          return {
+            nome: e.nome,
+            series: e.series,
+            reps: e.reps,
+            ie: e.ie,
+            rir: null,
+            descanso_seg: e.descanso_seg,
+            observacoes: null,
+            biblioteca_id: e.biblioteca_id ?? null,
+            grupo_muscular: g.grupo,
+            grupos_secundarios: g.secundarios,
+            grupo_origem: "heuristica" as const,
+            grupo_confianca: g.confianca,
+            series_aquecimento: 0,
+            tecnica: "normal" as const,
+            bloco: null,
+            unilateral: false,
+            carga_alvo: null,
+            conta_volume: g.grupo !== "cardio",
+          };
+        }),
+      }));
+  } else {
+    return NextResponse.json({ error: "Informe template_id ou memoria_id" }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, treinos: treinosCriados, total: treinosCriados.length }, { status: 201 });
+  if (!treinos.length) return NextResponse.json({ error: "Nada para aplicar" }, { status: 400 });
+
+  // "Usar só este dia": mantém os demais treinos ativos; substitui apenas a letra escolhida.
+  // Substituição completa: treinos anteriores são arquivados (ativo=false), nunca apagados.
+  const atual = await getPlanoAtivo(data.aluno_id);
+  const comoInput = (t: (typeof atual.treinos)[number], ativo: boolean): TreinoInput => ({
+    id: t.id,
+    letra: t.letra as TreinoLetra,
+    nome: t.nome,
+    ativo,
+    observacoes: t.observacoes,
+    exercicios: t.exercicios.map((e) => ({
+      id: e.id, nome: e.nome, series: e.series, reps: e.reps, ie: e.ie, rir: e.rir, descanso_seg: e.descanso_seg, observacoes: e.observacoes,
+      grupo_muscular: e.grupo_muscular, grupos_secundarios: e.grupos_secundarios, grupo_origem: e.grupo_origem, grupo_confianca: e.grupo_confianca,
+      series_aquecimento: e.series_aquecimento, tecnica: e.tecnica, bloco: e.bloco, unilateral: e.unilateral, carga_alvo: e.carga_alvo,
+      conta_volume: e.conta_volume, series_config: e.series_config, biblioteca_id: e.biblioteca_id,
+    })),
+  });
+  let finais: TreinoInput[];
+  if (data.somente_letra || !data.substituir) {
+    const existentes = atual.treinos.filter((t) => !treinos.some((n) => n.letra === t.letra)).map((t) => comoInput(t, t.ativo));
+    finais = [...existentes, ...treinos].sort((a, b) => LETRAS.indexOf(a.letra) - LETRAS.indexOf(b.letra));
+  } else {
+    finais = [...treinos, ...atual.treinos.map((t) => comoInput(t, false))];
+  }
+
+  try {
+    const p = atual.programa;
+    const resultado = await salvarPlano(data.aluno_id, sessao.userId, {
+      programa: {
+        nome: programa.nome,
+        objetivo: programa.objetivo ?? p?.objetivo ?? null,
+        nivel: programa.nivel ?? p?.nivel ?? null,
+        split: programa.split ?? p?.split ?? null,
+        modo_semana: p?.modo_semana ?? "fixa",
+        frequencia: Object.keys(programa.frequencia).length ? programa.frequencia : Object.fromEntries(finais.filter((t) => t.ativo).map((t) => [t.letra, 1])),
+        calendario: p?.calendario ?? {},
+        metas_volume: p?.metas_volume ?? {},
+        prioridades: programa.prioridades.length ? programa.prioridades : p?.prioridades ?? [],
+        equipamentos: programa.equipamentos.length ? programa.equipamentos : p?.equipamentos ?? [],
+        duracao_min: programa.duracao_min ?? p?.duracao_min ?? null,
+        permite_versao_reduzida: p?.permite_versao_reduzida ?? false,
+        observacoes: p?.observacoes ?? null,
+      },
+      treinos: finais,
+      motivo: `Programa aplicado a partir de ${origem}`,
+      registrarMemoria: false, // já veio da memória/template: evita duplicar o acervo
+    });
+    return NextResponse.json({ ok: true, origem, treinos: resultado.treinos.filter((t) => t.ativo), versao: resultado.versao }, { status: 201 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Erro ao aplicar programa" }, { status: 500 });
+  }
 }

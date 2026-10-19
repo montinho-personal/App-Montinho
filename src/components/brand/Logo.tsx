@@ -5,14 +5,13 @@ type LogoColor = "accent" | "white" | "black";
 
 type LogoProps = {
   variant?: LogoVariant;
-  /** "white" usa o texto claro; "black" usa preto; qualquer outro usa a cor de destaque. */
+  /** "black" usa a variante para fundo claro; os demais usam a variante para fundo escuro. */
   color?: LogoColor;
   className?: string;
   height?: number;
   priority?: boolean;
 };
 
-/** Iniciais a partir do nome da marca: "FELIPE TEAM" -> "FT", "Squad" -> "S". */
 function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return "?";
@@ -20,33 +19,27 @@ function initials(name: string): string {
   return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
 }
 
-export function Logo({
-  variant = "full",
-  color = "accent",
-  className = "",
-  height = 36,
-  priority = false,
-}: LogoProps) {
-  // ── Modo IMAGEM: usa os SVGs apontados em brand.ts (logo.useText = false) ──
-  if (!BRAND.logo.useText) {
-    const src = variant === "mark" ? BRAND.logo.mark : BRAND.logo.full;
+export function Logo({ variant = "full", color = "white", className = "", height = 36, priority = false }: LogoProps) {
+  if (!BRAND.logo.useText && variant !== "wordmark") {
+    const src = variant === "mark" ? BRAND.logo.mark : color === "black" ? BRAND.logo.fullLight : BRAND.logo.full;
+    const width = variant === "mark" ? height : Math.round(height * BRAND.logo.ratio);
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
-        alt={BRAND.name}
-        style={{ height, width: "auto" }}
+        alt={BRAND.fullName}
+        width={width}
+        height={height}
+        style={{ height, width: "auto", display: "block" }}
         className={className}
-        {...(priority ? { fetchPriority: "high" as const } : {})}
+        decoding="async"
+        {...(priority ? { fetchPriority: "high" as const } : { loading: "lazy" as const })}
       />
     );
   }
 
-  // ── Modo TEXTO (padrão): desenha o nome da marca como logotipo ──
-  const textColor =
-    color === "black" ? "#000" : color === "white" ? "var(--color-fg)" : "var(--color-accent)";
+  const textColor = color === "black" ? "#0a0a0a" : color === "white" ? "var(--color-fg)" : "var(--color-accent)";
 
-  // Símbolo quadrado: caixa com a cor de destaque e as iniciais.
   if (variant === "mark") {
     return (
       <span
@@ -59,33 +52,24 @@ export function Logo({
           height,
           borderRadius: Math.round(height * 0.28),
           background: "var(--color-accent)",
-          color: "#fff",
+          color: "#0a0a0a",
           fontWeight: 900,
           fontSize: Math.round(height * 0.46),
           letterSpacing: "-0.02em",
           lineHeight: 1,
         }}
-        aria-label={BRAND.name}
+        aria-label={BRAND.fullName}
       >
         {initials(BRAND.name)}
       </span>
     );
   }
 
-  // Logotipo horizontal: o nome em destaque.
+  // Wordmark tipográfico: "MONTINHO" + "PERSONAL TRAINER"
   return (
-    <span
-      className={className}
-      style={{
-        color: textColor,
-        fontWeight: 900,
-        fontSize: Math.round(height * 0.82),
-        letterSpacing: "-0.03em",
-        lineHeight: 1,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {BRAND.name}
+    <span className={className} style={{ color: textColor, lineHeight: 1, whiteSpace: "nowrap", display: "inline-flex", flexDirection: "column", gap: Math.round(height * 0.08) }} aria-label={BRAND.fullName}>
+      <span style={{ fontWeight: 900, fontSize: Math.round(height * 0.6), letterSpacing: "-0.02em", textTransform: "uppercase" }}>{BRAND.name}</span>
+      <span style={{ fontWeight: 500, fontSize: Math.round(height * 0.26), letterSpacing: "0.18em", textTransform: "uppercase", opacity: 0.85 }}>Personal Trainer</span>
     </span>
   );
 }

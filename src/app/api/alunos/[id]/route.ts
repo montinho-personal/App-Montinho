@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireTreinador } from "@/lib/api-auth";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { admin, error } = await requireTreinador();
+  const { db, error } = await requireTreinador();
   if (error) return error;
 
   const { id } = await params;
@@ -10,7 +10,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!body) return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
 
   // Atualiza aluno
-  const { data, error: dbErr } = await admin!
+  const { data, error: dbErr } = await db!
     .from("alunos")
     .update({
       telefone: body.telefone ?? null,
@@ -30,7 +30,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   // Atualiza nome no profile se fornecido
   if (body.nome) {
-    await admin!.from("profiles").update({ nome: body.nome }).eq("id", data.profile_id);
+    await db!.from("profiles").update({ nome: body.nome }).eq("id", data.profile_id);
   }
 
   return NextResponse.json(data);

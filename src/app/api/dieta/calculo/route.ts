@@ -3,10 +3,10 @@ import { requireTreinador } from "@/lib/api-auth";
 
 /**
  * POST /api/dieta/calculo
- * Método do Pedro: proteína (g/kg) + gordura (g/kg) → macros + alvo calórico.
+  * Método por g/kg: proteína (g/kg) + gordura (g/kg) → macros + alvo calórico.
  */
 export async function POST(req: Request) {
-  const { admin, error } = await requireTreinador();
+  const { db, error } = await requireTreinador();
   if (error) return error;
 
   const body = await req.json().catch(() => null);
@@ -32,13 +32,13 @@ export async function POST(req: Request) {
   };
 
   if (body.aluno_id) {
-    await admin!.from("squad_dieta_calculos").insert({
+    await db!.from("squad_dieta_calculos").insert({
       aluno_id: body.aluno_id,
       peso_kg: peso,
       proteina_g_por_kg: proteinaGPorKg,
       gordura_g_por_kg: gorduraGPorKg,
       calorias_alvo: caloriasAlvo,
-      metodo: { fonte: "pré-configurado Pedro", pendente_validacao: true },
+      metodo: { fonte: "pre-configurado", pendente_validacao: true },
       resultado,
     });
   }
