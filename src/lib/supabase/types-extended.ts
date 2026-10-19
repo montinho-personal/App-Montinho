@@ -11,7 +11,8 @@ export type GrupoMuscular =
 export type Equipamento =
   | "barra" | "halter" | "maquina" | "polia" | "peso_corporal"
   | "cabo" | "kettlebell" | "elastico" | "esteira" | "bike"
-  | "corda" | "banco" | "smith" | "outro";
+  | "corda" | "banco" | "smith" | "outro"
+  | "barra_fixa" | "paralelas" | "anilha" | "barra_w" | "trx" | "bola" | "roda" | "caneleira";
 
 export type VideoProvider = "cloudflare_stream" | "youtube" | "mux" | "direct_url";
 
