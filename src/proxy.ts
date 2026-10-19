@@ -57,9 +57,13 @@ export async function proxy(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        // O cookie "-code-verifier" é o segredo do link de e-mail (PKCE). Uma
+        // visita sem sessão a uma rota privada não pode apagá-lo, senão o link
+        // deixa de funcionar quando for aberto.
+        const seguros = cookiesToSet.filter(({ name, value }) => !(name.endsWith("-code-verifier") && value === ""));
+        seguros.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        seguros.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
   });

@@ -24,9 +24,10 @@ export async function createSupabaseServerClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet
+              // Nunca apagar o segredo do link de e-mail (PKCE) por falta de sessão.
+              .filter(({ name, value }) => !(name.endsWith("-code-verifier") && value === ""))
+              .forEach(({ name, value, options }) => cookieStore.set(name, value, options));
           } catch {
             // Em Server Components puros não dá pra setar cookie — ignore.
           }

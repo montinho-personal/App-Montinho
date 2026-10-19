@@ -21,7 +21,12 @@ function destinoSeguro(next: string | null): string {
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const next = destinoSeguro(url.searchParams.get("next"));
-  const erro = (motivo: string) => NextResponse.redirect(new URL(`/login?erro=${motivo}`, url.origin));
+  const erro = (motivo: string, detalhe?: string) => {
+    // Diagnóstico sem dados pessoais: só o tipo de falha e quais cookies existiam.
+    const nomes = request.cookies.getAll().map((c) => c.name.replace(/^sb-[a-z]+-/, "sb-*-"));
+    console.warn(`[auth/callback] falha=${detalhe ?? motivo} code=${url.searchParams.has("code")} token_hash=${url.searchParams.has("token_hash")} cookies=${nomes.join(",") || "(nenhum)"}`);
+    return NextResponse.redirect(new URL(`/login?erro=${motivo}`, url.origin));
+  };
 
   if (appMode() !== "live") return erro("link");
 
@@ -33,18 +38,18 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServerClient();
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) return erro("link");
+      if (error) return erro("link", `exchange:${error.name}`);
       return NextResponse.redirect(new URL(next, url.origin));
     }
     if (tokenHash && type && TIPOS.includes(type)) {
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-      if (error) return erro("link");
+      if (error) return erro("link", `verify:${error.name}`);
       return NextResponse.redirect(new URL(type === "recovery" ? "/conta/senha" : next, url.origin));
     }
-  } catch {
-    return erro("link");
+  } catch (e) {
+    return erro("link", `excecao:${e instanceof Error ? e.name : "desconhecida"}`);
   }
   // Supabase devolveu o erro no fragmento (#error=...), que o servidor não vê:
   // o login lê o fragmento no navegador e explica.
-  return erro("link");
+  return erro("link", "sem_parametros");
 }
