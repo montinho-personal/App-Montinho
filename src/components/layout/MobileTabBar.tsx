@@ -18,7 +18,7 @@ export function MobileTabBar({ items }: { items: TabItem[] }) {
               key={tab.href}
               href={tab.href}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center justify-center min-h-[56px] gap-1 text-[11px] font-semibold transition-colors ${active ? "text-accent" : "text-fg-subtle hover:text-fg-muted"}`}
+              className={`flex flex-col items-center justify-center min-h-[56px] gap-1 ${items.length > 5 ? "text-[10px] tracking-tight" : "text-[11px]"} font-semibold transition-colors ${active ? "text-accent" : "text-fg-subtle hover:text-fg-muted"}`}
             >
               <Icon name={tab.icon} size={22} />
               <span>{tab.label}</span>

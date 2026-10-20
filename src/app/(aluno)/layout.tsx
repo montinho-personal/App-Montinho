@@ -10,6 +10,8 @@ import { requireAlunoPage } from "@/lib/auth/session";
 const TABS = [
   { label: "Início", href: "/aluno", icon: "home" },
   { label: "Treinar", href: "/aluno/treinar", icon: "dumbbell" },
+  { label: "Jornada", href: "/aluno/jornada", icon: "map" },
+  { label: "Conquistas", href: "/aluno/conquistas", icon: "trophy" },
   { label: "Evolução", href: "/aluno/evolucao", icon: "chart" },
   { label: "Perfil", href: "/aluno/perfil", icon: "user" },
 ] as const;
