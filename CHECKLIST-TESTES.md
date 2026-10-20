@@ -9,19 +9,23 @@ Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 l
 | `npm run lint` | PASSOU | 0 erros, 0 avisos (regras React Compiler incluídas) |
 | `npx tsc --noEmit` | PASSOU | sem erros |
 | `npm run build` | PASSOU | 44 rotas compiladas; rotas autenticadas marcadas `force-dynamic` |
-| `npm test` (vitest) | PASSOU | 5 arquivos · **52 testes** |
-| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0010 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T6) |
+| `npm test` (vitest) | PASSOU | 9 arquivos · **82 testes** |
+| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0013 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T7) |
 
 ## Testes automatizados por tema
 
 | Tema | Arquivo | Cenários |
 |---|---|---|
-| Volume semanal | `src/lib/volume/calcular.test.ts` (21) | treino único; ABC 3x; ABC 5x (A/B repetidos); PPL 6x; Upper/Lower 4x com prioridade de glúteo; sem grupo → não classificado; composto (direto × secundário separado); aquecimento; pirâmide; rest-pause/drop set; alteração de calendário (ABC 3x → ABCAB 5x); rotativo 5x (média e microciclo); dia desativado; negativos/nulos/NaN; meta sem séries; superset; legado “pernas”; programado × realizado; heurística com confiança; persistência da correção manual (precedência); biblioteca legada sinaliza revisão |
+| Volume semanal | `src/lib/volume/calcular.test.ts` (24) | treino único; ABC 3x; ABC 5x (A/B repetidos); PPL 6x; Upper/Lower 4x com prioridade de glúteo; sem grupo → não classificado; composto (direto × secundário separado); aquecimento; pirâmide; rest-pause/drop set; alteração de calendário (ABC 3x → ABCAB 5x); rotativo 5x (média e microciclo); dia desativado; negativos/nulos/NaN; meta sem séries; superset; legado “pernas”; programado × realizado; heurística com confiança; persistência da correção manual (precedência); biblioteca legada sinaliza revisão; volume ponderado pelos pesos da biblioteca; desligar pesos; aviso de meta “ombros” com deltoides separados |
 | Autorização | `src/lib/auth/guards.test.ts` (4) | aluno A ≠ aluno B; storage por pasta; redirecionamento por papel; cookie de demo só com personas conhecidas |
 | Memória | `src/lib/memoria/similaridade.test.ts` (9) | divisão por objetivo/frequência com explicação; texto PT-BR “4 dias, glúteos, upper/lower, academia”; não recomenda equipamento ausente; não recomenda movimento restrito; desidentificação (sem nome/observações/cargas); sem IA e acervo vazio; dedupe + feedback explícito sem alegar superioridade; hash estável; metadados |
 | Relatórios | `src/lib/relatorios/calcular.test.ts` (9) | e1RM Epley e faixa de validade; denominador por frequência; resumo 30 dias (aderência, tendência, conquistas reais); dados insuficientes → estado vazio; recorde só com histórico anterior; marcas por nome normalizado; calendário/tonelagem; semana flexível e próxima letra; alertas com evidência/janela/ação |
 | Fila offline | `src/lib/sync/fila.test.ts` (9) | client_key única; última edição vence sem duplicar; finalizar por último; erro transitório mantém ordem e reenvia; erro definitivo descarta; reenvio idempotente; **operação enfileirada durante o envio não se perde** (bug encontrado no e2e e corrigido); reconciliação; storage corrompido |
-| RLS / migração (SQL) | `scripts/sql/test-rls.sql` (6 blocos) | T1 logbook legado migrado sem perda (duplicata preservada); T2 aluno A só lê os próprios treinos/sessões/séries/fotos; T3 aluno não cria sessão para B, não cria template, não escreve no logbook, não lê/escreve memória, não altera plano, não apaga versões; T4 sessão própria idempotente (reenvio rejeitado; dois treinos iguais no mesmo dia permitidos); T5 aluno B isolado de A; T6 treinador vê tudo, versões imutáveis, memória acessível |
+| Catálogo | `src/lib/biblioteca/catalogo.test.ts` (9) | exatamente 150 com slugs únicos; nenhum nome/sinônimo em dois exercícios; todos os grupos obrigatórios (deltoides separados); metadados completos; pesos válidos sem o músculo principal; substituições existentes e nunca para si; classificações de referência; nenhum vídeo inventado; todo nome da biblioteca antiga (ZIP) e da demo é reconhecido (cardio fora) |
+| Busca | `src/lib/biblioteca/busca.test.ts` (10) | “pulley” → puxadas; “rosca scott” → variações; “leg” → leg press sem flexora/extensora; parcial e sem acento; sinônimos; grupo/equipamento/padrão; filtros (grupo com e sem secundários, equipamento, tipo, favoritos, sem mídia); favoritos/uso sobem sem trazer irrelevantes; equipamento em texto livre |
+| Substituição | `src/lib/biblioteca/substituicao.test.ts` (6) | supino reto → halteres e máquina; mesmo músculo não basta; equipamento ausente descarta com motivo; restrição de joelho rebaixa e alerta; avançado para iniciante alerta; aprovada no topo e rejeitada nunca aparece |
+| Preferências | `src/lib/memoria/preferencias.test.ts` (2) | só itens salvos e não excluídos; acervo vazio não alega aprendizado |
+| RLS / migração (SQL) | `scripts/sql/test-rls.sql` (7 blocos) | T1 logbook legado migrado sem perda (duplicata preservada); T2 aluno A só lê os próprios treinos/sessões/séries/fotos; T3 aluno não cria sessão para B, não cria template, não escreve no logbook, não lê/escreve memória, não altera plano, não apaga versões; T4 sessão própria idempotente (reenvio rejeitado; dois treinos iguais no mesmo dia permitidos); T5 aluno B isolado de A; T6 treinador vê tudo, versões imutáveis, memória acessível; T7 catálogo com 150 itens e ≥300 sugestões, sem nomes duplicados, reaplicar a 0013 é idempotente e não altera prescrições, aluno lê a biblioteca mas não escreve nem vê equivalências/favoritos, favoritos de um treinador invisíveis ao outro |
 
 ## Critérios de aceitação do Prompt Mestre (§12)
 
@@ -48,3 +52,16 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 - Login real (senha/magic link), convite de aluno por e-mail, storage de fotos e RLS **no Supabase**: sem credenciais nesta sessão. Caminho: SETUP.md → `scripts/seed-demo.sql` (opcional) → repetir cenários C, G, H com dois alunos reais.
 - Deploy na Vercel: **EXECUTADO** — `https://app-montinho.vercel.app` responde a tela de login real (modo `live`, sem banner de demo); Security Advisor do Supabase após a 0010 só mantém avisos intencionais (`is_treinador`/`aluno_id_atual` são as funções das policies de RLS e `marcar_ultimo_treino` exige login e valida o dono). Falta a chave `service_role` (convite por e-mail) e a URL no Auth — SETUP.md, "Pendências de ativação".
 - Teste em dispositivo físico com rede instável (modo avião): não há dispositivo. A fila local foi validada por unit test e pelo e2e em Chromium.
+
+
+## Biblioteca inteligente (20/10/2026)
+
+| Item | Status | Evidência |
+|---|---|---|
+| 150 exercícios em produção | PASSOU | SQL no projeto `app-montinho`: 150 itens `origem='catalogo'`, 351 equivalências, 0 nomes duplicados |
+| Pendência de mídia | PENDENTE | 0 de 150 com vídeo verificado (nenhum link inventado) |
+| e2e demo — biblioteca | PASSOU | busca “pulley”, “rosca scott”, “leg”, “smith”; favoritar; aprovar/rejeitar/desfazer; filtro ombro posterior = 4 |
+| e2e demo — montador | PASSOU | seletor com Enter; alternativas respeitam restrição do aluno; coluna “Pond.” com vírgula decimal |
+| e2e demo — aluno | PASSOU | “Como executar” com até 3 dicas; vídeo não verificado não aparece |
+| e2e demo — APIs | PASSOU | aluno recebe 403 em favoritos/equivalências/criar; nome duplicado → 409; equivalência consigo → 400 |
+| Login real com treinador em produção | NÃO EXECUTADO | requer sua senha; só o build e as tabelas foram verificados |

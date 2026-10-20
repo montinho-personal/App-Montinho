@@ -10,7 +10,7 @@
 //    desfazer/refazer; campos avançados só quando o treinador quiser.
 // ============================================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
@@ -18,7 +18,12 @@ import { Icon } from "@/components/ui/Icon";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { CartaoAnamnese } from "@/components/montador/CartaoAnamnese";
 import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
-import { alertasDoExercicio, regioesLesionadas } from "@/lib/restricoes";
+import { SeletorExercicio } from "@/components/montador/SeletorExercicio";
+import { AlternativasExercicio } from "@/components/montador/AlternativasExercicio";
+import { indicePorNome, interpretarEquipamentos } from "@/lib/biblioteca/itens";
+import type { ContextoAluno } from "@/lib/biblioteca/substituicao";
+import type { Equivalencia, ItemBiblioteca, Nivel } from "@/lib/biblioteca/tipos";
+import { alertasDoExercicio, regioesDaAnamnese, regioesLesionadas } from "@/lib/restricoes";
 import { GRUPO_COR, GRUPO_LABEL, GRUPOS_SELECIONAVEIS, montarLookupBiblioteca, normalizarNome, resolverGrupo, type GrupoResolvido } from "@/lib/grupos";
 import { calcularVolumeSemanal, frequenciaDoCalendario, type Calendario, type DiaVolume, type Frequencia, type MetaVolume, type Tecnica } from "@/lib/volume/calcular";
 import { configIgual, detalhar, repsResumo, totalSeries, type SerieConfig } from "@/lib/series";
@@ -78,6 +83,11 @@ type Props = {
   treinosIniciais: Array<Treino & { exercicios: ExercicioPrescrito[] }>;
   finalizados: Array<{ id: string; letra: string; nome: string; exercicios: number }>;
   biblioteca: BibliotecaItem[];
+  /** Biblioteca completa (busca, alternativas e pesos do volume ponderado). */
+  itensBiblioteca: ItemBiblioteca[];
+  equivalencias: Equivalencia[];
+  favoritos: string[];
+  usoExercicios: Record<string, { vezes: number; alunos: number }>;
   correcoes: Array<{ nome: string; grupo: GrupoMuscular; secundarios: GrupoMuscular[] }>;
   anamnese: Anamnese | null;
   realizadoSemanal: Partial<Record<GrupoMuscular, number>>;
@@ -164,7 +174,7 @@ function programaInicial(p: Programa | null, letras: TreinoLetra[]): ProgramaVM 
 }
 
 // ----------------------------------------------------------------------------
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, correcoes, anamnese, realizadoSemanal }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -187,6 +197,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [showFinalizados, setShowFinalizados] = useState(false);
   const [showExemplos, setShowExemplos] = useState(false);
   const [showPrograma, setShowPrograma] = useState(!programa);
+  const [alternativasDe, setAlternativasDe] = useState<string | null>(null);
   const dragRef = useRef<{ letra: TreinoLetra; key: string } | null>(null);
 
   // --- lookups ---------------------------------------------------------------
@@ -196,14 +207,14 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     (r: Row): GrupoResolvido => resolverGrupo({ nome: r.nome, grupo_muscular: r.grupo, grupos_secundarios: r.secundarios, grupo_origem: r.grupo ? "manual" : null }, lookup, correcoesMap),
     [lookup, correcoesMap]
   );
-  const sugestoesNomes = useMemo(() => {
-    const set = new Set<string>();
-    for (const b of biblioteca) {
-      set.add(b.nome);
-      for (const s of b.sinonimos) set.add(`${s} → ${b.nome}`);
-    }
-    return [...set];
-  }, [biblioteca]);
+  const favoritosSet = useMemo(() => new Set(favoritos), [favoritos]);
+  const usoMap = useMemo(() => new Map(Object.entries(usoExercicios).map(([id, u]) => [id, u.vezes])), [usoExercicios]);
+  const itemPorId = useMemo(() => new Map(itensBiblioteca.map((i) => [i.id, i])), [itensBiblioteca]);
+  const itemPorNome = useMemo(() => indicePorNome(itensBiblioteca), [itensBiblioteca]);
+  const itemDaLinha = useCallback(
+    (r: Row): ItemBiblioteca | null => (r.bibliotecaId ? itemPorId.get(r.bibliotecaId) : undefined) ?? itemPorNome.get(normalizarNome(r.nome)) ?? null,
+    [itemPorId, itemPorNome]
+  );
 
   // --- frequência e volume (tempo real) ---------------------------------------
   const frequencia = useMemo<Frequencia>(() => {
@@ -228,13 +239,28 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           .filter((r) => r.nome.trim())
           .map((r) => {
             const g = resolver(r);
-            return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : g.secundarios, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, contaVolume: r.contaVolume };
+            const item = itemDaLinha(r);
+            // Pesos da biblioteca valem quando os secundários não foram alterados à mão.
+            const pesos = !r.secundarios.length && item ? item.pesosSecundarios : null;
+            return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : item?.secundarios.length ? item.secundarios : g.secundarios, pesosSecundarios: pesos, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, contaVolume: r.contaVolume };
           }),
       })),
-    [estado.treinos, resolver]
+    [estado.treinos, resolver, itemDaLinha]
   );
 
-  const volume = useMemo(() => calcularVolumeSemanal(diasVolume, { frequencia, metas: estado.programa.metas_volume, incluirSecundario }), [diasVolume, frequencia, estado.programa.metas_volume, incluirSecundario]);
+  const volume = useMemo(() => calcularVolumeSemanal(diasVolume, { frequencia, metas: estado.programa.metas_volume, incluirSecundario, agruparOmbros: false }), [diasVolume, frequencia, estado.programa.metas_volume, incluirSecundario]);
+
+  // Perfil ATUAL do aluno para as alternativas (nunca um treino antigo "genérico").
+  const contextoAluno = useMemo<ContextoAluno>(
+    () => ({
+      equipamentos: interpretarEquipamentos(estado.programa.equipamentos),
+      nivel: (["iniciante", "intermediario", "avancado"].includes(estado.programa.nivel) ? estado.programa.nivel : null) as Nivel | null,
+      regioesRestritas: regioesDaAnamnese(anamnese),
+      objetivo: estado.programa.objetivo || null,
+      musculosPrioritarios: estado.programa.prioridades as GrupoMuscular[],
+    }),
+    [estado.programa.equipamentos, estado.programa.nivel, estado.programa.objetivo, estado.programa.prioridades, anamnese]
+  );
 
   // --- histórico (desfazer/refazer) -------------------------------------------
   const estadoRef = useRef(estado);
@@ -655,8 +681,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                         const altoRisco = alertas.some((a) => a.severidade === "alto");
                         const det = r.seriesConfig.modo === "detalhado";
                         return (
+                          <Fragment key={r.key}>
                           <tr
-                            key={r.key}
                             draggable
                             onDragStart={() => (dragRef.current = { letra: t.letra, key: r.key })}
                             onDragOver={(e) => e.preventDefault()}
@@ -671,23 +697,30 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               </div>
                             </td>
                             <td className="p-0 align-top">
-                              <input
-                                list="ex-biblioteca"
-                                value={r.nome}
-                                onChange={(e) => {
-                                  const v = e.target.value.includes(" → ") ? e.target.value.split(" → ")[1] : e.target.value;
-                                  const b = biblioteca.find((x) => normalizarNome(x.nome) === normalizarNome(v));
-                                  updRow(t.key, r.key, { nome: v, bibliotecaId: b?.id ?? null, grupo: null });
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") { e.preventDefault(); addRow(t.key, r.key); }
-                                  if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); moverRow(t.key, r.key, -1); }
-                                  if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); moverRow(t.key, r.key, 1); }
-                                }}
-                                placeholder={`exercício ${i + 1}… (Enter adiciona linha)`}
-                                aria-label={`Nome do exercício ${i + 1} do treino ${t.letra}`}
-                                className="w-full bg-transparent px-2 py-2.5 text-[13px] font-medium outline-none focus:bg-accent/5"
-                              />
+                              <div>
+                                <div>
+                                  <SeletorExercicio
+                                    valor={r.nome}
+                                    itens={itensBiblioteca}
+                                    favoritos={favoritosSet}
+                                    uso={usoMap}
+                                    onTexto={(v) => {
+                                      const b = itemPorNome.get(normalizarNome(v));
+                                      updRow(t.key, r.key, { nome: v, bibliotecaId: b?.id ?? null, grupo: null });
+                                    }}
+                                    onEscolher={(item) => updRow(t.key, r.key, { nome: item.nome, bibliotecaId: item.id, grupo: null, secundarios: [], contaVolume: item.contaVolume })}
+                                    onEnterLivre={() => addRow(t.key, r.key)}
+                                    onMover={(dir) => moverRow(t.key, r.key, dir)}
+                                    placeholder={`exercício ${i + 1}… (busque por nome, músculo ou equipamento)`}
+                                    ariaLabel={`Nome do exercício ${i + 1} do treino ${t.letra}`}
+                                  />
+                                </div>
+                                {r.nome.trim() ? (
+                                  <button type="button" onClick={() => setAlternativasDe(alternativasDe === r.key ? null : r.key)} aria-expanded={alternativasDe === r.key} title="Ver alternativas para este exercício" className="ml-2 mb-1 text-[11px] text-fg-subtle hover:text-accent">
+                                    ⇄ alternativas
+                                  </button>
+                                ) : null}
+                              </div>
                               {alertas.length ? (
                                 <p className="px-2 pb-1 text-[11px]" style={{ color: altoRisco ? "var(--color-red)" : "var(--color-gold)" }}>⚠ {alertas.map((a) => `${a.regiao}: ${a.mensagem}`).join(" · ")}</p>
                               ) : null}
@@ -764,6 +797,26 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               <button type="button" onClick={() => removeRow(t.key, r.key)} className="ml-1 rounded border border-border px-1.5 py-1 text-fg-subtle hover:text-red" title={r.id ? "Remover (o histórico de sessões anteriores é preservado)" : "Remover"} aria-label="Remover exercício"><Icon name="trash" size={12} /></button>
                             </td>
                           </tr>
+                          {alternativasDe === r.key ? (
+                            <tr>
+                              <td />
+                              <td colSpan={8} className="pt-0">
+                                <AlternativasExercicio
+                                  origem={itemDaLinha(r)}
+                                  nomeDigitado={r.nome}
+                                  itens={itensBiblioteca}
+                                  equivalencias={equivalencias}
+                                  contexto={contextoAluno}
+                                  onTrocar={(item) => {
+                                    updRow(t.key, r.key, { nome: item.nome, bibliotecaId: item.id, grupo: null, secundarios: [], contaVolume: item.contaVolume });
+                                    setAlternativasDe(null);
+                                  }}
+                                  onFechar={() => setAlternativasDe(null)}
+                                />
+                              </td>
+                            </tr>
+                          ) : null}
+                          </Fragment>
                         );
                       })}
                     </tbody>
@@ -813,9 +866,6 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         </div>
       </div>
 
-      <datalist id="ex-biblioteca">
-        {sugestoesNomes.map((n) => <option key={n} value={n} />)}
-      </datalist>
     </div>
   );
 }

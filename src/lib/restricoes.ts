@@ -104,3 +104,18 @@ export function alertasDoExercicio(nomeExercicio: string, anamnese: Anamnese | n
 export function regioesLesionadas(anamnese: Anamnese | null): string[] {
   return regrasAtivas(anamnese).map((r) => r.regiao);
 }
+
+/** Regiões com restrição na anamnese, no formato usado pela biblioteca (substituições). */
+const REGIAO_PARA_ESTRESSE: Record<string, "joelho" | "ombro" | "lombar" | "cotovelo_punho" | "quadril"> = {
+  Joelho: "joelho",
+  Ombro: "ombro",
+  "Lombar / Coluna": "lombar",
+  "Cotovelo / Punho": "cotovelo_punho",
+  Quadril: "quadril",
+};
+
+export function regioesDaAnamnese(anamnese: Anamnese | null): Array<"joelho" | "ombro" | "lombar" | "cotovelo_punho" | "quadril"> {
+  return regrasAtivas(anamnese)
+    .map((r) => REGIAO_PARA_ESTRESSE[r.regiao])
+    .filter((r): r is NonNullable<typeof r> => !!r);
+}

@@ -289,3 +289,43 @@ describe("resolução de grupo — persistência da correção manual", () => {
     expect(resolverGrupo({ nome: "Leg press" }, biblioteca)).toMatchObject({ grupo: "pernas", revisar: true });
   });
 });
+
+describe("volume ponderado com pesos da biblioteca", () => {
+  const dia = (exs: Parameters<typeof calcularVolumeSemanal>[0][number]["exercicios"]) => [{ letra: "A", exercicios: exs }];
+  it("usa o peso de cada exercício, separa deltoides e não mistura ponderado com o total direto", () => {
+    const r = calcularVolumeSemanal(
+      dia([
+        { id: "1", nome: "Supino reto com barra", grupo: "peito", secundarios: ["triceps", "ombro_anterior"], pesosSecundarios: { triceps: 0.5, ombro_anterior: 0.5 }, series: 4, seriesAquecimento: 1 },
+        { id: "2", nome: "Elevação lateral", grupo: "ombro_lateral", secundarios: ["trapezio"], pesosSecundarios: { trapezio: 0.25 }, series: 4 },
+        { id: "3", nome: "Face pull", grupo: "ombro_posterior", secundarios: [], series: 3 },
+      ]),
+      { frequencia: { A: 2 }, incluirSecundario: true, agruparOmbros: false }
+    );
+    const l = (g: string) => r.linhas.find((x) => x.grupo === g)!;
+    expect(l("peito").total).toBe(6); // (4 − 1 aquecimento) × 2
+    expect(l("triceps").total).toBe(0);
+    expect(l("triceps").secundario).toBe(3); // 3 × 0,5 × 2
+    expect(l("triceps").ponderado).toBe(3);
+    expect(l("ombro_anterior").secundario).toBe(3);
+    expect(l("ombro_lateral").total).toBe(8);
+    expect(l("ombro_posterior").total).toBe(6);
+    expect(l("trapezio").secundario).toBe(2); // 4 × 0,25 × 2
+    expect(r.subtotais.total).toBe(20); // só séries diretas
+    expect(r.avisos.join(" ")).toMatch(/pesos de cada exercício/);
+  });
+
+  it("sem peso cadastrado ou com pesos desligados, usa o fator único configurável", () => {
+    const exs = [{ id: "1", nome: "Remada", grupo: "costas" as const, secundarios: ["biceps" as const], pesosSecundarios: { biceps: 0.5 }, series: 4 }];
+    const r = calcularVolumeSemanal(dia(exs), { frequencia: { A: 1 }, incluirSecundario: true, usarPesosBiblioteca: false, fatorSecundario: 0.25 });
+    expect(r.linhas.find((x) => x.grupo === "biceps")!.secundario).toBe(1);
+  });
+
+  it("avisa quando há meta de Ombros no total e os deltoides estão separados", () => {
+    const r = calcularVolumeSemanal(dia([{ id: "1", nome: "Elevação lateral", grupo: "ombro_lateral", series: 3 }]), {
+      frequencia: { A: 1 },
+      metas: { ombros: { min: 8, max: 12 } },
+      agruparOmbros: false,
+    });
+    expect(r.avisos.join(" ")).toMatch(/deltoides estão separados/);
+  });
+});

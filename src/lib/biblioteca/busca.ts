@@ -6,11 +6,12 @@
 // Pontuação (maior = melhor):
 //   100 nome exato · 95 sinônimo exato · 85 nome começa com a busca
 //    80 grupo muscular exato · 75 equipamento/padrão exato
+//    82 sinônimo começa com a busca como palavra inteira ("pulley triângulo")
 //    72 todas as palavras no início de palavras do nome (frase contínua)
 //    70 todas as palavras no nome · 70 equipamento/padrão por prefixo
 //    65 todas as palavras em um sinônimo · 60 sinônimo começa com a busca
 //    40 palavras espalhadas entre nome, sinônimos, grupo e equipamento
-// Só ficam resultados com pelo menos 75% da melhor pontuação, para não
+// Só ficam resultados com pelo menos 85% da melhor pontuação, para não
 // misturar movimentos inadequados (ex.: "leg" traz leg press, não "leg curl").
 // ============================================================================
 
@@ -38,7 +39,7 @@ export type OpcoesBusca = {
 
 export type ResultadoBusca = { item: ItemBiblioteca; score: number; motivo: string };
 
-const RELATIVO = 0.75;
+const RELATIVO = 0.85;
 
 function palavras(s: string): string[] {
   return normalizarNome(s)
@@ -88,6 +89,8 @@ function pontuar(item: ItemBiblioteca, consulta: string, tokens: string[]): { sc
   const sinExato = sins.find((s) => s.txt === consulta);
   if (sinExato) return { score: 95, motivo: `sinônimo “${item.sinonimos[sins.indexOf(sinExato)]}”` };
   if (nome.startsWith(consulta)) return { score: 85, motivo: "nome" };
+  const sinPalavra = sins.find((s) => s.txt.startsWith(consulta + " "));
+  if (sinPalavra) return { score: 82, motivo: `sinônimo “${item.sinonimos[sins.indexOf(sinPalavra)]}”` };
   if (consulta === grupoLabel || consulta === grupoKey) return { score: 80, motivo: `grupo ${GRUPO_LABEL[item.grupo]}` };
   const eqExato = equips.find((e) => e.label === consulta || e.key === consulta);
   if (eqExato) return { score: 75, motivo: `equipamento ${eqExato.label}` };

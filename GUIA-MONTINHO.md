@@ -20,6 +20,8 @@ Abra o aluno → **Revisar treino** (ou **Montar treino**). O montador tem três
    - *Ciclo rotativo*: sequência (ex.: A B C) e dias por semana (ex.: 5). O volume vira média semanal e o app mostra o microciclo.
    - *Modelos rápidos*: Full Body 3x, ABC 3x, ABC 5x, Upper/Lower 4x, ABCDE, PPL 6x.
 2. **Dias A, B, C…**: um bloco por treino. Em cada linha: exercício (busca por nome e sinônimos da biblioteca), grupo muscular, séries, reps, descanso, RIR, observação para o aluno.
+   - Ao digitar o nome, aparece a lista da biblioteca (ex.: “pulley” mostra as puxadas; “rosca scott” as variações). ↑/↓ escolhe, **Enter** confirma. Nome que não está na biblioteca também vale (fica “a classificar”).
+   - **⇄ alternativas** (embaixo do nome) mostra substituições considerando os equipamentos, o nível e as restrições do aluno, com o motivo de cada uma. As que você aprovou na Biblioteca aparecem primeiro; as rejeitadas nunca aparecem.
    - **Enter** no nome adiciona a próxima linha; **Alt+↑/↓** move; botões ↑/↓ e arrastar também reordenam.
    - “Série a série” abre pirâmide (reps e descanso por série). “Duplicar”, “Copiar de…”, “Duplicar dia” e “Adicionar dia (F)” fazem o que dizem.
    - **Campos avançados** (chave no topo): séries de aquecimento, técnica (superset, bi-set, drop set, rest-pause, cluster, isometria, unilateral), bloco do superset, carga-alvo, “conta volume” (desligue para cardio/mobilidade) e músculos secundários.
@@ -59,3 +61,14 @@ Início (próximo treino + “Começar treino”, progresso da semana com denomi
 - *Mudei o treino e o aluno estava treinando?* A sessão dele segue com a prescrição da época (snapshot). O novo plano vale a partir do próximo treino.
 - *Apaguei um exercício sem querer?* Ctrl+Z antes de salvar. Depois de salvar, o histórico de sessões continua íntegro; o exercício aparece em “Histórico do plano”.
 - *Sem internet na academia?* As séries ficam no aparelho e sobem sozinhas quando voltar a conexão. Vídeos precisam de internet.
+
+
+## Biblioteca de exercícios (menu Biblioteca)
+
+- 150 exercícios de musculação já cadastrados, com sinônimos, músculo principal e secundários, padrão de movimento, equipamento, dicas de execução e erros comuns.
+- **Buscar**: por nome, apelido (“pulley”, “stiff”, “hack”), grupo, equipamento ou padrão. Filtros por grupo, equipamento, padrão, tipo, só favoritos e “sem vídeo”.
+- **★ Favoritos**: aparecem primeiro na busca do montador. Só você vê os seus.
+- **Substituições**: em cada exercício, aprove ✓ ou rejeite ✗ as sugestões. Isso muda o que o montador oferece. “Mesmo músculo” sozinho nunca vira substituição automática.
+- **Vídeos**: nenhum vem preenchido (não inventamos links). Ao editar, cole o link e marque “verificado”; só então o aluno vê o vídeo.
+- **Editar** um exercício do catálogo o torna “seu”: atualizações futuras do catálogo não mexem nele. **Arquivar** esconde da busca sem afetar treinos que já usam.
+- **Volume ponderado (estimado)**: na tabela de volume, ligue a chave para somar os secundários pelos pesos da biblioteca (ex.: supino = 1 série de peito + 0,5 de tríceps + 0,5 de ombro anterior). É uma estimativa, explicada na própria tela.

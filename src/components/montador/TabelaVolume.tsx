@@ -28,6 +28,9 @@ type Props = {
   onSecundario: (v: boolean) => void;
 };
 
+/** Número no padrão brasileiro (vírgula decimal, até 2 casas). */
+const numBR = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+
 const STATUS_COR: Record<LinhaVolume["status"], string> = {
   abaixo: "text-info",
   na_meta: "text-success",
@@ -137,8 +140,8 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
         <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted">
           <input type="checkbox" checked={compacto} onChange={(e) => setCompacto(e.target.checked)} /> compacto
         </label>
-        <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted" title="Estimativa heurística: fração de série atribuída aos músculos secundários">
-          <input type="checkbox" checked={incluirSecundario} onChange={(e) => onSecundario(e.target.checked)} /> secundário (estimado)
+        <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted" title="Volume ponderado: soma às séries diretas uma fração de série para cada músculo secundário, com o peso cadastrado na biblioteca (ex.: supino → tríceps 0,5). Sem peso cadastrado, usa 50%.">
+          <input type="checkbox" checked={incluirSecundario} onChange={(e) => onSecundario(e.target.checked)} /> volume ponderado (estimado)
         </label>
         {temRealizado ? (
           <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted">
@@ -166,10 +169,11 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                     {l}
                   </th>
                 )) : null}
-                <th className="text-right font-semibold px-1 py-1">Sem.</th>
+                <th className="text-right font-semibold px-1 py-1" title="Séries diretas válidas por semana (sem aquecimento)">Sem.</th>
                 <th className="text-right font-semibold px-1 py-1">Meta</th>
                 {!compacto ? <th className="text-right font-semibold px-1 py-1" title="Sessões por semana em que o grupo recebe séries">Freq.</th> : null}
-                {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Estímulo secundário estimado (não somado)">+sec</th> : null}
+                {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Participação secundária estimada (fração de série × frequência)">+sec</th> : null}
+                {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Ponderado = séries diretas + secundário estimado. O total direto continua sendo a referência.">Pond.</th> : null}
                 {verRealizado ? <th className="text-right font-semibold px-1 py-1">Real.</th> : null}
               </tr>
             </thead>
@@ -189,10 +193,10 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                     </td>
                     {!compacto ? letras.map((x) => (
                       <td key={x} className="px-1 py-1.5 text-right font-mono text-fg-muted">
-                        {l.porDia[x] || "·"}
+                        {l.porDia[x] ? numBR(l.porDia[x]) : "·"}
                       </td>
                     )) : null}
-                    <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`}>{l.total}</td>
+                    <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`}>{numBR(l.total)}</td>
                     <td className="px-1 py-1.5 text-right font-mono">
                       {editandoMetas ? (
                         <span className="inline-flex items-center gap-0.5">
@@ -207,7 +211,8 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                       )}
                     </td>
                     {!compacto ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.frequencia ? `${l.frequencia}×` : "·"}</td> : null}
-                    {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-subtle">{l.secundario ? `+${l.secundario}` : "·"}</td> : null}
+                    {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-subtle">{l.secundario ? `+${numBR(l.secundario)}` : "·"}</td> : null}
+                    {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.ponderado ? numBR(l.ponderado) : "·"}</td> : null}
                     {verRealizado ? <td className={`px-1 py-1.5 text-right font-mono ${real != null && l.total > 0 && real < l.total * 0.7 ? "text-warning" : "text-fg-muted"}`}>{real ?? "·"}</td> : null}
                   </tr>
                 );

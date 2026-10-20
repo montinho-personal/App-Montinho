@@ -1,670 +1,369 @@
 "use client";
 
+// ============================================================================
+// Biblioteca de exercícios (painel do treinador).
+//  • Busca instantânea por nome, parte do nome, sinônimo, grupo, equipamento
+//    ou padrão de movimento, com filtros e favoritos.
+//  • Ficha completa: músculos (com o peso usado no volume ponderado), padrão,
+//    articulações, execução, erros comuns, campos de registro, estresse
+//    articular, uso real nas suas prescrições e mídia (com pendência).
+//  • Substituições: o personal aprova ou rejeita cada sugestão.
+// ============================================================================
+
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, FieldHint } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Icon } from "@/components/ui/Icon";
 import { VideoPlayer } from "@/components/ui/VideoPlayer";
-import { VideoThumb } from "@/components/ui/VideoThumb";
-import { EmptyState } from "@/components/ui/EmptyState";
-import type { Equipamento, ExercicioBiblioteca, GrupoMuscular } from "@/lib/supabase/types-extended";
-import { parseVideoSource } from "@/lib/video";
+import { GRUPO_COR, GRUPO_LABEL } from "@/lib/grupos";
+import { buscarExercicios, type FiltrosBusca } from "@/lib/biblioteca/busca";
+import { sugerirSubstituicoes, ORIGEM_SUGESTAO_LABEL } from "@/lib/biblioteca/substituicao";
+import {
+  ARTICULACAO_LABEL,
+  CAMPO_REGISTRO_LABEL,
+  EQUIPAMENTO_LABEL,
+  NIVEL_LABEL,
+  PADRAO_LABEL,
+  REGIAO_ESTRESSE_LABEL,
+  type Equivalencia,
+  type ItemBiblioteca,
+  type PadraoMovimento,
+  type StatusEquivalencia,
+} from "@/lib/biblioteca/tipos";
+import type { UsoExercicio } from "@/lib/data/biblioteca";
+import type { Equipamento, GrupoMuscular } from "@/lib/supabase/types-extended";
+import { FormExercicio } from "./FormExercicio";
 
-const GRUPOS: Array<{ key: GrupoMuscular | "todos"; label: string }> = [
-  { key: "todos", label: "Todos" },
-  { key: "peito", label: "Peito" },
-  { key: "costas", label: "Costas" },
-  { key: "pernas", label: "Pernas" },
-  { key: "gluteo", label: "Glúteo" },
-  { key: "ombros", label: "Ombros" },
-  { key: "biceps", label: "Bíceps" },
-  { key: "triceps", label: "Tríceps" },
-  { key: "core", label: "Core" },
-  { key: "abdomen", label: "Abdômen" },
-  { key: "panturrilha", label: "Panturrilha" },
-  { key: "cardio", label: "Cardio" },
+type Props = {
+  inicial: ItemBiblioteca[];
+  equivalenciasIniciais: Equivalencia[];
+  favoritosIniciais: string[];
+  uso: Record<string, UsoExercicio>;
+};
+
+const GRUPOS_FILTRO: GrupoMuscular[] = [
+  "peito", "costas", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio", "biceps", "triceps", "antebraco",
+  "quadriceps", "posteriores", "gluteo", "adutores", "panturrilha", "abdomen", "core", "lombar",
 ];
 
-const GRUPOS_FORM = GRUPOS.filter((g) => g.key !== "todos") as Array<{ key: GrupoMuscular; label: string }>;
-
-export function BibliotecaClient({ inicial }: { inicial: ExercicioBiblioteca[] }) {
+export function BibliotecaClient({ inicial, equivalenciasIniciais, favoritosIniciais, uso }: Props) {
   const toast = useToast();
-  const [itens, setItens] = useState<ExercicioBiblioteca[]>(inicial);
-  const [grupo, setGrupo] = useState<GrupoMuscular | "todos">("todos");
+  const [itens, setItens] = useState(inicial);
+  const [equivalencias, setEquivalencias] = useState(equivalenciasIniciais);
+  const [favoritos, setFavoritos] = useState(() => new Set(favoritosIniciais));
   const [busca, setBusca] = useState("");
-  const [importOpen, setImportOpen] = useState(false);
-  const [importText, setImportText] = useState("");
-  const [importing, setImporting] = useState(false);
-  const [modal, setModal] = useState<
-    | "fechado"
-    | "criar"
-    | { ver: ExercicioBiblioteca }
-    | { editar: ExercicioBiblioteca }
-  >("fechado");
+  const [filtros, setFiltros] = useState<FiltrosBusca>({});
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [form, setForm] = useState<"fechado" | "novo" | ItemBiblioteca>("fechado");
 
-  const filtrados = useMemo(() => {
-    return itens.filter((e) => {
-      if (grupo !== "todos" && e.grupo_muscular !== grupo) return false;
-      if (busca && !e.nome.toLowerCase().includes(busca.toLowerCase())) return false;
-      return true;
+  const usoMap = useMemo(() => new Map(Object.entries(uso).map(([id, u]) => [id, u.vezes])), [uso]);
+  const resultados = useMemo(() => buscarExercicios(itens, busca, filtros, { favoritos, uso: usoMap }), [itens, busca, filtros, favoritos, usoMap]);
+  const selecionado = itens.find((i) => i.id === selecionadoId) ?? null;
+  const setFiltro = (p: Partial<FiltrosBusca>) => setFiltros((f) => ({ ...f, ...p }));
+  const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
+
+  async function alternarFavorito(id: string) {
+    const novo = !favoritos.has(id);
+    setFavoritos((s) => {
+      const n = new Set(s);
+      if (novo) n.add(id);
+      else n.delete(id);
+      return n;
     });
-  }, [itens, grupo, busca]);
-
-  async function handleCriar(novo: ExercicioBiblioteca) {
-    try {
-      const res = await fetch("/api/biblioteca", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(novo),
+    const res = await fetch("/api/biblioteca/favoritos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exercicio_id: id, favorito: novo }) }).catch(() => null);
+    if (!res?.ok) {
+      toast.error("Não foi possível salvar o favorito.");
+      setFavoritos((s) => {
+        const n = new Set(s);
+        if (novo) n.delete(id);
+        else n.add(id);
+        return n;
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(`Erro ao salvar exercício: ${err.error ?? res.status}`);
-        setItens((prev) => [novo, ...prev]);
-      } else {
-        const salvo = await res.json();
-        setItens((prev) => [salvo, ...prev]);
-      }
-    } catch {
-      toast.error("Sem conexão — exercício salvo localmente.");
-      setItens((prev) => [novo, ...prev]);
-    }
-    setModal("fechado");
-  }
-
-  async function importarVideos() {
-    setImporting(true);
-    try {
-      const res = await fetch("/api/importacoes/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_text: importText }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Erro ao importar vídeos");
-      const updates = (data.updates ?? []) as Array<{ nome: string; id: string | null; count: number }>;
-      setItens((prev) =>
-        prev.map((item) => {
-          const update = updates.find((u) => u.nome.toLowerCase() === item.nome.toLowerCase() && u.id);
-          return update
-            ? {
-                ...item,
-                video_provider: "youtube",
-                video_id: update.id,
-                thumbnail_url: `https://i.ytimg.com/vi/${update.id}/hqdefault.jpg`,
-              }
-            : item;
-        })
-      );
-      const afetados = updates.reduce((acc, update) => acc + update.count, 0);
-      toast.success(`${afetados} exercícios atualizados com vídeo.`);
-      setImportOpen(false);
-      setImportText("");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao importar vídeos");
-    } finally {
-      setImporting(false);
     }
   }
 
-  async function handleAtualizar(atualizado: ExercicioBiblioteca) {
-    try {
-      const res = await fetch(`/api/biblioteca/${atualizado.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(atualizado),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(`Erro ao atualizar: ${err.error ?? res.status}`);
-        setItens((prev) => prev.map((x) => (x.id === atualizado.id ? atualizado : x)));
-      } else {
-        const salvo = await res.json();
-        setItens((prev) => prev.map((x) => (x.id === salvo.id ? salvo : x)));
-      }
-    } catch {
-      toast.error("Sem conexão — alteração salva localmente.");
-      setItens((prev) => prev.map((x) => (x.id === atualizado.id ? atualizado : x)));
-    }
-    setModal("fechado");
+  async function revisar(exercicioId: string, alternativaId: string, status: StatusEquivalencia) {
+    const anterior = equivalencias;
+    setEquivalencias((lista) => {
+      const i = lista.findIndex((e) => e.exercicioId === exercicioId && e.alternativaId === alternativaId);
+      if (i < 0) return [...lista, { exercicioId, alternativaId, origem: "treinador", status, nota: null }];
+      const copia = [...lista];
+      copia[i] = { ...copia[i], status };
+      return copia;
+    });
+    const res = await fetch("/api/biblioteca/equivalencias", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exercicio_id: exercicioId, alternativa_id: alternativaId, status }) }).catch(() => null);
+    if (!res?.ok) {
+      toast.error("Não foi possível salvar a revisão.");
+      setEquivalencias(anterior);
+    } else toast.success(status === "aprovada" ? "Substituição aprovada." : status === "rejeitada" ? "Substituição rejeitada: não será mais sugerida." : "Revisão desfeita.");
+  }
+
+  function aoSalvar(item: ItemBiblioteca) {
+    setItens((lista) => {
+      const i = lista.findIndex((x) => x.id === item.id);
+      if (i < 0) return [...lista, item].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      const copia = [...lista];
+      copia[i] = item;
+      return copia;
+    });
+    setSelecionadoId(item.id);
+    setForm("fechado");
+  }
+
+  async function arquivar(item: ItemBiblioteca) {
+    if (!confirm(`Arquivar “${item.nome}”? Treinos que já usam o exercício não mudam.`)) return;
+    const res = await fetch(`/api/biblioteca/${item.id}`, { method: "DELETE" }).catch(() => null);
+    if (!res?.ok) return toast.error("Não foi possível arquivar.");
+    setItens((l) => l.filter((x) => x.id !== item.id));
+    setSelecionadoId(null);
+    toast.success("Exercício arquivado.");
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1">
-          <Input
-            type="search"
-            placeholder="Buscar exercício..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-        <Button variant="primary" onClick={() => setModal("criar")}>
-          + Novo exercício
-        </Button>
-        <Button variant="secondary" onClick={() => setImportOpen((value) => !value)}>
-          Importar vídeos
-        </Button>
-      </div>
-
-      {importOpen ? (
-        <Card className="border-accent/20">
-          <CardHeader>
-            <CardTitle>Importação de vídeos</CardTitle>
-            <p className="text-xs text-fg-muted">
-              Cole linhas no formato: nome do exercício; link do YouTube.
-            </p>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <textarea
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder={"Supino reto barra; https://youtu.be/...\nAgachamento livre; https://youtube.com/watch?v=..."}
-              className="min-h-36 w-full rounded-lg border border-border bg-bg px-4 py-3 font-mono text-sm text-fg focus:border-accent focus:outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setImportOpen(false)}>
-                Cancelar
-              </Button>
-              <Button variant="primary" onClick={importarVideos} loading={importing}>
-                Processar vídeos
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      <div className="flex gap-1 bg-card border border-border rounded-lg p-1 overflow-x-auto">
-        {GRUPOS.map((g) => {
-          const ativo = grupo === g.key;
-          const count = g.key === "todos" ? itens.length : itens.filter((e) => e.grupo_muscular === g.key).length;
-          return (
-            <button
-              key={g.key}
-              onClick={() => setGrupo(g.key)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                ativo ? "bg-accent text-fg" : "text-fg-muted hover:text-fg"
-              }`}
-            >
-              {g.label} <span className="opacity-60">({count})</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {filtrados.length === 0 ? (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon="📚"
-              title="Nenhum exercício"
-              description={busca ? "Tente outro termo." : "Crie seu primeiro exercício e cole o link do YouTube."}
-              action={<Button onClick={() => setModal("criar")}>+ Novo exercício</Button>}
-            />
-          </CardBody>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtrados.map((e) => {
-            const source =
-              e.video_provider && e.video_id ? { provider: e.video_provider, id: e.video_id } : null;
-            return (
-              <button
-                key={e.id}
-                onClick={() => setModal({ ver: e })}
-                className="text-left"
-              >
-                <Card className="hover:border-accent/40 transition-colors h-full">
-                  <CardBody className="flex items-start gap-3">
-                    <VideoThumb source={source} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm">{e.nome}</div>
-                      <div className="text-[11px] text-fg-subtle mt-0.5 capitalize">
-                        {e.grupo_muscular}
-                        {e.equipamento.length > 0 ? ` · ${e.equipamento[0]}` : ""}
-                      </div>
-                      {e.dificuldade ? (
-                        <div className="text-[10px] mt-1.5">
-                          {"●".repeat(e.dificuldade)}
-                          <span className="opacity-30">{"●".repeat(5 - e.dificuldade)}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </CardBody>
-                </Card>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {modal === "criar" ? (
-        <ExercicioForm onCancel={() => setModal("fechado")} onSalvar={handleCriar} />
-      ) : null}
-
-      {typeof modal === "object" && "editar" in modal ? (
-        <ExercicioForm
-          inicial={modal.editar}
-          onCancel={() => setModal("fechado")}
-          onSalvar={handleAtualizar}
-        />
-      ) : null}
-
-      {typeof modal === "object" && "ver" in modal ? (
-        <ExercicioVer
-          exercicio={modal.ver}
-          onClose={() => setModal("fechado")}
-          onEditar={(ex) => setModal({ editar: ex })}
-          onArquivar={async (id) => {
-            try {
-              const res = await fetch(`/api/biblioteca/${id}`, { method: "DELETE" });
-              if (!res.ok) toast.warn("Erro ao arquivar — lista atualizada localmente.");
-            } catch {
-              toast.error("Sem conexão — arquivamento salvo localmente.");
-            }
-            setItens((prev) => prev.map((x) => (x.id === id ? { ...x, arquivado: true } : x)));
-            setModal("fechado");
-          }}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-// ============================================================================
-// Modal de criação / edição
-// ============================================================================
-const EQUIPAMENTOS: Equipamento[] = [
-  "barra", "halter", "maquina", "polia", "peso_corporal",
-  "cabo", "kettlebell", "elastico", "esteira", "bike",
-  "corda", "banco", "smith",
-];
-
-function ExercicioForm({
-  inicial,
-  onCancel,
-  onSalvar,
-}: {
-  inicial?: ExercicioBiblioteca;
-  onCancel: () => void;
-  onSalvar: (e: ExercicioBiblioteca) => void;
-}) {
-  const editando = !!inicial;
-  const [nome, setNome] = useState(inicial?.nome ?? "");
-  const [grupo, setGrupo] = useState<GrupoMuscular>(inicial?.grupo_muscular ?? "peito");
-  const [videoUrl, setVideoUrl] = useState(
-    inicial?.video_id ? inicial.video_id : ""
-  );
-  const [dificuldade, setDificuldade] = useState(inicial?.dificuldade ?? 3);
-  const [descricao, setDescricao] = useState(inicial?.descricao ?? "");
-  const [observacoes, setObservacoes] = useState(inicial?.observacoes ?? "");
-  const [instrucoes, setInstrucoes] = useState<string[]>(
-    inicial?.instrucoes && inicial.instrucoes.length > 0 ? inicial.instrucoes : [""]
-  );
-  const [equipamentos, setEquipamentos] = useState<Equipamento[]>(inicial?.equipamento ?? []);
-  const [salvando, setSalvando] = useState(false);
-
-  const source = parseVideoSource(videoUrl);
-  const videoOk = videoUrl === "" || source !== null;
-
-  function toggleEquipamento(eq: Equipamento) {
-    setEquipamentos((prev) =>
-      prev.includes(eq) ? prev.filter((x) => x !== eq) : [...prev, eq]
-    );
-  }
-
-  function updateInstrucao(i: number, valor: string) {
-    setInstrucoes((s) => s.map((v, idx) => (idx === i ? valor : v)));
-  }
-
-  function addInstrucao() {
-    setInstrucoes((s) => [...s, ""]);
-  }
-
-  function removerInstrucao(i: number) {
-    setInstrucoes((s) => s.filter((_, idx) => idx !== i));
-  }
-
-  function salvar() {
-    if (!nome.trim()) return;
-    setSalvando(true);
-    const instrucoesLimpas = instrucoes.map((i) => i.trim()).filter(Boolean);
-    const novo: ExercicioBiblioteca = {
-      id: inicial?.id ?? `ex-bib-${Date.now()}`,
-      nome: nome.trim(),
-      slug:
-        inicial?.slug ??
-        nome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-      grupo_muscular: grupo,
-      grupos_secundarios: inicial?.grupos_secundarios ?? [],
-      equipamento: equipamentos,
-      video_provider: source?.provider ?? null,
-      video_id: source?.id ?? null,
-      thumbnail_url: inicial?.thumbnail_url ?? null,
-      duracao_seg: inicial?.duracao_seg ?? null,
-      descricao: descricao.trim() || null,
-      instrucoes: instrucoesLimpas,
-      observacoes: observacoes.trim() || null,
-      dificuldade,
-      arquivado: inicial?.arquivado ?? false,
-      created_at: inicial?.created_at ?? new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    onSalvar(novo);
-    setSalvando(false);
-  }
-
-  return (
-    <Modal onClose={onCancel} title={editando ? "Editar exercício" : "Novo exercício"}>
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="nome">Nome do exercício *</Label>
-          <Input
-            id="nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex: Supino reto barra"
-            autoFocus
-          />
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      {/* Coluna da lista ------------------------------------------------------ */}
+      <section className="space-y-3 min-w-0" aria-label="Lista de exercícios">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
+            <Input type="search" aria-label="Buscar exercício" placeholder="Nome, sinônimo, músculo, equipamento… (ex.: pulley, rosca scott, leg)" value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-10" autoFocus />
+          </div>
+          <Button variant="primary" onClick={() => setForm("novo")}>
+            <Icon name="plus" /> Novo
+          </Button>
         </div>
 
-        <div>
-          <Label htmlFor="grupo">Grupo muscular</Label>
-          <select
-            id="grupo"
-            value={grupo}
-            onChange={(e) => setGrupo(e.target.value as GrupoMuscular)}
-            className="h-11 w-full rounded-lg bg-bg border border-border px-4 text-sm capitalize focus:outline-none focus:border-accent"
-          >
-            {GRUPOS_FORM.map((g) => (
-              <option key={g.key} value={g.key}>
-                {g.label}
-              </option>
+        <div className="flex flex-wrap gap-2 text-xs" role="group" aria-label="Filtros">
+          <select aria-label="Grupo muscular" value={filtros.grupo ?? ""} onChange={(e) => setFiltro({ grupo: (e.target.value || null) as GrupoMuscular | null })} className="h-9 rounded-md border border-border bg-bg px-2">
+            <option value="">Todos os músculos</option>
+            {GRUPOS_FILTRO.map((g) => (
+              <option key={g} value={g}>{GRUPO_LABEL[g]}</option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <Label htmlFor="video">Link do vídeo</Label>
-          <Input
-            id="video"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder="Cole URL do YouTube, Cloudflare Stream ou ID"
-          />
-          <FieldHint error={videoUrl !== "" && !videoOk}>
-            {videoUrl === ""
-              ? "Aceita: youtube.com/watch?v=..., youtu.be/..., youtube.com/shorts/..., ou ID puro"
-              : videoOk
-                ? `✓ Detectado: ${source?.provider}`
-                : "URL não reconhecida"}
-          </FieldHint>
-        </div>
-
-        {source ? (
-          <div>
-            <Label>Preview</Label>
-            <VideoPlayer source={source} lazy />
-          </div>
-        ) : null}
-
-        <div>
-          <Label htmlFor="dif">Dificuldade</Label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setDificuldade(n)}
-                className={`flex-1 h-10 rounded-md font-bold text-sm transition-colors ${
-                  dificuldade === n
-                    ? "bg-accent text-fg"
-                    : "bg-card border border-border text-fg-muted hover:border-accent/40"
-                }`}
-              >
-                {n}
-              </button>
+          <select aria-label="Equipamento" value={filtros.equipamento ?? ""} onChange={(e) => setFiltro({ equipamento: (e.target.value || null) as Equipamento | null })} className="h-9 rounded-md border border-border bg-bg px-2">
+            <option value="">Qualquer equipamento</option>
+            {(Object.keys(EQUIPAMENTO_LABEL) as Equipamento[]).filter((k) => !["esteira", "bike", "outro", "cabo"].includes(k)).map((k) => (
+              <option key={k} value={k}>{EQUIPAMENTO_LABEL[k]}</option>
             ))}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="desc">Descrição</Label>
-          <textarea
-            id="desc"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            rows={3}
-            className="w-full rounded-lg bg-bg border border-border px-4 py-2 text-sm placeholder:text-fg-subtle focus:outline-none focus:border-accent"
-            placeholder="Resumo do exercício, função muscular, padrão de movimento..."
-          />
-        </div>
-
-        <div>
-          <Label>Instruções passo a passo</Label>
-          <div className="space-y-2">
-            {instrucoes.map((inst, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <div className="w-7 h-9 flex items-center justify-center bg-card border border-border rounded-md text-xs font-mono text-fg-muted shrink-0">
-                  {i + 1}
-                </div>
-                <input
-                  value={inst}
-                  onChange={(e) => updateInstrucao(i, e.target.value)}
-                  placeholder="Ex: Mantenha as escápulas retraídas durante todo o movimento"
-                  className="flex-1 h-9 bg-bg border border-border rounded-md px-3 text-sm focus:outline-none focus:border-accent"
-                />
-                {instrucoes.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => removerInstrucao(i)}
-                    className="w-9 h-9 text-fg-subtle hover:text-red"
-                    title="Remover"
-                  >
-                    ✕
-                  </button>
-                ) : null}
-              </div>
+          </select>
+          <select aria-label="Padrão de movimento" value={filtros.padrao ?? ""} onChange={(e) => setFiltro({ padrao: (e.target.value || null) as PadraoMovimento | null })} className="h-9 rounded-md border border-border bg-bg px-2 max-w-[13rem]">
+            <option value="">Qualquer padrão</option>
+            {(Object.keys(PADRAO_LABEL) as PadraoMovimento[]).map((k) => (
+              <option key={k} value={k}>{PADRAO_LABEL[k]}</option>
             ))}
-            <button
-              type="button"
-              onClick={addInstrucao}
-              className="text-xs text-accent hover:underline font-semibold mt-1"
-            >
-              + Adicionar passo
+          </select>
+          <select aria-label="Tipo" value={filtros.tipo ?? ""} onChange={(e) => setFiltro({ tipo: (e.target.value || null) as FiltrosBusca["tipo"] })} className="h-9 rounded-md border border-border bg-bg px-2">
+            <option value="">Multi e mono</option>
+            <option value="multiarticular">Multiarticular</option>
+            <option value="monoarticular">Monoarticular</option>
+          </select>
+          <Chip ativo={!!filtros.somenteFavoritos} onClick={() => setFiltro({ somenteFavoritos: !filtros.somenteFavoritos })}>★ Favoritos ({favoritos.size})</Chip>
+          <Chip ativo={!!filtros.somenteSemMidia} onClick={() => setFiltro({ somenteSemMidia: !filtros.somenteSemMidia })}>Sem mídia</Chip>
+          {filtros.grupo ? (
+            <Chip ativo={!!filtros.incluirSecundarios} onClick={() => setFiltro({ incluirSecundarios: !filtros.incluirSecundarios })}>+ como secundário</Chip>
+          ) : null}
+          {filtrosAtivos ? (
+            <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => setFiltros({})}>
+              limpar filtros
             </button>
-          </div>
-        </div>
-
-        <div>
-          <Label>Equipamento</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {EQUIPAMENTOS.map((eq) => {
-              const ativo = equipamentos.includes(eq);
-              return (
-                <button
-                  key={eq}
-                  type="button"
-                  onClick={() => toggleEquipamento(eq)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
-                    ativo
-                      ? "bg-accent text-fg"
-                      : "bg-card border border-border text-fg-muted hover:border-accent/40"
-                  }`}
-                >
-                  {eq.replace("_", " ")}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="obs">Observações / cuidados (opcional)</Label>
-          <textarea
-            id="obs"
-            value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value)}
-            rows={2}
-            className="w-full rounded-lg bg-bg border border-border px-4 py-2 text-sm placeholder:text-fg-subtle focus:outline-none focus:border-accent"
-            placeholder="Ex: Evitar se houver dor no ombro. Não passar do paralelo na descida."
-          />
-        </div>
-
-        <div className="flex gap-2 pt-2 sticky bottom-0 bg-card -mx-6 px-6 pb-2 pt-3 border-t border-border">
-          <Button variant="secondary" onClick={onCancel} className="flex-1">
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            onClick={salvar}
-            disabled={!nome.trim() || !videoOk}
-            loading={salvando}
-            className="flex-1"
-          >
-            {editando ? "Salvar alterações" : "Criar exercício"}
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// ============================================================================
-// Modal de visualização
-// ============================================================================
-function ExercicioVer({
-  exercicio,
-  onClose,
-  onEditar,
-  onArquivar,
-}: {
-  exercicio: ExercicioBiblioteca;
-  onClose: () => void;
-  onEditar: (e: ExercicioBiblioteca) => void;
-  onArquivar: (id: string) => void;
-}) {
-  const source =
-    exercicio.video_provider && exercicio.video_id
-      ? { provider: exercicio.video_provider, id: exercicio.video_id }
-      : null;
-
-  return (
-    <Modal onClose={onClose} title={exercicio.nome}>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Badge tone="accent" className="capitalize">{exercicio.grupo_muscular}</Badge>
-          {exercicio.dificuldade ? (
-            <span className="text-xs text-fg-muted">
-              {"●".repeat(exercicio.dificuldade)}
-              <span className="opacity-30">{"●".repeat(5 - exercicio.dificuldade)}</span>
-            </span>
           ) : null}
         </div>
 
-        {source ? <VideoPlayer source={source} lazy /> : (
-          <Card className="border-dashed">
-            <CardBody className="text-center py-8 text-sm text-fg-subtle">
-              Sem vídeo configurado
-            </CardBody>
-          </Card>
-        )}
+        <p className="text-xs text-fg-subtle" aria-live="polite">{resultados.length} exercício(s)</p>
 
-        {exercicio.descricao ? (
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-fg-subtle font-bold mb-1.5">
-              Descrição
-            </div>
-            <p className="text-sm text-fg-muted">{exercicio.descricao}</p>
-          </div>
-        ) : null}
-
-        {exercicio.instrucoes.length > 0 ? (
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-fg-subtle font-bold mb-1.5">
-              Passo a passo
-            </div>
-            <ol className="text-sm space-y-1.5">
-              {exercicio.instrucoes.map((p, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="font-mono text-accent font-bold shrink-0">{i + 1}.</span>
-                  <span>{p}</span>
+        <ul className="divide-y divide-border rounded-xl border border-border bg-card max-h-[70vh] overflow-auto">
+          {resultados.length === 0 ? (
+            <li className="p-6 text-sm text-fg-muted">Nada encontrado. Tente outro nome ou limpe os filtros.</li>
+          ) : (
+            resultados.map(({ item, motivo }) => {
+              const u = uso[item.id];
+              return (
+                <li key={item.id} className={`flex items-center gap-2 px-3 py-2 ${selecionadoId === item.id ? "bg-accent/10" : "hover:bg-card-hover"}`}>
+                  <button type="button" aria-label={favoritos.has(item.id) ? `Remover ${item.nome} dos favoritos` : `Favoritar ${item.nome}`} aria-pressed={favoritos.has(item.id)} onClick={() => alternarFavorito(item.id)} className={`touch shrink-0 ${favoritos.has(item.id) ? "text-accent" : "text-fg-subtle hover:text-fg"}`}>
+                    <Icon name="star" />
+                  </button>
+                  <button type="button" onClick={() => setSelecionadoId(item.id)} className="flex-1 min-w-0 text-left py-1">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: GRUPO_COR[item.grupo] }} aria-hidden />
+                      <span className="truncate text-sm font-semibold">{item.nome}</span>
+                    </span>
+                    <span className="block truncate text-[11px] text-fg-subtle">
+                      {GRUPO_LABEL[item.grupo]}
+                      {item.padrao ? ` · ${PADRAO_LABEL[item.padrao]}` : ""}
+                      {busca && motivo && motivo !== "nome" ? ` · por ${motivo}` : ""}
+                      {u ? ` · você usou ${u.vezes}× (${u.alunos} aluno${u.alunos === 1 ? "" : "s"})` : ""}
+                    </span>
+                  </button>
+                  {!item.midia?.verificada ? <span className="shrink-0 text-[10px] uppercase tracking-wider text-warning" title="Sem vídeo verificado">sem mídia</span> : null}
                 </li>
-              ))}
-            </ol>
-          </div>
-        ) : null}
+              );
+            })
+          )}
+        </ul>
+      </section>
 
-        {exercicio.equipamento.length > 0 ? (
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-fg-subtle font-bold mb-1.5">
-              Equipamento
-            </div>
-            <div className="flex gap-1.5 flex-wrap">
-              {exercicio.equipamento.map((e) => (
-                <Badge key={e}>{e.replace("_", " ")}</Badge>
-              ))}
-            </div>
+      {/* Coluna da ficha ------------------------------------------------------- */}
+      <section className="min-w-0" aria-label="Ficha do exercício">
+        {form !== "fechado" ? (
+          <FormExercicio inicial={form === "novo" ? null : form} onCancelar={() => setForm("fechado")} onSalvo={aoSalvar} />
+        ) : selecionado ? (
+          <Ficha
+            item={selecionado}
+            itens={itens}
+            equivalencias={equivalencias}
+            uso={uso[selecionado.id]}
+            favorito={favoritos.has(selecionado.id)}
+            onFavorito={() => alternarFavorito(selecionado.id)}
+            onRevisar={revisar}
+            onEditar={() => setForm(selecionado)}
+            onArquivar={() => arquivar(selecionado)}
+            onAbrir={setSelecionadoId}
+          />
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">
+            Selecione um exercício para ver a ficha completa, a mídia e as substituições.
           </div>
-        ) : null}
-
-        {exercicio.observacoes ? (
-          <div className="border-l-2 border-gold/40 bg-gold/5 pl-3 py-2 rounded-r-md">
-            <div className="text-[10px] uppercase tracking-wider text-gold font-bold mb-1">
-              ⚠ Cuidados
-            </div>
-            <p className="text-sm text-fg-muted">{exercicio.observacoes}</p>
-          </div>
-        ) : null}
-
-        <div className="flex gap-2 pt-2">
-          <Button variant="secondary" onClick={onClose} className="flex-1">
-            Fechar
-          </Button>
-          <Button variant="ghost" onClick={() => onArquivar(exercicio.id)}>
-            Arquivar
-          </Button>
-          <Button variant="primary" onClick={() => onEditar(exercicio)}>
-            Editar
-          </Button>
-        </div>
-      </div>
-    </Modal>
+        )}
+      </section>
+    </div>
   );
 }
 
-// ============================================================================
-// Modal genérico (sem dep externa)
-// ============================================================================
-function Modal({
-  onClose,
-  title,
-  children,
-}: {
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
+function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 sm:p-6 overflow-y-auto"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-      >
-        <CardHeader className="flex items-center justify-between sticky top-0 bg-card z-10">
-          <CardTitle>{title}</CardTitle>
-          <button onClick={onClose} className="text-fg-subtle hover:text-fg text-xl">
-            ✕
-          </button>
-        </CardHeader>
-        <CardBody>{children}</CardBody>
-      </div>
+    <button type="button" aria-pressed={ativo} onClick={onClick} className={`h-9 rounded-md border px-3 font-semibold ${ativo ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}>
+      {children}
+    </button>
+  );
+}
+
+function Ficha({
+  item, itens, equivalencias, uso, favorito, onFavorito, onRevisar, onEditar, onArquivar, onAbrir,
+}: {
+  item: ItemBiblioteca;
+  itens: ItemBiblioteca[];
+  equivalencias: Equivalencia[];
+  uso: UsoExercicio | undefined;
+  favorito: boolean;
+  onFavorito: () => void;
+  onRevisar: (exercicioId: string, alternativaId: string, status: StatusEquivalencia) => void;
+  onEditar: () => void;
+  onArquivar: () => void;
+  onAbrir: (id: string) => void;
+}) {
+  const { sugestoes } = useMemo(() => sugerirSubstituicoes(item, itens, equivalencias, {}, 8), [item, itens, equivalencias]);
+  const rejeitadas = equivalencias.filter((e) => e.exercicioId === item.id && e.status === "rejeitada");
+  const nomeDe = (id: string) => itens.find((i) => i.id === id)?.nome ?? "exercício arquivado";
+
+  return (
+    <article className="space-y-4 rounded-xl border border-border bg-card p-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-auto">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold">{item.nome}</h2>
+          {item.sinonimos.length ? <p className="text-xs text-fg-subtle mt-1">Também chamado de: {item.sinonimos.join(", ")}</p> : null}
+          <p className="text-[11px] text-fg-subtle mt-1">{item.origem === "catalogo" ? "Catálogo Montinho" : "Cadastro/edição sua"}</p>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <Button variant={favorito ? "primary" : "secondary"} size="sm" onClick={onFavorito} aria-pressed={favorito}>
+            <Icon name="star" /> {favorito ? "Favorito" : "Favoritar"}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={onEditar}>Editar</Button>
+          <Button variant="ghost" size="sm" onClick={onArquivar} aria-label="Arquivar exercício">
+            <Icon name="trash" />
+          </Button>
+        </div>
+      </header>
+
+      {item.midia?.verificada ? (
+        <VideoPlayer source={{ provider: item.midia.provider as "youtube", id: item.midia.id }} />
+      ) : (
+        <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning" role="status">
+          {item.midia ? "Vídeo cadastrado, mas ainda não verificado: o aluno não vê até você marcar como verificado." : "Sem vídeo demonstrativo. Adicione um vídeo verificado em Editar."}
+        </div>
+      )}
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <Campo rotulo="Músculo principal (série direta)">{GRUPO_LABEL[item.grupo]}</Campo>
+        <Campo rotulo="Secundários (peso no ponderado)">
+          {item.secundarios.length ? item.secundarios.map((g) => `${GRUPO_LABEL[g]} ${item.pesosSecundarios[g] != null ? `(${String(item.pesosSecundarios[g]).replace(".", ",")})` : ""}`).join(" · ") : "—"}
+        </Campo>
+        <Campo rotulo="Padrão de movimento">{item.padrao ? PADRAO_LABEL[item.padrao] : "—"}</Campo>
+        <Campo rotulo="Tipo">{item.tipo ? (item.tipo === "multiarticular" ? "Multiarticular" : "Monoarticular") : "—"}</Campo>
+        <Campo rotulo="Articulações">{item.articulacoes.map((a) => ARTICULACAO_LABEL[a]).join(", ") || "—"}</Campo>
+        <Campo rotulo="Equipamento">{item.equipamento.map((e) => EQUIPAMENTO_LABEL[e] ?? e).join(", ") || "—"}</Campo>
+        <Campo rotulo="Nível sugerido">{item.nivel ? NIVEL_LABEL[item.nivel] : "—"}</Campo>
+        <Campo rotulo="Registro do aluno">{item.registro.map((r) => CAMPO_REGISTRO_LABEL[r]).join(", ")}</Campo>
+        <Campo rotulo="Atenção articular">{item.estresse.length ? item.estresse.map((r) => REGIAO_ESTRESSE_LABEL[r]).join(", ") : "—"}</Campo>
+        <Campo rotulo="Conta no volume">{item.contaVolume ? "Sim" : "Não (carregamento/condicionamento)"}</Campo>
+      </dl>
+
+      <p className="text-xs text-fg-muted border-t border-border pt-3">
+        {uso ? `Seu histórico: prescrito ${uso.vezes} vez(es), para ${uso.alunos} aluno(s).` : "Seu histórico: ainda não prescrito em nenhum treino salvo."}
+      </p>
+
+      <Lista titulo="Como executar" itens={item.execucao} />
+      <Lista titulo="Erros técnicos frequentes" itens={item.erros} />
+
+      <section className="space-y-2 border-t border-border pt-3">
+        <h3 className="text-sm font-bold">Substituições</h3>
+        <p className="text-[11px] text-fg-subtle">Regras: mesmo padrão e músculo, ou equivalência do catálogo/aprovada por você. Aprove ou rejeite: rejeitadas nunca mais aparecem.</p>
+        {sugestoes.length === 0 ? <p className="text-sm text-fg-muted">Nenhuma substituição compatível.</p> : null}
+        <ul className="space-y-2">
+          {sugestoes.map((s) => (
+            <li key={s.item.id} className="rounded-lg border border-border p-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <button type="button" onClick={() => onAbrir(s.item.id)} className="text-sm font-semibold hover:text-accent text-left">{s.item.nome}</button>
+                <span className={`text-[10px] uppercase tracking-wider ${s.origem === "aprovada" ? "text-success" : "text-fg-subtle"}`}>{ORIGEM_SUGESTAO_LABEL[s.origem]}</span>
+              </div>
+              <p className="text-[11px] text-fg-muted">{s.motivos.join(" · ")}</p>
+              {s.alertas.length ? <p className="text-[11px] text-warning">{s.alertas.join(" · ")}</p> : null}
+              <div className="mt-1 flex gap-2 text-xs">
+                {s.origem !== "aprovada" ? (
+                  <button type="button" className="font-semibold text-success hover:underline" onClick={() => onRevisar(item.id, s.item.id, "aprovada")}>Aprovar</button>
+                ) : (
+                  <button type="button" className="text-fg-muted hover:underline" onClick={() => onRevisar(item.id, s.item.id, "sugerida")}>Desfazer aprovação</button>
+                )}
+                <button type="button" className="font-semibold text-red hover:underline" onClick={() => onRevisar(item.id, s.item.id, "rejeitada")}>Rejeitar</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {rejeitadas.length ? (
+          <details className="text-xs text-fg-muted">
+            <summary className="cursor-pointer">Rejeitadas por você ({rejeitadas.length})</summary>
+            <ul className="mt-1 space-y-1">
+              {rejeitadas.map((r) => (
+                <li key={r.alternativaId} className="flex justify-between gap-2">
+                  <span>{nomeDe(r.alternativaId)}</span>
+                  <button type="button" className="text-accent hover:underline" onClick={() => onRevisar(item.id, r.alternativaId, "sugerida")}>Voltar a sugerir</button>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+      </section>
+    </article>
+  );
+}
+
+function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] uppercase tracking-wider text-fg-subtle">{rotulo}</dt>
+      <dd className="font-medium break-words">{children}</dd>
     </div>
+  );
+}
+
+function Lista({ titulo, itens }: { titulo: string; itens: string[] }) {
+  if (!itens.length) return null;
+  return (
+    <section>
+      <h3 className="text-sm font-bold mb-1">{titulo}</h3>
+      <ul className="list-disc pl-5 space-y-1 text-sm text-fg-muted">
+        {itens.map((t, i) => <li key={i}>{t}</li>)}
+      </ul>
+    </section>
   );
 }

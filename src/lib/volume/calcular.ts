@@ -47,6 +47,8 @@ export type ExercicioVolume = {
   tecnica?: Tecnica | null;
   /** false para cardio/mobilidade/técnica sem equivalência direta. */
   contaVolume?: boolean | null;
+  /** Peso de cada músculo secundário (da biblioteca). Sem peso: usa `fatorSecundario`. */
+  pesosSecundarios?: Partial<Record<GrupoMuscular, number>> | null;
 };
 
 export type DiaVolume = {
@@ -70,8 +72,10 @@ export type OpcoesVolume = {
   metas?: Partial<Record<GrupoMuscular, MetaVolume>> | null;
   /** Camada opcional de estímulo secundário (heurística). */
   incluirSecundario?: boolean;
-  /** Fração de série atribuída ao secundário (padrão 0.5; ajustável). */
+  /** Fração de série atribuída ao secundário quando não há peso da biblioteca (padrão 0.5). */
   fatorSecundario?: number;
+  /** Usa os pesos por exercício da biblioteca (padrão true). false = fator único para todos. */
+  usarPesosBiblioteca?: boolean;
   /** Agrupa ombro anterior/lateral/posterior em "ombros" (padrão true). */
   agruparOmbros?: boolean;
 };
@@ -91,6 +95,8 @@ export type LinhaVolume = {
   frequencia: number;
   /** Estímulo secundário estimado (heurístico, separado do total). */
   secundario: number;
+  /** Estimativa ponderada = séries diretas + secundário estimado (nunca substitui o total direto). */
+  ponderado: number;
   /** Quantos exercícios deste grupo precisam de revisão (heurística/legado). */
   exerciciosRevisar: number;
   inferior: boolean;
@@ -178,6 +184,8 @@ export function frequenciaPorMicrociclo(cal: CalendarioRotativo): { frequencia: 
 export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): ResultadoVolume {
   const agruparOmbros = opcoes.agruparOmbros ?? true;
   const fatorSec = Number.isFinite(opcoes.fatorSecundario) ? Math.max(0, Math.min(1, opcoes.fatorSecundario!)) : 0.5;
+  const usarPesos = opcoes.usarPesosBiblioteca ?? true;
+  let usouPesos = false;
   const avisos: string[] = [];
 
   const letras = dias.map((d) => d.letra);
@@ -195,6 +203,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         status: "sem_meta",
         frequencia: 0,
         secundario: 0,
+        ponderado: 0,
         exerciciosRevisar: 0,
         inferior: GRUPOS_INFERIORES.includes(g),
         superior: GRUPOS_SUPERIORES.includes(g),
@@ -237,10 +246,14 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
       if (vezes > 0) tocados.add(g);
 
       if (opcoes.incluirSecundario) {
+        const pesos = usarPesos ? ex.pesosSecundarios ?? null : null;
         for (const s of ex.secundarios ?? []) {
           const gs = canonizarGrupo(s, agruparOmbros);
           if (gs === g || GRUPOS_SEM_VOLUME.includes(gs)) continue;
-          getLinha(gs).secundario += validas * fatorSec * vezes;
+          const bruto = pesos?.[s];
+          const peso = typeof bruto === "number" && Number.isFinite(bruto) ? Math.max(0, Math.min(1, bruto)) : fatorSec;
+          if (pesos && typeof bruto === "number") usouPesos = true;
+          getLinha(gs).secundario += validas * peso * vezes;
         }
       }
     }
@@ -251,7 +264,13 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
   if (avisoTecnica)
     avisos.push("Drop set, rest-pause e cluster contam 1 série válida por série prescrita (os \"drops\" não somam).");
   if (opcoes.incluirSecundario)
-    avisos.push(`Estímulo secundário é uma estimativa heurística (${Math.round(fatorSec * 100)}% por série), mostrado à parte e não somado ao total.`);
+    avisos.push(
+      usouPesos
+        ? `Volume ponderado = séries diretas + secundário estimado com os pesos de cada exercício da biblioteca (ex.: supino: tríceps 0,5). Sem peso cadastrado, usa ${Math.round(fatorSec * 100)}% por série. É estimativa: o total direto continua sendo a referência.`
+        : `Estímulo secundário é uma estimativa heurística (${Math.round(fatorSec * 100)}% por série), mostrado à parte e não somado ao total.`
+    );
+  if (!agruparOmbros && opcoes.metas && (opcoes.metas as Record<string, unknown>).ombros)
+    avisos.push("Há meta para “Ombros” no total, mas os deltoides estão separados (anterior, lateral e posterior). Defina metas por porção ou agrupe os ombros.");
 
   // metas e status
   const metas = opcoes.metas ?? {};
@@ -260,6 +279,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
     linha.meta = meta && Number.isFinite(meta.min) && Number.isFinite(meta.max) ? { min: Math.max(0, meta.min), max: Math.max(0, meta.max) } : null;
     linha.total = Math.round(linha.total * 100) / 100;
     linha.secundario = Math.round(linha.secundario * 100) / 100;
+    linha.ponderado = Math.round((linha.total + linha.secundario) * 100) / 100;
     linha.frequencia = Math.round(linha.frequencia * 100) / 100;
     if (!linha.meta) {
       linha.status = "sem_meta";

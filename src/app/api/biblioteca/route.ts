@@ -1,43 +1,25 @@
 import { NextResponse } from "next/server";
-import { requireTreinador } from "@/lib/api-auth";
+import { requireTreinadorApi } from "@/lib/auth/session";
+import { criarExercicio, listarBiblioteca } from "@/lib/data/biblioteca";
+import { exercicioBibliotecaSchema, lerJson } from "@/lib/validacao/schemas";
 
+/** GET /api/biblioteca — biblioteca completa (só treinador). */
 export async function GET() {
-  const { db, error } = await requireTreinador();
+  const { error } = await requireTreinadorApi();
   if (error) return error;
-  const { data } = await db!.from("exercicios_biblioteca").select("*").eq("arquivado", false).order("nome");
-  return NextResponse.json(data ?? []);
+  return NextResponse.json(await listarBiblioteca());
 }
 
+/** POST /api/biblioteca — cria exercício próprio do treinador (recusa duplicata). */
 export async function POST(request: Request) {
-  const { db, error } = await requireTreinador();
+  const { error } = await requireTreinadorApi();
   if (error) return error;
-
-  const body = await request.json().catch(() => null);
-  if (!body?.nome || !body?.grupo_muscular) {
-    return NextResponse.json({ error: "nome e grupo_muscular são obrigatórios" }, { status: 400 });
+  const { data, error: vErr } = await lerJson(request, exercicioBibliotecaSchema);
+  if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
+  try {
+    return NextResponse.json(await criarExercicio(data), { status: 201 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erro ao salvar";
+    return NextResponse.json({ error: msg }, { status: msg.startsWith("Já existe") ? 409 : 500 });
   }
-
-  const { data, error: dbErr } = await db!
-    .from("exercicios_biblioteca")
-    .insert({
-      nome: body.nome,
-      slug: body.slug ?? body.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-      grupo_muscular: body.grupo_muscular,
-      grupos_secundarios: body.grupos_secundarios ?? [],
-      equipamento: body.equipamento ?? [],
-      video_provider: body.video_provider ?? null,
-      video_id: body.video_id ?? null,
-      thumbnail_url: body.thumbnail_url ?? null,
-      duracao_seg: body.duracao_seg ?? null,
-      descricao: body.descricao ?? null,
-      instrucoes: body.instrucoes ?? [],
-      observacoes: body.observacoes ?? null,
-      dificuldade: body.dificuldade ?? null,
-      arquivado: false,
-    })
-    .select()
-    .single();
-
-  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
 }

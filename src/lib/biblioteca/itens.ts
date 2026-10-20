@@ -138,3 +138,20 @@ export function equipamentoDisponivel(item: Pick<ItemBiblioteca, "equipamento">,
 export function nivelNumero(n: Nivel | string | null | undefined): number {
   return n === "avancado" ? 3 : n === "intermediario" ? 2 : n === "iniciante" ? 1 : 0;
 }
+
+/**
+ * Chaves de busca exata de um item: nome, nome sem o trecho entre parênteses
+ * ("Puxada frontal aberta (pulley)" → "puxada frontal aberta") e sinônimos.
+ */
+export function chavesDeNome(item: Pick<ItemBiblioteca, "nome" | "sinonimos">): string[] {
+  const semParenteses = item.nome.replace(/\s*\([^)]*\)\s*/g, " ");
+  return [...new Set([item.nome, semParenteses, ...item.sinonimos].map((s) => normalizarNome(s)).filter(Boolean))];
+}
+
+/** Índice nome/sinônimo normalizado → item (o primeiro cadastrado vence em caso de colisão). */
+export function indicePorNome<T extends Pick<ItemBiblioteca, "nome" | "sinonimos">>(itens: T[]): Map<string, T> {
+  const m = new Map<string, T>();
+  for (const i of itens) m.set(normalizarNome(i.nome), i);
+  for (const i of itens) for (const k of chavesDeNome(i)) if (!m.has(k)) m.set(k, i);
+  return m;
+}

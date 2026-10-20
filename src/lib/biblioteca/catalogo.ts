@@ -300,7 +300,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["remada-maquina-articulada", "remada-curvada-barra", "remada-unilateral-halter"],
   }),
   ex("pulldown-bracos-estendidos", "Pulldown com braços estendidos", "costas", {
-    s: ["pullover na polia", "pulldown braço estendido", "straight arm pulldown"],
+    s: ["pullover na polia", "pulldown braço estendido", "straight arm pulldown", "pulldown corda"],
     p: { triceps: 0.25 }, pad: "extensao_ombro", art: ["ombro"], t: "mono", eq: ["polia"],
     exe: ["Barra ou corda na polia alta, tronco levemente inclinado.", "Com os cotovelos quase estendidos, leve a barra até as coxas.", "Volte devagar até alongar."],
     err: ["Flexionar os cotovelos (vira tríceps).", "Usar o tronco para empurrar.", "Encolher os ombros."],
@@ -388,7 +388,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["elevacao-lateral-halteres", "elevacao-lateral-polia"],
   }),
   ex("elevacao-frontal-halteres", "Elevação frontal com halteres", "ombro_anterior", {
-    s: ["elevação frontal", "front raise"],
+    s: ["elevação frontal", "front raise", "elevação frontal halter"],
     p: { peito: 0.25 }, pad: "flexao_ombro", art: ["ombro"], t: "mono", eq: ["halter"],
     exe: ["Halteres à frente das coxas.", "Eleve os braços à frente até a altura dos ombros.", "Desça controlando."],
     err: ["Balançar o tronco.", "Subir acima da cabeça.", "Carga alta."],
@@ -409,7 +409,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["crucifixo-invertido-maquina", "face-pull"],
   }),
   ex("crucifixo-invertido-maquina", "Crucifixo invertido na máquina", "ombro_posterior", {
-    s: ["peck deck invertido", "voador invertido", "reverse pec deck"],
+    s: ["peck deck invertido", "voador invertido", "reverse pec deck", "crucifixo invertido máq."],
     p: { trapezio: 0.25, costas: 0.25 }, pad: "abducao_horizontal", art: ["ombro", "escapula"], t: "mono", eq: ["maquina"],
     exe: ["Sente de frente para o encosto, alças na altura dos ombros.", "Abra os braços para trás com cotovelos levemente flexionados.", "Volte devagar."],
     err: ["Encolher os ombros.", "Tirar o peito do apoio.", "Amplitude curta."],
@@ -740,7 +740,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["hack-machine", "leg-press-45", "agachamento-smith"], est: ["joelho"],
   }),
   ex("cadeira-extensora", "Cadeira extensora", "quadriceps", {
-    s: ["extensora", "leg extension", "cadeira extensora bilateral"],
+    s: ["extensora", "cadeira extensora bilateral"],
     pad: "extensao_joelho", art: ["joelho"], t: "mono", eq: ["maquina"],
     exe: ["Ajuste o encosto para o joelho alinhar com o eixo da máquina.", "Estenda os joelhos até o final e segure 1 segundo.", "Desça devagar."],
     err: ["Impulso para subir.", "Tirar o quadril do banco.", "Descer rápido."],
@@ -835,14 +835,14 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["terra-romeno", "stiff-barra"], est: ["lombar"],
   }),
   ex("mesa-flexora", "Mesa flexora", "posteriores", {
-    s: ["flexora deitada", "leg curl", "lying leg curl", "flexora"],
+    s: ["flexora deitada", "flexora"],
     p: { panturrilha: 0.25 }, pad: "flexao_joelho", art: ["joelho"], t: "mono", eq: ["maquina"],
     exe: ["Deitado, joelhos logo abaixo da borda do banco.", "Flexione os joelhos levando o rolo aos glúteos.", "Desça devagar."],
     err: ["Tirar o quadril do banco.", "Impulso.", "Descer rápido."],
     sub: ["cadeira-flexora", "flexora-em-pe", "flexao-joelhos-bola"],
   }),
   ex("cadeira-flexora", "Cadeira flexora", "posteriores", {
-    s: ["flexora sentada", "seated leg curl"],
+    s: ["flexora sentada"],
     p: { panturrilha: 0.25 }, pad: "flexao_joelho", art: ["joelho"], t: "mono", eq: ["maquina"],
     exe: ["Ajuste o encosto para o joelho alinhar com o eixo.", "Trave as coxas e flexione os joelhos.", "Volte controlando."],
     err: ["Coxas soltas.", "Amplitude curta.", "Retorno sem controle."],
@@ -856,7 +856,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["cadeira-flexora", "flexora-em-pe"],
   }),
   ex("flexora-em-pe", "Flexora em pé unilateral", "posteriores", {
-    s: ["flexora em pé", "standing leg curl", "flexora unilateral"],
+    s: ["flexora em pé", "flexora unilateral"],
     pad: "flexao_joelho", art: ["joelho"], t: "mono", eq: ["maquina", "polia", "caneleira"],
     exe: ["Apoie-se na máquina ou use a polia com caneleira.", "Flexione o joelho levando o calcanhar ao glúteo.", "Desça controlando."],
     err: ["Movimentar o quadril.", "Impulso.", "Tronco inclinando."],
@@ -870,7 +870,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["mesa-flexora", "flexao-joelhos-bola"], reg: ["repeticoes", "assistencia"],
   }),
   ex("flexao-joelhos-bola", "Flexão de joelhos na bola suíça", "posteriores", {
-    s: ["leg curl na bola", "flexora na bola"],
+    s: ["flexora na bola"],
     p: { gluteo: 0.25, core: 0.25 }, pad: "flexao_joelho", art: ["joelho", "quadril"], t: "multi", eq: ["bola"],
     exe: ["Deitado, calcanhares sobre a bola e quadril elevado.", "Traga a bola em direção aos glúteos flexionando os joelhos.", "Volte sem baixar o quadril."],
     err: ["Quadril caindo.", "Movimento rápido.", "Arquear a lombar."],
@@ -1029,7 +1029,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["abdominal-polia", "abdominal-maquina"], reg: ["repeticoes", "carga"],
   }),
   ex("abdominal-infra", "Abdominal infra (elevação de pernas deitado)", "abdomen", {
-    s: ["infra", "abdominal infra", "elevação de pernas", "leg raise"],
+    s: ["infra", "abdominal infra", "elevação de pernas"],
     p: { core: 0.25 }, pad: "flexao_quadril", art: ["quadril", "coluna"], t: "mono", eq: ["peso_corporal"],
     exe: ["Deitado, mãos sob o quadril ou ao lado do corpo.", "Eleve as pernas e tire levemente o quadril do chão.", "Desça sem deixar a lombar arquear."],
     err: ["Arquear a lombar.", "Impulso das pernas.", "Movimento rápido."],

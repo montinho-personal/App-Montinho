@@ -178,4 +178,96 @@ begin
 end $$;
 
 select test_logout();
+
+-- ---------------------------------------------------------------------------
+-- T7. Biblioteca inteligente: catálogo, favoritos, equivalências e prescrições
+-- ---------------------------------------------------------------------------
+insert into auth.users (id, email) values ('44444444-4444-4444-4444-444444444444', 'outro.treinador@exemplo.local') on conflict do nothing;
+update profiles set role = 'treinador' where id = '44444444-4444-4444-4444-444444444444';
+
+create temp table _antes as select md5(string_agg(e::text, '|' order by e.id)) as h from exercicios e;
+grant select on _antes to authenticated;
+
+do $$
+declare n int;
+begin
+  select count(*) into n from exercicios_biblioteca where origem = 'catalogo';
+  if n <> 150 then raise exception 'T7a: esperava 150 exercícios do catálogo, obteve %', n; end if;
+  select count(*) into n from exercicio_equivalencias where status = 'sugerida';
+  if n < 300 then raise exception 'T7a: equivalências sugeridas ausentes (%)', n; end if;
+  select count(*) into n from (select nome_normalizado from exercicios_biblioteca group by 1 having count(*) > 1) d;
+  if n <> 0 then raise exception 'T7a: % nome(s) duplicado(s) na biblioteca', n; end if;
+end $$;
+
+-- Reaplicar o catálogo é idempotente e não toca em prescrições.
+begin;
+\ir ../../supabase/migrations/0013_catalogo_exercicios_v1.sql
+commit;
+do $$
+declare n int; h_atual text;
+begin
+  select count(*) into n from exercicios_biblioteca;
+  if n <> 150 then raise exception 'T7b: reaplicar o catálogo duplicou itens (%)', n; end if;
+  select md5(string_agg(e::text, '|' order by e.id)) into h_atual from exercicios e;
+  if h_atual is distinct from (select a.h from _antes a) then raise exception 'T7b: o catálogo alterou prescrições existentes'; end if;
+end $$;
+
+-- Aluno: lê a biblioteca (para executar), mas não escreve nem vê favoritos/equivalências.
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean;
+begin
+  select count(*) into n from exercicios_biblioteca;
+  if n <> 150 then raise exception 'T7c: aluno deveria ler a biblioteca (viu %)', n; end if;
+  select count(*) into n from exercicio_equivalencias;
+  if n <> 0 then raise exception 'T7c: aluno não pode ler equivalências (viu %)', n; end if;
+  ok := false;
+  begin
+    insert into exercicio_favoritos (treinador_id, exercicio_id)
+    select '22222222-2222-2222-2222-222222222222', id from exercicios_biblioteca limit 1;
+  exception when insufficient_privilege or others then ok := true; end;
+  if not ok then raise exception 'T7c: aluno conseguiu criar favorito'; end if;
+  update exercicios_biblioteca set nome = 'hack' where slug = 'supino-reto-barra';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T7c: aluno alterou a biblioteca'; end if;
+  ok := false;
+  begin
+    update exercicio_equivalencias set status = 'aprovada';
+    get diagnostics n = row_count;
+    if n = 0 then ok := true; end if;
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T7c: aluno revisou equivalência'; end if;
+end $$;
+
+-- Treinador 1: favorita e aprova uma equivalência.
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  insert into exercicio_favoritos (exercicio_id) select id from exercicios_biblioteca where slug = 'hip-thrust-barra';
+  select count(*) into n from exercicio_favoritos;
+  if n <> 1 then raise exception 'T7d: treinador deveria ver o próprio favorito'; end if;
+  update exercicio_equivalencias set status = 'aprovada'
+  where exercicio_id = (select id from exercicios_biblioteca where slug = 'supino-reto-barra')
+    and alternativa_id = (select id from exercicios_biblioteca where slug = 'supino-reto-halteres');
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'T7d: treinador não conseguiu aprovar a equivalência'; end if;
+end $$;
+
+-- Treinador 2: não vê nem usa o favorito do treinador 1.
+select test_login('44444444-4444-4444-4444-444444444444');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from exercicio_favoritos;
+  if n <> 0 then raise exception 'T7e: treinador viu favoritos de outro (%)', n; end if;
+  begin
+    insert into exercicio_favoritos (treinador_id, exercicio_id)
+    select '11111111-1111-1111-1111-111111111111', id from exercicios_biblioteca where slug = 'face-pull';
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T7e: treinador gravou favorito em nome de outro'; end if;
+  raise notice 'T7 OK: catálogo (150) idempotente, prescrições intactas, favoritos por treinador, aluno sem escrita';
+end $$;
+
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

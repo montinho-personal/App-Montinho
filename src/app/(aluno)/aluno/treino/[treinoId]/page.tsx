@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getTreinoComExercicios } from "@/lib/data/programas";
 import { getSessao, getSessaoEmAndamento, ultimasExecucoes } from "@/lib/data/sessoes";
-import { listBiblioteca } from "@/lib/db";
+import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
 import { TreinoAtivoClient } from "./TreinoAtivoClient";
-import type { ExercicioBiblioteca } from "@/lib/supabase/types-extended";
+import { indicePorNome } from "@/lib/biblioteca/itens";
+import type { VideoProvider } from "@/lib/supabase/types-extended";
 
 type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string }> };
 
@@ -24,7 +25,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
   const [emAndamento, ultimas, biblioteca] = await Promise.all([
     sessaoId ? getSessao(sessao.alunoId, sessaoId) : getSessaoEmAndamento(sessao.alunoId),
     ultimasExecucoes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
-    listBiblioteca(),
+    listarBiblioteca(),
   ]);
 
   if (!treino.ativo && !emAndamento) {
@@ -38,14 +39,16 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
     );
   }
 
-  const bib = new Map((biblioteca as ExercicioBiblioteca[]).map((b) => [normalizarNome(b.nome), b]));
+  // O aluno vê só o necessário: até 3 orientações curtas e vídeo VERIFICADO pelo treinador.
+  const porId = new Map(biblioteca.map((b) => [b.id, b]));
+  const porNome = indicePorNome(biblioteca);
   const exercicios = treino.exercicios.map((e) => {
-    const b = bib.get(normalizarNome(e.nome));
+    const b = (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined) ?? porNome.get(normalizarNome(e.nome));
     return {
       ...e,
-      video: b?.video_provider && b?.video_id ? { provider: b.video_provider, id: b.video_id } : null,
-      instrucoes: b?.instrucoes ?? [],
-      descricao: b?.descricao ?? null,
+      video: b?.midia?.verificada ? { provider: b.midia.provider as VideoProvider, id: b.midia.id } : null,
+      instrucoes: (b?.execucao ?? []).slice(0, 3),
+      descricao: null,
     };
   });
 

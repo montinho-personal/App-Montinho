@@ -160,6 +160,50 @@ export const buscaMemoriaSchema = z.object({
 });
 
 /** Lê JSON e valida; devolve erro 400 legível quando inválido. */
+// ---------------------------------------------------------------------------
+// Biblioteca de exercícios
+// ---------------------------------------------------------------------------
+export const EQUIPAMENTOS = [
+  "barra", "halter", "maquina", "polia", "peso_corporal", "cabo", "kettlebell", "elastico", "esteira", "bike",
+  "corda", "banco", "smith", "outro", "barra_fixa", "paralelas", "anilha", "barra_w", "trx", "bola", "roda", "caneleira",
+] as const;
+export const PADROES = [
+  "empurrar_horizontal", "empurrar_inclinado", "empurrar_vertical", "aducao_horizontal", "puxar_vertical", "puxar_horizontal",
+  "extensao_ombro", "abducao_ombro", "flexao_ombro", "abducao_horizontal", "rotacao_externa", "elevacao_escapular",
+  "flexao_cotovelo", "extensao_cotovelo", "agachar", "avanco", "extensao_joelho", "dobradica_quadril", "flexao_joelho",
+  "extensao_quadril", "abducao_quadril", "aducao_quadril", "flexao_plantar", "flexao_tronco", "flexao_quadril",
+  "rotacao_tronco", "antiextensao", "antiflexao_lateral", "antirrotacao", "extensao_tronco", "flexao_punho", "extensao_punho", "carregamento",
+] as const;
+
+export const exercicioBibliotecaSchema = z.object({
+  nome: texto(120).min(2, "Informe o nome do exercício"),
+  sinonimos: z.array(texto(80).min(1)).max(20).default([]),
+  grupo_muscular: z.enum(GRUPOS),
+  pesos_secundarios: z.partialRecord(z.enum(GRUPOS), z.coerce.number().gt(0).max(1)).default({}),
+  padrao_movimento: z.enum(PADROES).nullable().optional().default(null),
+  articulacoes: z.array(z.enum(["ombro", "escapula", "cotovelo", "punho", "coluna", "quadril", "joelho", "tornozelo"])).max(8).default([]),
+  equipamento: z.array(z.enum(EQUIPAMENTOS)).max(8).default([]),
+  tipo_movimento: z.enum(["multiarticular", "monoarticular"]).nullable().optional().default(null),
+  nivel_minimo: z.enum(["iniciante", "intermediario", "avancado"]).nullable().optional().default(null),
+  instrucoes: z.array(texto(240).min(1)).max(8).default([]),
+  erros_comuns: z.array(texto(240).min(1)).max(8).default([]),
+  campos_registro: z.array(z.enum(["carga", "repeticoes", "tempo", "distancia", "assistencia"])).min(1).max(5).default(["carga", "repeticoes"]),
+  estresse_articular: z.array(z.enum(["joelho", "ombro", "lombar", "cotovelo_punho", "quadril"])).max(5).default([]),
+  conta_volume: z.boolean().default(true),
+  video_provider: z.enum(["youtube", "cloudflare_stream", "mux", "direct_url"]).nullable().optional().default(null),
+  video_id: textoOpcional(300),
+  video_validado: z.boolean().default(false),
+});
+
+export const favoritoSchema = z.object({ exercicio_id: z.string().min(1).max(64), favorito: z.boolean() });
+
+export const equivalenciaSchema = z.object({
+  exercicio_id: z.string().min(1).max(64),
+  alternativa_id: z.string().min(1).max(64),
+  status: z.enum(["sugerida", "aprovada", "rejeitada"]),
+  nota: textoOpcional(300),
+}).refine((v) => v.exercicio_id !== v.alternativa_id, { message: "Um exercício não substitui a si mesmo" });
+
 export async function lerJson<T extends z.ZodTypeAny>(request: Request, schema: T): Promise<{ data: z.infer<T>; error: null } | { data: null; error: { status: number; body: { error: string; detalhes?: unknown } } }> {
   const raw = await request.json().catch(() => null);
   if (raw === null || typeof raw !== "object") return { data: null, error: { status: 400, body: { error: "Corpo da requisição inválido" } } };

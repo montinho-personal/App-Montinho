@@ -42,6 +42,13 @@ adaptacoes            (pedidos do aluno)       intervencoes (registro do treinad
 
 Colunas novas em `exercicios`: `grupo_muscular`, `grupos_secundarios`, `grupo_origem` (biblioteca|manual|heuristica|correcao), `grupo_confianca`, `series_aquecimento`, `tecnica`, `bloco`, `unilateral`, `carga_alvo`, `rir`, `cadencia`, `conta_volume`, `removido_em`.
 
+### 0011–0013 — biblioteca inteligente
+- `exercicios_biblioteca` ganha `slug` (id estável), `sinonimos`, `erros_comuns`, `padrao_movimento`, `articulacoes`, `tipo_movimento`, `campos_registro`, `pesos_secundarios` (jsonb, fração por músculo), `estresse_articular`, `nivel_minimo`, `conta_volume`, `origem` (`catalogo|treinador`), `catalogo_versao`, `arquivado`.
+- `exercicio_equivalencias` (exercício → alternativa, `origem`, `status` `sugerida|aprovada|rejeitada`, nota, autor). Só treinador lê/escreve.
+- `exercicio_favoritos` (por treinador; cada um vê só os seus).
+- 0013: catálogo v1 (150 exercícios + 351 sugestões). Upsert por `slug` que só atualiza itens `origem='catalogo'` de versão anterior; nunca toca `exercicios` (prescrições).
+- Fonte única: `src/lib/biblioteca/catalogo.ts` → `scripts/gerar-sql-catalogo.mts`. Busca: `busca.ts`; substituição: `substituicao.ts` (regras explicáveis, sem IA); volume ponderado: `calcular.ts` com `pesosSecundarios`.
+
 ### Três entidades separadas (Prompt Mestre §3.2)
 1. **Plano prescrito** — `programas` + `treinos` + `exercicios`. Editável; cada salvamento incrementa `versao` e grava `programa_versoes`.
 2. **Sessão realizada** — `training_sessions` (status `em_andamento|concluida|abandonada`, `snapshot` da prescrição, totais) + `session_exercises` + `session_sets` (carga, reps, RIR, tipo `valida|aquecimento|dropset|...`).

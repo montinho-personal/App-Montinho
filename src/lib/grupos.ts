@@ -262,7 +262,9 @@ export function montarLookupBiblioteca(
   for (const it of itens) {
     const v = { grupo: it.grupo_muscular, secundarios: it.grupos_secundarios ?? [] };
     porNome.set(normalizarNome(it.nome), v);
-    for (const s of it.sinonimos ?? []) porNome.set(normalizarNome(s), v);
+    const semParenteses = normalizarNome(it.nome.replace(/\s*\([^)]*\)\s*/g, " "));
+    if (!porNome.has(semParenteses)) porNome.set(semParenteses, v);
+    for (const s of it.sinonimos ?? []) if (!porNome.has(normalizarNome(s))) porNome.set(normalizarNome(s), v);
   }
   return { porNome };
 }
