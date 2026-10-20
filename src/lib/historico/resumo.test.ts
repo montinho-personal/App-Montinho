@@ -10,11 +10,13 @@ import type { SessaoCompleta } from "@/lib/data/sessoes";
 describe("histórico da Adriana (resumo do app anterior)", () => {
   it("transcreve exatamente os prints e ignora o dia com 0 séries", () => {
     const g = linhasParaGravar(IMPORTACAO);
-    expect(LINHAS).toHaveLength(11);
-    expect(g).toHaveLength(10);
+    expect(LINHAS).toHaveLength(15);
+    expect(g).toHaveLength(14);
     expect(g.every((l) => l.series === 4 && l.reps_total === null)).toBe(true);
     expect(diasDoResumo(LINHAS)).toEqual(["2026-10-07", "2026-10-08", "2026-10-09", "2026-10-13", "2026-10-15", "2026-10-16", "2026-10-19"]);
     const abd = g.filter((l) => l.exercicio_nome === "Cadeira abdutora").map((l) => [l.data.slice(5), l.carga_max_kg, l.volume_kg]);
+    expect(g.filter((l) => l.exercicio_nome === "Leg press horizontal (180°)").map((l) => [l.carga_max_kg, l.volume_kg])).toEqual([[100, 4467], [100, 4647]]);
+    expect(g.filter((l) => l.exercicio_nome === "Agachamento no Smith").map((l) => [l.carga_max_kg, l.volume_kg])).toEqual([[35, 1040], [35, 1201]]);
     expect(abd).toEqual([["10-07", 80, 3070], ["10-09", 80, 4610], ["10-13", 80, 3900], ["10-15", 100, 4210], ["10-16", 90, 3440], ["10-19", 110, 4900]]);
   });
 

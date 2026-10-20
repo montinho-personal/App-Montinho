@@ -13,6 +13,8 @@ import type { ImportacaoResumo, LinhaResumo } from "./resumo";
 const ABD = "Cadeira abdutora";
 const EXT = "Cadeira extensora";
 const PANT = "Panturrilha no leg press horizontal (180°)";
+const LEG = "Leg press horizontal (180°)";
+const SMITH = "Agachamento no Smith";
 
 const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
   data, exercicio, nomeOriginal, bibliotecaId: BIBLIOTECA[exercicio]?.id ?? null, letra, series, cargaMax, volume, observacao,
@@ -33,6 +35,12 @@ export const LINHAS: LinhaResumo[] = [
   // Cadeira extensora (só no treino A)
   l("2026-10-15", EXT, "Cadeira Extensora", 4, 43, 1996, "A"),
   l("2026-10-19", EXT, "Cadeira Extensora", 4, 43, 1996, "A"),
+  // Leg press 180 (só no treino A)
+  l("2026-10-15", LEG, "Leg press 180", 4, 100, 4467, "A"),
+  l("2026-10-19", LEG, "Leg press 180", 4, 100, 4647, "A"),
+  // Agachamento no Smith (só no treino A)
+  l("2026-10-15", SMITH, "Agachamento no Smith", 4, 35, 1040, "A"),
+  l("2026-10-19", SMITH, "Agachamento no Smith", 4, 35, 1201, "A"),
 ];
 
 export const IMPORTACAO: ImportacaoResumo = {
