@@ -53,7 +53,8 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   const periodo = periodoDias(dias);
   const noPeriodo = sessoesNoPeriodo(sessoes, periodo);
   const calendario = calendarioSessoes(sessoes, periodo);
-  const marcas = melhoresMarcas(noPeriodo.length ? noPeriodo : sessoes).slice(0, 12);
+  // Só exercícios com carga/reps registradas (dias importados só com séries ficam de fora).
+  const marcas = melhoresMarcas(noPeriodo.length ? noPeriodo : sessoes).filter((m) => m.melhorCarga || m.melhorReps || m.melhorE1rm).slice(0, 12);
   const exerciciosGrafico = [...marcas.map((m) => ({ chave: m.chave, nome: m.exercicio }))];
   for (const r of historicoResumo) {
     const chave = normalizarNome(r.exercicio_nome);
@@ -314,18 +315,18 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
             <thead className="text-[10px] uppercase tracking-wider text-fg-subtle">
               <tr>
                 <th className="text-left font-semibold py-1">Grupo</th>
-                <th className="text-right font-semibold py-1">Programado/sem</th>
-                <th className="text-right font-semibold py-1">Realizado/sem</th>
-                <th className="text-right font-semibold py-1">%</th>
+                <th className="text-right font-semibold py-1 pl-2">Prog./sem</th>
+                <th className="text-right font-semibold py-1 pl-2">Feito/sem</th>
+                <th className="text-right font-semibold py-1 pl-3">%</th>
               </tr>
             </thead>
             <tbody>
               {comparacao.map((c) => (
                 <tr key={c.grupo} className="border-t border-border">
                   <td className="py-1.5">{c.label}</td>
-                  <td className="py-1.5 text-right font-mono">{c.programado}</td>
-                  <td className="py-1.5 text-right font-mono">{c.realizado}</td>
-                  <td className={`py-1.5 text-right font-mono ${c.aderencia !== null && c.aderencia < 70 ? "text-warning" : ""}`}>{c.aderencia !== null ? `${c.aderencia}%` : "—"}</td>
+                  <td className="py-1.5 pl-2 text-right font-mono">{c.programado}</td>
+                  <td className="py-1.5 pl-2 text-right font-mono">{c.realizado}</td>
+                  <td className={`py-1.5 pl-3 text-right font-mono ${c.aderencia !== null && c.aderencia < 70 ? "text-warning" : ""}`}>{c.aderencia !== null ? `${c.aderencia}%` : "—"}</td>
                 </tr>
               ))}
             </tbody>

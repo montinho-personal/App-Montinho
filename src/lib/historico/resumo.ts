@@ -100,3 +100,22 @@ export function diasDeTreinoDoResumo(imp: Pick<ImportacaoResumo, "id" | "linhas"
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([data, d]) => ({ data, letra: d.letra!, seriesConcluidas: d.series, seriesPlanejadas: seriesPorLetra[d.letra!], clientKey: `hist:${imp.id}:${data}` }));
 }
+
+/**
+ * Séries de cada exercício num dia do resumo, na ordem do treino da letra.
+ * Exercício sem linha no dia (ou com 0 séries) fica como pulado.
+ * Carga e repetições por série não existem no resumo: ficam vazias.
+ */
+export type ExercicioDoDia = { exercicioId: string; nome: string; ordem: number; grupo: string | null; bibliotecaId: string | null; planejadas: number; feitas: number; tipo: "valida" | "isometria" };
+
+export function exerciciosDoDia(
+  linhas: LinhaResumo[],
+  data: string,
+  treino: { exercicios: Array<{ id: string; nome: string; series: number; grupo_muscular: string | null; biblioteca_id?: string | null; tecnica?: string | null }> },
+): ExercicioDoDia[] {
+  const doDia = linhas.filter((l) => l.data === data);
+  return treino.exercicios.map((e, i) => {
+    const l = doDia.find((x) => normalizarNome(x.exercicio) === normalizarNome(e.nome));
+    return { exercicioId: e.id, nome: e.nome, ordem: i, grupo: e.grupo_muscular, bibliotecaId: e.biblioteca_id ?? null, planejadas: e.series, feitas: Math.min(l?.series ?? 0, e.series), tipo: e.tecnica === "isometria" ? "isometria" : "valida" };
+  });
+}

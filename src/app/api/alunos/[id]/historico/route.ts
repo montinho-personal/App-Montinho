@@ -7,6 +7,7 @@ import { getAluno } from "@/lib/db";
 import { IMPORTACOES } from "@/lib/historico";
 import { importarHistoricoResumo, registrarDiasDeTreino } from "@/lib/data/historico";
 import { getPlanoAtivo } from "@/lib/data/programas";
+import { sincronizarConquistas } from "@/lib/data/conquistas";
 import { lerJson } from "@/lib/validacao/schemas";
 import { normalizarNome } from "@/lib/grupos";
 
@@ -29,10 +30,12 @@ export async function POST(request: Request, { params }: Ctx) {
   try {
     if (data.acao === "dias") {
       const plano = await getPlanoAtivo(id);
-      const treinos = plano.treinos.filter((t) => t.ativo).map((t) => ({ id: t.id, letra: t.letra, nome: t.nome, series: t.exercicios.reduce((a, e) => a + (e.series || 0), 0) }));
+      const treinos = plano.treinos.filter((t) => t.ativo).map((t) => ({ id: t.id, letra: t.letra, nome: t.nome, series: t.exercicios.reduce((a, e) => a + (e.series || 0), 0), exercicios: t.exercicios }));
       if (!treinos.length) return NextResponse.json({ error: "Cadastre o treino da aluna antes." }, { status: 409 });
       const r = await registrarDiasDeTreino(id, imp, treinos);
-      return NextResponse.json({ ok: true, ...r }, { status: r.novos ? 201 : 200 });
+      // Conquistas pelas mesmas regras, já agora (sem esperar a aluna abrir o app).
+      const c = await sincronizarConquistas(aluno).catch(() => null);
+      return NextResponse.json({ ok: true, ...r, conquistas: c?.novas.map((x) => x.titulo) ?? [] }, { status: r.novos || r.seriesCompletadas ? 201 : 200 });
     }
     const r = await importarHistoricoResumo(id, imp);
     return NextResponse.json({ ok: true, ...r }, { status: r.novas ? 201 : 200 });

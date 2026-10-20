@@ -160,6 +160,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           importacao={{ id: imp.id, titulo: imp.titulo, linhas: imp.linhas, avisos: imp.avisos }}
           gravadas={historicoResumo.filter((r) => r.importacao === imp.id).length}
           diasRegistrados={sessoes.filter((s) => s.client_key?.startsWith(`hist:${imp.id}:`)).length}
+          diasSemSeries={sessoes.filter((s) => s.client_key?.startsWith(`hist:${imp.id}:`) && s.exercicios.length === 0).length}
         />
       ))}
       <Tabs

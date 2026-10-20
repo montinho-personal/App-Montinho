@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseCargaDoResumo, diasDeTreinoDoResumo, diasDoResumo, linhasParaGravar } from "./resumo";
+import { baseCargaDoResumo, diasDeTreinoDoResumo, diasDoResumo, exerciciosDoDia, linhasParaGravar } from "./resumo";
 import { IMPORTACAO, LINHAS } from "./adriana-nascimento";
 import { importacoesParaAluno } from "./index";
 import { evolucaoExercicio } from "@/lib/relatorios/calcular";
@@ -83,5 +83,20 @@ describe("dias de treino do resumo (aderência e conquistas)", () => {
       ["10-07", "C", 21, 25], ["10-08", "D", 24, 24], ["10-09", "B", 24, 24], ["10-13", "B", 24, 24], ["10-15", "A", 21, 21], ["10-16", "C", 25, 25], ["10-19", "A", 21, 21],
     ]);
     expect(new Set(dias.map((d) => d.clientKey)).size).toBe(7);
+  });
+});
+
+describe("exercícios do dia importado (volume semanal)", () => {
+  it("séries feitas por exercício na ordem do treino; panturrilha de 07/10 fica pulada", () => {
+    const c = PRESCRICAO.treinos.find((t) => t.letra === "C")!;
+    const treino = { exercicios: c.exercicios.map((e, i) => ({ id: `e${i}`, nome: e.nome, series: e.series, grupo_muscular: e.grupo_muscular ?? null, tecnica: e.tecnica })) };
+    const d7 = exerciciosDoDia(LINHAS, "2026-10-07", treino);
+    expect(d7.map((e) => e.feitas)).toEqual([1, 4, 4, 4, 4, 4, 0]);
+    expect(d7[0].tipo).toBe("isometria");
+    expect(exerciciosDoDia(LINHAS, "2026-10-16", treino).map((e) => e.feitas)).toEqual([1, 4, 4, 4, 4, 4, 4]);
+  });
+  it("no gráfico, dia importado sem carga cede lugar ao resumo", () => {
+    const sem = { id: "h", status: "concluida", iniciado_em: "2026-10-19T15:00:00Z", finalizado_em: "2026-10-19T15:00:00Z", exercicios: [{ nome: "Cadeira abdutora", grupo_muscular: "gluteo", series: [1, 2, 3, 4].map((n) => ({ serie: n, tipo: "valida", carga_kg: null, reps: null })) }] } as unknown as SessaoCompleta;
+    expect(evolucaoExercicio([sem], "Cadeira abdutora", linhasParaGravar(IMPORTACAO)).at(-1)).toMatchObject({ data: "2026-10-19", cargaMax: 110, fonte: "resumo" });
   });
 });

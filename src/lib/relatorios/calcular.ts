@@ -230,7 +230,8 @@ export function evolucaoExercicio(sessoes: SessaoCompleta[], chave: string, resu
     porData.set(s.data, d);
   }
   for (const r of resumos) {
-    if (r.series <= 0 || normalizarNome(r.exercicio_nome) !== k || porData.has(r.data)) continue;
+    // Dia do app sem carga registrada (ex.: histórico importado só com séries) cede lugar ao resumo.
+    if (r.series <= 0 || normalizarNome(r.exercicio_nome) !== k || (porData.get(r.data)?.cargaMax ?? null) !== null) continue;
     porData.set(r.data, { data: r.data, cargaMax: r.carga_max_kg != null ? Number(r.carga_max_kg) : null, e1rmMax: null, tonelagem: Number(r.volume_kg ?? 0), series: r.series, fonte: "resumo" });
   }
   return [...porData.values()].sort((a, b) => (a.data < b.data ? -1 : 1)).map((v) => ({ ...v, tonelagem: Math.round(v.tonelagem) }));

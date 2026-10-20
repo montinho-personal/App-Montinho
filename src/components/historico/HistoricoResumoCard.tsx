@@ -11,7 +11,7 @@ import type { LinhaResumo } from "@/lib/historico/resumo";
 
 const kg = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("pt-BR")} kg`);
 
-export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistrados }: { alunoId: string; importacao: { id: string; titulo: string; linhas: LinhaResumo[]; avisos: string[] }; gravadas: number; diasRegistrados: number }) {
+export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistrados, diasSemSeries }: { alunoId: string; importacao: { id: string; titulo: string; linhas: LinhaResumo[]; avisos: string[] }; gravadas: number; diasRegistrados: number; diasSemSeries: number }) {
   const router = useRouter();
   const toast = useToast();
   const [enviando, setEnviando] = useState(false);
@@ -20,7 +20,7 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistr
   const dias = new Set(validas.map((l) => l.data)).size;
   const diasComTreino = [...new Set(validas.filter((l) => l.letra).map((l) => l.data))].sort();
   const letraDoDia = (d: string) => validas.find((l) => l.data === d && l.letra)?.letra ?? "";
-  const [diasFeito, setDiasFeito] = useState(diasRegistrados >= diasComTreino.length);
+  const [diasFeito, setDiasFeito] = useState(diasRegistrados >= diasComTreino.length && diasSemSeries === 0);
   const linhas = [...importacao.linhas].sort((a, b) => (a.data === b.data ? a.exercicio.localeCompare(b.exercicio) : a.data < b.data ? -1 : 1));
 
   async function importar() {
@@ -41,7 +41,7 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistr
     const d = await res?.json().catch(() => ({}));
     if (!res?.ok) return toast.error(d?.error ?? "Não foi possível registrar os dias.");
     setDiasFeito(true);
-    toast.success(d?.novos ? `${d.novos} dia(s) de treino registrado(s).` : "Estes dias já estavam registrados — nada foi duplicado.");
+    toast.success(d?.novos || d?.seriesCompletadas ? `Dias registrados: ${d.total} · séries: ${d.seriesCompletadas}${d?.conquistas?.length ? ` · conquista: ${d.conquistas.join(", ")}` : ""}.` : "Estes dias já estavam registrados — nada foi duplicado.");
     router.refresh();
   }
 
@@ -98,12 +98,12 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistr
               Dias com o treino identificado: {diasComTreino.map((d) => `${dataBR(d).slice(0, 5)} (${letraDoDia(d)})`).join(" · ")}.
             </p>
             {diasFeito ? (
-              <p className="text-xs text-success">Estes {diasComTreino.length} dias já contam na consistência, na sequência de semanas e nas conquistas.</p>
+              <p className="text-xs text-success">Estes {diasComTreino.length} dias já contam na consistência, no volume semanal, na sequência de semanas e nas conquistas.</p>
             ) : (
               <>
-                <p className="text-xs text-fg-subtle">Cada dia vira um treino concluído (marcado como importado), com as séries do resumo. Não cria cargas por série.</p>
+                <p className="text-xs text-fg-subtle">Cada dia vira um treino concluído (marcado como importado), com as séries feitas de cada exercício — sem carga/repetições por série, que o app anterior não mostra.</p>
                 <button type="button" disabled={enviando} onClick={() => void contarDias()} className="touch w-full rounded-lg border border-accent px-4 py-2.5 font-bold text-accent disabled:opacity-60">
-                  {enviando ? "Registrando…" : `Contar estes ${diasComTreino.length} dias na aderência`}
+                  {enviando ? "Registrando…" : `Contar estes ${diasComTreino.length} dias (aderência, volume e conquistas)`}
                 </button>
               </>
             )}

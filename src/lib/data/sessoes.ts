@@ -121,7 +121,7 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
     const alvo = normalizarNome(ex.nome);
     let achado: UltimaExecucao | null = null;
     for (const s of sessoes) {
-      const se = s.exercicios.find((e) => (e.exercicio_id === ex.id || normalizarNome(e.nome) === alvo) && e.series.some((x) => x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause"));
+      const se = s.exercicios.find((e) => (e.exercicio_id === ex.id || normalizarNome(e.nome) === alvo) && e.series.some((x) => (x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause") && (x.carga_kg != null || x.reps != null)));
       if (se) {
         achado = {
           data: s.finalizado_em ?? s.iniciado_em,

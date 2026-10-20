@@ -561,4 +561,23 @@ begin
   raise notice 'T15 OK: resumo do histórico — personal grava, aluno só lê o próprio, sem duplicar';
 end $$;
 select test_logout();
+-- T16 — 0026: personal registra conquista do aluno, sem duplicar; aluno B continua sem ver
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'treinos_10', '1', now(), 'Dez treinos') on conflict (aluno_id, codigo, referencia) do nothing;
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'treinos_10', '1', now(), 'Dez treinos') on conflict (aluno_id, codigo, referencia) do nothing;
+do $$
+declare n int;
+begin
+  select count(*) into n from conquistas_aluno where codigo = 'treinos_10' and aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if n <> 1 then raise exception 'T16: personal não registrou (ou duplicou) a conquista (%)', n; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from conquistas_aluno;
+  if n <> 0 then raise exception 'T16: aluno B viu conquista de A'; end if;
+  raise notice 'T16 OK: personal registra conquista do aluno sem duplicar; isolamento mantido';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'
