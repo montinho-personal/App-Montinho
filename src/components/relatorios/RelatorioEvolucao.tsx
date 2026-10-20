@@ -109,6 +109,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
               <p className="text-sm text-fg-muted mt-1">
                 {resumo.sessoesFeitas === 0 ? `Nenhuma sessão concluída nos últimos ${dias} dias.` : `Só ${resumo.sessoesFeitas} sessão no período — o resumo fica mais confiável a partir de 2.`} Cada treino registrado alimenta este relatório.
               </p>
+              {exerciciosGrafico.length ? <p className="text-sm text-fg-muted mt-2">O histórico do app anterior já está logo abaixo, em “Evolução das cargas”.</p> : null}
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3">
@@ -157,6 +158,20 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
           ) : null}
         </CardBody>
       </Card>
+
+      {historicoResumo.length && exerciciosGrafico.length ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Evolução das cargas</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <p className="text-xs text-fg-muted">
+              Inclui o histórico do app anterior ({dataBR(historicoResumo.map((r) => r.data).sort()[0])} a {dataBR(historicoResumo.map((r) => r.data).sort().at(-1)!)}, {new Set(historicoResumo.filter((r) => r.series > 0).map((r) => r.data)).size} dias de treino). Escolha o exercício:
+            </p>
+            <EvolucaoExercicioClient sessoes={sessoes} resumos={historicoResumo} exercicios={exerciciosGrafico} />
+          </CardBody>
+        </Card>
+      ) : null}
 
       {/* NÍVEL 2 — Detalhes */}
       <h2 id="analise" className="scroll-mt-20 text-xs font-bold uppercase tracking-wider text-fg-muted pt-1">Análise completa</h2>
@@ -257,7 +272,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         {marcas.length === 0 ? (
           <>
             <p className="text-sm text-fg-muted">Registre cargas e repetições durante o treino para ver suas melhores marcas aqui.</p>
-            {exerciciosGrafico.length ? <EvolucaoExercicioClient sessoes={sessoes} resumos={historicoResumo} exercicios={exerciciosGrafico} /> : null}
+            {exerciciosGrafico.length ? <p className="text-xs text-fg-subtle">O histórico do app anterior está em “Evolução das cargas”, acima.</p> : null}
           </>
         ) : (
           <>
