@@ -10,8 +10,8 @@ import type { SessaoCompleta } from "@/lib/data/sessoes";
 describe("histórico da Adriana (resumo do app anterior)", () => {
   it("transcreve exatamente os prints e ignora o dia com 0 séries", () => {
     const g = linhasParaGravar(IMPORTACAO);
-    expect(LINHAS).toHaveLength(25);
-    expect(g).toHaveLength(24);
+    expect(LINHAS).toHaveLength(29);
+    expect(g).toHaveLength(28);
     expect(g.every((l) => l.reps_total === null)).toBe(true);
     expect(g.filter((l) => l.exercicio_nome === "Stiff com halteres").map((l) => l.series)).toEqual([8, 16]);
     expect(g.filter((l) => l.exercicio_nome === "Abdominal prancha").map((l) => [l.data.slice(5), l.letra, l.series, l.carga_max_kg])).toEqual([["10-07", "C", 1, null], ["10-15", "A", 1, null], ["10-16", "C", 1, null], ["10-19", "A", 1, null]]);

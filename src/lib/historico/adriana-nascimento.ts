@@ -19,6 +19,8 @@ const ELEV = "Elevação pélvica com barra";
 const FLEX = "Cadeira flexora";
 const STIFF = "Stiff com halteres";
 const PRANCHA = "Abdominal prancha";
+const BULG = "Agachamento búlgaro halteres";
+const SUMO = "Levantamento terra sumô";
 const PRANCHA_OBS = "60 s completos — informado pelo personal (o app anterior não registrava a prancha).";
 
 const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
@@ -56,6 +58,11 @@ export const LINHAS: LinhaResumo[] = [
   // (a ficha prevê 4×10): transcrito como está, sem ajustar.
   l("2026-10-07", STIFF, "Stiff com Halteres", 8, 28, 2120, "C", "App anterior registrou 8 séries (a ficha prevê 4×10)."),
   l("2026-10-16", STIFF, "Stiff com Halteres", 16, 32, 4720, "C", "App anterior registrou 16 séries (a ficha prevê 4×10)."),
+  // Agachamento búlgaro e terra sumô (só no treino C)
+  l("2026-10-07", BULG, "Agachamento búlgaro halteres", 4, 18, 408, "C"),
+  l("2026-10-16", BULG, "Agachamento búlgaro halteres", 4, 24, 636, "C"),
+  l("2026-10-07", SUMO, "Levantamento terra sumô", 4, 40, 1340, "C"),
+  l("2026-10-16", SUMO, "Levantamento terra sumô", 4, 45, 1695, "C"),
   // Prancha: 1 × 60 s completos em todos os dias de treino A e C identificados.
   ...["2026-10-07", "2026-10-15", "2026-10-16", "2026-10-19"].map((d) => l(d, PRANCHA, "Abdominal prancha", 1, null, null, ["2026-10-15", "2026-10-19"].includes(d) ? "A" : "C", PRANCHA_OBS)),
 ];
