@@ -24,6 +24,8 @@ const SUMO = "Levantamento terra sumô";
 const MARTELO = "Rosca martelo";
 const CRUZINV = "Crucifixo inverso máquina pronada";
 const REMBAIXA = "Remada baixa pegada aberta";
+const PUXADA = "Puxada frontal pegada aberta pronada";
+const REMUNI = "Remada unilateral halteres";
 const PRANCHA_OBS = "60 s completos — informado pelo personal (o app anterior não registrava a prancha).";
 
 const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
@@ -74,6 +76,10 @@ export const LINHAS: LinhaResumo[] = [
   l("2026-10-13", CRUZINV, "Crucifixo inverso máquina pronada", 4, 22, 843, "B"),
   l("2026-10-09", REMBAIXA, "Remada baixa pegada aberta", 4, 27, 919, "B"),
   l("2026-10-13", REMBAIXA, "Remada baixa pegada aberta", 4, 27, 1014, "B"),
+  l("2026-10-09", PUXADA, "Puxada Frontal pegada aberta pronada", 4, 27, 1274, "B"),
+  l("2026-10-13", PUXADA, "Puxada Frontal pegada aberta pronada", 4, 27, 1274, "B"),
+  l("2026-10-09", REMUNI, "Remada Unilateral Halteres", 4, 12, 535, "B"),
+  l("2026-10-13", REMUNI, "Remada Unilateral Halteres", 4, 12, 570, "B"),
   // Prancha: 1 × 60 s completos em todos os dias de treino A e C identificados.
   ...["2026-10-07", "2026-10-15", "2026-10-16", "2026-10-19"].map((d) => l(d, PRANCHA, "Abdominal prancha", 1, null, null, ["2026-10-15", "2026-10-19"].includes(d) ? "A" : "C", PRANCHA_OBS)),
 ];
