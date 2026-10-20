@@ -15,8 +15,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
-import { EXTRAS_PADRAO, temExtras, type RegraTecnicas } from "@/lib/volume/tecnicas";
+import { EXTRAS_PADRAO, temExtras } from "@/lib/volume/tecnicas";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
+import { usePreferenciasVolume } from "@/components/montador/usePreferenciasVolume";
 import { CartaoAnamnese } from "@/components/montador/CartaoAnamnese";
 import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
 import { SeletorExercicio } from "@/components/montador/SeletorExercicio";
@@ -202,30 +203,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [avancado, setAvancado] = useState(false);
   const [incluirSecundario, setIncluirSecundario] = useState(false);
   // Regra das técnicas avançadas e ajuste por RIR: preferência do treinador neste navegador.
-  const [regraTecnicas, setRegraTecnicasState] = useState<RegraTecnicas>("moderada");
-  const [ajustarPorRir, setAjustarPorRirState] = useState(false);
-  useEffect(() => {
-    try {
-      const r = localStorage.getItem("montinho:regraTecnicas");
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferência local só existe no navegador
-      if (r === "classica" || r === "moderada" || r === "alta") setRegraTecnicasState(r);
-      if (localStorage.getItem("montinho:ajustarPorRir") === "1") setAjustarPorRirState(true);
-    } catch {
-      /* sem armazenamento local: fica o padrão */
-    }
-  }, []);
-  const setRegraTecnicas = useCallback((v: RegraTecnicas) => {
-    setRegraTecnicasState(v);
-    try {
-      localStorage.setItem("montinho:regraTecnicas", v);
-    } catch {}
-  }, []);
-  const setAjustarPorRir = useCallback((v: boolean) => {
-    setAjustarPorRirState(v);
-    try {
-      localStorage.setItem("montinho:ajustarPorRir", v ? "1" : "0");
-    } catch {}
-  }, []);
+  const { regraTecnicas, setRegraTecnicas, ajustarPorRir, setAjustarPorRir } = usePreferenciasVolume();
   const [motivo, setMotivo] = useState("");
   const [showFinalizados, setShowFinalizados] = useState(false);
   const [showExemplos, setShowExemplos] = useState(false);

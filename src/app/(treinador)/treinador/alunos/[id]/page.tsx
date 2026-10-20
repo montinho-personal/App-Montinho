@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { AlunoStatusPill } from "@/components/ui/StatusPill";
 import { Tabs } from "@/components/ui/Tabs";
@@ -9,8 +9,12 @@ import { getAluno, listDieta, listEvolucao, listTemplates, listFotos, listCheckI
 import { getPlanoAtivo, listVersoes } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { listAdaptacoes, listIntervencoes } from "@/lib/data/acompanhamento";
-import { calcularVolumeSemanal, type DiaVolume } from "@/lib/volume/calcular";
-import { STATUS_META_LABEL } from "@/lib/volume/calcular";
+import { frequenciaDoCalendario, type Calendario, type DiaVolume } from "@/lib/volume/calcular";
+import { descreverTecnica } from "@/lib/volume/tecnicas";
+import { listarBiblioteca } from "@/lib/data/biblioteca";
+import { indicePorNome } from "@/lib/biblioteca/itens";
+import { normalizarNome } from "@/lib/grupos";
+import { VolumeAluno } from "@/components/montador/VolumeAluno";
 import { dataBR, diasAte, tempoRelativo } from "@/lib/format";
 import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
 import { ComparadorFotos } from "./ComparadorFotos";
@@ -25,6 +29,11 @@ import type { Evolucao } from "@/lib/supabase/types";
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ dias?: string }> };
 
 export const metadata = { title: "Aluno" };
+
+const TECNICA_CURTA: Record<string, string> = {
+  superset: "superset", biset: "bi-set", dropset: "drop set", rest_pause: "rest-pause", cluster: "cluster",
+  piramide: "pirâmide", isometria: "isometria", unilateral: "unilateral", myo_reps: "myo-reps",
+};
 
 export default async function AlunoDetailPage({ params, searchParams }: PageProps) {
   await requireTreinadorPage();
@@ -47,10 +56,35 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     listIntervencoes(id, 30),
     getAnamnese(id),
   ]);
+  const biblioteca = await listarBiblioteca();
 
   const treinosAtivos = plano.treinos.filter((t) => t.ativo);
-  const diasVolume: DiaVolume[] = treinosAtivos.map((t) => ({ letra: t.letra, exercicios: t.exercicios.map((e) => ({ id: e.id, nome: e.nome, grupo: e.grupo_muscular ?? "nao_classificado", series: e.series, seriesAquecimento: e.series_aquecimento, tecnica: e.tecnica, contaVolume: e.conta_volume })) }));
-  const volume = calcularVolumeSemanal(diasVolume, { frequencia: plano.programa?.frequencia ?? {}, metas: plano.programa?.metas_volume ?? {} });
+  // Mesmos dados que o montador usa: técnicas, secundários e pesos da biblioteca.
+  const porId = new Map(biblioteca.map((b) => [b.id, b]));
+  const porNome = indicePorNome(biblioteca);
+  const diasVolume: DiaVolume[] = treinosAtivos.map((t) => ({
+    letra: t.letra,
+    exercicios: t.exercicios.map((e) => {
+      const item = (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined) ?? porNome.get(normalizarNome(e.nome));
+      return {
+        id: e.id,
+        nome: e.nome,
+        grupo: e.grupo_muscular ?? "nao_classificado",
+        secundarios: e.grupos_secundarios?.length ? e.grupos_secundarios : item?.secundarios ?? [],
+        pesosSecundarios: item?.pesosSecundarios ?? null,
+        series: e.series,
+        seriesAquecimento: e.series_aquecimento,
+        tecnica: e.tecnica,
+        tecnicaExtras: e.tecnica_extras ?? null,
+        tecnicaSeries: e.tecnica_series ?? null,
+        rir: e.rir,
+        contaVolume: e.conta_volume,
+      };
+    }),
+  }));
+  const cal = plano.programa?.calendario && "modo" in plano.programa.calendario ? (plano.programa.calendario as Calendario) : null;
+  const freqCal = frequenciaDoCalendario(cal);
+  const frequencia = Object.keys(freqCal).length ? freqCal : plano.programa?.frequencia ?? {};
   const diasAcesso = diasAte(aluno.acesso_ate);
   const ultimoPeso = (evolucao as Evolucao[]).at(-1)?.peso_kg ?? null;
   const a = anamnese as Anamnese | null;
@@ -115,7 +149,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   </Card>
                 ) : (
                   <>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       {treinosAtivos.map((t) => (
                         <Card key={t.id}>
                           <CardBody>
@@ -132,9 +166,18 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                             </div>
                             <ul className="mt-3 space-y-1 text-xs text-fg-muted">
                               {t.exercicios.map((e) => (
-                                <li key={e.id} className="flex justify-between gap-2">
-                                  <span className="truncate">{e.nome}</span>
-                                  <span className="font-mono shrink-0">
+                                <li key={e.id} className="flex justify-between gap-2 min-w-0">
+                                  <span className="truncate min-w-0">
+                                    {e.nome}
+                                    {descreverTecnica({ tecnica: e.tecnica, tecnicaExtras: e.tecnica_extras, tecnicaSeries: e.tecnica_series }, Math.max(0, e.series - (e.series_aquecimento ?? 0))) ? (
+                                      <span className="ml-1 text-accent">
+                                        · {TECNICA_CURTA[e.tecnica]} ({descreverTecnica({ tecnica: e.tecnica, tecnicaExtras: e.tecnica_extras, tecnicaSeries: e.tecnica_series }, Math.max(0, e.series - (e.series_aquecimento ?? 0)))})
+                                      </span>
+                                    ) : e.tecnica && e.tecnica !== "normal" && TECNICA_CURTA[e.tecnica] ? (
+                                      <span className="ml-1 text-accent">· {TECNICA_CURTA[e.tecnica]}</span>
+                                    ) : null}
+                                  </span>
+                                  <span className="font-mono shrink-0 max-w-[45%] truncate" title={`${e.series}×${e.reps}`}>
                                     {e.series}×{e.reps}
                                   </span>
                                 </li>
@@ -144,46 +187,14 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                         </Card>
                       ))}
                     </div>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Volume semanal programado</CardTitle>
-                      </CardHeader>
-                      <CardBody className="p-0 overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead className="text-[10px] uppercase tracking-wider text-fg-subtle">
-                            <tr>
-                              <th className="text-left px-5 py-2">Grupo</th>
-                              {volume.letras.map((l) => (
-                                <th key={l} className="text-right px-2 py-2">
-                                  {l}
-                                </th>
-                              ))}
-                              <th className="text-right px-2 py-2">Semana</th>
-                              <th className="text-right px-2 py-2">Meta</th>
-                              <th className="text-right px-5 py-2">Freq.</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {volume.linhas.map((l) => (
-                              <tr key={l.grupo} className="border-t border-border">
-                                <td className="px-5 py-1.5">
-                                  {l.label}
-                                  {l.status !== "sem_meta" ? <span className="block text-[10px] text-fg-subtle">{STATUS_META_LABEL[l.status]}</span> : null}
-                                </td>
-                                {volume.letras.map((x) => (
-                                  <td key={x} className="px-2 py-1.5 text-right font-mono text-fg-muted">
-                                    {l.porDia[x] || "·"}
-                                  </td>
-                                ))}
-                                <td className="px-2 py-1.5 text-right font-mono font-bold">{l.total}</td>
-                                <td className="px-2 py-1.5 text-right font-mono">{l.meta ? `${l.meta.min}–${l.meta.max}` : "—"}</td>
-                                <td className="px-5 py-1.5 text-right font-mono">{l.frequencia}×</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </CardBody>
-                    </Card>
+                    <VolumeAluno
+                      dias={diasVolume}
+                      frequencia={frequencia}
+                      metas={plano.programa?.metas_volume ?? {}}
+                      prioridades={plano.programa?.prioridades ?? []}
+                      nivel={plano.programa?.nivel ?? null}
+                      editarHref={`/treinador/alunos/${id}/treinos`}
+                    />
                   </>
                 )}
               </div>

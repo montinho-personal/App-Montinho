@@ -24,8 +24,9 @@ type Props = {
   nivel: string | null;
   incluirSecundario: boolean;
   realizado?: Partial<Record<GrupoMuscular, number>> | null; // média semanal realizada (opcional)
-  onMetas: (m: Partial<Record<GrupoMuscular, MetaVolume>>) => void;
-  onPrioridades: (p: string[]) => void;
+  /** Sem onMetas/onPrioridades a tabela fica só de leitura (metas e prioridades não editáveis). */
+  onMetas?: (m: Partial<Record<GrupoMuscular, MetaVolume>>) => void;
+  onPrioridades?: (p: string[]) => void;
   onSecundario: (v: boolean) => void;
   /** Regra de contagem das técnicas avançadas (drop set, rest-pause, myo-reps). */
   regraTecnicas?: RegraTecnicas;
@@ -50,7 +51,7 @@ export function TabelaVolume(props: Props) {
     <>
       {/* Desktop / telas largas */}
       <aside className="hidden xl:block xl:sticky xl:top-4 self-start max-h-[calc(100vh-2rem)] overflow-auto rounded-xl border border-border bg-surface" aria-label="Tabela de volume semanal">
-        <Conteudo {...props} />
+        <TabelaVolumeConteudo {...props} />
       </aside>
 
       {/* Celular / tablet: barra fixa + painel */}
@@ -78,7 +79,7 @@ export function TabelaVolume(props: Props) {
                   <Icon name="x" />
                 </button>
               </div>
-              <Conteudo {...props} semTitulo />
+              <TabelaVolumeConteudo {...props} semTitulo />
             </div>
           </div>
         ) : null}
@@ -87,7 +88,7 @@ export function TabelaVolume(props: Props) {
   );
 }
 
-function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario, regraTecnicas = "moderada", onRegraTecnicas, ajustarPorRir = false, onAjustarPorRir, semTitulo = false }: Props & { semTitulo?: boolean }) {
+export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario, regraTecnicas = "moderada", onRegraTecnicas, ajustarPorRir = false, onAjustarPorRir, semTitulo = false }: Props & { semTitulo?: boolean }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("padrao");
   const [compacto, setCompacto] = useState(false);
@@ -109,17 +110,20 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
   const naoClassificado = resultado.linhas.find((l) => l.grupo === "nao_classificado" || l.grupo === "pernas");
 
   function aplicarReferencia() {
+    if (!onMetas) return;
     const base = referenciasPorNivel((nivel as NivelReferencia) || "intermediario");
     onMetas(aplicarPrioridades(base, prioridades as GrupoMuscular[]));
   }
 
   function setMeta(g: GrupoMuscular, campo: "min" | "max", v: string) {
+    if (!onMetas) return;
     const n = Math.max(0, Math.min(80, Number(v) || 0));
     const atual = metas[g] ?? { min: 0, max: 0 };
     onMetas({ ...metas, [g]: { ...atual, [campo]: n } });
   }
 
   function togglePrioridade(g: GrupoMuscular) {
+    if (!onPrioridades) return;
     onPrioridades(prioridades.includes(g) ? prioridades.filter((x) => x !== g) : [...prioridades, g]);
   }
 
@@ -210,7 +214,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                 return (
                   <tr key={l.grupo} className="border-t border-border">
                     <td className="px-1 py-1.5">
-                      <button type="button" onClick={() => togglePrioridade(l.grupo)} className="inline-flex items-center gap-1.5 text-left" title={prioritario ? "Prioritário (clique para remover)" : "Marcar como prioritário"}>
+                      <button type="button" onClick={() => togglePrioridade(l.grupo)} disabled={!onPrioridades} className="inline-flex items-center gap-1.5 text-left disabled:cursor-default" title={!onPrioridades ? (prioritario ? "Prioritário" : undefined) : prioritario ? "Prioritário (clique para remover)" : "Marcar como prioritário"}>
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: GRUPO_COR[l.grupo] }} aria-hidden />
                         <span className={`font-semibold ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{l.label}</span>
                         {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
@@ -263,7 +267,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 pt-1">
+      {onMetas ? <div className="flex flex-wrap gap-2 pt-1">
         <button type="button" onClick={() => setEditandoMetas((v) => !v)} className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg">
           {editandoMetas ? "Concluir metas" : "Editar metas"}
         </button>
@@ -288,7 +292,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
             ))}
           </select>
         ) : null}
-      </div>
+      </div> : null}
 
       <ul className="space-y-0.5 text-[10.5px] text-fg-subtle leading-snug">
         <li>Unidade: séries válidas prescritas por grupo e semana (aquecimento e cardio não contam).</li>
