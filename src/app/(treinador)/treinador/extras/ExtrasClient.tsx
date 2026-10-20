@@ -107,7 +107,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                 </ul>
                 <ul className="space-y-0.5">
                   {detalhe.sugestao.sugestao.exercicios.map((x) => (
-                    <li key={x.nome}>• <strong>{x.nome}</strong> — {x.series} × {x.reps}, RIR 2</li>
+                    <li key={x.nome}>• <strong>{x.nome}</strong> — {x.series} × {x.reps}</li>
                   ))}
                 </ul>
                 <p className="text-xs text-fg-muted">≈ {detalhe.sugestao.sugestao.duracaoMin} min · {detalhe.sugestao.sugestao.seriesTotal} séries · respeita 48 h de recuperação e o limite de séries extras da semana.</p>

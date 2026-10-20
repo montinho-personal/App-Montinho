@@ -130,6 +130,7 @@ export const finalizarSessaoSchema = z.object({
 export const exercicioSessaoPatchSchema = z.object({
   status: z.enum(["pendente", "concluido", "pulado", "nao_consegui"]).optional(),
   observacao_aluno: textoOpcional(300),
+  percepcao: z.enum(["muito_leve", "moderado", "pesado", "muito_pesado"]).nullable().optional(),
 });
 
 export const adaptacaoSchema = z.object({

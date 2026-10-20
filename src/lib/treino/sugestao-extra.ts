@@ -83,7 +83,7 @@ export function sugerirExtraPorVolume(e: {
   const duracaoMin = Math.max(10, Math.ceil((seriesTotal * R.minutosPorSerie + R.minutosPreparo) / 5) * 5);
   const titulo = `Extra sugerido: ${grupos.map((g) => g.rotulo).join(" + ")}`.slice(0, 80);
   const descricao = [
-    ...exercicios.map((x) => `${x.nome}: ${x.series} × ${x.reps}, deixando 2 repetições na reserva (RIR 2).`),
+    ...exercicios.map((x) => `${x.nome}: ${x.series} × ${x.reps}.`),
     `Motivo: ${grupos.map((g) => `${g.rotulo} ${fmt(g.feito)} de ${g.meta} séries nos últimos 7 dias`).join("; ")}.`,
   ]
     .join(" ")

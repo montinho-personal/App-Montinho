@@ -98,29 +98,27 @@ export function RestTimer({ duracaoSeg, onComplete, onDismiss, autoStart = false
   const pct = duracaoSeg > 0 ? ((duracaoSeg - restantes) / duracaoSeg) * 100 : 100;
 
   return (
-    <div className="flex items-center gap-3 bg-card border border-accent/40 rounded-lg px-3 py-2 shadow-lg" role="timer" aria-live="off" aria-label="Descanso">
+    <div className="flex items-center gap-2 bg-card border border-accent/40 rounded-lg px-3 py-2 shadow-lg" role="timer" aria-live="off" aria-label="Descanso">
       <button type="button" onClick={toggle} className={`touch w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${rodando ? "bg-accent text-bg" : restantes === 0 ? "bg-success text-bg" : "bg-bg border border-border text-fg"}`} aria-label={rodando ? "Pausar descanso" : restantes === 0 ? "Reiniciar descanso" : "Retomar descanso"}>
         <Icon name={rodando ? "pause" : restantes === 0 ? "undo" : "play"} size={18} />
       </button>
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline justify-between">
-          <span className="font-mono text-xl font-bold tabular-nums">
-            {String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}
-          </span>
-          <span className="text-[10px] text-fg-subtle uppercase tracking-wider">{restantes === 0 ? "pode ir" : "descanso"}</span>
-        </div>
+        <span className="block text-[10px] leading-none text-fg-subtle uppercase tracking-wider">{restantes === 0 ? "pode ir" : "descanso"}</span>
+        <span className="block font-mono text-xl font-bold leading-tight tabular-nums">
+          {String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}
+        </span>
         <div className="h-1 w-full bg-bg rounded-full overflow-hidden mt-1">
           <div className="h-full bg-accent transition-[width]" style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <button type="button" onClick={() => ajustar(-15)} className="touch text-xs text-fg-muted px-1" aria-label="Menos 15 segundos">
+      <button type="button" onClick={() => ajustar(-15)} className="touch shrink-0 rounded-md border border-border px-2 text-xs font-semibold text-fg-muted" aria-label="Menos 15 segundos">
         −15
       </button>
-      <button type="button" onClick={() => ajustar(15)} className="touch text-xs text-fg-muted px-1" aria-label="Mais 15 segundos">
+      <button type="button" onClick={() => ajustar(15)} className="touch shrink-0 rounded-md border border-border px-2 text-xs font-semibold text-fg-muted" aria-label="Mais 15 segundos">
         +15
       </button>
       {onDismiss ? (
-        <button type="button" onClick={onDismiss} className="touch text-fg-subtle hover:text-fg px-1" aria-label="Fechar timer">
+        <button type="button" onClick={onDismiss} className="touch shrink-0 flex items-center justify-center text-fg-subtle hover:text-fg" aria-label="Fechar timer">
           <Icon name="x" size={16} />
         </button>
       ) : null}

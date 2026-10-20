@@ -168,8 +168,12 @@ export type SessionExercise = {
   prescricao: unknown;
   status: SessionExerciseStatus;
   observacao_aluno: string | null;
+  /** 0031 — percepção de esforço ao finalizar o exercício. */
+  percepcao?: PercepcaoExercicio | null;
   created_at: string;
 };
+
+export type PercepcaoExercicio = "muito_leve" | "moderado" | "pesado" | "muito_pesado";
 
 export type SerieTipo = "valida" | "aquecimento" | "dropset" | "rest_pause" | "cluster" | "isometria";
 

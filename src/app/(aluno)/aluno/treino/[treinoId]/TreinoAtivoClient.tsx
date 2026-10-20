@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { RestTimer } from "@/components/ui/RestTimer";
 import { LembretePush } from "@/components/aluno/LembretePush";
-import { VideoPlayer } from "@/components/ui/VideoPlayer";
+import { BotaoVideoTelaCheia } from "@/components/ui/VideoTelaCheia";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
 import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
@@ -45,6 +45,7 @@ import { LeituraRapida, marcarSugestao, sugestoesDaSessao, type ItemRapido } fro
 import { CHAMADA_CONTEXTO, REGRAS_DESBLOQUEIA, REPS_ALTAS, repsPrescritas, type PacoteTreino } from "@/lib/desbloqueia/motor";
 import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
+import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
 
@@ -136,6 +137,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const [adaptacaoAberta, setAdaptacaoAberta] = useState<string | null>(null);
   // Status marcado nesta tela (pular / não consegui) antes do servidor confirmar.
   const [statusEx, setStatusEx] = useState<Record<string, string>>({});
+  const [percepcaoEx, setPercepcaoEx] = useState<Record<string, PercepcaoExercicio>>({});
+  const [perguntandoEsforco, setPerguntandoEsforco] = useState<string | null>(null);
   // Conferência ao concluir: mostra o que falta marcar antes de finalizar.
   const [conferindo, setConferindo] = useState(false);
   const conferenciaRef = useRef<HTMLDivElement>(null);
@@ -167,7 +170,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
       const fila = storage ? lerFila(storage, s.id) : [];
       const pendentesPorKey = new Map(fila.filter((f) => f.tipo === "serie").map((f) => [f.clientKey, f]));
       const next: Record<string, SerieLocal[]> = {};
-      for (const se of s.exercicios) {
+      for (const [idx, se] of s.exercicios.entries()) {
+        // Já vem preenchido com o que o aluno fez da última vez (ele só ajusta, se precisar).
+        const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[idx];
+        const anterior = exDoPlano ? ultimas[exDoPlano.id] : null;
+        const daUltimaVez = (n: number) => anterior?.series.filter((u) => u.tipo !== "aquecimento").find((u) => u.serie === n) ?? anterior?.series.filter((u) => u.tipo !== "aquecimento").at(-1) ?? null;
         const planejadas = Math.max(1, se.series_planejadas + ((se.prescricao as { series_aquecimento?: number })?.series_aquecimento ?? 0));
         const porSerie = new Map<number, SessionSet>();
         for (const x of se.series) porSerie.set(x.serie, x);
@@ -182,8 +189,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
             clientKey: salvo?.client_key ?? pend?.clientKey ?? keyBase,
             serie: i,
             tipo: i <= aquec ? "aquecimento" : "valida",
-            carga: p?.carga_kg != null ? String(p.carga_kg) : salvo?.carga_kg != null ? String(salvo.carga_kg) : "",
-            reps: p?.reps != null ? String(p.reps) : salvo?.reps != null ? String(salvo.reps) : "",
+            carga: p?.carga_kg != null ? String(p.carga_kg) : salvo?.carga_kg != null ? String(salvo.carga_kg) : salvo || i <= aquec || daUltimaVez(i - aquec)?.carga_kg == null ? "" : String(daUltimaVez(i - aquec)!.carga_kg).replace(".", ","),
+            reps: p?.reps != null ? String(p.reps) : salvo?.reps != null ? String(salvo.reps) : salvo || i <= aquec || daUltimaVez(i - aquec)?.reps == null ? "" : String(daUltimaVez(i - aquec)!.reps),
             rir: p?.rir != null ? String(p.rir) : salvo?.rir != null ? String(salvo.rir) : "",
             desconforto: p?.desconforto != null ? String(p.desconforto) : salvo?.desconforto != null ? String(salvo.desconforto) : "",
             concluida: Boolean(salvo) || Boolean(pend),
@@ -211,7 +218,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
         hidratadaRef.current = s.id;
       }
     },
-    [storage, toast]
+    [storage, toast, exercicios, ultimas]
   );
 
   // Grava o rascunho a cada mudança (digitação, exercício aberto, descanso).
@@ -407,12 +414,28 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     });
   }
 
-  function marcarExercicio(seId: string, status: "pulado" | "nao_consegui" | "concluido") {
+  function marcarExercicio(seId: string, status: "pulado" | "nao_consegui" | "concluido", percepcao?: PercepcaoExercicio | null) {
     if (!sessao || !storage) return;
-    enfileirar(storage, sessao.id, { tipo: "exercicio", sessionId: sessao.id, clientKey: `ex:${seId}:${status}`, payload: { session_exercise_id: seId, patch: { status } } });
+    const patch = percepcao !== undefined ? { status, percepcao } : { status };
+    enfileirar(storage, sessao.id, { tipo: "exercicio", sessionId: sessao.id, clientKey: `ex:${seId}:${status}:${percepcao ?? "-"}`, payload: { session_exercise_id: seId, patch } });
     setStatusEx((cur) => ({ ...cur, [seId]: status }));
+    if (percepcao) setPercepcaoEx((cur) => ({ ...cur, [seId]: percepcao }));
     setPendentes((n) => n + 1);
     void sincronizar();
+  }
+
+  /** Finaliza o exercício com a percepção de esforço e já abre o próximo pendente. */
+  function finalizarExercicio(seId: string, percepcao: PercepcaoExercicio | null) {
+    if (!sessao) return;
+    marcarExercicio(seId, "concluido", percepcao);
+    setPerguntandoEsforco(null);
+    const ordem = sessao.exercicios.map((x) => x.id);
+    const proximo = ordem.slice(ordem.indexOf(seId) + 1).find((id) => {
+      const st = statusEx[id] ?? sessao.exercicios.find((x) => x.id === id)?.status;
+      return st !== "concluido" && st !== "pulado" && st !== "nao_consegui" && (series[id] ?? []).some((x) => x.tipo === "valida" && !x.concluida);
+    });
+    setAberto(proximo ?? null);
+    if (proximo) setTimeout(() => document.getElementById(`ex-${proximo}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
   }
 
   async function pedirAdaptacao(ex: ExercicioView, seId: string, motivo: "nao_consegui" | "desconforto" | "sem_equipamento", descricao: string) {
@@ -721,6 +744,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
 
       {aviso ? <AvisoEvolucao d={aviso} animar={prefsEvo.animacoes} onFechar={() => setAviso(null)} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
       {leitura ? <LeituraRapida item={leitura} onFechar={() => setLeitura(null)} /> : null}
+      {perguntandoEsforco ? <PerguntaEsforco nome={(() => { const i = sessao.exercicios.findIndex((x) => x.id === perguntandoEsforco); const se = sessao.exercicios[i]; return (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício"; })()} onEscolher={(p) => finalizarExercicio(perguntandoEsforco, p)} onFechar={() => setPerguntandoEsforco(null)} /> : null}
 
       {timer ? (
         <div className="sticky top-2 z-30">
@@ -765,7 +789,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                       {ex.descanso_seg ? ` · ${ex.descanso_seg}s` : ""}
                       {ex.rir != null ? ` · RIR ${ex.rir}` : ex.ie != null ? ` · esforço ${ex.ie}/10` : ""}
                     </span>
-                    {statusAtual === "pulado" || statusAtual === "nao_consegui" ? (
+                    {statusAtual === "concluido" ? (
+                      <span className="block text-[11px] font-semibold text-success mt-0.5">✓ Finalizado{(percepcaoEx[se.id] ?? se.percepcao) ? ` · ${ROTULO_ESFORCO[(percepcaoEx[se.id] ?? se.percepcao)!]}` : ""}</span>
+                    ) : statusAtual === "pulado" || statusAtual === "nao_consegui" ? (
                       <span className="block text-[11px] text-fg-subtle mt-0.5">{statusAtual === "pulado" ? "Pulado hoje" : "Não consegui (pedido enviado)"}</span>
                     ) : conferindo && pend ? (
                       <span className="block text-[11px] font-semibold text-warning mt-0.5">Falta marcar: {listarSeries(pend.faltam)}</span>
@@ -780,7 +806,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
 
                 {expandido ? (
                   <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                    {ex.video ? <VideoPlayer source={ex.video} lazy /> : null}
+                    {ex.video ? <BotaoVideoTelaCheia source={ex.video} titulo={ex.nome} /> : null}
                     {ex.observacoes ? (
                       <p className="text-sm text-fg-muted rounded-md bg-accent-soft/60 border border-accent/20 px-3 py-2">
                         <span className="text-accent font-semibold">Nota do {BRAND.name}:</span> {ex.observacoes}
@@ -821,17 +847,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                     )}
 
                     <div className="space-y-2">
-                      <div className="grid grid-cols-[28px_1fr_1fr_56px_44px] gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1">
+                      <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1">
                         <span>#</span>
                         <span>Carga (kg)</span>
                         <span>Reps</span>
-                        <span>RIR</span>
                         <span className="sr-only">Concluir</span>
                       </div>
                       {lista.map((s, i) => {
                         const ref = ultima?.series.find((u) => u.serie === s.serie) ?? ultima?.series.at(-1);
                         return (
-                          <div key={s.clientKey} className={`grid grid-cols-[28px_1fr_1fr_56px_44px] gap-2 items-center ${s.tipo === "aquecimento" ? "opacity-80" : ""}`}>
+                          <div key={s.clientKey} className={`grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center ${s.tipo === "aquecimento" ? "opacity-80" : ""}`}>
                             <span className="text-xs font-mono text-fg-muted" title={s.tipo === "aquecimento" ? "Aquecimento (não conta como série válida)" : undefined}>
                               {s.tipo === "aquecimento" ? "A" : s.serie}
                             </span>
@@ -853,14 +878,6 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                               onChange={(e) => atualizar(se.id, i, { reps: e.target.value, concluida: false, sincronizada: false })}
                               className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                             />
-                            <select aria-label={`Repetições em reserva da série ${s.serie}`} value={s.rir} onChange={(e) => atualizar(se.id, i, { rir: e.target.value })} className="h-11 w-full rounded-md border border-border bg-bg px-1 text-center font-mono text-sm">
-                              <option value="">—</option>
-                              {[0, 1, 2, 3, 4, 5].map((n) => (
-                                <option key={n} value={n}>
-                                  {n}
-                                </option>
-                              ))}
-                            </select>
                             <button
                               type="button"
                               onClick={() => concluirSerie(se.id, i, ex)}
@@ -873,6 +890,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                         );
                       })}
                     </div>
+                    {completo && statusAtual !== "concluido" ? (
+                      <button type="button" onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
+                        <Icon name="check" size={18} /> Finalizar exercício
+                      </button>
+                    ) : null}
                     <div className="flex flex-wrap gap-2 pt-1">
                       <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                         + Série extra
@@ -990,6 +1012,42 @@ function ResumoDoExercicio({ ex, series, historico, dor }: { ex: ExercicioView; 
       <p className="text-fg-muted">Hoje: {r.series} {r.series === 1 ? "série" : "séries"}{r.melhor ? ` · melhor série ${kg(r.melhor.carga)} × ${r.melhor.reps}` : ""}</p>
       {r.comparacao?.anterior ? <p className="text-fg-muted">Última sessão: {kg(r.comparacao.anterior.carga)} × {r.comparacao.anterior.reps} · hoje: {kg(r.comparacao.atual.carga)} × {r.comparacao.atual.reps}</p> : null}
       <p className="mt-0.5 font-semibold text-fg">{r.mensagem}</p>
+    </div>
+  );
+}
+
+const ROTULO_ESFORCO: Record<PercepcaoExercicio, string> = { muito_leve: "Muito leve", moderado: "Moderado", pesado: "Pesado", muito_pesado: "Muito pesado" };
+const OPCOES_ESFORCO: Array<{ v: PercepcaoExercicio; titulo: string; desc: string; emoji: string }> = [
+  { v: "muito_leve", titulo: "Muito leve", desc: "Sobrou bastante: daria para fazer muito mais.", emoji: "🙂" },
+  { v: "moderado", titulo: "Moderado", desc: "Exigiu esforço, mas com folga no fim.", emoji: "💪" },
+  { v: "pesado", titulo: "Pesado", desc: "Cheguei perto do meu limite.", emoji: "🔥" },
+];
+
+/** Percepção de esforço ao finalizar o exercício: 1 toque, sem bloquear o treino. */
+function PerguntaEsforco({ nome, onEscolher, onFechar }: { nome: string; onEscolher: (p: PercepcaoExercicio | null) => void; onFechar: () => void }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Como foi esse exercício?" className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={onFechar}>
+      <div className="mx-auto w-full max-w-md space-y-3 rounded-t-2xl border border-border bg-card p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Percepção de esforço</p>
+            <p className="text-base font-bold leading-tight">Como foi {nome}?</p>
+          </div>
+          <button type="button" onClick={onFechar} aria-label="Fechar" className="alvo -mr-1 -mt-1 text-fg-muted hover:text-fg">✕</button>
+        </div>
+        <div className="grid gap-2">
+          {OPCOES_ESFORCO.map((o) => (
+            <button key={o.v} type="button" onClick={() => onEscolher(o.v)} className="touch flex items-center gap-3 rounded-xl border border-border bg-bg px-4 py-3 text-left hover:border-accent">
+              <span className="text-2xl" aria-hidden>{o.emoji}</span>
+              <span>
+                <span className="block font-bold">{o.titulo}</span>
+                <span className="block text-xs text-fg-muted">{o.desc}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => onEscolher(null)} className="alvo w-full text-center text-sm text-fg-muted underline-offset-2 hover:underline">Finalizar sem responder</button>
+      </div>
     </div>
   );
 }

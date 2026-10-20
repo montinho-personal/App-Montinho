@@ -8,7 +8,7 @@ import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { normalizarNome } from "@/lib/grupos";
-import type { SerieTipo, SessionExercise, SessionExerciseStatus, SessionSet, TrainingSession, TreinoLetra } from "@/lib/supabase/types-sessoes";
+import type { SerieTipo, SessionExercise, SessionExerciseStatus, PercepcaoExercicio, SessionSet, TrainingSession, TreinoLetra } from "@/lib/supabase/types-sessoes";
 import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
 // Ciclo intencional (só chamadas em tempo de execução): extras usa listSessoes.
 import { exigirExtraLiberado } from "./extras";
@@ -340,7 +340,7 @@ export async function removerSerie(alunoId: string, sessionId: string, clientKey
   return (count ?? 0) > 0;
 }
 
-export async function atualizarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, patch: { status?: SessionExerciseStatus; observacao_aluno?: string | null }): Promise<boolean> {
+export async function atualizarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, patch: { status?: SessionExerciseStatus; observacao_aluno?: string | null; percepcao?: PercepcaoExercicio | null }): Promise<boolean> {
   if (isDemoMode()) {
     const st = demoStore();
     const s = st.sessions.find((x) => x.id === sessionId && x.aluno_id === alunoId);
@@ -352,7 +352,13 @@ export async function atualizarExercicioSessao(alunoId: string, sessionId: strin
   const db = await getDb();
   const { data: s } = await db.from("training_sessions").select("id").eq("id", sessionId).eq("aluno_id", alunoId).maybeSingle();
   if (!s) return false;
-  const { error, count } = await db.from("session_exercises").update(patch, { count: "exact" }).eq("id", sessionExerciseId).eq("session_id", sessionId);
+  let { error, count } = await db.from("session_exercises").update(patch, { count: "exact" }).eq("id", sessionExerciseId).eq("session_id", sessionId);
+  // Banco sem a coluna da 0031 ainda: grava o resto (status) e ignora a percepção.
+  if (error && "percepcao" in patch && /percepcao/i.test(error.message)) {
+    const { percepcao: _p, ...resto } = patch;
+    void _p;
+    ({ error, count } = await db.from("session_exercises").update(resto, { count: "exact" }).eq("id", sessionExerciseId).eq("session_id", sessionId));
+  }
   if (error) throw new Error(error.message);
   return (count ?? 0) > 0;
 }
