@@ -601,4 +601,31 @@ begin
   raise notice 'T17 OK: estratégia — personal grava, aluno só lê a própria';
 end $$;
 select test_logout();
+-- T18 — 0028: conquistas 3.0 (códigos novos, versão; aluno só marca “vista” nas próprias)
+select test_login('22222222-2222-2222-2222-222222222222');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, criterio_versao, evidencia, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'criando_raizes', '1', now(), 'Criando raízes', 1, '{"semanas":["2026-08-03","2026-08-10"]}', 'app');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from conquistas_aluno where codigo = 'treinos_10' and criterio_versao = 1 and vista_em is null;
+  if n <> 1 then raise exception 'T18: conquista antiga deveria continuar intacta (versão 1)'; end if;
+  update conquistas_aluno set vista_em = now() where codigo = 'criando_raizes';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'T18: aluna não conseguiu marcar a própria conquista como vista (%)', n; end if;
+  begin update conquistas_aluno set titulo = 'Inventada' where codigo = 'criando_raizes'; exception when others then ok := true; end;
+  if not ok then raise exception 'T18: aluna alterou o título da conquista'; end if;
+  ok := false;
+  begin insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'medalha_inventada', '1', now(), 'X'); exception when others then ok := true; end;
+  if not ok then raise exception 'T18: código fora do catálogo foi aceito'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  update conquistas_aluno set vista_em = now() where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T18: aluno B marcou conquista de A'; end if;
+  raise notice 'T18 OK: conquistas 3.0 — códigos novos, versão preservada, aluno só marca as próprias como vistas';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

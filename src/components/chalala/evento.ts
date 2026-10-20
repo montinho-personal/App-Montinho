@@ -1,5 +1,5 @@
 // Envia um evento de métrica (fire-and-forget). Nunca bloqueia a interface.
-type Evento = { tipo: "conclusao_vista" | "editor_aberto" | "modelo_escolhido" | "card_gerado" | "download" | "compartilhar_nativo" | "compartilhar_cancelado"; modelo?: string; formato?: string; origem?: "conclusao" | "historico" | "mensal" | "reconhecimento" };
+type Evento = { tipo: "conclusao_vista" | "editor_aberto" | "modelo_escolhido" | "card_gerado" | "download" | "compartilhar_nativo" | "compartilhar_cancelado" | "vitrine_vista" | "explicacao_aberta" | "colecao_vista"; modelo?: string; formato?: string; origem?: "conclusao" | "historico" | "mensal" | "reconhecimento" | "vitrine" | "colecao" | "medalha" };
 
 export function enviarEvento(e: Evento): void {
   try {

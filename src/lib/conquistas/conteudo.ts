@@ -1,0 +1,270 @@
+// ============================================================================
+// Biblioteca editorial das conquistas (Conquistas 3.0) — VERSIONADA.
+//
+// • Textos base escritos pelo Montinho; revisão de precisão científica sem
+//   mudar o sentido (linguagem calibrada: “pode ajudar”, “está associado”).
+// • Mudar um texto = subir CONTEUDO_VERSAO. Texto nunca apaga conquista: a
+//   conquista guarda só o código; o texto é lido daqui na hora de mostrar.
+// • Proibido: promessas de prazo (“21 dias”), dopamina/“cérebro
+//   reprogramado”, garantias. Há teste automático para isso.
+// ============================================================================
+
+import { CATALOGO, type CodigoConquista } from "./regras";
+
+export const CONTEUDO_VERSAO = "2026-10-20.1";
+
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho";
+
+export const CATEGORIA_ROTULO: Record<Categoria, string> = {
+  comeco: "Começo",
+  constancia: "Constância",
+  pratica: "Prática acumulada",
+  acompanhamento: "Acompanhamento",
+  retomada: "Retomada",
+  autoconhecimento: "Autoconhecimento",
+  desempenho: "Desempenho",
+};
+
+export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
+
+export const FONTES: Record<string, Fonte> = {
+  habitos2024: {
+    id: "habitos2024",
+    titulo: "Singh B, Murphy A, Maher C, Smith AE. Time to Form a Habit: a systematic review and meta-analysis of health behaviour habit formation and its determinants. Healthcare, 2024.",
+    doi: "10.3390/healthcare12232488",
+    nota: "Tempo para formar hábitos variou muito entre pessoas (de 4 a 335 dias); não sustenta um prazo fixo.",
+  },
+  sdt2025: {
+    id: "sdt2025",
+    titulo: "Ntoumanis N, Moller AC. Self-determination theory informed research for promoting physical activity: contributions, debates, and future directions. Psychology of Sport and Exercise, 2025.",
+    doi: "10.1016/j.psychsport.2025.102879",
+  },
+  sdtRevisao2025: {
+    id: "sdtRevisao2025",
+    titulo: "Revisão (2025) sobre Teoria da Autodeterminação e atividade física. International Journal of Psychology.",
+    doi: "10.1002/ijop.70044",
+    nota: "Referência indicada pelo Montinho; título e autores a conferir.",
+  },
+};
+
+export type ConteudoConquista = {
+  codigo: CodigoConquista;
+  nome: string;
+  categoria: Categoria;
+  /** Uma linha: o que é. */
+  resumo: string;
+  /** Regra exata de desbloqueio (mesma do motor). */
+  criterio: string;
+  /** Celebração curta (quando conquistada). */
+  mensagem: string;
+  /** Como conquistar (quando ainda bloqueada). */
+  comoConquistar: string;
+  significado: string;
+  importancia: string;
+  explicacao: string;
+  proximoPasso: string;
+  fontes: string[];
+  versao: string;
+};
+
+type Base = Omit<ConteudoConquista, "codigo" | "criterio" | "versao" | "nome"> & { nome?: string };
+
+const BASE: Record<CodigoConquista, Base> = {
+  primeiro_treino: {
+    categoria: "comeco",
+    resumo: "O primeiro treino válido no app.",
+    mensagem: "Seu primeiro treino está concluído! Você começou a transformar uma intenção em uma ação.",
+    comoConquistar: "Conclua seu primeiro treino, fazendo pelo menos metade das séries prescritas.",
+    significado: "Você saiu do planejamento e experimentou o treino na prática.",
+    importancia: "Começar permite sair do planejamento e experimentar o comportamento na prática. Cada experiência ajuda você a descobrir como encaixar o treinamento na sua rotina.",
+    explicacao: "A formação de uma rotina depende de experiências repetidas em contextos relativamente estáveis. O primeiro treino é o começo dessa aprendizagem, não a formação completa de um hábito.",
+    proximoPasso: "Agora o objetivo é encontrar espaço para o próximo treino dentro da sua semana.",
+    fontes: ["habitos2024"],
+  },
+  criando_raizes: {
+    categoria: "comeco",
+    resumo: "Treinar em duas semanas diferentes logo no começo.",
+    mensagem: "Você voltou para mais uma semana!",
+    comoConquistar: "Treine em duas semanas diferentes dentro das suas quatro primeiras semanas de acompanhamento.",
+    significado: "O treino apareceu na sua rotina em mais de uma semana, e não só uma vez.",
+    importancia: "O primeiro treino é o começo. Voltar em outra semana mostra que a atividade está encontrando espaço na sua rotina.",
+    explicacao: "Repetir o treino em diferentes ocasiões pode ajudar a associar contextos e sinais do dia a dia ao comportamento de treinar. Isso faz parte do processo de aprendizagem, e a formação de hábitos varia entre pessoas.",
+    proximoPasso: "Continue procurando os dias e horários que funcionam para você.",
+    fontes: ["habitos2024"],
+  },
+  primeira_meta_semanal: {
+    categoria: "constancia",
+    resumo: "A primeira semana com a meta cumprida.",
+    mensagem: "Você cumpriu sua primeira meta semanal!",
+    comoConquistar: "Cumpra a meta de treinos de uma semana, a que o Montinho definiu para você.",
+    significado: "Você completou o que foi planejado para uma semana inteira.",
+    importancia: "Ter uma meta realista e alcançável ajuda a transformar um objetivo amplo em ações concretas. Cumprir o planejamento pode fortalecer sua confiança na própria capacidade de manter uma rotina.",
+    explicacao: "Na Teoria da Autodeterminação, perceber-se capaz de realizar uma tarefa está ligado à sensação de competência, que está associada a uma motivação mais duradoura.",
+    proximoPasso: "Vamos repetir essa organização na próxima semana, respeitando sua recuperação.",
+    fontes: ["sdt2025", "sdtRevisao2025"],
+  },
+  relatorio_mensal: {
+    categoria: "autoconhecimento",
+    resumo: "Abrir pela primeira vez a sua evolução completa.",
+    mensagem: "Você começou a acompanhar sua própria evolução!",
+    comoConquistar: "Abra “Ver minha evolução completa” na tela Evolução.",
+    significado: "Você olhou os próprios registros, e não só o espelho ou a balança.",
+    importancia: "Observar os registros ajuda a perceber mudanças que nem sempre aparecem no espelho ou na balança. Frequência, cargas, repetições e execução trazem informações valiosas sobre o seu processo.",
+    explicacao: "O automonitoramento é uma das estratégias mais usadas em intervenções de mudança de comportamento. Ele pode aumentar a consciência sobre a própria rotina e ajudar nas decisões seguintes.",
+    proximoPasso: "Volte aos seus registros de tempos em tempos para entender sua evolução.",
+    fontes: ["sdt2025"],
+  },
+  treinos_10: {
+    categoria: "pratica",
+    resumo: "Dez treinos concluídos.",
+    mensagem: "Dez treinos concluídos. Dez oportunidades em que você escolheu continuar.",
+    comoConquistar: "Some 10 treinos concluídos (treinos extras e parciais não entram).",
+    significado: "Você acumulou dez sessões de prática dentro do seu programa.",
+    importancia: "Essa conquista representa repetição e participação no processo. Cada sessão traz mais oportunidades de praticar, conhecer suas capacidades e ajustar a rotina.",
+    explicacao: "Repetir um comportamento em condições parecidas pode contribuir para a formação de hábitos, mas não existe uma quantidade universal de treinos que torne o comportamento automático.",
+    proximoPasso: "Continue seguindo a frequência que foi planejada para você.",
+    fontes: ["habitos2024"],
+  },
+  primeiro_mes: {
+    categoria: "acompanhamento",
+    resumo: "Treinar em semanas diferentes ao longo do primeiro mês.",
+    mensagem: "Você está construindo seu primeiro mês de treinamento!",
+    comoConquistar: "Nos primeiros 35 dias depois do primeiro treino, conclua 4 treinos em pelo menos 3 semanas diferentes. A medalha sai quando completar 28 dias.",
+    significado: "O treino se repetiu em semanas diferentes durante o seu primeiro mês.",
+    importancia: "O mais importante não é só o tempo passar. É você ter voltado a treinar em semanas diferentes.",
+    explicacao: "A constância se desenvolve ao repetir comportamentos em meio às demandas da vida real. Treinar em semanas diferentes oferece oportunidades de aprender quando, onde e como treinar.",
+    proximoPasso: "Continue procurando uma rotina que seja sustentável para você.",
+    fontes: ["habitos2024"],
+  },
+  constancia_vida_real: {
+    categoria: "constancia",
+    resumo: "Meta cumprida em 3 de 4 semanas seguidas.",
+    mensagem: "Três de quatro semanas com sua meta cumprida!",
+    comoConquistar: "Cumpra a meta em 3 de 4 semanas seguidas (semanas em pausa combinada ficam de fora).",
+    significado: "Você manteve uma boa frequência sem precisar de uma sequência perfeita.",
+    importancia: "Você manteve uma boa frequência, mesmo sem exigir perfeição absoluta.",
+    explicacao: "Uma semana diferente não precisa determinar o restante da jornada. Olhar para a continuidade, e não só para as falhas, pode favorecer uma percepção mais construtiva do próprio progresso.",
+    proximoPasso: "Observe o que funcionou e organize sua próxima semana.",
+    fontes: ["sdt2025"],
+  },
+  semanas_consistentes_4: {
+    categoria: "constancia",
+    resumo: "Meta cumprida em 4 semanas seguidas.",
+    mensagem: "Quatro semanas de consistência!",
+    comoConquistar: "Cumpra a meta em 4 semanas seguidas (pausas combinadas não quebram a sequência, mas também não contam como cumpridas).",
+    significado: "Você organizou o treinamento ao longo de várias semanas seguidas.",
+    importancia: "A evolução depende de estímulos e recuperação distribuídos ao longo do tempo. Manter isso por quatro semanas tem valor.",
+    explicacao: "Repetir o comportamento por várias semanas pode torná-lo mais familiar e previsível. Isso não significa que o hábito esteja definitivamente formado, mas é progresso na construção da rotina.",
+    proximoPasso: "Identifique o que ajudou essas quatro semanas a funcionar e procure manter essas condições.",
+    fontes: ["habitos2024"],
+  },
+  treinos_25: {
+    categoria: "pratica",
+    resumo: "Vinte e cinco treinos concluídos.",
+    mensagem: "25 treinos concluídos. Sua jornada já tem uma história!",
+    comoConquistar: "Some 25 treinos concluídos (treinos extras e parciais não entram).",
+    significado: "Você acumulou experiências de treino e registros suficientes para enxergar sua trajetória.",
+    importancia: "Você acumulou experiências de treinamento, registrou sessões e teve oportunidades de observar mudanças no desempenho.",
+    explicacao: "Registrar o progresso pode ajudar a perceber conquistas graduais. Essa percepção está ligada à sensação de competência e pode favorecer uma motivação mais autônoma.",
+    proximoPasso: "Olhe seu histórico e veja como sua rotina evoluiu desde o início.",
+    fontes: ["sdt2025", "sdtRevisao2025"],
+  },
+  semanas_consistentes_8: {
+    categoria: "constancia",
+    resumo: "Meta cumprida em 8 semanas seguidas.",
+    mensagem: "Oito semanas de consistência!",
+    comoConquistar: "Cumpra a meta em 8 semanas seguidas (pausas combinadas não quebram a sequência, mas também não contam como cumpridas).",
+    significado: "Você manteve a frequência planejada durante um período significativo.",
+    importancia: "Você conseguiu manter sua frequência planejada durante um período significativo, respeitando seus objetivos individuais.",
+    explicacao: "Pesquisas sobre formação de hábitos mostram grande variação entre pessoas e comportamentos. Oito semanas não são um prazo mágico, mas são um marco concreto de repetição.",
+    proximoPasso: "Continue usando o que tornou sua rotina possível.",
+    fontes: ["habitos2024"],
+  },
+  acompanhamento_12_semanas: {
+    categoria: "acompanhamento",
+    resumo: "Doze semanas com treino registrado (não precisam ser seguidas).",
+    mensagem: "Doze semanas fazendo parte da sua jornada!",
+    comoConquistar: "Complete 12 semanas com treino prescrito e pelo menos um treino registrado em cada uma. Não precisam ser seguidas nem com a meta cumprida.",
+    significado: "Você continuou no acompanhamento, mesmo quando nem toda semana saiu como planejado.",
+    importancia: "Essa medalha reconhece a continuidade do acompanhamento, mesmo quando nem todas as semanas aconteceram exatamente como o planejado.",
+    explicacao: "Manter um comportamento ao longo do tempo envolve adaptação. Imprevistos acontecem, e reorganizar a rotina faz parte de um processo sustentável. Semana em pausa combinada não conta como semana com treino.",
+    proximoPasso: "Vamos olhar seu histórico e definir os objetivos do próximo ciclo.",
+    fontes: ["sdt2025"],
+  },
+  constancia_verdade: {
+    categoria: "constancia",
+    resumo: "Meta cumprida em 8 de 12 semanas seguidas.",
+    mensagem: "Oito semanas de metas cumpridas em um ciclo de doze!",
+    comoConquistar: "Cumpra a meta em 8 de 12 semanas seguidas (semanas em pausa combinada ficam de fora).",
+    significado: "Você sustentou o treino por vários meses, mesmo com semanas diferentes no caminho.",
+    importancia: "Essa conquista reconhece a capacidade de continuar participando do treinamento ao longo de vários meses, mesmo diante de semanas diferentes.",
+    explicacao: "Manter a atividade física depende de vários fatores, como oportunidade, motivação, ambiente e apoio. Sustentar a prática ao longo do tempo pode ser mais significativo do que buscar sequências perfeitas.",
+    proximoPasso: "Reveja sua evolução com o Montinho e continue construindo uma rotina sustentável.",
+    fontes: ["sdt2025", "habitos2024"],
+  },
+  treinos_50: {
+    categoria: "pratica",
+    resumo: "Cinquenta treinos concluídos.",
+    mensagem: "50 treinos concluídos. Uma grande marca da sua trajetória!",
+    comoConquistar: "Some 50 treinos concluídos (treinos extras e parciais não entram).",
+    significado: "Você acumulou muitas oportunidades de praticar, aprender e participar do processo.",
+    importancia: "Essa conquista representa muitas oportunidades de praticar, aprender e participar do processo.",
+    explicacao: "Comportamentos repetidos podem se tornar mais familiares com o tempo, principalmente quando ligados a contextos e rotinas reconhecíveis. O número de sessões, sozinho, não prova que um hábito já é automático.",
+    proximoPasso: "Continue trabalhando nos seus objetivos, sem precisar aumentar a frequência além do prescrito.",
+    fontes: ["habitos2024"],
+  },
+  recomeco_consistente: {
+    categoria: "retomada",
+    resumo: "Depois de uma pausa, voltar e continuar em outra semana.",
+    mensagem: "Você não apenas voltou. Você continuou!",
+    comoConquistar: "Se ficar 14 dias ou mais sem treinar, volte e treine em duas semanas diferentes nos 21 dias seguintes à volta.",
+    significado: "Depois de uma interrupção, você retomou e manteve o treino por mais de uma semana.",
+    importancia: "Retomar depois de uma interrupção já é importante. Treinar de novo em outra semana mostra que você está reorganizando a rotina.",
+    explicacao: "Na mudança de comportamento, interrupções podem acontecer. Planejar a retomada e reduzir barreiras ajuda a recuperar a prática, sem depender de culpa ou cobrança.",
+    proximoPasso: "Continue um treino de cada vez, respeitando suas condições atuais.",
+    fontes: ["habitos2024", "sdt2025"],
+  },
+  recorde: {
+    categoria: "desempenho",
+    resumo: "Superar uma marca anterior comparável num exercício.",
+    mensagem: "Você superou uma marca anterior!",
+    comoConquistar: "Supere sua melhor marca num exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores dele.",
+    significado: "Seu desempenho num exercício passou de uma marca que você mesmo tinha registrado.",
+    importancia: "Essa conquista ajuda a mostrar que a evolução pode aparecer no desempenho, mesmo quando outras mudanças ainda são pouco perceptíveis.",
+    explicacao: "Receber retorno sobre o progresso pode fortalecer a percepção de competência. Um recorde isolado, porém, não prova hipertrofia nem substitui a avaliação do treinador.",
+    proximoPasso: "Continue respeitando a técnica e o planejamento.",
+    fontes: ["sdt2025"],
+  },
+  eu_voltei: {
+    categoria: "retomada",
+    resumo: "Treinar de novo depois de 14 dias ou mais sem treino.",
+    mensagem: "Bom ter você de volta!",
+    comoConquistar: "Se ficar 14 dias ou mais sem treinar, o próximo treino válido conta como retomada.",
+    significado: "Você retomou o treino depois de uma interrupção.",
+    importancia: "Interrupções acontecem. Elas não precisam definir toda a sua trajetória.",
+    explicacao: "Retomar o comportamento permite reconstruir a rotina. O reconhecimento serve para reduzir barreiras à continuidade, e não para cobrar o período de ausência.",
+    proximoPasso: "Vamos reorganizar os próximos treinos de um jeito possível para você.",
+    fontes: ["sdt2025"],
+  },
+};
+
+export const CONTEUDO: Record<CodigoConquista, ConteudoConquista> = Object.fromEntries(
+  (Object.keys(BASE) as CodigoConquista[]).map((c) => [c, { ...BASE[c], codigo: c, nome: BASE[c].nome ?? CATALOGO[c].titulo, criterio: CATALOGO[c].criterio, versao: CONTEUDO_VERSAO }]),
+) as Record<CodigoConquista, ConteudoConquista>;
+
+/** Nome atual da conquista (conquistas antigas guardam o título da época; mostramos sempre o atual). */
+export const nomeDaConquista = (codigo: string, tituloGravado?: string | null) => CONTEUDO[codigo as CodigoConquista]?.nome ?? tituloGravado ?? "Conquista";
+
+/**
+ * Frase da jornada pelas semanas com meta cumprida (Fase 7). Descreve o que
+ * já aconteceu e o próximo passo possível — sem prazo mágico nem pedido de
+ * treinar além do prescrito.
+ */
+export function mensagemDaJornada(semanasCumpridas: number): string | null {
+  if (semanasCumpridas >= 12) return "Você tem um histórico valioso para analisar. Veja sua evolução e planeje o próximo ciclo com o Montinho.";
+  if (semanasCumpridas >= 8) return "Você acumulou um período importante de regularidade. Continue ajustando a rotina de acordo com suas necessidades.";
+  if (semanasCumpridas >= 4) return "Você já reuniu várias semanas de prática. Observe quais condições facilitaram sua constância.";
+  if (semanasCumpridas >= 2) return "Você está começando a estabelecer uma frequência. Continuar repetindo o treino ajuda a descobrir uma rotina sustentável.";
+  if (semanasCumpridas === 1) return "Você cumpriu sua meta em uma semana. Agora o próximo passo é repetir esse comportamento em outra semana.";
+  return null;
+}

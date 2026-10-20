@@ -66,6 +66,9 @@ export type DadosCard = {
   recordes?: ItemRecorde[];
   /** Título de conquista para o modelo C quando não há recorde (ex.: “10 treinos concluídos”). */
   conquistaTitulo?: string | null;
+  /** Medalha da vitrine: selo desenhado no card e frase curta (sem dados privados). */
+  medalhaSelo?: string | null;
+  conquistaFrase?: string | null;
   retomada?: boolean;
   mensal?: { rotuloPeriodo: string; treinos?: number | null; aderenciaPct?: number | null; tempoTotalMin?: number | null; metasCumpridas?: number | null; evolucao?: string | null; conquista?: string | null };
   reconhecimento?: { mensagem: string; autor: string; conquista?: string | null };
@@ -138,6 +141,7 @@ export type Op =
   | { t: "logo"; x: number; y: number; w: number; h: number; variante: "claro" | "escuro" }
   | { t: "linha"; x: number; y: number; w: number; cor: string }
   | { t: "barra"; x: number; y: number; w: number; h: number; progresso: number; cor: string; trilho: string }
+  | { t: "medalha"; x: number; y: number; r: number; selo: string; cor: string; fundo: string; texto: string }
   | OpTexto;
 
 export type Medir = (texto: string, tamanho: number, peso: Peso) => number;
@@ -215,7 +219,8 @@ type Bloco =
   | { k: "texto"; texto: string; max: number; min: number; peso: Peso; cor: string; maxLinhas: number; depois: number; espaco?: number }
   | { k: "metricas"; itens: Array<{ valor: string; rotulo: string }>; cor: string; corRotulo: string; depois: number }
   | { k: "barra"; progresso: number; cor: string; trilho: string; depois: number }
-  | { k: "linha"; cor: string; depois: number };
+  | { k: "linha"; cor: string; depois: number }
+  | { k: "medalha"; selo: string; cor: string; fundo: string; texto: string; depois: number };
 
 function blocosDoModelo(cfg: ConfigCard, d: DadosCard, p: Paleta): Bloco[] {
   const b: Bloco[] = [];
@@ -258,7 +263,11 @@ function blocosDoModelo(cfg: ConfigCard, d: DadosCard, p: Paleta): Bloco[] {
         titulo(x.grande, 130, 2);
         sub(x.detalhe, 40, 2, p.texto);
         sub("Novo recorde pessoal", 36, 1, p.destaque);
-      } else titulo((d.conquistaTitulo ?? "Mais consistência").toUpperCase(), 120, 3);
+      } else {
+        if (d.medalhaSelo) b.push({ k: "medalha", selo: d.medalhaSelo, cor: p.destaque, fundo: p.trilho, texto: p.texto, depois: 30 });
+        titulo((d.conquistaTitulo ?? "Mais consistência").toUpperCase(), 120, 3);
+        if (d.conquistaFrase) sub(d.conquistaFrase, 40, 3, p.suave);
+      }
       break;
     }
     case "D":
@@ -368,6 +377,10 @@ function montarBlocos(blocos: Bloco[], k: number, w: number, m: number, larg: nu
       const lw = Math.round(120 * k);
       ops.push({ t: "linha", x: Math.round((w - lw) / 2), y, w: lw, cor: b.cor });
       y += Math.round(b.depois * k);
+    } else if (b.k === "medalha") {
+      const r = Math.round(110 * k);
+      ops.push({ t: "medalha", x: w / 2, y, r, selo: b.selo, cor: b.cor, fundo: b.fundo, texto: b.texto });
+      y += r * 2 + Math.round(b.depois * k);
     } else if (b.k === "barra") {
       const bh = Math.max(10, Math.round(22 * k));
       ops.push({ t: "barra", x: m, y, w: larg, h: bh, progresso: Math.max(0, Math.min(1, b.progresso)), cor: b.cor, trilho: b.trilho });

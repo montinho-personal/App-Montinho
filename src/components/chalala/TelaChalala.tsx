@@ -11,6 +11,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { formatarMin, type DadosCard } from "@/lib/chalala/card";
 import type { ResumoChalala } from "@/lib/data/conquistas";
+import { CONTEUDO, nomeDaConquista } from "@/lib/conquistas/conteudo";
+import type { CodigoConquista } from "@/lib/conquistas/regras";
 import { enviarEvento } from "./evento";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 
@@ -35,7 +37,7 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
     feitosSemana: r.pontosSemana,
     metaCumprida: r.metaCumprida,
     recordes: r.recordes,
-    conquistaTitulo: outra?.titulo ?? null,
+    conquistaTitulo: outra ? nomeDaConquista(outra.codigo, outra.titulo) : null,
     retomada: r.retomada,
   };
 }
@@ -143,8 +145,11 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
         <Card className="border-accent/40">
           <CardBody className="space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Conquista desta sessão</p>
-            <p className="font-bold">{conquista.titulo}</p>
-            {conquista.descricao ? <p className="text-sm text-fg-muted">{conquista.descricao}</p> : null}
+            <p className="font-bold">{nomeDaConquista(conquista.codigo, conquista.titulo)}</p>
+            <p className="text-sm text-fg-muted">{conquista.codigo === "recorde" ? conquista.descricao : (CONTEUDO[conquista.codigo as CodigoConquista]?.mensagem ?? conquista.descricao)}</p>
+            {conquista.codigo !== "recorde" && conquista.codigo !== "eu_voltei" ? (
+              <Link href={`/aluno/conquistas/todas?m=${conquista.codigo}`} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Entenda por que isso é importante</Link>
+            ) : null}
           </CardBody>
         </Card>
       ) : null}

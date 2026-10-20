@@ -1,31 +1,49 @@
 import { describe, expect, it } from "vitest";
-import { proximaMedalha, vitrineDeMedalhas } from "./vitrine";
+import { calcularAderencia } from "@/lib/aderencia/calcular";
+import { medalhasEmDestaque, proximaMedalha, proximasMedalhas, vitrineDeMedalhas } from "./vitrine";
 import type { SessaoConquista } from "./regras";
 
 let n = 0;
-const s = (dia: string, o: Partial<SessaoConquista> = {}): SessaoConquista => ({ id: `s${++n}`, iniciado_em: `${dia}T13:00:00Z`, status: "concluida", series_planejadas: 10, series_concluidas: 10, ...o });
-const ader = (atual = 0, cumpridas = 0, participando = 0) => ({ sequencia: { atual, melhor: atual, semanasCumpridas: cumpridas, semanasParticipando: participando }, semanaAtual: null });
+const s = (dia: string, o: Partial<SessaoConquista> = {}): SessaoConquista => ({ id: `v${++n}`, iniciado_em: `${dia}T13:00:00Z`, status: "concluida", series_planejadas: 10, series_concluidas: 10, ...o });
+const metas = [{ desde: "2026-01-01", meta: 3, origem: "personal" as const }];
+const vitrine = (sessoes: SessaoConquista[], conquistas: Array<{ codigo: string; conquistado_em: string }>, hoje: string, inicio = "2026-09-28") =>
+  vitrineDeMedalhas({ conquistas, sessoes, aderencia: calcularAderencia({ inicio, hoje, metas, sessoes }), hoje });
 
-describe("vitrine de medalhas", () => {
-  it("10 medalhas na ordem da jornada; conquistadas com data, abertas com progresso real", () => {
+describe("vitrine de medalhas (14 únicas)", () => {
+  it("ordem da jornada; conquistadas com data, abertas com progresso real", () => {
     const sessoes = Array.from({ length: 7 }, (_, i) => s(`2026-10-${String(i + 1).padStart(2, "0")}`));
-    const ms = vitrineDeMedalhas({ conquistas: [{ codigo: "primeiro_treino", conquistado_em: "2026-10-01T13:00:00Z" }, { codigo: "recorde", conquistado_em: "2026-10-05T13:00:00Z" }], sessoes, aderencia: ader(2, 2, 3), hoje: "2026-10-20" });
-    expect(ms.map((m) => m.codigo)).toEqual(["primeiro_treino", "primeira_meta_semanal", "relatorio_mensal", "treinos_10", "semanas_consistentes_4", "primeiro_mes", "treinos_25", "semanas_consistentes_8", "acompanhamento_12_semanas", "treinos_50"]);
-    expect(ms[0]).toMatchObject({ conquistada: true, falta: null, nova: false });
-    expect(ms.find((m) => m.codigo === "treinos_10")).toMatchObject({ conquistada: false, atual: 7, alvo: 10, falta: "Faltam 3 treino(s) concluído(s)." });
-    expect(ms.find((m) => m.codigo === "semanas_consistentes_4")).toMatchObject({ atual: 2, alvo: 4 });
-    expect(ms.find((m) => m.codigo === "primeiro_mes")).toMatchObject({ atual: 19, alvo: 28 });
+    const ms = vitrine(sessoes, [{ codigo: "primeiro_treino", conquistado_em: "2026-10-01T13:00:00Z" }, { codigo: "recorde", conquistado_em: "2026-10-05T13:00:00Z" }], "2026-10-20");
+    expect(ms).toHaveLength(14);
+    expect(ms.map((m) => m.codigo)).not.toContain("recorde");
+    expect(ms[0]).toMatchObject({ codigo: "primeiro_treino", titulo: "Primeiro passo", conquistada: true, falta: null });
+    expect(ms.find((m) => m.codigo === "treinos_10")).toMatchObject({ conquistada: false, atual: 7, alvo: 10 });
+    expect(ms.find((m) => m.codigo === "treinos_10")?.falta).toMatch(/Faltam 3 treinos concluídos/);
   });
-  it("extras, parciais e histórico importado sem aderência não contam como treino concluído", () => {
+  it("extras, parciais e histórico sem autorização não contam como treino concluído", () => {
     const sessoes = [s("2026-10-01"), s("2026-10-02", { modo: "extra" }), s("2026-10-03", { series_concluidas: 2 }), s("2026-10-04", { conta_aderencia: false })];
-    const ms = vitrineDeMedalhas({ conquistas: [], sessoes, aderencia: ader(), hoje: "2026-10-05" });
-    expect(ms.find((m) => m.codigo === "treinos_10")?.atual).toBe(1);
+    expect(vitrine(sessoes, [], "2026-10-05").find((m) => m.codigo === "treinos_10")?.atual).toBe(1);
   });
-  it("próxima medalha = a mais perto de sair; ‘nova’ por 7 dias", () => {
-    const sessoes = Array.from({ length: 9 }, (_, i) => s(`2026-10-${String(i + 1).padStart(2, "0")}`));
-    const ms = vitrineDeMedalhas({ conquistas: [{ codigo: "primeiro_treino", conquistado_em: "2026-10-18T13:00:00Z" }, { codigo: "primeira_meta_semanal", conquistado_em: "2026-10-05T13:00:00Z" }], sessoes, aderencia: ader(1, 1, 2), hoje: "2026-10-20" });
-    expect(proximaMedalha(ms)?.codigo).toBe("treinos_10");
+  it("medalha antiga continua conquistada mesmo se o critério novo não fecharia (regressão)", () => {
+    const ms = vitrine([s("2026-10-01")], [{ codigo: "primeiro_mes", conquistado_em: "2026-10-02T13:00:00Z" }], "2026-10-20");
+    expect(ms.find((m) => m.codigo === "primeiro_mes")).toMatchObject({ conquistada: true, disponivel: true });
+  });
+  it("janela que já passou e recomeço sem pausa não viram ‘próxima’", () => {
+    const ms = vitrine([s("2026-10-01")], [], "2026-12-20");
+    expect(ms.find((m) => m.codigo === "criando_raizes")?.disponivel).toBe(false);
+    expect(ms.find((m) => m.codigo === "recomeco_consistente")?.disponivel).toBe(false);
+    expect(proximasMedalhas(ms, 14).map((m) => m.codigo)).not.toContain("criando_raizes");
+  });
+  it("próxima inteligente: no começo, sugere voltar na próxima semana (Criando raízes)", () => {
+    const ms = vitrine([s("2026-09-29")], [{ codigo: "primeiro_treino", conquistado_em: "2026-09-29T13:00:00Z" }], "2026-10-01");
+    const p = proximaMedalha(ms)!;
+    expect(p.codigo).toBe("criando_raizes");
+    expect(p.falta).toMatch(/Volte a treinar na próxima semana/);
     expect(ms[0].nova).toBe(true);
-    expect(ms[1].nova).toBe(false);
+  });
+  it("destaque: no máximo 10, na ordem da jornada", () => {
+    const ms = vitrine([s("2026-10-01")], [{ codigo: "primeiro_treino", conquistado_em: "2026-10-01T13:00:00Z" }], "2026-10-05");
+    const d = medalhasEmDestaque(ms, "2026-10-05");
+    expect(d).toHaveLength(10);
+    expect(d[0].codigo).toBe("primeiro_treino");
   });
 });

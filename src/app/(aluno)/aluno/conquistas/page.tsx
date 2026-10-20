@@ -4,10 +4,10 @@ import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
-import { CATALOGO } from "@/lib/conquistas/regras";
 import { ConquistasClient } from "./ConquistasClient";
-import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
-import { dataLocal } from "@/lib/aderencia/calcular";
+import { medalhasEmDestaque, proximasMedalhas, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
+import { mensagemDaJornada } from "@/lib/conquistas/conteudo";
+import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 
 export const metadata = { title: "Conquistas" };
 
@@ -16,13 +16,21 @@ export default async function ConquistasPage() {
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
   const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()) });
-  const proxima = proximaMedalha(medalhas);
+  const hoje = dataLocal(new Date());
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
-  const conquistados = new Set(conquistas.map((c) => c.codigo));
-  const proximas = Object.entries(CATALOGO)
-    .filter(([k, v]) => !v.repete && !conquistados.has(k as keyof typeof CATALOGO))
-    .map(([k, v]) => ({ codigo: k, titulo: v.titulo, criterio: v.criterio }));
+  const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
+  // Mensagem escrita pelo personal ligada a uma medalha (a mais recente).
+  const reconhecimentosPorCodigo: Record<string, { mensagem: string; data: string }> = {};
+  for (const r of [...reconhecimentos].reverse()) {
+    const cod = r.conquista_id ? codigoPorId.get(r.conquista_id) : null;
+    if (cod) reconhecimentosPorCodigo[cod] = { mensagem: r.mensagem, data: r.created_at };
+  }
+  const unicas = new Set(medalhas.map((m) => m.codigo as string));
+  // Celebração só uma vez (vista_em) e só para conquistas recentes (14 dias).
+  const recente = `${somarDias(hoje, -14)}T00:00:00Z`;
+  const novas = conquistas.filter((c) => unicas.has(c.codigo) && c.vista_em === null && c.conquistado_em >= recente).map((c) => ({ id: c.id, codigo: c.codigo }));
+  const cumpridas = aderencia.sequencia.semanasCumpridas + (aderencia.semanaAtual?.status === "cumprida" ? 1 : 0);
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
@@ -36,10 +44,13 @@ export default async function ConquistasPage() {
         mensal={mensal}
         conquistas={conquistas.map((c) => ({ id: c.id, codigo: c.codigo, titulo: c.titulo, descricao: c.descricao, conquistado_em: c.conquistado_em, dados: c.dados }))}
         reconhecimentos={reconhecimentos.map((r) => ({ id: r.id, mensagem: r.mensagem, created_at: r.created_at, conquista: r.conquista_id ? (titulos.get(r.conquista_id) ?? null) : null }))}
-        proximas={proximas}
-        medalhas={medalhas}
-        proxima={proxima}
-        criterios={Object.fromEntries(Object.entries(CATALOGO).map(([k, v]) => [k, v.criterio]))}
+        destaque={medalhasEmDestaque(medalhas, hoje)}
+        proximas={proximasMedalhas(medalhas, 3)}
+        ganhas={medalhas.filter((m) => m.conquistada).length}
+        total={medalhas.length}
+        novas={novas}
+        jornada={mensagemDaJornada(cumpridas)}
+        reconhecimentosPorCodigo={reconhecimentosPorCodigo}
       />
     </div>
   );

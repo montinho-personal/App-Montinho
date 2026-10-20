@@ -13,6 +13,7 @@
 import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
+import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 export type CodigoConquista =
   | "primeiro_treino"
@@ -26,22 +27,35 @@ export type CodigoConquista =
   | "acompanhamento_12_semanas"
   | "recorde"
   | "relatorio_mensal"
-  | "eu_voltei";
+  | "eu_voltei"
+  | "criando_raizes"
+  | "constancia_vida_real"
+  | "constancia_verdade"
+  | "recomeco_consistente";
 
+// Títulos e critérios curtos (gravados na conquista). Os textos educativos
+// completos ficam na biblioteca editorial (conteudo.ts).
 export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: string; repete: boolean }> = {
-  primeiro_treino: { titulo: "Primeiro treino concluído", criterio: "Concluir o primeiro treino (metade ou mais das séries).", repete: false },
-  primeira_meta_semanal: { titulo: "Primeira meta semanal", criterio: "Cumprir pela primeira vez a meta de treinos da semana combinada com o personal.", repete: false },
-  primeiro_mes: { titulo: "Primeiro mês de participação", criterio: "Treinar de novo 28 dias ou mais depois do primeiro treino, com pelo menos 4 treinos no total.", repete: false },
-  treinos_10: { titulo: "10 treinos concluídos", criterio: "Somar 10 treinos concluídos (treinos extras não entram).", repete: false },
-  treinos_25: { titulo: "25 treinos concluídos", criterio: "Somar 25 treinos concluídos (treinos extras não entram).", repete: false },
-  treinos_50: { titulo: "50 treinos concluídos", criterio: "Somar 50 treinos concluídos (treinos extras não entram).", repete: false },
-  semanas_consistentes_4: { titulo: "4 semanas consistentes", criterio: "Cumprir a meta semanal 4 semanas seguidas (pausas combinadas não quebram a sequência).", repete: false },
-  semanas_consistentes_8: { titulo: "8 semanas consistentes", criterio: "Cumprir a meta semanal 8 semanas seguidas (pausas combinadas não quebram a sequência).", repete: false },
-  acompanhamento_12_semanas: { titulo: "12 semanas de acompanhamento", criterio: "Completar 12 semanas com treino prescrito e ao menos um treino registrado.", repete: false },
+  primeiro_treino: { titulo: "Primeiro passo", criterio: "Concluir o primeiro treino válido, com pelo menos metade das séries prescritas.", repete: false },
+  primeira_meta_semanal: { titulo: "Primeira meta", criterio: "Cumprir pela primeira vez a meta semanal definida pelo personal.", repete: false },
+  relatorio_mensal: { titulo: "Conhecendo minha evolução", criterio: "Abrir pela primeira vez a evolução completa.", repete: false },
+  treinos_10: { titulo: "10 treinos", criterio: "Somar 10 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  semanas_consistentes_4: { titulo: "Quatro semanas consistentes", criterio: "Cumprir a meta em 4 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  primeiro_mes: { titulo: "Primeiro mês de participação", criterio: "Concluir 4 treinos em 3 semanas diferentes nos primeiros 35 dias, com pelo menos 28 dias desde o primeiro treino.", repete: false },
+  treinos_25: { titulo: "25 treinos", criterio: "Somar 25 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  semanas_consistentes_8: { titulo: "Oito semanas consistentes", criterio: "Cumprir a meta em 8 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  acompanhamento_12_semanas: { titulo: "Doze semanas de acompanhamento", criterio: "Completar 12 semanas com treino prescrito e pelo menos um treino registrado em cada uma (não precisam ser seguidas).", repete: false },
+  treinos_50: { titulo: "50 treinos", criterio: "Somar 50 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  criando_raizes: { titulo: "Criando raízes", criterio: `Treinar em ${LIMITES.raizes.alvo} semanas diferentes dentro das ${LIMITES.raizes.semanas} primeiras semanas de acompanhamento (pausas combinadas estendem o prazo, até ${LIMITES.raizes.maxCalendario} semanas).`, repete: false },
+  constancia_vida_real: { titulo: "Constância na vida real", criterio: `Cumprir a meta em ${LIMITES.vidaReal.alvo} de ${LIMITES.vidaReal.janela} semanas elegíveis seguidas.`, repete: false },
+  constancia_verdade: { titulo: "Constância de verdade", criterio: `Cumprir a meta em ${LIMITES.verdade.alvo} de ${LIMITES.verdade.janela} semanas elegíveis seguidas.`, repete: false },
+  recomeco_consistente: { titulo: "Recomeço consistente", criterio: `Depois de ${LIMITES.recomeco.diasPausa}+ dias sem treinar, treinar em ${LIMITES.recomeco.semanas} semanas diferentes em até ${LIMITES.recomeco.diasDepois} dias da volta.`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
-  relatorio_mensal: { titulo: "Primeiro relatório consultado", criterio: "Abrir a evolução completa pela primeira vez.", repete: false },
-  eu_voltei: { titulo: "Eu voltei", criterio: "Voltar a treinar depois de 14 dias ou mais sem treino.", repete: true },
+  eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
+
+/** Versão do critério de cada conquista (gravada junto; mudar critério nunca apaga conquista antiga). */
+export const VERSAO_CRITERIO: Record<CodigoConquista, number> = Object.fromEntries(Object.keys(CATALOGO).map((k) => [k, k === "primeiro_mes" ? 2 : 1])) as Record<CodigoConquista, number>;
 
 export const REGRAS_CONQUISTAS = { diasRetomada: 14, registrosParaRecorde: 2, diasPrimeiroMes: 28, treinosPrimeiroMes: 4 };
 
@@ -52,6 +66,8 @@ export type SessaoConquista = SessaoAderencia & {
   /** false = histórico importado: serve de base para recordes, mas não gera conquistas. */
   conta_aderencia?: boolean;
   exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[] }>;
+  /** "app" ou "importado" (histórico de outro app). */
+  origem?: string | null;
 };
 
 export type ItemRecorde = { exercicio: string; tipo: "carga" | "reps"; antes: number; agora: number; carga?: number };
@@ -65,6 +81,10 @@ export type ConquistaDetectada = {
   titulo: string;
   descricao: string;
   dados?: { recordes?: ItemRecorde[]; diasAfastado?: number; meta?: number };
+  versao: number;
+  /** O que sustentou a conquista (semanas, datas) — para auditoria. */
+  evidencia: Record<string, unknown>;
+  origem: "app" | "importado";
 };
 
 export type EntradaConquistas = {
@@ -73,14 +93,19 @@ export type EntradaConquistas = {
   relatorioVistoEm?: string | null;
   /** Resumo do histórico de outro app: só carga máxima por dia (base para recorde de carga). */
   baseCarga?: BaseCarga[];
+  /** AAAA-MM-DD (padrão: hoje em São Paulo). */
+  hoje?: string;
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
 const fmtKg = (n: number) => `${String(n).replace(".", ",")} kg`;
 
-function nova(codigo: CodigoConquista, referencia: string, data: string, sessaoId: string | null, descricao: string, dados?: ConquistaDetectada["dados"]): ConquistaDetectada {
-  return { codigo, referencia, data, sessaoId, titulo: CATALOGO[codigo].titulo, descricao, dados };
+let origens = new Map<string, string | null | undefined>();
+function nova(codigo: CodigoConquista, referencia: string, data: string, sessaoId: string | null, descricao: string, dados?: ConquistaDetectada["dados"], evidencia: Record<string, unknown> = {}): ConquistaDetectada {
+  const origem = sessaoId && origens.get(sessaoId) === "importado" ? "importado" : "app";
+  return { codigo, referencia, data, sessaoId, titulo: CATALOGO[codigo].titulo, descricao, dados, versao: VERSAO_CRITERIO[codigo], evidencia, origem };
 }
+const deAvaliacao = (codigo: CodigoConquista, a: Avaliacao, descricao: string) => (a.conquistada && a.data ? [nova(codigo, "1", a.data, a.sessaoId, descricao, undefined, a.evidencia)] : []);
 
 /** Recordes comparáveis de uma sessão contra todas as anteriores (mesmo exercício). */
 export function recordesDaSessao(sessao: SessaoConquista, anteriores: SessaoConquista[], baseCarga: BaseCarga[] = []): ItemRecorde[] {
@@ -129,6 +154,8 @@ export function textoRecorde(r: ItemRecorde): string {
 /** Todas as conquistas que os dados sustentam (a persistência deduplica). */
 export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   const out: ConquistaDetectada[] = [];
+  const hoje = e.hoje ?? dataLocal(new Date());
+  origens = new Map(e.sessoes.map((x) => [x.id, x.origem]));
   const todas = [...e.sessoes].filter((s) => s.status !== "em_andamento").sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
   // Base de comparação para recordes: inclui o histórico importado.
   const baseRecordes = todas.filter((s) => ["concluida", "parcial"].includes(classificarSessao(s)));
@@ -142,12 +169,13 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
     if (s) out.push(nova(`treinos_${n}`, "1", s.iniciado_em, s.id, `Você chegou a ${n} treinos concluídos.`));
   }
 
-  // Primeiro mês: um treino 28+ dias depois do primeiro, com 4+ treinos no total.
-  if (validas.length) {
-    const d0 = dataLocal(validas[0].iniciado_em);
-    const idx = validas.findIndex((s, i) => i + 1 >= REGRAS_CONQUISTAS.treinosPrimeiroMes && dias(d0, dataLocal(s.iniciado_em)) >= REGRAS_CONQUISTAS.diasPrimeiroMes);
-    if (idx >= 0) out.push(nova("primeiro_mes", "1", validas[idx].iniciado_em, validas[idx].id, "Um mês treinando com acompanhamento."));
-  }
+  // Primeiro mês (critério v2): 4 treinos em 3 semanas nos 35 primeiros dias, 28+ dias passados.
+  out.push(...deAvaliacao("primeiro_mes", avaliarPrimeiroMes(validas, hoje), "Um mês treinando com acompanhamento, em semanas diferentes."));
+  // Janelas de semanas (Conquistas 3.0).
+  out.push(...deAvaliacao("criando_raizes", avaliarRaizes(e.aderencia.semanas, validas, hoje), "Você treinou em duas semanas diferentes logo no começo."));
+  out.push(...deAvaliacao("constancia_vida_real", avaliarJanela(e.aderencia.semanas, validas, LIMITES.vidaReal), "Meta cumprida em 3 de 4 semanas seguidas."));
+  out.push(...deAvaliacao("constancia_verdade", avaliarJanela(e.aderencia.semanas, validas, LIMITES.verdade), "Meta cumprida em 8 de 12 semanas seguidas."));
+  out.push(...deAvaliacao("recomeco_consistente", avaliarRecomeco(validas, hoje), "Depois de uma pausa, você voltou e treinou de novo em outra semana."));
 
   // Semanas: meta cumprida, sequência (pausa/sem prescrição não quebram) e acompanhamento.
   const sessaoDaSemana = (inicio: string) => [...validas].reverse().find((s) => { const d = dataLocal(s.iniciado_em); return d >= inicio && d <= somarDias(inicio, 6); });

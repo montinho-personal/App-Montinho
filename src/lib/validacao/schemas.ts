@@ -267,10 +267,10 @@ export const encerrarPausaSchema = z.object({ pausa_id: z.string().min(1).max(64
 // Meu Chalalá de hoje — eventos (sem conteúdo privado) e reconhecimento do personal
 export const eventoChalalaSchema = z
   .object({
-    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado"]),
+    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista"]),
     modelo: z.string().regex(/^[A-Za-z]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({

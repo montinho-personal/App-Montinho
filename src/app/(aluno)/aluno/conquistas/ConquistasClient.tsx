@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
+import { enviarEvento } from "@/components/chalala/evento";
+import { CATALOGO } from "@/lib/conquistas/regras";
+import { CONTEUDO, nomeDaConquista } from "@/lib/conquistas/conteudo";
 import dynamic from "next/dynamic";
 import { Card, CardBody } from "@/components/ui/Card";
 import { formatarMin, type DadosCard, type ModeloId } from "@/lib/chalala/card";
@@ -26,75 +31,80 @@ function cardDaConquista(c: Conquista): { dados: DadosCard; modelo: ModeloId } {
   return { dados: { data, conquistaTitulo: c.titulo }, modelo: "C" };
 }
 
-export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, proximas, criterios, medalhas, proxima }: { nome: string; mensal: ResumoMensal; conquistas: Conquista[]; reconhecimentos: Reconhecimento[]; proximas: Array<{ codigo: string; titulo: string; criterio: string }>; criterios: Record<string, string>; medalhas: Medalha[]; proxima: Medalha | null }) {
+export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, destaque, proximas, ganhas, total, novas, jornada, reconhecimentosPorCodigo }: { nome: string; mensal: ResumoMensal; conquistas: Conquista[]; reconhecimentos: Reconhecimento[]; destaque: Medalha[]; proximas: Medalha[]; ganhas: number; total: number; novas: Array<{ id: string; codigo: string }>; jornada: string | null; reconhecimentosPorCodigo: Record<string, { mensagem: string; data: string }> }) {
   const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; origem: "historico" | "mensal" | "reconhecimento" } | null>(null);
-  const [aberta, setAberta] = useState<string | null>(null);
   const [todosRecordes, setTodosRecordes] = useState(false);
   const recordes = conquistas.filter((c) => c.codigo === "recorde");
   const visiveis = conquistas.filter((c) => c.codigo !== "recorde");
-  const ganhas = medalhas.filter((m) => m.conquistada).length;
-  const sel = medalhas.find((m) => m.codigo === aberta) ?? null;
-  const conquistaDaMedalha = (codigo: string) => conquistas.filter((c) => c.codigo === codigo).sort((a, b) => (a.conquistado_em < b.conquistado_em ? -1 : 1))[0];
+  const novasMedalhas = destaque.filter((m) => novas.some((n) => n.codigo === m.codigo));
+  // Vitrine vista (métrica agregada) e celebração mostrada uma vez só.
+  useEffect(() => {
+    enviarEvento({ tipo: "vitrine_vista", origem: "vitrine" });
+    if (novas.length) void fetch("/api/conquistas/vistas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: novas.map((n) => n.id) }) }).catch(() => undefined);
+  }, [novas]);
 
   return (
     <>
+      {novasMedalhas.length ? (
+        <section className="space-y-2 rounded-xl border border-accent/50 bg-grain-strong p-4" aria-label="Novas conquistas">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-accent">{novasMedalhas.length > 1 ? "Novas conquistas" : "Nova conquista"}</p>
+          {novasMedalhas.map((m) => (
+            <div key={m.codigo} className="flex items-center gap-3">
+              <MedalhaIcone selo={m.selo} conquistada atual={null} alvo={null} tamanho={48} nova />
+              <div className="min-w-0 flex-1">
+                <p className="font-bold leading-tight">{m.titulo}</p>
+                <p className="text-sm text-fg-muted">{CONTEUDO[m.codigo].mensagem}</p>
+              </div>
+            </div>
+          ))}
+          <p className="text-[11px] text-fg-subtle">Mensagem automática do app. Toque na medalha abaixo para entender por que ela importa.</p>
+        </section>
+      ) : null}
+
+      {jornada ? <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-fg-muted"><span className="font-semibold text-fg">Sua jornada: </span>{jornada}</p> : null}
+
       <section className="space-y-3" aria-labelledby="medalhas-titulo">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id="medalhas-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Minhas medalhas</h2>
-          <p className="text-xs text-fg-muted"><span className="font-bold text-fg">{ganhas}</span> de {medalhas.length}</p>
+          <p className="text-xs text-fg-muted"><span className="font-bold text-fg">{ganhas}</span> de {total}</p>
         </div>
-        {proxima ? (
+        {proximas.length ? (
           <Card className="border-accent/40">
-            <CardBody className="flex items-center gap-3 py-3">
-              <MedalhaIcone selo={proxima.selo} conquistada={false} atual={proxima.atual} alvo={proxima.alvo} tamanho={56} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua próxima medalha</p>
-                <p className="font-bold leading-tight">{proxima.titulo}</p>
-                {proxima.alvo ? (
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border" role="progressbar" aria-valuemin={0} aria-valuemax={proxima.alvo} aria-valuenow={proxima.atual ?? 0} aria-label={`Progresso: ${proxima.atual ?? 0} de ${proxima.alvo}`}>
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(((proxima.atual ?? 0) / proxima.alvo) * 100)}%` }} />
+            <CardBody className="space-y-2 py-3">
+              <div className="flex items-center gap-3">
+                <MedalhaIcone selo={proximas[0].selo} conquistada={false} atual={proximas[0].atual} alvo={proximas[0].alvo} tamanho={56} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua próxima medalha</p>
+                  <p className="font-bold leading-tight">{proximas[0].titulo}</p>
+                  {proximas[0].alvo ? (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border" role="progressbar" aria-valuemin={0} aria-valuemax={proximas[0].alvo} aria-valuenow={proximas[0].atual ?? 0} aria-label={`Progresso: ${proximas[0].atual ?? 0} de ${proximas[0].alvo}`}>
+                        <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(((proximas[0].atual ?? 0) / proximas[0].alvo) * 100)}%` }} />
+                      </div>
+                      <span className="shrink-0 font-mono text-xs text-fg-muted">{proximas[0].atual ?? 0}/{proximas[0].alvo}</span>
                     </div>
-                    <span className="shrink-0 font-mono text-xs text-fg-muted">{proxima.atual ?? 0}/{proxima.alvo}</span>
-                  </div>
-                ) : null}
-                {proxima.falta ? <p className="mt-1 text-xs text-fg-muted">{proxima.falta}</p> : null}
-              </div>
-            </CardBody>
-          </Card>
-        ) : (
-          <p className="rounded-xl border border-accent/40 p-3 text-sm">Você conquistou todas as medalhas. Chalalá! 🏅</p>
-        )}
-        <ul className="grid grid-cols-3 gap-2" aria-label="Medalhas">
-          {medalhas.map((m) => (
-            <li key={m.codigo}>
-              <button type="button" onClick={() => setAberta(aberta === m.codigo ? null : m.codigo)} aria-expanded={aberta === m.codigo} className={`relative flex w-full flex-col items-center gap-1 rounded-xl border p-2 text-center transition-colors ${aberta === m.codigo ? "border-accent/60 bg-card" : "border-transparent hover:bg-card"}`}>
-                {m.nova ? <span className="absolute right-1 top-1 rounded-full bg-accent px-1.5 text-[9px] font-bold uppercase text-bg">Nova</span> : null}
-                <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} nova={m.nova} />
-                <span className={`text-[11px] font-semibold leading-tight ${m.conquistada ? "text-fg" : "text-fg-muted"}`}>{m.titulo}</span>
-                <span className="text-[10px] text-fg-subtle">{m.conquistada && m.data ? fmtData.format(new Date(m.data)) : m.alvo ? `${m.atual ?? 0}/${m.alvo}` : "a conquistar"}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {sel ? (
-          <Card>
-            <CardBody className="space-y-1.5 text-sm">
-              <p className="font-bold">{sel.titulo}</p>
-              <p className="text-xs text-fg-muted">{criterios[sel.codigo]}</p>
-              {sel.conquistada ? (
-                <>
-                  <p className="text-xs text-success">Conquistada em {sel.data ? fmtData.format(new Date(sel.data)) : "—"}.</p>
-                  {sel.codigo !== "relatorio_mensal" && conquistaDaMedalha(sel.codigo) ? (
-                    <button type="button" onClick={() => setEditor({ ...cardDaConquista(conquistaDaMedalha(sel.codigo)!), origem: "historico" })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Gerar card desta medalha</button>
                   ) : null}
-                </>
-              ) : (
-                <p className="text-xs">{sel.falta}</p>
-              )}
+                  {proximas[0].falta ? <p className="mt-1 text-xs text-fg-muted">{proximas[0].falta}</p> : null}
+                </div>
+              </div>
+              {proximas.length > 1 ? (
+                <details className="text-xs">
+                  <summary className="cursor-pointer font-semibold text-fg-muted">Outras perto de sair ({proximas.length - 1})</summary>
+                  <ul className="mt-1.5 space-y-1">
+                    {proximas.slice(1).map((m) => (
+                      <li key={m.codigo}><span className="font-semibold">{m.titulo}</span>{m.alvo ? <span className="font-mono text-fg-subtle"> {m.atual ?? 0}/{m.alvo}</span> : null}<span className="block text-fg-muted">{m.falta}</span></li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+              <p className="text-[11px] text-fg-subtle">Todas saem seguindo o seu plano: não é preciso treinar além do prescrito.</p>
             </CardBody>
           </Card>
+        ) : ganhas === total ? (
+          <p className="rounded-xl border border-accent/40 p-3 text-sm">Você conquistou todas as medalhas. Chalalá! 🏅</p>
         ) : null}
+        <VitrineMedalhas medalhas={destaque} nome={nome} reconhecimentos={reconhecimentosPorCodigo} />
+        <Link href="/aluno/conquistas/todas" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Todas as minhas conquistas ({total} medalhas + recordes e retomadas) →</Link>
       </section>
 
       {recordes.length ? (
@@ -199,7 +209,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, pr
                 <Card>
                   <CardBody className="space-y-1">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="font-bold">{c.titulo}</p>
+                      <p className="font-bold">{nomeDaConquista(c.codigo, c.titulo)}</p>
                       <time className="shrink-0 text-xs text-fg-subtle" dateTime={c.conquistado_em}>
                         {fmtData.format(new Date(c.conquistado_em))}
                       </time>
@@ -213,7 +223,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, pr
                       ) : null}
                       <details className="text-xs text-fg-subtle">
                         <summary className="cursor-pointer">Como é contada</summary>
-                        <p className="mt-1">{criterios[c.codigo]}</p>
+                        <p className="mt-1">{CATALOGO[c.codigo as keyof typeof CATALOGO]?.criterio ?? ""}</p>
                       </details>
                     </div>
                   </CardBody>
@@ -226,19 +236,17 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, pr
         )}
       </section>
 
-      {proximas.length ? (
-        <details className="rounded-xl border border-border p-4 text-sm">
-          <summary className="cursor-pointer font-semibold">Como as conquistas funcionam</summary>
-          <p className="mt-2 text-xs text-fg-muted">Elas reconhecem constância e evolução real. Nada é por carga maior que a de outras pessoas, peso perdido ou treino em excesso — e descanso prescrito nunca conta contra você.</p>
-          <ul className="mt-2 space-y-1.5 text-xs">
-            {proximas.map((p) => (
-              <li key={p.codigo}>
-                <span className="font-semibold">{p.titulo}:</span> <span className="text-fg-muted">{p.criterio}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
+      <details className="rounded-xl border border-border p-4 text-sm">
+        <summary className="cursor-pointer font-semibold">Como as conquistas funcionam</summary>
+        <p className="mt-2 text-xs text-fg-muted">Elas reconhecem acontecimentos reais do seu treino: constância, retomadas e evolução. Consistência não é uma sequência perfeita — semanas diferentes acontecem e você pode reorganizar e continuar. Nada é por comparação com outras pessoas, peso perdido ou treino além do prescrito; treino extra não conta e pausa combinada com o Montinho não conta como falta.</p>
+        <ul className="mt-2 space-y-1.5 text-xs">
+          {(Object.keys(CATALOGO) as Array<keyof typeof CATALOGO>).map((k) => (
+            <li key={k}>
+              <span className="font-semibold">{CONTEUDO[k].nome}{CATALOGO[k].repete ? " (repete)" : ""}:</span> <span className="text-fg-muted">{CATALOGO[k].criterio}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem={editor.origem} onFechar={() => setEditor(null)} /> : null}
     </>

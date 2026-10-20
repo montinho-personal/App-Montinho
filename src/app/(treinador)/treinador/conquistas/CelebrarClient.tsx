@@ -11,22 +11,35 @@ import { ROTULO_MODELO, FORMATOS, type ModeloId, type Formato } from "@/lib/chal
 
 const EditorCard = dynamic(() => import("@/components/chalala/EditorCard"), { ssr: false });
 
-type Conquista = { id: string; alunoId: string; aluno: string; titulo: string; descricao: string | null; data: string; reconhecida: boolean };
+type Conquista = { id: string; alunoId: string; aluno: string; codigo: string; categoria: string; titulo: string; descricao: string | null; data: string; reconhecida: boolean };
+type Resultados = { aderencia28: number | null; aderencia60: number | null; aderencia90: number | null; medalhas: number; retomadas: number; recordes: number };
+
+/** Filtros por tipo de conquista (o personal vê o que importa celebrar). */
+const TIPOS: Array<{ v: string; l: string; ok: (c: Conquista) => boolean }> = [
+  { v: "", l: "Todos os tipos", ok: () => true },
+  { v: "medalhas", l: "Novas medalhas", ok: (c) => c.codigo !== "recorde" && c.codigo !== "eu_voltei" },
+  { v: "metas", l: "Metas e constância", ok: (c) => c.categoria === "constancia" },
+  { v: "retornos", l: "Retornos após pausa", ok: (c) => c.categoria === "retomada" },
+  { v: "marcos", l: "Marcos de acompanhamento", ok: (c) => ["acompanhamento", "pratica", "comeco"].includes(c.categoria) },
+  { v: "recordes", l: "Recordes pessoais", ok: (c) => c.codigo === "recorde" },
+];
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
 const diaLocal = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(iso));
 const EXEMPLO = "Você está conseguindo manter sua rotina, mesmo com os desafios do dia a dia. Essa constância merece reconhecimento!";
 
-export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial = "", alunos, conquistas, enviados, metricas }: { dias: number; autor: string; alunoInicial?: string; mensagemInicial?: string; alunos: Array<{ id: string; nome: string }>; conquistas: Conquista[]; enviados: Array<{ id: string; aluno: string; mensagem: string; data: string }>; metricas: MetricasChalala }) {
+export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial = "", alunos, conquistas, enviados, metricas, resultados }: { dias: number; autor: string; alunoInicial?: string; mensagemInicial?: string; alunos: Array<{ id: string; nome: string }>; conquistas: Conquista[]; enviados: Array<{ id: string; aluno: string; mensagem: string; data: string }>; metricas: MetricasChalala; resultados: Resultados }) {
   const router = useRouter();
   const toast = useToast();
   const [filtro, setFiltro] = useState("");
+  const [tipo, setTipo] = useState("");
   const [sel, setSel] = useState<Conquista | null>(null);
   const [alunoLivre, setAlunoLivre] = useState(alunoInicial);
   const [msg, setMsg] = useState(mensagemInicial);
   const [notificar, setNotificar] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [preview, setPreview] = useState(false);
-  const lista = conquistas.filter((c) => !filtro || c.alunoId === filtro);
+  const okTipo = TIPOS.find((t) => t.v === tipo)?.ok ?? (() => true);
+  const lista = conquistas.filter((c) => (!filtro || c.alunoId === filtro) && okTipo(c));
   const alunoAlvo = sel?.alunoId ?? alunoLivre;
 
   async function enviar() {
@@ -51,10 +64,13 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
           </h2>
           <div className="flex items-center gap-2 text-xs">
             {[7, 30, 90].map((n) => (
-              <Link key={n} href={`/treinador/conquistas?dias=${n}`} aria-current={n === dias ? "page" : undefined} className={`rounded-full border px-2.5 py-1 ${n === dias ? "border-accent text-accent" : "border-border text-fg-muted"}`}>
+              <Link key={n} href={`/treinador/conquistas?dias=${n}`} aria-current={n === dias ? "page" : undefined} className={`whitespace-nowrap rounded-full border px-2.5 py-1 ${n === dias ? "border-accent text-accent" : "border-border text-fg-muted"}`}>
                 {n} dias
               </Link>
             ))}
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Filtrar por tipo" className="h-8 rounded-md border border-border bg-bg px-2">
+              {TIPOS.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
+            </select>
             <select value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar por aluno" className="h-8 rounded-md border border-border bg-bg px-2">
               <option value="">Todos os alunos</option>
               {alunos.map((a) => (
@@ -166,6 +182,33 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
               </p>
             ) : null}
             <p className="text-[11px] text-fg-subtle">“Compartilhar acionado” é a abertura da lista de apps do celular — não confirma que algo foi publicado. Nenhuma foto ou texto do aluno é registrado.</p>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="space-y-3 text-sm">
+            <h2 className="font-bold">Conquistas e aderência ({dias} dias)</h2>
+            <dl className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["Medalhas conquistadas", resultados.medalhas],
+                  ["Retomadas após pausa", resultados.retomadas],
+                  ["Treinos com recorde", resultados.recordes],
+                  ["Vitrine aberta", metricas.vitrines],
+                  ["Coleção completa aberta", metricas.colecoes],
+                  ["Explicações abertas", `${metricas.explicacoes} (${metricas.alunosQueLeram} aluno${metricas.alunosQueLeram === 1 ? "" : "s"})`],
+                  ["Aderência da turma — 28 dias", resultados.aderencia28 != null ? `${resultados.aderencia28}%` : "—"],
+                  ["Aderência — 60 dias", resultados.aderencia60 != null ? `${resultados.aderencia60}%` : "—"],
+                  ["Aderência — 90 dias", resultados.aderencia90 != null ? `${resultados.aderencia90}%` : "—"],
+                ] as const
+              ).map(([r, v]) => (
+                <div key={r} className="rounded-lg bg-surface p-2">
+                  <dt className="text-[11px] text-fg-subtle">{r}</dt>
+                  <dd className="font-mono text-lg font-bold">{v}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-[11px] text-fg-subtle">Números agregados da turma ativa (aderência = treinos válidos ÷ meta, sem pausas combinadas). Mostram tendência, não causa: não dá para afirmar que as medalhas fizeram alguém treinar mais. Nenhum ranking entre alunos é exibido.</p>
           </CardBody>
         </Card>
 

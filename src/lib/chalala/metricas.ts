@@ -16,6 +16,11 @@ export type MetricasChalala = {
   porFormato: Array<{ formato: string; cards: number }>;
   /** % das telas de conclusão em que o aluno abriu o editor (null sem base). */
   taxaAbertura: number | null;
+  /** Conquistas 3.0: vitrine e coleção abertas, explicações educativas abertas. */
+  vitrines: number;
+  colecoes: number;
+  explicacoes: number;
+  alunosQueLeram: number;
 };
 
 export function agregarEventos(eventos: EventoAgregavel[]): MetricasChalala {
@@ -38,6 +43,10 @@ export function agregarEventos(eventos: EventoAgregavel[]): MetricasChalala {
     alunosQueGeraram: new Set(gerados.map((e) => e.aluno_id).filter(Boolean)).size,
     porModelo: agrupar("modelo").map(([modelo, cards]) => ({ modelo, cards })),
     porFormato: agrupar("formato").map(([formato, cards]) => ({ formato, cards })),
+    vitrines: conta("vitrine_vista"),
+    colecoes: conta("colecao_vista"),
+    explicacoes: conta("explicacao_aberta"),
+    alunosQueLeram: new Set(eventos.filter((e) => e.tipo === "explicacao_aberta").map((e) => e.aluno_id).filter(Boolean)).size,
     taxaAbertura: conclusoes ? Math.min(100, Math.round((eventos.filter((e) => e.tipo === "editor_aberto" && e.origem === "conclusao").length / conclusoes) * 100)) : null,
   };
 }

@@ -28,11 +28,16 @@ export type ConquistaRow = {
   descricao: string | null;
   dados: { recordes?: ItemRecorde[]; diasAfastado?: number; meta?: number };
   created_at: string;
+  /** Conquistas 3.0 (0028). Antigas: versão 1, evidência vazia, origem “app”. */
+  criterio_versao?: number;
+  evidencia?: Record<string, unknown>;
+  origem?: "app" | "importado";
+  vista_em?: string | null;
 };
 
 export type Reconhecimento = { id: string; aluno_id: string; conquista_id: string | null; mensagem: string; autor_id: string | null; created_at: string };
 
-export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link"] as const;
+export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista"] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string };
 
@@ -69,13 +74,13 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
   const [completas, aderencia, existentes, resumo] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id)]);
   const sessoes = completas.map(paraConquista);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo) });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()) });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
   if (!faltam.length) return { todas: existentes, novas: [], sessoes, aderencia };
 
-  const linhas = faltam.map((d) => ({ aluno_id: aluno.id, codigo: d.codigo, referencia: d.referencia, conquistado_em: d.data, session_id: d.sessaoId, titulo: d.titulo, descricao: d.descricao, dados: d.dados ?? {} }));
+  const linhas = faltam.map((d) => ({ aluno_id: aluno.id, codigo: d.codigo, referencia: d.referencia, conquistado_em: d.data, session_id: d.sessaoId, titulo: d.titulo, descricao: d.descricao, dados: d.dados ?? {}, criterio_versao: d.versao, evidencia: d.evidencia, origem: d.origem, vista_em: null }));
   if (isDemoMode()) {
     const st = demo();
     const agora = new Date().toISOString();
@@ -89,9 +94,21 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
   return { todas, novas, sessoes, aderencia };
 }
 
+/** Marca conquistas do aluno como vistas (a celebração não reaparece). Só a coluna vista_em. */
+export async function marcarConquistasVistas(alunoId: string, ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const agora = new Date().toISOString();
+  if (isDemoMode()) {
+    for (const c of demo().conquistas) if (c.aluno_id === alunoId && ids.includes(c.id) && !c.vista_em) c.vista_em = agora;
+    return;
+  }
+  const db = await getDb();
+  await db.from("conquistas_aluno").update({ vista_em: agora }).eq("aluno_id", alunoId).in("id", ids).is("vista_em", null);
+}
+
 /** “Primeiro relatório consultado”: registrado quando o aluno abre a evolução completa. */
 export async function registrarRelatorioVisto(alunoId: string): Promise<void> {
-  const linha = { aluno_id: alunoId, codigo: "relatorio_mensal" as const, referencia: "1", conquistado_em: new Date().toISOString(), session_id: null, titulo: "Primeiro relatório consultado", descricao: "Você abriu sua evolução completa.", dados: {} };
+  const linha = { aluno_id: alunoId, codigo: "relatorio_mensal" as const, referencia: "1", conquistado_em: new Date().toISOString(), session_id: null, titulo: "Conhecendo minha evolução", descricao: "Você abriu sua evolução completa.", dados: {} };
   if (isDemoMode()) {
     const st = demo();
     if (!st.conquistas.some((c) => c.aluno_id === alunoId && c.codigo === "relatorio_mensal")) st.conquistas.push({ id: uid(), created_at: linha.conquistado_em, ...linha });

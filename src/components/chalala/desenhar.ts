@@ -144,6 +144,29 @@ function desenharOp(ctx: CanvasRenderingContext2D, op: Op, l: ResultadoLayout, c
         ctx.fill();
       }
       break;
+    case "medalha": {
+      const cy = op.y + op.r;
+      ctx.beginPath();
+      ctx.arc(op.x, cy, op.r - op.r * 0.08, 0, Math.PI * 2);
+      ctx.fillStyle = op.fundo;
+      ctx.fill();
+      ctx.lineWidth = op.r * 0.14;
+      ctx.strokeStyle = op.cor;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(op.x, cy, op.r * 0.72, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(2, op.r * 0.02);
+      ctx.globalAlpha = 0.45;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      const tam = Math.round(op.r * (op.selo.length > 3 ? 0.42 : 0.62));
+      ctx.font = `800 ${tam}px ${familia}`;
+      ctx.fillStyle = op.texto;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(op.selo, op.x, cy, op.r * 1.5);
+      break;
+    }
     case "texto":
       ctx.font = `${op.peso} ${op.tamanho}px ${familia}`;
       ctx.fillStyle = op.cor;
