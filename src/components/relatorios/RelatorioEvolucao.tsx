@@ -8,8 +8,9 @@ import type { Programa, ProgramaVersao } from "@/lib/supabase/types-sessoes";
 import type { Evolucao } from "@/lib/supabase/types";
 import type { CheckIn } from "@/lib/supabase/types-extended";
 import { calcularVolumeSemanal, compararProgramadoRealizado, volumeRealizadoPorGrupo, type DiaVolume } from "@/lib/volume/calcular";
-import { calendarioSessoes, melhoresMarcas, periodoDias, resumoPeriodo, seriesRealizadasPorGrupo, sessoesNoPeriodo, tonelagem } from "@/lib/relatorios/calcular";
+import { calendarioSessoes, melhoresMarcas, type ResumoEvolucao, periodoDias, resumoPeriodo, seriesRealizadasPorGrupo, sessoesNoPeriodo, tonelagem } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
+import { normalizarNome } from "@/lib/grupos";
 import { Acordeao } from "./Acordeao";
 import { dataLocal, somarDias, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
@@ -35,11 +36,13 @@ type Props = {
   inicioAcompanhamento?: string | null;
   /** Só para o personal: pedidos de treino extra e decisões. */
   pedidosExtra?: Array<{ titulo: string; status: string; data: string; resposta: string | null }>;
+  /** Resumo do histórico de outro app (só para o gráfico por exercício). */
+  historicoResumo?: ResumoEvolucao[];
 };
 
 const PERIODOS = [7, 30, 90] as const;
 
-export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, treinos, evolucao, checkIns, versoes, comentarioTreinador, exportarHref, aderencia = null, inicioAcompanhamento = null, pedidosExtra }: Props) {
+export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, treinos, evolucao, checkIns, versoes, comentarioTreinador, exportarHref, aderencia = null, inicioAcompanhamento = null, pedidosExtra, historicoResumo = [] }: Props) {
   const hojeLocal = dataLocal(new Date());
   const desdeLocal = somarDias(hojeLocal, -(dias - 1));
   const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje: hojeLocal, inicioAcompanhamento: inicioAcompanhamento ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hojeLocal });
@@ -51,6 +54,11 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   const noPeriodo = sessoesNoPeriodo(sessoes, periodo);
   const calendario = calendarioSessoes(sessoes, periodo);
   const marcas = melhoresMarcas(noPeriodo.length ? noPeriodo : sessoes).slice(0, 12);
+  const exerciciosGrafico = [...marcas.map((m) => ({ chave: m.chave, nome: m.exercicio }))];
+  for (const r of historicoResumo) {
+    const chave = normalizarNome(r.exercicio_nome);
+    if (r.series > 0 && !exerciciosGrafico.some((e) => e.chave === chave)) exerciciosGrafico.push({ chave, nome: r.exercicio_nome });
+  }
 
   // Volume programado (plano ativo) × realizado (média semanal no período)
   const diasVolume: DiaVolume[] = treinos.filter((t) => t.ativo).map((t) => ({
@@ -245,9 +253,12 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         {resumo.duracaoMediaMin ? <p className="text-xs text-fg-muted mt-2">Duração média: {resumo.duracaoMediaMin} min por sessão.</p> : null}
       </Acordeao>
 
-      <Acordeao titulo="Força e desempenho" resumo={marcas.length ? `${marcas.length} exercícios com registro` : "sem registros no período"}>
+      <Acordeao titulo="Força e desempenho" resumo={marcas.length ? `${marcas.length} exercícios com registro` : exerciciosGrafico.length ? "histórico do app anterior" : "sem registros no período"}>
         {marcas.length === 0 ? (
-          <p className="text-sm text-fg-muted">Registre cargas e repetições durante o treino para ver suas melhores marcas aqui.</p>
+          <>
+            <p className="text-sm text-fg-muted">Registre cargas e repetições durante o treino para ver suas melhores marcas aqui.</p>
+            {exerciciosGrafico.length ? <EvolucaoExercicioClient sessoes={sessoes} resumos={historicoResumo} exercicios={exerciciosGrafico} /> : null}
+          </>
         ) : (
           <>
             <div className="overflow-x-auto -mx-1">
@@ -275,7 +286,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
               </table>
             </div>
             <p className="text-[11px] text-fg-subtle mt-2">*e1RM = carga × (1 + reps ÷ 30) (Epley). Estimativa válida de 1 a 12 repetições; não é teste de força máxima nem indica hipertrofia.</p>
-            <EvolucaoExercicioClient sessoes={sessoes} exercicios={marcas.map((m) => ({ chave: m.chave, nome: m.exercicio }))} />
+            <EvolucaoExercicioClient sessoes={sessoes} resumos={historicoResumo} exercicios={exerciciosGrafico} />
           </>
         )}
       </Acordeao>

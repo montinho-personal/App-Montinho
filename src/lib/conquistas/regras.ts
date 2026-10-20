@@ -10,6 +10,7 @@
 //   sessão com dor relatada não vira recorde.
 // ============================================================================
 
+import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
 
@@ -70,6 +71,8 @@ export type EntradaConquistas = {
   sessoes: SessaoConquista[];
   aderencia: ResultadoAderencia;
   relatorioVistoEm?: string | null;
+  /** Resumo do histórico de outro app: só carga máxima por dia (base para recorde de carga). */
+  baseCarga?: BaseCarga[];
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
@@ -80,7 +83,7 @@ function nova(codigo: CodigoConquista, referencia: string, data: string, sessaoI
 }
 
 /** Recordes comparáveis de uma sessão contra todas as anteriores (mesmo exercício). */
-export function recordesDaSessao(sessao: SessaoConquista, anteriores: SessaoConquista[]): ItemRecorde[] {
+export function recordesDaSessao(sessao: SessaoConquista, anteriores: SessaoConquista[], baseCarga: BaseCarga[] = []): ItemRecorde[] {
   if (sessao.feedback_percepcao === "dor" || sessao.checkin_pre === "desconforto") return [];
   const out: ItemRecorde[] = [];
   const chave = (e: { exercicio_id: string | null; nome: string }) => e.exercicio_id ?? `nome:${normalizarNome(e.nome)}`;
@@ -95,9 +98,12 @@ export function recordesDaSessao(sessao: SessaoConquista, anteriores: SessaoConq
       .filter((e): e is NonNullable<typeof e> => !!e)
       .map((e) => validas(e.series))
       .filter((xs) => xs.length);
-    if (historico.length < REGRAS_CONQUISTAS.registrosParaRecorde) continue;
+    // Dias do resumo importado contam como registros, mas só informam a carga máxima.
+    const diaSessao = dataLocal(sessao.iniciado_em);
+    const resumo = baseCarga.filter((b) => b.data < diaSessao && normalizarNome(b.nome) === nomeK);
+    if (historico.length + resumo.length < REGRAS_CONQUISTAS.registrosParaRecorde) continue;
     const antes = historico.flat();
-    const maxAntes = Math.max(...antes.map((x) => x.carga_kg!));
+    const maxAntes = Math.max(...antes.map((x) => x.carga_kg!), ...resumo.map((b) => b.carga_max));
     const maxHoje = Math.max(...hoje.map((x) => x.carga_kg!));
     if (maxHoje > maxAntes) {
       out.push({ exercicio: ex.nome, tipo: "carga", antes: maxAntes, agora: maxHoje });
@@ -185,7 +191,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   for (let i = 0; i < baseRecordes.length; i++) {
     const s = baseRecordes[i];
     if (s.conta_aderencia === false) continue; // histórico importado não vira conquista
-    const r = recordesDaSessao(s, baseRecordes.slice(0, i));
+    const r = recordesDaSessao(s, baseRecordes.slice(0, i), e.baseCarga);
     if (r.length) out.push(nova("recorde", s.id, s.iniciado_em, s.id, r.map(textoRecorde).join(" · "), { recordes: r }));
   }
 

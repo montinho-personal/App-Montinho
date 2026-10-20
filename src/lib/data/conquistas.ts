@@ -14,6 +14,8 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
+import { listarHistoricoResumo } from "@/lib/data/historico";
+import { baseCargaDoResumo } from "@/lib/historico/resumo";
 
 export type ConquistaRow = {
   id: string;
@@ -64,10 +66,10 @@ export async function listarConquistas(alunoId: string | null, opts: { desde?: s
  * Pode ser chamada quantas vezes for: nunca duplica.
  */
 export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: ConquistaRow[]; novas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
-  const [completas, aderencia, existentes] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id)]);
+  const [completas, aderencia, existentes, resumo] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id)]);
   const sessoes = completas.map(paraConquista);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo) });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));

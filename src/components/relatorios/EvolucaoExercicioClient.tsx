@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import type { SessaoCompleta } from "@/lib/data/sessoes";
-import { evolucaoExercicio } from "@/lib/relatorios/calcular";
+import { evolucaoExercicio, type ResumoEvolucao } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
 
 /** Seleciona um exercício e mostra sua evolução (carga máxima e e1RM por data) em gráfico simples + tabela. */
-export function EvolucaoExercicioClient({ sessoes, exercicios }: { sessoes: SessaoCompleta[]; exercicios: Array<{ chave: string; nome: string }> }) {
+export function EvolucaoExercicioClient({ sessoes, exercicios, resumos = [] }: { sessoes: SessaoCompleta[]; exercicios: Array<{ chave: string; nome: string }>; resumos?: ResumoEvolucao[] }) {
   const [chave, setChave] = useState(exercicios[0]?.chave ?? "");
-  const pontos = useMemo(() => evolucaoExercicio(sessoes, chave), [sessoes, chave]);
+  const pontos = useMemo(() => evolucaoExercicio(sessoes, chave, resumos), [sessoes, chave, resumos]);
   const valores = pontos.map((p) => p.cargaMax ?? 0);
   const max = Math.max(1, ...valores);
   const min = Math.min(...valores.filter((v) => v > 0), max);
@@ -45,7 +45,7 @@ export function EvolucaoExercicioClient({ sessoes, exercicios }: { sessoes: Sess
             {pontos.map((p, i) => {
               const x = pontos.length > 1 ? (i / (pontos.length - 1)) * (W - 20) + 10 : W / 2;
               const y = H - 10 - ((Math.max(0, p.cargaMax ?? 0) - min) / Math.max(1, max - min)) * (H - 20);
-              return <circle key={p.data} cx={x} cy={y} r="3" fill="var(--color-accent)" />;
+              return p.fonte === "resumo" ? <circle key={p.data} cx={x} cy={y} r="3" fill="var(--color-bg)" stroke="var(--color-accent)" strokeWidth="1.5" /> : <circle key={p.data} cx={x} cy={y} r="3" fill="var(--color-accent)" />;
             })}
           </svg>
           <figcaption className="text-[11px] text-fg-subtle">Eixo vertical: carga máxima (kg) · eixo horizontal: sessões em ordem cronológica ({dataBR(pontos[0].data)} → {dataBR(pontos.at(-1)!.data)}).</figcaption>
@@ -68,7 +68,10 @@ export function EvolucaoExercicioClient({ sessoes, exercicios }: { sessoes: Sess
             .slice(0, 8)
             .map((p) => (
               <tr key={p.data} className="border-t border-border font-mono">
-                <td className="py-1 font-sans">{dataBR(p.data)}</td>
+                <td className="py-1 font-sans">
+                  {dataBR(p.data)}
+                  {p.fonte === "resumo" ? <span className="text-fg-subtle"> *</span> : null}
+                </td>
                 <td className="py-1 text-right">{p.cargaMax ?? "—"}</td>
                 <td className="py-1 text-right">{p.e1rmMax ?? "—"}</td>
                 <td className="py-1 text-right">{p.series}</td>
@@ -77,6 +80,9 @@ export function EvolucaoExercicioClient({ sessoes, exercicios }: { sessoes: Sess
             ))}
         </tbody>
       </table>
+      {pontos.some((p) => p.fonte === "resumo") ? (
+        <p className="text-[11px] text-fg-subtle">* Resumo do app anterior (círculo vazado no gráfico): só carga máxima, séries e volume do dia — sem carga e repetições de cada série, por isso sem e1RM.</p>
+      ) : null}
     </div>
   );
 }

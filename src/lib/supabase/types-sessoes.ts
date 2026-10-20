@@ -266,3 +266,4 @@ export type GrupoCorrecao = {
   grupo_muscular: GrupoMuscular;
   grupos_secundarios: GrupoMuscular[];
 };
+export type { HistoricoResumo } from "@/lib/historico/resumo";

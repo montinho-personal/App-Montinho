@@ -1,0 +1,80 @@
+// ============================================================================
+// Resumo do histórico de outro app (transcrito de prints pelo personal).
+// O app anterior mostra só o resumo do dia por exercício: séries, carga
+// máxima e volume. Guardamos exatamente isso — nunca reconstruímos carga ou
+// repetições por série (seria inventar dado).
+// Entra: gráfico de evolução por exercício e base de carga para recordes.
+// Não entra: aderência, sequência, calendário, conquistas.
+// ============================================================================
+
+import { normalizarNome } from "@/lib/grupos";
+
+export type HistoricoResumo = {
+  id: string;
+  aluno_id: string;
+  data: string; // YYYY-MM-DD
+  exercicio_nome: string;
+  nome_normalizado: string;
+  nome_original: string | null;
+  biblioteca_id: string | null;
+  letra: string | null;
+  series: number;
+  carga_max_kg: number | null;
+  volume_kg: number | null;
+  reps_total: number | null;
+  fonte: string;
+  importacao: string | null;
+  observacao: string | null;
+  created_at: string;
+};
+
+/** Linha de um arquivo de importação (o que foi lido no print). */
+export type LinhaResumo = {
+  data: string;
+  /** Nome do exercício como está na prescrição atual (liga ao histórico novo). */
+  exercicio: string;
+  /** Nome como aparecia no app anterior. */
+  nomeOriginal: string;
+  bibliotecaId?: string | null;
+  /** Só quando dá para deduzir com segurança (ex.: exercício exclusivo de um treino). */
+  letra?: string | null;
+  series: number;
+  cargaMax: number | null;
+  volume: number | null;
+  observacao?: string | null;
+};
+
+export type ImportacaoResumo = { id: string; alunoNome: string; titulo: string; fonte: string; linhas: LinhaResumo[]; avisos: string[] };
+
+/** Linha pronta para gravar (sem aluno). Dia sem séries não é treino feito — fica de fora. */
+export function linhasParaGravar(imp: ImportacaoResumo) {
+  return imp.linhas
+    .filter((l) => l.series > 0)
+    .map((l) => ({
+      data: l.data,
+      exercicio_nome: l.exercicio,
+      nome_normalizado: normalizarNome(l.exercicio),
+      nome_original: l.nomeOriginal,
+      biblioteca_id: l.bibliotecaId ?? null,
+      letra: l.letra ?? null,
+      series: l.series,
+      carga_max_kg: l.cargaMax,
+      volume_kg: l.volume,
+      reps_total: null,
+      fonte: imp.fonte,
+      importacao: imp.id,
+      observacao: l.observacao ?? null,
+    }));
+}
+
+/** Dias distintos com treino registrado no resumo. */
+export function diasDoResumo(linhas: Array<{ data: string; series: number }>): string[] {
+  return [...new Set(linhas.filter((l) => l.series > 0).map((l) => l.data))].sort();
+}
+
+/** Base de carga para recordes: o resumo só informa a carga máxima (sem reps). */
+export type BaseCarga = { data: string; nome: string; carga_max: number };
+
+export function baseCargaDoResumo(rs: Array<Pick<HistoricoResumo, "data" | "exercicio_nome" | "carga_max_kg" | "series">>): BaseCarga[] {
+  return rs.filter((r) => r.series > 0 && (r.carga_max_kg ?? 0) > 0).map((r) => ({ data: r.data, nome: r.exercicio_nome, carga_max: Number(r.carga_max_kg) }));
+}

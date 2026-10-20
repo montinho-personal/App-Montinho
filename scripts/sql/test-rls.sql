@@ -531,4 +531,34 @@ begin
   raise notice 'T14 OK: extras — aluno só pede, personal aprova, isolamento entre alunos, prioridade validada';
 end $$;
 select test_logout();
+-- T15 — 0025: resumo do histórico de outro app (personal grava; aluno só lê o próprio)
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into historico_resumo (aluno_id, data, exercicio_nome, nome_normalizado, series, carga_max_kg, volume_kg)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-10-07', 'Cadeira abdutora', 'cadeira abdutora', 4, 80, 3070);
+do $$
+declare ok boolean := false;
+begin
+  begin insert into historico_resumo (aluno_id, data, exercicio_nome, nome_normalizado, series, carga_max_kg, volume_kg)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-10-07', 'Cadeira abdutora', 'cadeira abdutora', 4, 80, 3070);
+  exception when unique_violation then ok := true; end;
+  if not ok then raise exception 'T15: resumo duplicado para o mesmo dia/exercício'; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from historico_resumo;
+  if n <> 1 then raise exception 'T15: aluna A deveria ver o próprio resumo (viu %)', n; end if;
+  begin insert into historico_resumo (aluno_id, data, exercicio_nome, nome_normalizado, series) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-10-08', 'X', 'x', 1); exception when others then ok := true; end;
+  if not ok then raise exception 'T15: aluno gravou histórico'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from historico_resumo;
+  if n <> 0 then raise exception 'T15: aluno B viu histórico de A'; end if;
+  raise notice 'T15 OK: resumo do histórico — personal grava, aluno só lê o próprio, sem duplicar';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

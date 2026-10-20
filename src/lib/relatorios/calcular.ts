@@ -212,20 +212,28 @@ export function recordesNoPeriodo(sessoes: SessaoCompleta[], p: Periodo): Record
   return out;
 }
 
-export function evolucaoExercicio(sessoes: SessaoCompleta[], chave: string): Array<{ data: string; cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number }> {
+export type PontoEvolucao = { data: string; cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number; fonte: "app" | "resumo" };
+export type ResumoEvolucao = { data: string; exercicio_nome: string; series: number; carga_max_kg: number | null; volume_kg: number | null };
+
+/** Evolução por data. O resumo de outro app entra só nos dias sem registro no app (e sem e1RM: não há reps por série). */
+export function evolucaoExercicio(sessoes: SessaoCompleta[], chave: string, resumos: ResumoEvolucao[] = []): PontoEvolucao[] {
   const mapa = seriesPorExercicio(sessoes);
-  const b = mapa.get(normalizarNome(chave));
-  if (!b) return [];
-  const porData = new Map<string, { cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number }>();
-  for (const s of b.series) {
-    const d = porData.get(s.data) ?? { cargaMax: null, e1rmMax: null, tonelagem: 0, series: 0 };
+  const k = normalizarNome(chave);
+  const b = mapa.get(k);
+  const porData = new Map<string, PontoEvolucao>();
+  for (const s of b?.series ?? []) {
+    const d = porData.get(s.data) ?? { data: s.data, cargaMax: null, e1rmMax: null, tonelagem: 0, series: 0, fonte: "app" as const };
     d.series += 1;
     if (s.carga_kg != null) d.cargaMax = Math.max(d.cargaMax ?? 0, s.carga_kg);
     if (s.e1rm != null) d.e1rmMax = Math.max(d.e1rmMax ?? 0, s.e1rm);
     if (s.carga_kg != null && s.reps != null) d.tonelagem += s.carga_kg * s.reps;
     porData.set(s.data, d);
   }
-  return [...porData.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([data, v]) => ({ data, ...v, tonelagem: Math.round(v.tonelagem) }));
+  for (const r of resumos) {
+    if (r.series <= 0 || normalizarNome(r.exercicio_nome) !== k || porData.has(r.data)) continue;
+    porData.set(r.data, { data: r.data, cargaMax: r.carga_max_kg != null ? Number(r.carga_max_kg) : null, e1rmMax: null, tonelagem: Number(r.volume_kg ?? 0), series: r.series, fonte: "resumo" });
+  }
+  return [...porData.values()].sort((a, b) => (a.data < b.data ? -1 : 1)).map((v) => ({ ...v, tonelagem: Math.round(v.tonelagem) }));
 }
 
 /** Tonelagem (carga × reps) de séries válidas. Só faz sentido comparando os mesmos exercícios. */

@@ -1,0 +1,48 @@
+// ============================================================================
+// Histórico de Adriana Nascimento no app anterior — transcrito dos prints
+// enviados pelo personal (tela “Progressão” › exercício › 90 dias).
+// O app anterior só mostra o resumo do dia: séries, carga máxima e volume.
+// Nada foi reconstruído por série. A letra do treino só é preenchida quando
+// sai dos próprios dados (exercício exclusivo de um treino no mesmo dia, ou
+// volume que bate exatamente com as repetições prescritas).
+// ============================================================================
+
+import { BIBLIOTECA, NOME_ALUNA } from "@/lib/prescricoes/miss-terracos-tambore";
+import type { ImportacaoResumo, LinhaResumo } from "./resumo";
+
+const ABD = "Cadeira abdutora";
+const EXT = "Cadeira extensora";
+const PANT = "Panturrilha no leg press horizontal (180°)";
+
+const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
+  data, exercicio, nomeOriginal, bibliotecaId: BIBLIOTECA[exercicio]?.id ?? null, letra, series, cargaMax, volume, observacao,
+});
+
+export const LINHAS: LinhaResumo[] = [
+  // Cadeira abdutora (6 sessões)
+  l("2026-10-07", ABD, "Cadeira Abdutora", 4, 80, 3070),
+  l("2026-10-09", ABD, "Cadeira Abdutora", 4, 80, 4610),
+  l("2026-10-13", ABD, "Cadeira Abdutora", 4, 80, 3900),
+  l("2026-10-15", ABD, "Cadeira Abdutora", 4, 100, 4210, "A", "Treino A deduzido: cadeira extensora (só no A) no mesmo dia."),
+  l("2026-10-16", ABD, "Cadeira Abdutora", 4, 90, 3440, "C", "Treino C deduzido: panturrilha 4×15 (bi-set do C) no mesmo dia."),
+  l("2026-10-19", ABD, "Cadeira Abdutora", 4, 110, 4900, "A", "Treino A deduzido: cadeira extensora (só no A) no mesmo dia."),
+  // Panturrilha no leg press 180 (07/10 aparece com 0 séries: registrado, não feito)
+  l("2026-10-07", PANT, "Panturrilha no leg press 180", 0, null, null, null, "0 séries no app anterior — não conta como feito."),
+  l("2026-10-08", PANT, "Panturrilha no leg press 180", 4, 55, 4200, "D", "Volume ÷ 80 repetições (4×20 do treino D) = 52,5 kg de média."),
+  l("2026-10-16", PANT, "Panturrilha no leg press 180", 4, 55, 2445, "C", "Volume ÷ 60 repetições (4×15 do bi-set do C) ≈ 40,8 kg de média."),
+  // Cadeira extensora (só no treino A)
+  l("2026-10-15", EXT, "Cadeira Extensora", 4, 43, 1996, "A"),
+  l("2026-10-19", EXT, "Cadeira Extensora", 4, 43, 1996, "A"),
+];
+
+export const IMPORTACAO: ImportacaoResumo = {
+  id: "adriana-app-anterior-v1",
+  alunoNome: NOME_ALUNA,
+  titulo: "Histórico do app anterior (resumo por dia)",
+  fonte: "app_anterior",
+  linhas: LINHAS,
+  avisos: [
+    "O app anterior não mostra a carga e as repetições de cada série — só o resumo do dia. Por isso estes registros não têm e1RM nem comparação de repetições.",
+    "Entra no gráfico de evolução por exercício e como base de carga para os recordes. Não entra em aderência, sequência nem conquistas.",
+  ],
+};

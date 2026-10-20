@@ -31,6 +31,9 @@ import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
 import { assinaturaTreinos, prescricoesParaAluno } from "@/lib/prescricoes";
 import { auditarPrescricao } from "@/lib/prescricoes/auditar";
 import { PrescricaoProntaCard } from "@/components/prescricoes/PrescricaoProntaCard";
+import { HistoricoResumoCard } from "@/components/historico/HistoricoResumoCard";
+import { importacoesParaAluno } from "@/lib/historico";
+import { listarHistoricoResumo } from "@/lib/data/historico";
 import { listarExtras, listarSolicitacoes } from "@/lib/data/extras";
 import { AcompanhamentoClient } from "./AcompanhamentoClient";
 import type { Anamnese } from "@/lib/supabase/types-extended";
@@ -63,7 +66,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
-  const [aderencia, pedidosExtra, extrasAluno] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id)]);
+  const [aderencia, pedidosExtra, extrasAluno, historicoResumo] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id)]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
 
@@ -148,6 +151,14 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           auditoria={auditarPrescricao(pr.plano)}
           pendencias={pr.pendencias}
           jaCadastrada={plano.treinos.length > 0 && assinaturaTreinos(plano.treinos) === assinaturaTreinos(pr.plano.treinos)}
+        />
+      ))}
+      {importacoesParaAluno(aluno.profile?.nome).map((imp) => (
+        <HistoricoResumoCard
+          key={imp.id}
+          alunoId={id}
+          importacao={{ id: imp.id, titulo: imp.titulo, linhas: imp.linhas, avisos: imp.avisos }}
+          gravadas={historicoResumo.filter((r) => r.importacao === imp.id).length}
         />
       ))}
       <Tabs
@@ -243,7 +254,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             key: "evolucao",
             label: "Evolução",
             content: (
-              <RelatorioEvolucao modo="treinador" dias={dias} basePath={`/treinador/alunos/${id}`} sessoes={sessoes} programa={plano.programa} treinos={plano.treinos} evolucao={evolucao as Evolucao[]} checkIns={checkIns} versoes={versoes} exportarHref={`/api/alunos/${id}/exportar`} aderencia={aderencia} inicioAcompanhamento={aluno.data_inicio ?? aluno.created_at.slice(0, 10)} pedidosExtra={pedidosExtra.slice(0, 15).map((p) => ({ titulo: tituloExtra[p.extra_id] ?? "Treino extra", status: p.status, data: p.created_at, resposta: p.resposta }))} />
+              <RelatorioEvolucao modo="treinador" dias={dias} basePath={`/treinador/alunos/${id}`} sessoes={sessoes} programa={plano.programa} treinos={plano.treinos} evolucao={evolucao as Evolucao[]} checkIns={checkIns} versoes={versoes} exportarHref={`/api/alunos/${id}/exportar`} historicoResumo={historicoResumo} aderencia={aderencia} inicioAcompanhamento={aluno.data_inicio ?? aluno.created_at.slice(0, 10)} pedidosExtra={pedidosExtra.slice(0, 15).map((p) => ({ titulo: tituloExtra[p.extra_id] ?? "Treino extra", status: p.status, data: p.created_at, resposta: p.resposta }))} />
             ),
           },
           {

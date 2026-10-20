@@ -9,6 +9,7 @@ import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
 import { BRAND } from "@/config/brand";
 import { getAluno } from "@/lib/db";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
+import { listarHistoricoResumo } from "@/lib/data/historico";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
@@ -21,13 +22,14 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   const sessao = await requireAlunoPage();
   const { dias: d } = await searchParams;
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
-  const [plano, sessoes, evolucao, checkIns, versoes, intervencoes] = await Promise.all([
+  const [plano, sessoes, evolucao, checkIns, versoes, intervencoes, historicoResumo] = await Promise.all([
     getPlanoAtivo(sessao.alunoId),
     listSessoes(sessao.alunoId, { limite: 400 }),
     listEvolucao(sessao.alunoId),
     listCheckIns(sessao.alunoId, 120),
     listVersoes(sessao.alunoId, 10),
     listIntervencoes(sessao.alunoId, 5),
+    listarHistoricoResumo(sessao.alunoId),
   ]);
   const aluno = await getAluno(sessao.alunoId);
   const aderencia = aluno ? await aderenciaDoAluno(aluno) : null;
@@ -68,6 +70,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         comentarioTreinador={comentario ? { texto: comentario.descricao, autor: comentario.autor?.nome ?? BRAND.name, data: comentario.created_at } : null}
         exportarHref={`/api/alunos/${sessao.alunoId}/exportar`}
         aderencia={aderencia}
+        historicoResumo={historicoResumo}
         inicioAcompanhamento={aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null}
       />
     </div>
