@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 import { useRouter } from "next/navigation";
 import { ImportarEstrategia, salvarEstrategiaNoAluno, type Lida } from "@/components/estrategia/ImportarEstrategia";
+import { telefoneDoWhatsapp } from "@/lib/estrategia/ler";
 
 type FormState = {
   nome: string;
@@ -51,7 +52,17 @@ function NovoAlunoModal({ onClose }: { onClose: () => void }) {
     setLida(l);
     const e = l?.estrategia;
     if (!e) return;
-    setForm((f) => ({ ...f, nome: f.nome || e.aluno || "", objetivo: f.objetivo || e.objetivo || "" }));
+    const c = l?.cadastro;
+    // Só preenche o que está vazio: o que você já digitou no formulário fica.
+    setForm((f) => ({
+      ...f,
+      nome: f.nome || e.aluno || "",
+      objetivo: f.objetivo || e.objetivo || "",
+      email: f.email || c?.email || "",
+      telefone: f.telefone || (c?.whatsapp ? telefoneDoWhatsapp(c.whatsapp) : ""),
+      data_nascimento: f.data_nascimento || c?.dataNascimento || "",
+      sexo: f.sexo || c?.sexo || "",
+    }));
   }
 
   function set(key: keyof FormState, value: string) {

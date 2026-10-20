@@ -369,8 +369,18 @@ export const estrategiaSchema = z.object({
   exerciciosObrigatorios: txt(1000).optional(),
   exerciciosEvitar: txt(1000).optional(),
 });
+/** Cadastro que vem no arquivo do Strategy (só preenche o que vier preenchido). */
+export const cadastroStrategySchema = z.object({
+  dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  idade: z.number().int().min(5).max(110).nullable(),
+  sexo: z.enum(["M", "F"]).nullable(),
+  email: z.string().trim().toLowerCase().email().max(254).nullable(),
+  whatsapp: z.string().regex(/^55\d{10,11}$/).nullable(),
+});
+
 export const salvarEstrategiaSchema = z.object({
   estrategia: estrategiaSchema,
+  cadastro: cadastroStrategySchema.nullable().optional(),
   arquivo_nome: z.string().trim().max(200).nullable().optional(),
   criar_plano: z.boolean().default(true),
 });

@@ -3,7 +3,7 @@
 // encontrado, para o personal conferir antes de salvar. Não grava nada.
 import { NextResponse } from "next/server";
 import { requireTreinadorApi } from "@/lib/auth/session";
-import { estrategiaValida, lerArquivoStrategy, lerEstrategia, type EstrategiaImportada } from "@/lib/estrategia/ler";
+import { cadastroDoArquivoStrategy, estrategiaValida, lerArquivoStrategy, lerEstrategia, type CadastroStrategy, type EstrategiaImportada } from "@/lib/estrategia/ler";
 import { estrategiaSchema } from "@/lib/validacao/schemas";
 import { diasDaEstrategia, focoDoDia } from "@/lib/estrategia/divisao";
 import { textoDoPdf } from "@/lib/estrategia/pdf";
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   if (arquivo.size > MAX_BYTES) return NextResponse.json({ error: "Arquivo grande demais (máx. 8 MB)." }, { status: 413 });
   const bytes = new Uint8Array(await arquivo.arrayBuffer());
   let estrategia: EstrategiaImportada;
+  let cadastro: CadastroStrategy | null = null;
   const ehPdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
   if (ehPdf) {
     let texto: string;
@@ -40,9 +41,10 @@ export async function POST(request: Request) {
     const ok = lida ? estrategiaSchema.safeParse(lida) : null;
     if (!lida || !ok?.success) return NextResponse.json({ error: "Este arquivo não é do Montinho Strategy (ou está incompleto)." }, { status: 422 });
     estrategia = ok.data as EstrategiaImportada;
+    cadastro = cadastroDoArquivoStrategy(dados);
   }
   if (!estrategiaValida(estrategia)) return NextResponse.json({ error: "Não reconheci uma estratégia do Montinho Strategy (não encontrei objetivo e divisão/volume)." }, { status: 422 });
   const dias = diasDaEstrategia(estrategia).map((d) => ({ letra: d.letra, nome: d.nome, foco: focoDoDia(d) }));
   const naoReconhecidos = estrategia.volume.filter((v) => !v.grupo).map((v) => v.rotulo);
-  return NextResponse.json({ estrategia, dias, naoReconhecidos, arquivo_nome: arquivo.name.slice(0, 200) });
+  return NextResponse.json({ estrategia, dias, naoReconhecidos, arquivo_nome: arquivo.name.slice(0, 200), cadastro });
 }

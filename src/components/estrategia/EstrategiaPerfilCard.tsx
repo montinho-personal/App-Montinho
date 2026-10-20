@@ -23,7 +23,9 @@ export function EstrategiaPerfilCard({ alunoId, vigente, fase, importadaEm }: { 
     const r = await salvarEstrategiaNoAluno(alunoId, lida);
     setSalvando(false);
     if (!r.ok) return toast.error(r.error ?? "Erro ao salvar.");
-    toast.success(r.planoCriado ? "Estratégia salva e plano inicial criado (dias por músculo)." : `Estratégia salva.${r.motivoSemPlano ? ` ${r.motivoSemPlano}` : ""}`);
+    const NOMES: Record<string, string> = { telefone: "WhatsApp", data_nascimento: "nascimento", sexo: "sexo" };
+    const cad = r.cadastroAtualizado?.length ? ` Cadastro atualizado: ${r.cadastroAtualizado.map((k) => NOMES[k] ?? k).join(", ")}.` : "";
+    toast.success(r.planoCriado ? `Estratégia salva e plano inicial criado (dias por músculo).${cad}` : `Estratégia salva.${r.motivoSemPlano ? ` ${r.motivoSemPlano}` : ""}${cad}`);
     setLida(null);
     setAbrir(false);
     router.refresh();

@@ -204,3 +204,34 @@ export function lerArquivoStrategy(dados: unknown): EstrategiaImportada | null {
       }),
   };
 }
+
+/**
+ * Dados de cadastro que vêm junto no arquivo do Montinho Strategy. Ficam
+ * fora da estratégia salva (vão só para o cadastro do aluno). Campo
+ * inválido ou ausente vira null — e null nunca apaga o que já existe no app.
+ */
+export type CadastroStrategy = { dataNascimento: string | null; idade: number | null; sexo: "M" | "F" | null; email: string | null; whatsapp: string | null };
+
+export function cadastroDoArquivoStrategy(dados: unknown): CadastroStrategy | null {
+  const d = dados as { formato?: unknown; estrategia?: Record<string, unknown> } | null;
+  if (!d || d.formato !== "montinho-strategy" || !d.estrategia || typeof d.estrategia !== "object") return null;
+  const e = d.estrategia;
+  const nasc = typeof e.dataNascimento === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.dataNascimento) && !Number.isNaN(Date.parse(`${e.dataNascimento}T12:00:00Z`)) && e.dataNascimento >= "1900-01-01" && e.dataNascimento <= new Date().toISOString().slice(0, 10) ? e.dataNascimento : null;
+  const idadeN = Number(e.idade);
+  const idade = e.idade != null && Number.isInteger(idadeN) && idadeN >= 5 && idadeN <= 110 ? idadeN : null;
+  const sx = typeof e.sexo === "string" ? semAcento(e.sexo) : "";
+  const sexo = /^(m|masc|masculino|homem)$/.test(sx) ? "M" : /^(f|fem|feminino|mulher)$/.test(sx) ? "F" : null;
+  const em = typeof e.email === "string" ? e.email.trim().toLowerCase() : "";
+  const email = em.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) ? em : null;
+  const zap = typeof e.whatsapp === "string" || typeof e.whatsapp === "number" ? String(e.whatsapp).replace(/\D/g, "") : "";
+  const whatsapp = /^55\d{10,11}$/.test(zap) ? zap : null;
+  const c = { dataNascimento: nasc, idade, sexo, email, whatsapp } as CadastroStrategy;
+  return Object.values(c).some((v) => v != null) ? c : null;
+}
+
+/** "5511988887777" → "+55 11 98888-7777" (mesmo formato do “Editar dados”). */
+export function telefoneDoWhatsapp(w: string): string {
+  const ddd = w.slice(2, 4);
+  const n = w.slice(4);
+  return `+55 ${ddd} ${n.slice(0, n.length - 4)}-${n.slice(-4)}`;
+}

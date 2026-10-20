@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
-import { estrategiaValida, grupoDoRotulo, lerEstrategia } from "./ler";
+import { cadastroDoArquivoStrategy, estrategiaValida, grupoDoRotulo, lerArquivoStrategy, lerEstrategia, telefoneDoWhatsapp } from "./ler";
 import { diasDaEstrategia, modeloDaDivisao } from "./divisao";
 import { planoDaEstrategia, prioridadesEmGrupos } from "./plano";
-import { salvarPlanoSchema } from "@/lib/validacao/schemas";
+import { estrategiaSchema, salvarPlanoSchema } from "@/lib/validacao/schemas";
 
 // Relatório real do Montinho Strategy, com nomes trocados (dados fictícios).
 const TEXTO = fs.readFileSync(path.join(__dirname, "fixtures/relatorio-exemplo.txt"), "utf8");
@@ -133,5 +133,24 @@ describe("arquivo do Montinho Strategy (.montinho.json) e faixas", () => {
     const x = lerEstrategia(t);
     expect(x.volume[0]).toEqual({ rotulo: "Peitoral", grupo: "peito", series: 14, max: 18 });
     expect(x.volumeTotal).toBe(96);
+  });
+});
+
+describe("cadastro do arquivo do Strategy", () => {
+  const arq = (e: Record<string, unknown>) => ({ formato: "montinho-strategy", versaoFormato: 1, estrategia: e });
+  it("lê nascimento, sexo, e-mail e WhatsApp; inválido vira null", () => {
+    expect(cadastroDoArquivoStrategy(arq({ dataNascimento: "1990-05-20", idade: 36, sexo: "Masculino", email: " Fulano@Teste.com ", whatsapp: "5511988887777" }))).toEqual({ dataNascimento: "1990-05-20", idade: 36, sexo: "M", email: "fulano@teste.com", whatsapp: "5511988887777" });
+    expect(cadastroDoArquivoStrategy(arq({ dataNascimento: "20/05/1990", sexo: "outro", email: "sem-arroba", whatsapp: "11988887777", idade: 36 }))).toEqual({ dataNascimento: null, idade: 36, sexo: null, email: null, whatsapp: null });
+    expect(cadastroDoArquivoStrategy(arq({ dataNascimento: null, idade: null, sexo: null, email: null, whatsapp: null }))).toBeNull();
+    expect(cadastroDoArquivoStrategy({ formato: "outro" })).toBeNull();
+  });
+  it("WhatsApp no formato do cadastro e fora da estratégia salva", () => {
+    expect(telefoneDoWhatsapp("5511988887777")).toBe("+55 11 98888-7777");
+    expect(telefoneDoWhatsapp("551133334444")).toBe("+55 11 3333-4444");
+    const lida = lerArquivoStrategy(arq({ ...e, email: "x@y.com", whatsapp: "5511988887777", dataNascimento: "1990-05-20" }))!;
+    const salva = estrategiaSchema.parse(lida) as Record<string, unknown>;
+    expect(salva.email).toBeUndefined();
+    expect(salva.whatsapp).toBeUndefined();
+    expect(salva.dataNascimento).toBeUndefined();
   });
 });

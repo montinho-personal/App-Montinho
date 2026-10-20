@@ -3,7 +3,8 @@
 // Escolher o PDF do Montinho Strategy → o app lê e mostra o que encontrou
 // (para conferir) antes de salvar. Usado no “Novo aluno” e no perfil.
 import { useRef, useState } from "react";
-import type { EstrategiaImportada } from "@/lib/estrategia/ler";
+import { telefoneDoWhatsapp, type CadastroStrategy, type EstrategiaImportada } from "@/lib/estrategia/ler";
+import { dataBR } from "@/lib/format";
 
 function volumeTexto(e: EstrategiaImportada): string {
   if (!e.volume.length) return e.volumeTotal ? `${e.volumeTotal} séries/semana` : "—";
@@ -12,7 +13,7 @@ function volumeTexto(e: EstrategiaImportada): string {
   return `${max > min ? `${min}–${max}` : min} séries/semana`;
 }
 
-export type Lida = { estrategia: EstrategiaImportada; dias: Array<{ letra: string; nome: string; foco: string }>; naoReconhecidos?: string[]; arquivo_nome: string };
+export type Lida = { estrategia: EstrategiaImportada; dias: Array<{ letra: string; nome: string; foco: string }>; naoReconhecidos?: string[]; arquivo_nome: string; cadastro?: CadastroStrategy | null };
 
 export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) => void; lida: Lida | null }) {
   const input = useRef<HTMLInputElement>(null);
@@ -87,6 +88,19 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
             <dt className="text-fg-subtle">Volume</dt><dd>{volumeTexto(e)}</dd>
             <dt className="text-fg-subtle">Fases</dt><dd>{e.fases.length ? e.fases.map((f) => f.nome).join(" → ") : "—"}</dd>
           </dl>
+          {lida.cadastro ? (
+            <div className="rounded-md bg-card px-2 py-1.5 text-xs">
+              <p className="font-semibold">Cadastro do aluno (vai para os dados dele)</p>
+              <p className="text-fg-muted [overflow-wrap:anywhere]">
+                {[
+                  lida.cadastro.dataNascimento ? `Nascimento ${dataBR(lida.cadastro.dataNascimento)}` : lida.cadastro.idade ? `${lida.cadastro.idade} anos` : null,
+                  lida.cadastro.sexo === "M" ? "Masculino" : lida.cadastro.sexo === "F" ? "Feminino" : null,
+                  lida.cadastro.whatsapp ? `WhatsApp ${telefoneDoWhatsapp(lida.cadastro.whatsapp)}` : null,
+                  lida.cadastro.email,
+                ].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          ) : null}
           {lida.naoReconhecidos?.length ? (
             <p className="text-xs text-warning">Grupo(s) sem correspondência no app, fora das metas: {lida.naoReconhecidos.join(", ")}. Ajuste o nome no Strategy (ex.: “Posterior de coxa”) ou monte no montador.</p>
           ) : null}
@@ -113,9 +127,9 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
 }
 
 /** Salva a estratégia lida no aluno (cria o plano inicial se ele ainda não tiver treino). */
-export async function salvarEstrategiaNoAluno(alunoId: string, lida: Lida): Promise<{ ok: boolean; planoCriado?: boolean; motivoSemPlano?: string | null; error?: string }> {
-  const res = await fetch(`/api/alunos/${alunoId}/estrategia`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estrategia: lida.estrategia, arquivo_nome: lida.arquivo_nome, criar_plano: true }) }).catch(() => null);
+export async function salvarEstrategiaNoAluno(alunoId: string, lida: Lida): Promise<{ ok: boolean; planoCriado?: boolean; motivoSemPlano?: string | null; cadastroAtualizado?: string[]; error?: string }> {
+  const res = await fetch(`/api/alunos/${alunoId}/estrategia`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estrategia: lida.estrategia, cadastro: lida.cadastro ?? null, arquivo_nome: lida.arquivo_nome, criar_plano: true }) }).catch(() => null);
   const d = await res?.json().catch(() => ({}));
   if (!res?.ok) return { ok: false, error: d?.error ?? "Não foi possível salvar a estratégia." };
-  return { ok: true, planoCriado: d.planoCriado, motivoSemPlano: d.motivoSemPlano };
+  return { ok: true, planoCriado: d.planoCriado, motivoSemPlano: d.motivoSemPlano, cadastroAtualizado: d.cadastroAtualizado };
 }
