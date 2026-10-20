@@ -206,7 +206,7 @@ commit;
 do $$
 declare n int; h_atual text;
 begin
-  select count(*) into n from exercicios_biblioteca;
+  select count(*) into n from exercicios_biblioteca where origem = 'catalogo';
   if n <> 150 then raise exception 'T7b: reaplicar o catálogo duplicou itens (%)', n; end if;
   select md5(string_agg(e::text, '|' order by e.id)) into h_atual from exercicios e;
   if h_atual is distinct from (select a.h from _antes a) then raise exception 'T7b: o catálogo alterou prescrições existentes'; end if;
@@ -217,7 +217,7 @@ select test_login('22222222-2222-2222-2222-222222222222');
 do $$
 declare n int; ok boolean;
 begin
-  select count(*) into n from exercicios_biblioteca;
+  select count(*) into n from exercicios_biblioteca where origem = 'catalogo';
   if n <> 150 then raise exception 'T7c: aluno deveria ler a biblioteca (viu %)', n; end if;
   select count(*) into n from exercicio_equivalencias;
   if n <> 0 then raise exception 'T7c: aluno não pode ler equivalências (viu %)', n; end if;

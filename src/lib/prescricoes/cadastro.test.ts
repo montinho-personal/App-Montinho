@@ -24,7 +24,7 @@ describe("cadastro da prescrição (salvarPlano real, modo demo)", async () => {
     expect(plano.programa?.frequencia).toEqual({ A: 1, B: 1, C: 1, D: 1 });
     const aud = auditarPrescricao({ treinos: plano.treinos as never });
     expect(aud.map((t) => [t.letra, t.exercicios, t.series, t.posicoes])).toEqual([["A", 6, 21, 6], ["B", 6, 24, 5], ["C", 7, 25, 6], ["D", 6, 24, 5]]);
-    const legPress = plano.treinos.find((t) => t.letra === "A")!.exercicios.find((e) => e.nome === "Leg press 180")!;
+    const legPress = plano.treinos.find((t) => t.letra === "A")!.exercicios.find((e) => e.nome === "Leg press horizontal (180°)")!;
     expect((legPress.series_config as { series: Array<{ reps: string }> }).series.map((s) => s.reps)).toEqual(["20", "15", "12", "10"]);
     expect(plano.treinos.find((t) => t.letra === "C")!.exercicios.find((e) => e.nome === "Levantamento terra sumô")!.rir).toBe(0);
     expect(plano.treinos.flatMap((t) => t.exercicios).every((e) => e.carga_alvo === null)).toBe(true);

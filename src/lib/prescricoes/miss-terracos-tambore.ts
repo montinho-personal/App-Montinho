@@ -28,9 +28,9 @@ type Lib = { id: string; nome: string; grupo: GrupoMuscular } | null;
 /** Correspondência com a biblioteca (produção). null = sem correspondência confiável. */
 export const BIBLIOTECA: Record<string, Lib> = {
   "Abdominal prancha": { id: "f96c1647-c28a-4b98-99e0-ff89bea743d1", nome: "Prancha frontal", grupo: "core" as GrupoMuscular },
-  "Elevação pélvica": null, // barra, máquina ou solo? — validar
+  "Elevação pélvica com barra": { id: "92cc0e3b-48ea-454a-b872-8bac4bc30d28", nome: "Hip thrust com barra", grupo: "gluteo" }, // confirmado: com barra
   "Agachamento no Smith": { id: "3e0765c2-3c91-47ac-9601-a1ed12a11685", nome: "Agachamento no Smith", grupo: "quadriceps" },
-  "Leg press 180": { id: "e608ec0b-b0e3-45e7-8306-d60f4c91b85f", nome: "Leg press horizontal", grupo: "quadriceps" },
+  "Leg press horizontal (180°)": { id: "e608ec0b-b0e3-45e7-8306-d60f4c91b85f", nome: "Leg press horizontal", grupo: "quadriceps" }, // confirmado
   "Cadeira extensora": { id: "ce624289-c6c3-436f-9ecb-7f82c3bcac6d", nome: "Cadeira extensora", grupo: "quadriceps" },
   "Cadeira abdutora": { id: "ffd14873-53a6-48f9-afc3-a743531ab9d0", nome: "Cadeira abdutora", grupo: "gluteo" },
   "Remada baixa pegada aberta": { id: "e8ed7c94-a1ae-4b4c-ba07-dc8190af500e", nome: "Remada sentada pegada aberta", grupo: "costas" },
@@ -42,16 +42,16 @@ export const BIBLIOTECA: Record<string, Lib> = {
   "Levantamento terra sumô": { id: "24c806bd-ea67-4d37-8791-ba280334ab30", nome: "Levantamento terra sumô", grupo: "gluteo" },
   "Cadeira flexora": { id: "eecf0d46-3d2e-4d2e-a243-5ca7c04c71cf", nome: "Cadeira flexora", grupo: "posteriores" },
   "Stiff com halteres": { id: "6291a3ac-5554-4c4d-a0cb-5d7b114fdda7", nome: "Stiff com halteres", grupo: "posteriores" },
-  "Panturrilha no leg press 180": { id: "b8fe9647-34c4-4b08-b3f1-0e8341ac18f7", nome: "Panturrilha no leg press", grupo: "panturrilha" },
+  "Panturrilha no leg press horizontal (180°)": { id: "b8fe9647-34c4-4b08-b3f1-0e8341ac18f7", nome: "Panturrilha no leg press", grupo: "panturrilha" },
   "Crucifixo máquina": { id: "07b7f78e-52ee-49ba-856b-2d6cc6c3c717", nome: "Crucifixo na máquina (peck deck)", grupo: "peito" },
   "Supino inclinado 45° halteres": { id: "7f380859-dbff-48fd-82e3-e907a461d24e", nome: "Supino inclinado com halteres", grupo: "peito" },
   "Desenvolvimento Arnold": { id: "0721b959-5db6-41a3-8b97-831caac84a9b", nome: "Desenvolvimento Arnold", grupo: "ombro_anterior" },
   "Elevação lateral com halteres": { id: "c572eff5-1904-42db-8e91-687b1d3705b3", nome: "Elevação lateral com halteres", grupo: "ombro_lateral" },
-  "Tríceps pulley barra W": null, // catálogo só tem barra reta e barra V — validar
+  "Tríceps pulley barra W": { id: "b7a3f0c2-5e1d-4c8a-9f2b-0d6e4a1c7b3e", nome: "Tríceps pulley com barra W", grupo: "triceps" }, // criado na biblioteca (0023)
 };
 
 /** Grupo muscular quando não há correspondência na biblioteca (o grupo é inequívoco). */
-const GRUPO_SEM_BIBLIOTECA: Record<string, GrupoMuscular> = { "Elevação pélvica": "gluteo", "Tríceps pulley barra W": "triceps" };
+const GRUPO_SEM_BIBLIOTECA: Record<string, GrupoMuscular> = {};
 
 type Opc = { tecnica?: ExercicioInput["tecnica"]; rir?: number | null; bloco?: string | null; descansoApos?: number | null };
 
@@ -120,9 +120,9 @@ export const PRESCRICAO: SalvarPlanoInput = {
   treinos: [
     treino("A", "Lower — Quadríceps e glúteos", [
       prancha(),
-      pir("Elevação pélvica", P20, 90, 0),
+      pir("Elevação pélvica com barra", P20, 90, 0),
       pir("Agachamento no Smith", ["15", "12", "10", "10"], 90, 3),
-      pir("Leg press 180", P20, 75, 3),
+      pir("Leg press horizontal (180°)", P20, 75, 3),
       pir("Cadeira extensora", P20, 90, 3),
       pir("Cadeira abdutora", P20, 60, 3),
     ], "Acompanhado presencialmente pelo personal."),
@@ -141,7 +141,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       pir("Levantamento terra sumô", ["15", "12", "10", "10"], 90, 0),
       pir("Cadeira flexora", P20, 90, 3),
       biA("Stiff com halteres", x4("10"), "C1"),
-      biB("Panturrilha no leg press 180", x4("15"), "C1"),
+      biB("Panturrilha no leg press horizontal (180°)", x4("15"), "C1"),
     ], "Acompanhado presencialmente pelo personal."),
     treino("D", "Upper — Peitoral, ombros e tríceps", [
       pir("Crucifixo máquina", P20, null, null),
@@ -149,7 +149,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       biA("Desenvolvimento Arnold", ["12", "12", "10", "10"], "D1"),
       biB("Elevação lateral com halteres", ["12", "12", "10", "10"], "D1"),
       pir("Tríceps pulley barra W", P20, 90, 3),
-      ex("Panturrilha no leg press 180", x4("20"), 60),
+      ex("Panturrilha no leg press horizontal (180°)", x4("20"), 60),
     ]),
   ],
   motivo: "Cadastro da prescrição (Upper/Lower 4×/semana) a partir da ficha do personal",
@@ -157,9 +157,6 @@ export const PRESCRICAO: SalvarPlanoInput = {
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
 export const PENDENCIAS = [
-  "“Elevação pélvica”: confirmar o equipamento (barra/hip thrust, máquina ou solo). Grupo glúteo; ficou sem vínculo com a biblioteca.",
-  "“Tríceps pulley barra W”: o catálogo só tem barra reta e barra V. Grupo tríceps; ficou sem vínculo com a biblioteca (nome mantido).",
-  "“Leg press 180” foi associado a “Leg press horizontal” do catálogo — confirmar se é o mesmo aparelho.",
-  "Descanso não informado: Remada baixa pegada aberta (B1) e Crucifixo máquina (D1) — ficam com o padrão do app (90 s) só na estimativa de tempo; nada foi gravado.",
-  "Descanso após cada exercício (antes do próximo) não foi informado: a estimativa usa o padrão do app (2 min).",
+  "Descanso não informado: Remada baixa pegada aberta (B1) e Crucifixo máquina (D1) — ficam sem descanso definido; o app usa o padrão (90 s) só na estimativa de tempo.",
+  "Descanso entre um exercício e o próximo não foi informado: a estimativa usa o padrão do app (2 min).",
 ];
