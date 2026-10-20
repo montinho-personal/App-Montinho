@@ -81,3 +81,10 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 |---|---|---|
 | Unitário | PASSOU | `src/lib/sync/rascunho.test.ts` (6): guarda só o não concluído; restaura carga digitada, série extra, exercício aberto e descanso; série concluída nunca é sobrescrita; rascunho velho (>18 h) ou corrompido ignorado; finalizar limpa; abre no primeiro exercício pendente |
 | e2e demo (celular) | PASSOU | concluiu 2 séries, digitou 22,5 kg × 12 sem concluir, adicionou série extra, fechou a aba; reabriu pelo início → “Continuar treino” → mesmo exercício aberto, valores e série extra de volta, descanso continuando (01:27), aviso “Você voltou de onde parou” |
+
+## Conferência ao concluir o treino (20/10/2026)
+
+| Item | Status | Evidência |
+|---|---|---|
+| Unitário | PASSOU | `src/lib/treino/pendencias.test.ts` (4): lista séries válidas sem ✓ e separa as já preenchidas; tudo marcado = sem aviso; aquecimento, “pular hoje” e “não consegui” não contam; texto em PT-BR |
+| e2e demo (celular) | PASSOU | marcou 1 série, preencheu outra sem ✓, pulou um exercício → “Concluir treino” abre o aviso “Faltam marcar 15 séries” com “Ir marcar” por exercício (o pulado fica fora) → “Marcar a série preenchida e concluir” → “Você realizou 2 de 19 séries” |

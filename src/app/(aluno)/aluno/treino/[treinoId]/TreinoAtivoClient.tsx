@@ -21,6 +21,7 @@ import { RestTimer } from "@/components/ui/RestTimer";
 import { VideoPlayer } from "@/components/ui/VideoPlayer";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
+import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
@@ -87,6 +88,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const [concluida, setConcluida] = useState<SessaoCompleta | null>(sessaoConcluida);
   const [feedback, setFeedback] = useState<"leve" | "ok" | "pesado" | "dor" | null>(null);
   const [adaptacaoAberta, setAdaptacaoAberta] = useState<string | null>(null);
+  // Status marcado nesta tela (pular / não consegui) antes do servidor confirmar.
+  const [statusEx, setStatusEx] = useState<Record<string, string>>({});
+  // Conferência ao concluir: mostra o que falta marcar antes de finalizar.
+  const [conferindo, setConferindo] = useState(false);
+  const conferenciaRef = useRef<HTMLDivElement>(null);
   const drenando = useRef(false);
   // Rascunho (o que ainda não foi concluído): só é gravado depois de restaurado,
   // para a tela vazia do primeiro render não apagar o que estava guardado.
@@ -251,7 +257,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     setSeries((cur) => ({ ...cur, [seId]: cur[seId].map((s, i) => (i === idx ? { ...s, ...patch } : s)) }));
   }
 
-  function concluirSerie(seId: string, idx: number, ex: ExercicioView) {
+  function concluirSerie(seId: string, idx: number, ex: ExercicioView, silencioso = false) {
     if (!sessao || !storage) return;
     const s = series[seId][idx];
     const reps = s.reps.trim() === "" ? null : Number(s.reps.replace(",", "."));
@@ -274,12 +280,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     atualizar(seId, idx, { concluida: true, sincronizada: false });
     setPendentes((n) => n + 1);
     setSync("pendente");
-    if (ex.descanso_seg && ex.descanso_seg > 0 && s.tipo === "valida") {
+    if (!silencioso && ex.descanso_seg && ex.descanso_seg > 0 && s.tipo === "valida") {
       const seg = ex.descanso_seg;
       const fim = new Date().getTime() + seg * 1000;
       setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim }));
     }
-    if (navigator.vibrate) navigator.vibrate(30);
+    if (!silencioso && navigator.vibrate) navigator.vibrate(30);
     void sincronizar();
   }
 
@@ -295,6 +301,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   function marcarExercicio(seId: string, status: "pulado" | "nao_consegui" | "concluido") {
     if (!sessao || !storage) return;
     enfileirar(storage, sessao.id, { tipo: "exercicio", sessionId: sessao.id, clientKey: `ex:${seId}:${status}`, payload: { session_exercise_id: seId, patch: { status } } });
+    setStatusEx((cur) => ({ ...cur, [seId]: status }));
     setPendentes((n) => n + 1);
     void sincronizar();
   }
@@ -337,6 +344,38 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   // ------------------------------------------------------------------------
   const totalPlanejado = useMemo(() => Object.values(series).flat().filter((s) => s.tipo === "valida").length, [series]);
   const totalFeito = useMemo(() => Object.values(series).flat().filter((s) => s.tipo === "valida" && s.concluida).length, [series]);
+  const pendencias = useMemo(
+    () => (sessao ? verificarPendencias(sessao.exercicios.map((se, i) => ({ seId: se.id, nome: (exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício", status: statusEx[se.id] ?? se.status })), series) : []),
+    [sessao, exercicios, series, statusEx]
+  );
+  const totalPreenchidas = pendencias.reduce((n, p) => n + p.preenchidas.length, 0);
+  const totalFaltam = pendencias.reduce((n, p) => n + p.faltam.length, 0);
+
+  function tentarConcluir() {
+    if (!pendencias.length) return void finalizar("concluida");
+    setConferindo(true);
+    if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    window.setTimeout(() => conferenciaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  }
+
+  function irPara(seId: string) {
+    setAberto(seId);
+    window.setTimeout(() => document.getElementById(`ex-${seId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+
+  function marcarPreenchidasEConcluir() {
+    if (!sessao) return;
+    for (const p of pendencias) {
+      const se = sessao.exercicios.find((x) => x.id === p.seId);
+      const ex = se ? exercicios.find((e) => e.id === se.exercicio_id) : undefined;
+      if (!ex) continue;
+      for (const n of p.preenchidas) {
+        const idx = (series[p.seId] ?? []).findIndex((x) => x.serie === n);
+        if (idx >= 0) concluirSerie(p.seId, idx, ex, true);
+      }
+    }
+    void finalizar("concluida");
+  }
 
   if (concluida) {
     const feitas = concluida.series_concluidas;
@@ -495,8 +534,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
           const expandido = aberto === se.id;
           const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
           const tecnicaTxt = [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
+          const pend = pendencias.find((p) => p.seId === se.id);
+          const statusAtual = statusEx[se.id] ?? se.status;
           return (
-            <Card key={se.id} className={completo ? "border-success/40" : expandido ? "border-accent/40" : ""}>
+            <Card key={se.id} id={`ex-${se.id}`} className={`scroll-mt-20 ${conferindo && pend ? "border-warning ring-1 ring-warning/50" : completo ? "border-success/40" : expandido ? "border-accent/40" : ""}`}>
               <CardBody className="p-0">
                 <button type="button" onClick={() => setAberto(expandido ? null : se.id)} aria-expanded={expandido} className="w-full flex items-center gap-3 text-left px-4 py-3 touch">
                   <span className={`w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${completo ? "bg-success border-success text-bg" : "bg-bg border-border text-fg-muted"}`} aria-hidden>
@@ -510,6 +551,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                       {ex.descanso_seg ? ` · ${ex.descanso_seg}s` : ""}
                       {ex.rir != null ? ` · RIR ${ex.rir}` : ex.ie != null ? ` · esforço ${ex.ie}/10` : ""}
                     </span>
+                    {statusAtual === "pulado" || statusAtual === "nao_consegui" ? (
+                      <span className="block text-[11px] text-fg-subtle mt-0.5">{statusAtual === "pulado" ? "Pulado hoje" : "Não consegui (pedido enviado)"}</span>
+                    ) : conferindo && pend ? (
+                      <span className="block text-[11px] font-semibold text-warning mt-0.5">Falta marcar: {listarSeries(pend.faltam)}</span>
+                    ) : null}
                   </span>
                   <span className="text-xs font-mono text-fg-subtle shrink-0">
                     {feitas}/{planejadas}
@@ -620,14 +666,49 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
         })}
       </div>
 
-      <Card className="border-success/30">
+      <Card className={conferindo && pendencias.length ? "border-warning" : "border-success/30"}>
         <CardBody className="space-y-3">
-          <p className="text-sm text-fg-muted text-center">
-            {totalFeito >= totalPlanejado ? "Todas as séries registradas." : `${totalPlanejado - totalFeito} série(s) ainda em aberto — tudo bem concluir assim mesmo.`}
-          </p>
-          <Button variant="success" size="lg" className="w-full touch" loading={finalizando} onClick={() => finalizar("concluida")}>
-            Concluir treino
-          </Button>
+          {conferindo && pendencias.length ? (
+            <div ref={conferenciaRef} role="alert" className="space-y-3">
+              <p className="font-bold text-warning">{totalFaltam === 1 ? "Falta marcar 1 série" : `Faltam marcar ${totalFaltam} séries`}</p>
+              <p className="text-sm text-fg-muted">
+                {totalPreenchidas === 1 ? "1 já está preenchida: só falta tocar no ✓. " : totalPreenchidas ? `${totalPreenchidas} já estão preenchidas: só falta tocar no ✓. ` : ""}Confira antes de concluir — o que não for marcado não entra no seu histórico.
+              </p>
+              <ul className="space-y-1.5">
+                {pendencias.map((p) => (
+                  <li key={p.seId} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                    <span className="min-w-0">
+                      <span className="block font-semibold truncate">{p.nome}</span>
+                      <span className="block text-xs text-fg-subtle">
+                        {listarSeries(p.faltam)}
+                        {p.preenchidas.length ? ` · ${p.preenchidas.length === p.faltam.length ? (p.faltam.length === 1 ? "preenchida, sem ✓" : "preenchidas, sem ✓") : `${listarSeries(p.preenchidas)} já ${p.preenchidas.length === 1 ? "preenchida" : "preenchidas"}`}` : ""}
+                      </span>
+                    </span>
+                    <button type="button" onClick={() => irPara(p.seId)} className="touch shrink-0 rounded-md border border-accent px-3 py-1.5 text-xs font-bold text-accent">
+                      Ir marcar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {totalPreenchidas ? (
+                <Button variant="success" size="lg" className="w-full touch" loading={finalizando} onClick={marcarPreenchidasEConcluir}>
+                  {totalPreenchidas === 1 ? (totalFaltam === 1 ? "Marcar a série e concluir" : "Marcar a série preenchida e concluir") : totalPreenchidas === totalFaltam ? `Marcar as ${totalPreenchidas} e concluir` : `Marcar as ${totalPreenchidas} preenchidas e concluir`}
+                </Button>
+              ) : null}
+              <Button variant={totalPreenchidas ? "secondary" : "success"} size="lg" className="w-full touch" loading={finalizando && !totalPreenchidas} onClick={() => finalizar("concluida")}>
+                Concluir assim mesmo
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-fg-muted text-center">
+                {totalFeito >= totalPlanejado ? "Todas as séries registradas." : totalPlanejado - totalFeito === 1 ? "1 série ainda sem marcar." : `${totalPlanejado - totalFeito} séries ainda sem marcar.`}
+              </p>
+              <Button variant="success" size="lg" className="w-full touch" loading={finalizando} onClick={tentarConcluir}>
+                Concluir treino
+              </Button>
+            </>
+          )}
           <button type="button" onClick={() => finalizar("abandonada")} className="w-full text-xs text-fg-subtle hover:text-fg py-2">
             Encerrar sem concluir (guarda o que foi feito)
           </button>
