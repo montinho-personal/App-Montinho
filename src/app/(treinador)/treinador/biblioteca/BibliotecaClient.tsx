@@ -10,7 +10,7 @@
 //  • Substituições: o personal aprova ou rejeita cada sugestão.
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -56,6 +56,18 @@ export function BibliotecaClient({ inicial, equivalenciasIniciais, favoritosInic
   const [filtros, setFiltros] = useState<FiltrosBusca>({});
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [form, setForm] = useState<"fechado" | "novo" | ItemBiblioteca>("fechado");
+  const fichaRef = useRef<HTMLElement>(null);
+  const listaRef = useRef<HTMLElement>(null);
+
+  // Celular/tablet: a ficha fica abaixo da lista; ao abrir um exercício (ou o
+  // formulário), rola até ela para o treinador não precisar procurar.
+  useEffect(() => {
+    if (!selecionadoId && form === "fechado") return;
+    if (typeof window === "undefined" || window.matchMedia("(min-width: 1024px)").matches) return;
+    fichaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selecionadoId, form]);
+
+  const voltarParaLista = () => listaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const usoMap = useMemo(() => new Map(Object.entries(uso).map(([id, u]) => [id, u.vezes])), [uso]);
   const resultados = useMemo(() => buscarExercicios(itens, busca, filtros, { favoritos, uso: usoMap }), [itens, busca, filtros, favoritos, usoMap]);
@@ -123,7 +135,7 @@ export function BibliotecaClient({ inicial, equivalenciasIniciais, favoritosInic
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       {/* Coluna da lista ------------------------------------------------------ */}
-      <section className="space-y-3 min-w-0" aria-label="Lista de exercícios">
+      <section ref={listaRef} className="space-y-3 min-w-0 scroll-mt-20" aria-label="Lista de exercícios">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
@@ -204,7 +216,12 @@ export function BibliotecaClient({ inicial, equivalenciasIniciais, favoritosInic
       </section>
 
       {/* Coluna da ficha ------------------------------------------------------- */}
-      <section className="min-w-0" aria-label="Ficha do exercício">
+      <section ref={fichaRef} className="min-w-0 scroll-mt-20 space-y-2" aria-label="Ficha do exercício">
+        {selecionado || form !== "fechado" ? (
+          <button type="button" onClick={voltarParaLista} className="lg:hidden text-sm font-semibold text-accent">
+            ← Voltar à lista
+          </button>
+        ) : null}
         {form !== "fechado" ? (
           <FormExercicio inicial={form === "novo" ? null : form} onCancelar={() => setForm("fechado")} onSalvo={aoSalvar} />
         ) : selecionado ? (
@@ -258,8 +275,8 @@ function Ficha({
 
   return (
     <article className="space-y-4 rounded-xl border border-border bg-card p-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-auto">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-60">
           <h2 className="text-xl font-bold">{item.nome}</h2>
           {item.sinonimos.length ? <p className="text-xs text-fg-subtle mt-1">Também chamado de: {item.sinonimos.join(", ")}</p> : null}
           <p className="text-[11px] text-fg-subtle mt-1">{item.origem === "catalogo" ? "Catálogo Montinho" : "Cadastro/edição sua"}</p>
