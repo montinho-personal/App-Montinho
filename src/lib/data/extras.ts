@@ -9,9 +9,15 @@ import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { listSessoes, type SessaoCompleta } from "@/lib/data/sessoes";
-import { dataLocal } from "@/lib/aderencia/calcular";
+import { dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { classificarExtra, CONFIG_EXTRA_PADRAO, type Classificacao, type ConfigExtra, type ExtraLiberado, type Modalidade, type Recuperacao, type SessaoRecente } from "@/lib/treino/extra";
 import type { TrainingSession } from "@/lib/supabase/types-sessoes";
+import type { GrupoMuscular } from "@/lib/supabase/types-extended";
+import { getPlanoAtivo } from "@/lib/data/programas";
+import { listarBiblioteca } from "@/lib/data/biblioteca";
+import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular";
+import { volumeRealizadoPorGrupo, type MetaVolume } from "@/lib/volume/calcular";
+import { REGRAS_SUGESTAO, sugerirExtraPorVolume, type CandidatoExercicio, type ResultadoSugestao } from "@/lib/treino/sugestao-extra";
 
 export type ConfigExtraRow = ConfigExtra & { aluno_id: string; observacao: string | null; updated_at: string };
 export type ExtraRow = ExtraLiberado & { aluno_id: string; descricao: string | null; treino_id: string | null; created_at: string };
@@ -280,4 +286,31 @@ export async function registrarAtividadeExtra(alunoId: string, input: { extraId:
   const { data, error } = await db.from("training_sessions").insert(payload).select("*").single();
   if (error) throw new Error(`Não foi possível registrar: ${error.message}`);
   return data as TrainingSession;
+}
+
+// ---------------------------------------------------------------------------
+// Sugestão automática (grupos abaixo da meta semanal) — sempre para aprovação
+// ---------------------------------------------------------------------------
+export async function sugestaoExtraDoAluno(alunoId: string, agora = new Date()): Promise<ResultadoSugestao & { habilitado: boolean }> {
+  const [config, plano, sessoes, biblioteca] = await Promise.all([getConfigExtra(alunoId), getPlanoAtivo(alunoId), listSessoes(alunoId, { limite: 60, status: "todas" }), listarBiblioteca()]);
+  const habilitado = !!config?.habilitado;
+  const feito7d = volumeRealizadoPorGrupo(seriesRealizadasPorGrupo(sessoes, periodoDias(7, agora)), false);
+  const recentes = sessoes.map(sessaoRecente).filter((s) => s.status !== "em_andamento" && s.series_concluidas > 0 && agora.getTime() - new Date(s.finalizado_em ?? s.iniciado_em).getTime() < REGRAS_SUGESTAO.horasRecuperacao * 3_600_000);
+  const semana = inicioDaSemana(dataLocal(agora));
+  const extrasSemana = sessoes.filter((s) => s.modo === "extra" && dataLocal(s.iniciado_em) >= semana).reduce((n, s) => n + (sessaoRecente(s).series_extra ?? 0), 0);
+  const limite = config?.limite_series_semana ?? CONFIG_EXTRA_PADRAO.limite_series_semana;
+  const comVideo = new Set(biblioteca.filter((b) => b.midia?.verificada).map((b) => b.id));
+  const candidatos: CandidatoExercicio[] = [
+    ...plano.treinos.filter((t) => t.ativo).flatMap((t) => t.exercicios).filter((x) => x.grupo_muscular && x.conta_volume !== false).map((x) => ({ nome: x.nome, grupo: x.grupo_muscular as GrupoMuscular, doPlano: true, temVideo: !!x.biblioteca_id && comVideo.has(x.biblioteca_id) })),
+    ...biblioteca.filter((b) => b.contaVolume !== false).map((b) => ({ nome: b.nome, grupo: b.grupo, doPlano: false, temVideo: !!b.midia?.verificada })),
+  ];
+  const r = sugerirExtraPorVolume({
+    metas: (plano.programa?.metas_volume ?? {}) as Partial<Record<GrupoMuscular, MetaVolume>>,
+    feito7d,
+    recentes48h: [...new Set(recentes.flatMap((s) => s.grupos))] as GrupoMuscular[],
+    seriesExtrasDisponiveis: limite - extrasSemana,
+    candidatos,
+    prioridades: plano.programa?.prioridades ?? [],
+  });
+  return { ...r, habilitado };
 }

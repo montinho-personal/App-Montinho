@@ -6,11 +6,12 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { MODALIDADES, RECUPERACAO, type Modalidade, type Recuperacao } from "@/lib/treino/extra";
 import { GRUPOS } from "@/lib/validacao/schemas";
+import type { SugestaoExtra } from "@/lib/treino/sugestao-extra";
 
 type Pendente = { id: string; aluno: string; titulo: string; classificacao: string; motivos: string[]; recuperacao: Recuperacao | null; tempo: number | null; data: string };
 type Config = { habilitado: boolean; requer_aprovacao: boolean; max_por_semana: number; dias_permitidos: number[]; limite_series_semana: number; intervalo_min_horas: number; observacao: string | null };
 type Extra = { id: string; modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number; ativo: boolean };
-type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number } | null;
+type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number; sugestao: { sugestao: SugestaoExtra | null; motivo: string } } | null;
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const CLASSE: Record<string, string> = { liberado: "dentro das regras", aprovacao: "precisa da sua aprovação", nao_recomendado: "o app não recomendou" };
@@ -91,6 +92,44 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
           ))}
         </select>
       </div>
+
+      {detalhe ? (
+        <Card className="border-accent/40">
+          <CardBody className="space-y-2 text-sm">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sugestão automática do app</p>
+            {detalhe.sugestao.sugestao ? (
+              <>
+                <p className="font-semibold">{detalhe.sugestao.sugestao.titulo.replace("Extra sugerido: ", "Abaixo da meta: ")}</p>
+                <ul className="space-y-0.5 text-xs text-fg-muted">
+                  {detalhe.sugestao.sugestao.grupos.map((g) => (
+                    <li key={g.grupo}>{g.rotulo}: {String(g.feito).replace(".", ",")} de {g.meta} séries nos últimos 7 dias (faltam {String(g.falta).replace(".", ",")})</li>
+                  ))}
+                </ul>
+                <ul className="space-y-0.5">
+                  {detalhe.sugestao.sugestao.exercicios.map((x) => (
+                    <li key={x.nome}>• <strong>{x.nome}</strong> — {x.series} × {x.reps}, RIR 2</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-fg-muted">≈ {detalhe.sugestao.sugestao.duracaoMin} min · {detalhe.sugestao.sugestao.seriesTotal} séries · respeita 48 h de recuperação e o limite de séries extras da semana.</p>
+                <button
+                  type="button"
+                  disabled={salvando}
+                  onClick={() => {
+                    const s = detalhe.sugestao.sugestao!;
+                    void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "POST", { modalidade: "resistido", titulo: s.titulo, descricao: s.descricao, duracao_min: s.duracaoMin, treino_id: null, grupos: s.grupos.map((g) => g.grupo), series_estimadas: s.seriesTotal }, "Sugestão liberada como treino extra.");
+                  }}
+                  className="touch rounded-lg bg-accent px-4 py-2 font-bold text-bg disabled:opacity-60"
+                >
+                  Liberar como treino extra
+                </button>
+                <p className="text-[11px] text-fg-subtle">Depois de liberada, ela segue as mesmas regras dos outros extras (cansaço, dor, dias, limite). Desative quando não fizer mais sentido.</p>
+              </>
+            ) : (
+              <p className="text-fg-muted">{detalhe.sugestao.motivo}</p>
+            )}
+          </CardBody>
+        </Card>
+      ) : null}
 
       {detalhe && cfg ? (
         <div className="grid gap-5 lg:grid-cols-2">

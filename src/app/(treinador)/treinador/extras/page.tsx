@@ -2,7 +2,7 @@
 // sinalização de volume extra acima do combinado.
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { listAlunos } from "@/lib/db";
-import { getConfigExtra, listarExtras, listarSolicitacoes, sessaoRecente } from "@/lib/data/extras";
+import { getConfigExtra, listarExtras, listarSolicitacoes, sessaoRecente, sugestaoExtraDoAluno } from "@/lib/data/extras";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
@@ -24,7 +24,7 @@ export default async function TreinosExtrasPage({ searchParams }: { searchParams
 
   let detalhe: ComponentProps<typeof ExtrasClient>["detalhe"] = null;
   if (alunoId) {
-    const [config, extras, plano, sessoes] = await Promise.all([getConfigExtra(alunoId), listarExtras(alunoId), getPlanoAtivo(alunoId), listSessoes(alunoId, { limite: 60 })]);
+    const [config, extras, plano, sessoes, sugestao] = await Promise.all([getConfigExtra(alunoId), listarExtras(alunoId), getPlanoAtivo(alunoId), listSessoes(alunoId, { limite: 60 }), sugestaoExtraDoAluno(alunoId)]);
     const semana = inicioDaSemana(dataLocal(new Date()));
     const extrasFeitos = sessoes.filter((s) => s.modo === "extra").slice(0, 12);
     const seriesSemana = extrasFeitos.filter((s) => dataLocal(s.iniciado_em) >= semana).reduce((n, s) => n + (sessaoRecente(s).series_extra ?? 0), 0);
@@ -36,6 +36,7 @@ export default async function TreinosExtrasPage({ searchParams }: { searchParams
       treinos: plano.treinos.map((t) => ({ id: t.id, nome: `${t.letra} — ${t.nome}` })),
       feitos: extrasFeitos.map((s) => ({ id: s.id, titulo: s.nome_treino ?? "Treino extra", data: s.iniciado_em, duracaoMin: s.duracao_seg ? Math.round(s.duracao_seg / 60) : null, series: s.series_concluidas })),
       seriesSemana,
+      sugestao: { sugestao: sugestao.sugestao, motivo: sugestao.motivo },
     };
   }
 

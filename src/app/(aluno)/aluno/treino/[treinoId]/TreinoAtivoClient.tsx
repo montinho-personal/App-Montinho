@@ -755,7 +755,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                     {completo ? <Icon name="check" size={16} /> : idx + 1}
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block font-semibold text-sm leading-tight">{ex.nome}</span>
+                    <span className="block font-semibold text-sm leading-tight">
+                      {ex.nome}
+                      {ex.video ? <span className="ml-1.5 inline-flex items-center rounded-full border border-accent/40 px-1.5 py-px align-middle text-[10px] font-bold text-accent">▶ vídeo</span> : null}
+                    </span>
                     <span className="block text-xs text-fg-subtle mt-0.5">
                       {ex.series} × {ex.reps}
                       {ex.series_aquecimento ? ` (${ex.series_aquecimento} aquec.)` : ""}

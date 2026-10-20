@@ -10,6 +10,7 @@ import { CATALOGO } from "@/lib/biblioteca/catalogo";
 import { indicePorNome, itemDoBanco, itemDoCatalogo, type LinhaBiblioteca } from "@/lib/biblioteca/itens";
 import type { Equivalencia, ItemBiblioteca, StatusEquivalencia } from "@/lib/biblioteca/tipos";
 import { demoStore } from "@/lib/mock/store";
+import { VIDEOS_DEMO } from "@/lib/mock/videos-demo";
 
 const COLUNAS =
   "id, slug, nome, grupo_muscular, grupos_secundarios, equipamento, sinonimos, instrucoes, erros_comuns, padrao_movimento, articulacoes, tipo_movimento, campos_registro, pesos_secundarios, estresse_articular, nivel_minimo, conta_volume, origem, video_provider, video_id, video_validado";
@@ -23,7 +24,11 @@ function demo(): DemoBiblioteca {
   const g = globalThis as unknown as { __montinhoBiblioteca?: DemoBiblioteca };
   if (!g.__montinhoBiblioteca) {
     g.__montinhoBiblioteca = {
-      itens: CATALOGO.map((e) => itemDoCatalogo(e)),
+      itens: CATALOGO.map((e) => {
+        const item = itemDoCatalogo(e);
+        const v = VIDEOS_DEMO[e.slug];
+        return v ? { ...item, midia: { provider: "youtube", id: v, verificada: true } } : item;
+      }),
       favoritos: new Map(),
       equivalencias: CATALOGO.flatMap((e) =>
         e.substituicoes.map((s) => ({ exercicioId: `cat-${e.slug}`, alternativaId: `cat-${s}`, origem: "catalogo" as const, status: "sugerida" as const, nota: null }))
