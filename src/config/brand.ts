@@ -58,7 +58,7 @@ export const BRAND = {
     card: "#171717",
 
     fg: "#fafafa",
-    fgMuted: "#a6a6a6",
+    fgMuted: "#c2c2c2",
   },
 
   /** CONTATOS — vazios ficam ocultos. */

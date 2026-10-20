@@ -20,13 +20,13 @@ export function TreinoAcordeao({ letra, nome, exercicios, vezesSemana, editarHre
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-bold leading-tight">{nome}</span>
-          <span className="mt-0.5 block text-xs text-fg-subtle">
+          <span className="mt-0.5 block text-xs text-fg-muted">
             {exercicios.length} {exercicios.length === 1 ? "exercício" : "exercícios"} · {r.validas} séries válidas · {vezesSemana}×/sem
           </span>
           {r.grupos.length ? (
             <span className="mt-1.5 flex flex-wrap gap-1">
               {r.grupos.map((g) => (
-                <span key={g.grupo} className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-fg-muted">
+                <span key={g.grupo} className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-fg">
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: GRUPO_COR[g.grupo] }} aria-hidden />
                   {GRUPO_LABEL[g.grupo]} · {g.series}
                 </span>
@@ -74,7 +74,7 @@ export function TreinoAcordeao({ letra, nome, exercicios, vezesSemana, editarHre
                     {tecRotulo ? <span className="rounded-full bg-accent/10 px-1.5 py-0.5 font-semibold text-accent">{tecRotulo}{tec ? ` (${tec})` : ""}</span> : null}
                     {e.conta_volume === false ? <span className="text-fg-subtle">não conta no volume</span> : null}
                   </div>
-                  {detalhes.length ? <p className="text-[11px] text-fg-subtle">{detalhes.join(" · ")}</p> : null}
+                  {detalhes.length ? <p className="text-[11px] text-fg-muted">{detalhes.join(" · ")}</p> : null}
                   {e.observacoes ? <p className="text-[11px] text-fg-muted">Nota: {e.observacoes}</p> : null}
                 </div>
               </li>

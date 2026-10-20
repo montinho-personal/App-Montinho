@@ -17,8 +17,8 @@
 
   /* Texto */
   --color-fg: #fafafa;
-  --color-fg-muted: #a6a6a6;
-  --color-fg-subtle: #8f8f8f; /* contraste ≥ 4,5:1 sobre card e fundo (WCAG AA) */
+  --color-fg-muted: #c2c2c2;
+  --color-fg-subtle: #a9a9a9; /* contraste ≥ 7:1 sobre card e fundo (leitura confortável) */
 
   /* Semânticas (contraste AA sobre fundo escuro) */
   --color-gold: #e3c272;
