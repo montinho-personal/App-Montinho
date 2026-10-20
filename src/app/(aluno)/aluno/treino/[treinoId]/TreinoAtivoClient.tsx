@@ -34,7 +34,7 @@ import type { ExercicioPrescrito, SessionSet } from "@/lib/supabase/types-sessoe
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
-import { OPCOES_TEMPO_MIN, treinoPossivel } from "@/lib/treino/possivel";
+import { OPCOES_TEMPO_MIN, encurtarDescanso, ganhoDescansoReduzido, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { avaliarSerie, podeAvisar, principal, resumirExercicio, type Descoberta, type ExecucaoAnterior, type SerieReg } from "@/lib/evolucao/motor";
 import { normalizarTecnica } from "@/lib/evolucao/adaptar";
@@ -155,6 +155,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const [tempoDisp, setTempoDisp] = useState<number | null>(null);
   const [tempoOutro, setTempoOutro] = useState("");
   const [pedidoTempo, setPedidoTempo] = useState(false);
+  // Opção do aluno para encaixar mais exercícios: descansos 20% menores.
+  const [descansoMenor, setDescansoMenor] = useState(false);
   const drenando = useRef(false);
   // Rascunho (o que ainda não foi concluído): só é gravado depois de restaurado,
   // para a tela vazia do primeiro render não apagar o que estava guardado.
@@ -309,7 +311,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     setIniciando(true);
     try {
       const chave = `sess:${treino.id}:${new Date().toISOString().slice(0, 10)}:${gerarClientKey("s").slice(2, 10)}`;
-      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null, tempo_disponivel_min: extra ? extra.tempoDisponivelMin : possivel && possivel.status !== "inviavel" && possivel.status !== "nao_autorizado" ? tempoDisp : null, extra_id: extra?.id ?? null, recuperacao: extra?.recuperacao ?? null }) });
+      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null, tempo_disponivel_min: extra ? extra.tempoDisponivelMin : possivel && possivel.status !== "inviavel" && possivel.status !== "nao_autorizado" ? tempoDisp : null, descanso_reduzido: !extra && !!possivel?.descansoReduzido && possivel.status !== "inviavel", extra_id: extra?.id ?? null, recuperacao: extra?.recuperacao ?? null }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Não foi possível iniciar");
       setSessao(data as SessaoCompleta);
@@ -350,7 +352,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     setPendentes((n) => n + 1);
     setSync("pendente");
     const ordem = sessao.exercicios.map((x) => x.id);
-    const descanso = descansoAposSerie(ex, s.serie, ordem.indexOf(seId) === ordem.length - 1, temposSessao);
+    // Descanso da versão do dia (pode ter sido encurtado ao começar).
+    const doDia = (sessao.snapshot as { exercicios?: ExercicioPrescrito[] } | null)?.exercicios?.find((x) => x.id === ex.id) ?? ex;
+    const descanso = descansoAposSerie(doDia, s.serie, ordem.indexOf(seId) === ordem.length - 1, temposSessao);
     if (!silencioso && descanso && descanso > 0) {
       const seg = descanso;
       const fim = new Date().getTime() + seg * 1000;
@@ -483,6 +487,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const snapshotSessao = sessao?.snapshot as { treino?: { tempos?: Partial<ParametrosTempo> }; exercicios?: ExercicioPrescrito[] } | null | undefined;
   const temposSessao: Partial<ParametrosTempo> = snapshotSessao?.treino?.tempos ?? treino.tempos ?? {};
   const plano = estimarPrescricao(snapshotSessao?.exercicios ?? exercicios, temposSessao);
+  const descansoDoDia = (ex: ExercicioPrescrito) => snapshotSessao?.exercicios?.find((x) => x.id === ex.id)?.descanso_seg ?? ex.descanso_seg;
   const exerciciosFeitos = sessao
     ? sessao.exercicios.filter((se) => {
         const st = statusEx[se.id] ?? se.status;
@@ -570,7 +575,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     );
   }
 
-  const possivel = tempoDisp && !extra ? treinoPossivel({ exercicios, tempos: treino.tempos, tempoDisponivelMin: tempoDisp, permiteReduzida: versaoReduzida.permitida, prioridadesMusculares: versaoReduzida.prioridades }) : null;
+  const argsPossivel = tempoDisp && !extra ? { exercicios, tempos: treino.tempos, tempoDisponivelMin: tempoDisp, permiteReduzida: versaoReduzida.permitida, prioridadesMusculares: versaoReduzida.prioridades } : null;
+  const possivelNormal = argsPossivel ? treinoPossivel(argsPossivel) : null;
+  const possivelMenor = argsPossivel ? treinoPossivel({ ...argsPossivel, descansoReduzido: true }) : null;
+  const ganhoDescanso = possivelNormal && possivelMenor ? ganhoDescansoReduzido(possivelNormal, possivelMenor) : { ajuda: false, recuperados: [] };
+  const possivel = ganhoDescanso.ajuda && descansoMenor ? possivelMenor : possivelNormal;
 
   async function pedirAjusteTempo() {
     if (!possivel) return;
@@ -651,6 +660,24 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                     {possivel.explicacao.slice(possivel.status === "reduzido" ? 1 : 0).map((t) => (
                       <p key={t} className="text-xs text-fg-muted">{t}</p>
                     ))}
+                    {ganhoDescanso.ajuda && possivelMenor ? (
+                      <div className="mt-2 space-y-2 rounded-md border border-border bg-bg/40 p-2.5">
+                        <p className="text-xs font-semibold">⏱ Quer encaixar mais? Descanso 20% menor</p>
+                        <p className="text-xs text-fg-muted">
+                          Ex.: 1:30 vira 1:10 (nunca abaixo de 45 s).{" "}
+                          {possivelMenor.status === "completo"
+                            ? `Assim dá para fazer o treino completo em cerca de ${Math.round(possivelMenor.estimadoSeg / 60)} min.`
+                            : `Assim cabe${ganhoDescanso.recuperados.length > 1 ? "m" : ""} também: ${ganhoDescanso.recuperados.join(", ")} (cerca de ${Math.round(possivelMenor.estimadoSeg / 60)} min).`}
+                        </p>
+                        <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Descanso de hoje">
+                          {[false, true].map((v) => (
+                            <button key={String(v)} type="button" aria-pressed={descansoMenor === v} onClick={() => setDescansoMenor(v)} className={`touch rounded-lg border px-2 py-1.5 text-xs font-semibold ${descansoMenor === v ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                              {v ? "Descanso 20% menor" : "Descanso normal"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                     {bloqueado ? (
                       pedidoTempo ? <p className="text-xs font-semibold text-success">Pedido de ajuste enviado.</p> : (
                         <button type="button" onClick={() => void pedirAjusteTempo()} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
@@ -683,7 +710,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                 <p className="text-sm font-semibold truncate">{e.nome}</p>
                 <p className="text-xs text-fg-subtle">
                   {e.series} × {e.reps}
-                  {e.descanso_seg ? ` · descanso ${e.descanso_seg}s` : ""}
+                  {e.descanso_seg ? (possivel?.descansoReduzido && encurtarDescanso(e.descanso_seg) !== e.descanso_seg ? ` · descanso ${encurtarDescanso(e.descanso_seg)}s (era ${e.descanso_seg}s)` : ` · descanso ${e.descanso_seg}s`) : ""}
                   {adiadosIds.has(e.id) ? " · fica para outro dia" : e.prioridade === "essencial" && possivel?.status === "reduzido" ? " · essencial" : ""}
                 </p>
               </div>
@@ -788,7 +815,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                     <span className="block text-xs text-fg-subtle mt-0.5">
                       {ex.series} × {ex.reps}
                       {ex.series_aquecimento ? ` (${ex.series_aquecimento} aquec.)` : ""}
-                      {ex.descanso_seg ? ` · ${ex.descanso_seg}s` : ""}
+                      {descansoDoDia(ex) ? ` · ${descansoDoDia(ex)}s` : ""}
                       {ex.rir != null ? ` · RIR ${ex.rir}` : ex.ie != null ? ` · esforço ${ex.ie}/10` : ""}
                     </span>
                     {statusAtual === "concluido" ? (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { treinoPossivel } from "./possivel";
+import { comDescansoReduzido, encurtarDescanso, ganhoDescansoReduzido, temposComDescansoReduzido, treinoPossivel } from "./possivel";
 import type { PrioridadeExercicio } from "@/lib/supabase/types-sessoes";
 
 let n = 0;
@@ -50,7 +50,7 @@ describe("treino possível hoje", () => {
     const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: 15, permiteReduzida: true });
     expect(r.status).toBe("inviavel");
     expect(r.explicacao.join(" ")).toMatch(/essenciais já levam/);
-    expect(r.explicacao.join(" ")).toMatch(/não são encurtados/);
+    expect(r.explicacao.join(" ")).toMatch(/não são encurtadas/);
   });
 
   it("volume mínimo: sobrar menos de 40% das séries → inviável", () => {
@@ -65,5 +65,61 @@ describe("treino possível hoje", () => {
     const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor((full - 30) / 60), permiteReduzida: true });
     const nomes = r.adiados.map((a) => a.nome);
     expect(nomes.includes("Rosca")).toBe(nomes.includes("Tríceps"));
+  });
+
+  describe("opção descanso 20% menor", () => {
+    it("encurta 20%, de 5 em 5 s, com piso de 45 s", () => {
+      expect(encurtarDescanso(90)).toBe(70);
+      expect(encurtarDescanso(120)).toBe(95);
+      expect(encurtarDescanso(60)).toBe(50);
+      expect(encurtarDescanso(50)).toBe(45);
+      expect(encurtarDescanso(45)).toBe(45);
+      expect(encurtarDescanso(30)).toBe(30);
+      expect(encurtarDescanso(null)).toBeNull();
+    });
+
+    it("encurta descansos do exercício, da config por série e os padrões do treino (aquecimento não)", () => {
+      const e = { ...ex("Supino"), descanso_apos_seg: 120, series_config: { modo: "iguais" as const, series: 4, reps: "10", ie: null, descanso_seg: 90 } };
+      const r = comDescansoReduzido(e);
+      expect(r.descanso_seg).toBe(70);
+      expect(r.descanso_apos_seg).toBe(95);
+      expect(r.series_config).toMatchObject({ descanso_seg: 70 });
+      expect(e.descanso_seg).toBe(90);
+      const t = temposComDescansoReduzido({ descansoAquecimentoSeg: 60 });
+      expect(t.descansoEntreSeriesSeg).toBe(70);
+      expect(t.descansoAquecimentoSeg).toBe(60);
+    });
+
+    it("mantém mais exercícios no mesmo tempo e explica", () => {
+      const xs = treino();
+      const full = treinoPossivel({ exercicios: xs, tempoDisponivelMin: 999, permiteReduzida: true }).originalSeg;
+      const menorCompleto = treinoPossivel({ exercicios: xs, tempoDisponivelMin: 999, permiteReduzida: true, descansoReduzido: true }).estimadoSeg;
+      expect(menorCompleto).toBeLessThan(full);
+      const alvo = Math.ceil(menorCompleto / 60);
+      expect(alvo * 60).toBeLessThan(full);
+      const normal = treinoPossivel({ exercicios: xs, tempoDisponivelMin: alvo, permiteReduzida: true });
+      const menor = treinoPossivel({ exercicios: xs, tempoDisponivelMin: alvo, permiteReduzida: true, descansoReduzido: true });
+      expect(normal.status).toBe("reduzido");
+      expect(menor.descansoReduzido).toBe(true);
+      expect(menor.incluidos.length).toBeGreaterThan(normal.incluidos.length);
+      expect(menor.estimadoSeg).toBeLessThanOrEqual(alvo * 60);
+      expect(menor.originalSeg).toBe(normal.originalSeg);
+      expect(menor.explicacao.join(" ")).toMatch(/20% menores/);
+      const g = ganhoDescansoReduzido(normal, menor);
+      expect(g.ajuda).toBe(true);
+      expect(g.recuperados.length).toBeGreaterThan(0);
+    });
+
+    it("sem autorização do personal, a opção não encurta nada", () => {
+      const r = treinoPossivel({ exercicios: treino(), tempoDisponivelMin: 20, permiteReduzida: false, descansoReduzido: true });
+      expect(r.status).toBe("nao_autorizado");
+      expect(r.descansoReduzido).toBe(false);
+    });
+
+    it("quando o completo já cabe, não oferece a opção", () => {
+      const normal = treinoPossivel({ exercicios: treino(), tempoDisponivelMin: 120, permiteReduzida: true });
+      const menor = treinoPossivel({ exercicios: treino(), tempoDisponivelMin: 120, permiteReduzida: true, descansoReduzido: true });
+      expect(ganhoDescansoReduzido(normal, menor).ajuda).toBe(false);
+    });
   });
 });

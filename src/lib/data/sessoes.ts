@@ -12,7 +12,7 @@ import type { SerieTipo, SessionExercise, SessionExerciseStatus, PercepcaoExerci
 import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
 // Ciclo intencional (só chamadas em tempo de execução): extras usa listSessoes.
 import { exigirExtraLiberado } from "./extras";
-import { treinoPossivel, type ResultadoPossivel } from "@/lib/treino/possivel";
+import { comDescansoReduzido, temposComDescansoReduzido, treinoPossivel, type ResultadoPossivel } from "@/lib/treino/possivel";
 import type { Recuperacao } from "@/lib/treino/extra";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
@@ -146,6 +146,8 @@ export type IniciarSessaoInput = {
   checkinPreNota?: string | null;
   /** “Meu treino possível hoje”: o servidor recalcula a versão (não confia no navegador). */
   tempoDisponivelMin?: number | null;
+  /** Opção “descanso 20% menor” (só vale junto com o tempo disponível e a autorização). */
+  descansoReduzido?: boolean;
   /** Treino extra liberado que usa este treino (o servidor confere a liberação). */
   extraId?: string | null;
   recuperacao?: Recuperacao | null;
@@ -172,6 +174,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
   let modo: "normal" | "reduzido" | "extra" = "normal";
   let doDia = treino.exercicios;
   let reducao: ResultadoPossivel | null = null;
+  let tempos = temposDoTreino(treino);
   let extra: Awaited<ReturnType<typeof exigirExtraLiberado>> | null = null;
   if (input.extraId) {
     extra = await exigirExtraLiberado(alunoId, input.extraId, { recuperacao: input.recuperacao ?? null, tempoDisponivelMin: input.tempoDisponivelMin ?? null });
@@ -179,12 +182,18 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     modo = "extra";
   } else if (input.tempoDisponivelMin) {
     const { programa } = await getPlanoAtivo(alunoId);
-    reducao = treinoPossivel({ exercicios: treino.exercicios, tempos: temposDoTreino(treino), tempoDisponivelMin: input.tempoDisponivelMin, permiteReduzida: !!programa?.permite_versao_reduzida, prioridadesMusculares: programa?.prioridades ?? [] });
+    reducao = treinoPossivel({ exercicios: treino.exercicios, tempos: temposDoTreino(treino), tempoDisponivelMin: input.tempoDisponivelMin, permiteReduzida: !!programa?.permite_versao_reduzida, prioridadesMusculares: programa?.prioridades ?? [], descansoReduzido: !!input.descansoReduzido });
     if (reducao.status === "inviavel" || reducao.status === "nao_autorizado") throw new Error(`Sem versão possível para ${input.tempoDisponivelMin} min: ${reducao.explicacao[1] ?? reducao.explicacao[0]}`);
     if (reducao.status === "reduzido") {
       modo = "reduzido";
       const ok = new Set(reducao.incluidos);
       doDia = treino.exercicios.filter((e) => ok.has(e.id));
+    }
+    // Descansos encurtados valem para a sessão inteira (cronômetro e estimativa).
+    if (reducao.descansoReduzido) {
+      modo = "reduzido";
+      doDia = doDia.map(comDescansoReduzido);
+      tempos = temposComDescansoReduzido(tempos);
     }
   }
 
@@ -202,14 +211,14 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     finalizado_em: null,
     duracao_seg: null,
     snapshot: {
-      treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: temposDoTreino(treino) },
+      treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos },
       exercicios: doDia,
       // Versão realizada ≠ treino original: guarda o que ficou para outro dia.
-      ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg } } : {}),
+      ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg, descanso_reduzido: reducao.descansoReduzido } } : {}),
       ...(extra ? { extra: { id: extra.id, modalidade: extra.modalidade, titulo: extra.titulo, grupos: extra.grupos, series_estimadas: extra.series_estimadas }, recuperacao: input.recuperacao ?? null } : {}),
     },
     series_planejadas: planejadas,
-    tempo_estimado_seg: estimarPrescricao(doDia, temposDoTreino(treino)).totalSeg || null,
+    tempo_estimado_seg: estimarPrescricao(doDia, tempos).totalSeg || null,
     pausado_seg: 0,
     checkin_pre: input.checkinPre ?? null,
     checkin_pre_nota: input.checkinPreNota ?? null,

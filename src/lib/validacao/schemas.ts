@@ -99,6 +99,7 @@ export const iniciarSessaoSchema = z.object({
   checkin_pre: z.enum(CHECKIN_PRE).nullable().optional(),
   checkin_pre_nota: textoOpcional(300),
   tempo_disponivel_min: z.coerce.number().int().min(10).max(240).nullable().optional(),
+  descanso_reduzido: z.boolean().optional(),
   extra_id: z.string().min(1).max(64).nullable().optional(),
   recuperacao: z.enum(["bem", "cansado", "dor", "prefiro_nao"]).nullable().optional(),
 });
