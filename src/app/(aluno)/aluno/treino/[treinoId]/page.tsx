@@ -66,6 +66,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
       sessaoInicial={sessaoAtiva}
       outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino } : null}
       sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
+      nomeAluno={sessao.nome.split(" ")[0]}
     />
   );
 }

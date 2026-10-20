@@ -1,0 +1,244 @@
+// ============================================================================
+// Conquistas e “Meu Chalalá de hoje” — persistência e resumo da conclusão.
+// Regras em src/lib/conquistas (puras). Sempre pelo cliente com RLS:
+// o aluno grava/lê só as próprias; o treinador lê todas e assina
+// reconhecimentos. Inserção idempotente (aluno, código, referência).
+// ============================================================================
+
+import { isDemoMode } from "@/lib/env";
+import { getDb } from "@/lib/supabase/rls";
+import { uid } from "@/lib/mock/store";
+import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes";
+import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
+import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
+import { detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
+
+export type ConquistaRow = {
+  id: string;
+  aluno_id: string;
+  codigo: CodigoConquista;
+  referencia: string;
+  conquistado_em: string;
+  session_id: string | null;
+  titulo: string;
+  descricao: string | null;
+  dados: { recordes?: ItemRecorde[]; diasAfastado?: number; meta?: number };
+  created_at: string;
+};
+
+export type Reconhecimento = { id: string; aluno_id: string; conquista_id: string | null; mensagem: string; autor_id: string | null; created_at: string };
+
+export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link"] as const;
+export type TipoEvento = (typeof TIPOS_EVENTO)[number];
+export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string };
+
+type AlunoBase = { id: string; data_inicio: string | null; created_at: string };
+
+type DemoConquistas = { conquistas: ConquistaRow[]; reconhecimentos: Reconhecimento[]; eventos: EventoChalala[] };
+function demo(): DemoConquistas {
+  const g = globalThis as unknown as { __montinhoConquistas?: DemoConquistas };
+  g.__montinhoConquistas ??= { conquistas: [], reconhecimentos: [], eventos: [] };
+  return g.__montinhoConquistas;
+}
+
+const paraConquista = (s: SessaoCompleta): SessaoConquista => ({
+  id: s.id,
+  iniciado_em: s.iniciado_em,
+  status: s.status,
+  modo: s.modo ?? "normal",
+  series_planejadas: s.series_planejadas,
+  series_concluidas: s.series_concluidas,
+  treino_id: s.treino_id,
+  letra: s.letra,
+  nome_treino: s.nome_treino,
+  duracao_seg: s.duracao_seg,
+  feedback_percepcao: s.feedback_percepcao,
+  checkin_pre: s.checkin_pre ?? null,
+  exercicios: s.exercicios.map((e) => ({ exercicio_id: e.exercicio_id, nome: e.nome, series: e.series.map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) })),
+});
+
+export async function listarConquistas(alunoId: string | null, opts: { desde?: string; limite?: number } = {}): Promise<ConquistaRow[]> {
+  if (isDemoMode()) {
+    return demo()
+      .conquistas.filter((c) => (!alunoId || c.aluno_id === alunoId) && (!opts.desde || c.conquistado_em >= opts.desde))
+      .sort((a, b) => (a.conquistado_em < b.conquistado_em ? 1 : -1))
+      .slice(0, opts.limite ?? 500);
+  }
+  const db = await getDb();
+  let q = db.from("conquistas_aluno").select("*").order("conquistado_em", { ascending: false }).limit(opts.limite ?? 500);
+  if (alunoId) q = q.eq("aluno_id", alunoId);
+  if (opts.desde) q = q.gte("conquistado_em", opts.desde);
+  const { data } = await q;
+  return (data ?? []) as ConquistaRow[];
+}
+
+/**
+ * Recalcula as conquistas sustentadas pelos dados e grava as que faltam.
+ * Pode ser chamada quantas vezes for: nunca duplica.
+ */
+export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: ConquistaRow[]; novas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
+  const [completas, aderencia, existentes] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id)]);
+  const sessoes = completas.map(paraConquista);
+  const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null });
+  const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
+  const ja = new Set(existentes.map(chave));
+  const faltam = detectadas.filter((d) => !ja.has(chave(d)));
+  if (!faltam.length) return { todas: existentes, novas: [], sessoes, aderencia };
+
+  const linhas = faltam.map((d) => ({ aluno_id: aluno.id, codigo: d.codigo, referencia: d.referencia, conquistado_em: d.data, session_id: d.sessaoId, titulo: d.titulo, descricao: d.descricao, dados: d.dados ?? {} }));
+  if (isDemoMode()) {
+    const st = demo();
+    const agora = new Date().toISOString();
+    for (const l of linhas) if (!st.conquistas.some((c) => c.aluno_id === l.aluno_id && chave(c) === chave(l))) st.conquistas.push({ id: uid(), created_at: agora, ...l });
+  } else {
+    const db = await getDb();
+    await db.from("conquistas_aluno").upsert(linhas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+  }
+  const todas = await listarConquistas(aluno.id);
+  const novas = todas.filter((c) => !ja.has(chave(c)));
+  return { todas, novas, sessoes, aderencia };
+}
+
+/** “Primeiro relatório consultado”: registrado quando o aluno abre a evolução completa. */
+export async function registrarRelatorioVisto(alunoId: string): Promise<void> {
+  const linha = { aluno_id: alunoId, codigo: "relatorio_mensal" as const, referencia: "1", conquistado_em: new Date().toISOString(), session_id: null, titulo: "Primeiro relatório consultado", descricao: "Você abriu sua evolução completa.", dados: {} };
+  if (isDemoMode()) {
+    const st = demo();
+    if (!st.conquistas.some((c) => c.aluno_id === alunoId && c.codigo === "relatorio_mensal")) st.conquistas.push({ id: uid(), created_at: linha.conquistado_em, ...linha });
+    return;
+  }
+  const db = await getDb();
+  await db.from("conquistas_aluno").upsert([linha], { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+}
+
+// ---------------------------------------------------------------------------
+// Tela de conclusão
+// ---------------------------------------------------------------------------
+export type ResumoChalala = {
+  sessaoId: string;
+  status: SessaoCompleta["status"];
+  modo: "normal" | "reduzido" | "extra";
+  nomeTreino: string | null;
+  letra: string | null;
+  data: string;
+  /** Duração real (início → fim, menos pausas registradas). Null quando não confiável. */
+  duracaoMin: number | null;
+  exercicios: number;
+  series: number;
+  seriesPlanejadas: number;
+  meta: number | null;
+  /** Treinos válidos da semana (concluídos + 0,5 × parciais, sem extras). */
+  pontosSemana: number;
+  metaCumprida: boolean;
+  metaCumpridaAgora: boolean;
+  conquistas: ConquistaRow[];
+  recordes: ItemRecorde[];
+  retomada: boolean;
+  mensagem: string;
+  modeloSugerido: ModeloCard;
+};
+
+export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise<ResumoChalala | null> {
+  const s = await getSessao(aluno.id, sessaoId);
+  if (!s || s.status === "em_andamento") return null;
+  const { todas, aderencia } = await sincronizarConquistas(aluno);
+  const sc = paraConquista(s);
+  const semana = aderencia.semanas.find((w) => w.inicio === inicioDaSemana(dataLocal(s.iniciado_em))) ?? null;
+  const pontosSemana = semana ? semana.concluidas + 0.5 * semana.parciais : 0;
+  const daSessao = todas.filter((c) => c.session_id === s.id);
+  const msg = mensagemConclusao({ sessao: sc, conquistas: daSessao, meta: semana?.meta ?? null, pontosSemana });
+  const exercicios = s.exercicios.filter((e) => e.series.some((x) => x.tipo !== "aquecimento")).length;
+  const duracao = s.duracao_seg && s.duracao_seg > 0 && s.duracao_seg < 6 * 3600 ? Math.max(1, Math.round(s.duracao_seg / 60)) : null;
+  return {
+    sessaoId: s.id,
+    status: s.status,
+    modo: s.modo ?? "normal",
+    nomeTreino: s.nome_treino,
+    letra: s.letra,
+    data: dataLocal(s.finalizado_em ?? s.iniciado_em),
+    duracaoMin: duracao,
+    exercicios,
+    series: s.series_concluidas,
+    seriesPlanejadas: s.series_planejadas,
+    meta: semana?.meta ?? null,
+    pontosSemana,
+    metaCumprida: !!semana?.meta && pontosSemana >= semana.meta && classificarSessao(sc) !== "extra",
+    metaCumpridaAgora: msg.metaCumpridaAgora,
+    conquistas: daSessao,
+    recordes: daSessao.find((c) => c.codigo === "recorde")?.dados.recordes ?? [],
+    retomada: daSessao.some((c) => c.codigo === "eu_voltei"),
+    mensagem: msg.mensagem,
+    modeloSugerido: msg.modeloSugerido,
+  };
+}
+
+export async function resumoMensalDoAluno(aluno: AlunoBase): Promise<{ mensal: ResumoMensal; conquistas: ConquistaRow[] }> {
+  const { todas, sessoes, aderencia } = await sincronizarConquistas(aluno);
+  const hoje = dataLocal(new Date());
+  const primeira = sessoes.map((s) => dataLocal(s.iniciado_em)).sort()[0];
+  const inicio = [aluno.data_inicio ?? dataLocal(aluno.created_at), primeira].filter(Boolean).sort()[0] ?? hoje;
+  return { mensal: resumoMensal({ sessoes, aderencia, conquistas: todas, inicioAcompanhamento: inicio, hoje }), conquistas: todas };
+}
+
+// ---------------------------------------------------------------------------
+// Reconhecimento do personal (mensagem escrita por ele)
+// ---------------------------------------------------------------------------
+export async function criarReconhecimento(input: { alunoId: string; conquistaId: string | null; mensagem: string }): Promise<Reconhecimento> {
+  if (isDemoMode()) {
+    const r: Reconhecimento = { id: uid(), aluno_id: input.alunoId, conquista_id: input.conquistaId, mensagem: input.mensagem, autor_id: null, created_at: new Date().toISOString() };
+    demo().reconhecimentos.push(r);
+    return r;
+  }
+  const db = await getDb();
+  const { data, error } = await db.from("reconhecimentos").insert({ aluno_id: input.alunoId, conquista_id: input.conquistaId, mensagem: input.mensagem }).select("*").single();
+  if (error || !data) throw new Error(error?.message ?? "Falha ao salvar");
+  return data as Reconhecimento;
+}
+
+export async function listarReconhecimentos(alunoId: string | null, limite = 50): Promise<Reconhecimento[]> {
+  if (isDemoMode()) {
+    return demo()
+      .reconhecimentos.filter((r) => !alunoId || r.aluno_id === alunoId)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .slice(0, limite);
+  }
+  const db = await getDb();
+  let q = db.from("reconhecimentos").select("*").order("created_at", { ascending: false }).limit(limite);
+  if (alunoId) q = q.eq("aluno_id", alunoId);
+  const { data } = await q;
+  return (data ?? []) as Reconhecimento[];
+}
+
+/** Inscrições push do aluno (só o treinador consegue; função no banco confere). */
+export async function inscricoesPushDoAluno(alunoId: string): Promise<Array<{ endpoint: string; p256dh: string; auth: string }>> {
+  if (isDemoMode()) return [];
+  const db = await getDb();
+  const { data } = await db.rpc("push_do_aluno", { p_aluno: alunoId });
+  return (data ?? []) as Array<{ endpoint: string; p256dh: string; auth: string }>;
+}
+
+// ---------------------------------------------------------------------------
+// Métricas do compartilhamento (eventos sem conteúdo privado)
+// ---------------------------------------------------------------------------
+export async function registrarEvento(alunoId: string | null, e: { tipo: TipoEvento; modelo?: string | null; formato?: string | null; origem?: string | null }): Promise<void> {
+  const linha: EventoChalala = { aluno_id: e.tipo === "visita_link" ? null : alunoId, tipo: e.tipo, modelo: e.modelo ?? null, formato: e.formato ?? null, origem: e.origem ?? null, created_at: new Date().toISOString() };
+  if (linha.tipo !== "visita_link" && !linha.aluno_id) return;
+  if (isDemoMode()) {
+    demo().eventos.push(linha);
+    return;
+  }
+  const db = await getDb();
+  const { created_at: _c, ...ins } = linha;
+  void _c;
+  await db.from("eventos_chalala").insert(ins);
+}
+
+export async function listarEventos(desde: string): Promise<EventoChalala[]> {
+  if (isDemoMode()) return demo().eventos.filter((e) => e.created_at >= desde);
+  const db = await getDb();
+  const { data } = await db.from("eventos_chalala").select("aluno_id, tipo, modelo, formato, origem, created_at").gte("created_at", desde).order("created_at", { ascending: false }).limit(10000);
+  return (data ?? []) as EventoChalala[];
+}
+

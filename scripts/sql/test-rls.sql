@@ -433,4 +433,53 @@ begin
   if not ok then raise exception 'T12: aceitou pausa terminando antes de começar'; end if;
   raise notice 'T12 OK: metas e pausas — treinador escreve, aluno lê só o seu, datas validadas';
 end $$;
+-- ============================================================================
+-- T13 — 0019: conquistas idempotentes, reconhecimento do personal, eventos
+-- ============================================================================
+select test_login('22222222-2222-2222-2222-222222222222');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'primeiro_treino', '1', now(), 'Primeiro treino concluído');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'primeiro_treino', '1', now(), 'Primeiro treino concluído') on conflict (aluno_id, codigo, referencia) do nothing;
+insert into eventos_chalala (aluno_id, tipo, modelo, formato) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'card_gerado', 'A', 'stories');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from conquistas_aluno;
+  if n <> 1 then raise exception 'T13: conquista duplicada por requisição repetida (%)', n; end if;
+  begin insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_10', '1', now(), 'x'); exception when others then ok := true; end;
+  if not ok then raise exception 'T13: aluna A criou conquista para B'; end if;
+  ok := false;
+  begin insert into eventos_chalala (aluno_id, tipo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'download'); exception when others then ok := true; end;
+  if not ok then raise exception 'T13: aluna A registrou evento em nome de B'; end if;
+  ok := false;
+  begin insert into reconhecimentos (aluno_id, mensagem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'falso'); exception when others then ok := true; end;
+  if not ok then raise exception 'T13: aluno escreveu reconhecimento como se fosse o personal'; end if;
+  ok := false;
+  begin update conquistas_aluno set titulo = 'x'; get diagnostics n = row_count; if n = 0 then ok := true; end if; exception when others then ok := true; end;
+  if not ok then raise exception 'T13: aluno alterou conquista'; end if;
+  select count(*) into n from eventos_chalala;
+  if n <> 0 then raise exception 'T13: aluno leu eventos agregados'; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into reconhecimentos (aluno_id, conquista_id, mensagem) select aluno_id, id, 'Essa constância merece reconhecimento!' from conquistas_aluno limit 1;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from conquistas_aluno;
+  if n <> 0 then raise exception 'T13: aluno B viu conquista de A'; end if;
+  select count(*) into n from reconhecimentos;
+  if n <> 0 then raise exception 'T13: aluno B viu reconhecimento de A'; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from eventos_chalala;
+  if n <> 1 then raise exception 'T13: treinador deveria ver 1 evento (viu %)', n; end if;
+  begin insert into eventos_chalala (aluno_id, tipo) values (null, 'download'); exception when others then ok := true; end;
+  if not ok then raise exception 'T13: evento sem aluno que não é visita'; end if;
+  insert into eventos_chalala (tipo, origem) values ('visita_link', 'card_A');
+  raise notice 'T13 OK: conquistas sem duplicar, só o personal assina reconhecimento, eventos isolados';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

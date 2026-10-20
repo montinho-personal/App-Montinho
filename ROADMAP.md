@@ -24,6 +24,9 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 - ✅ Técnicas avançadas no volume: drop set, rest-pause e myo-reps com drops/mini-séries e regra declarada (Clássica/Moderada/Alta) + ajuste opcional por RIR (VOLUME-TECNICAS.md).
 - ✅ Consistência 2.0 — duração estimada no montador (execução, descansos, transições, técnicas, tempo-alvo) e ritmo do treino (decorrido/restante, pausa, estados sem culpa, relógio do servidor).
 - ✅ Consistência 2.0 — aderência: meta semanal por aluno (versionada), pausas combinadas, índice semana/28 dias/12 semanas/total, sequência de semanas, calendário com dia clicável, Central de aderência do personal com sinais observáveis (sem rótulos psicológicos). Regras em `src/lib/aderencia/`.
+- ✅ Meu Chalalá de hoje: tela “CHALALÁ! TREINO CONCLUÍDO!” com resumo real (duração sem pausas, exercícios, séries, meta da semana), conquista da sessão e mensagem automática identificada; 4 modelos de card (Treino pago, Missão cumprida, Nova conquista, Eu voltei) + card de 30 dias + card de reconhecimento; editor com foto local, cores oficiais, frases aprovadas, métricas opcionais, desfazer/restaurar; exportação 1080×1920, 1080×1350, 1080×1080 e PNG transparente; compartilhamento nativo com fallback para download.
+- ✅ Conquistas persistidas e idempotentes (12 marcos, histórico em “Minhas conquistas”), recordes só com 2+ registros comparáveis e nunca com dor relatada.
+- ✅ “Celebrar conquistas” (personal): mensagem escrita por ele, aviso push opcional, card de reconhecimento e métricas agregadas de uso do compartilhamento. Página pública `/chalala` sem dados do aluno.
 - 🟡 Registro do aluno ainda não tem tipo “drop/mini-série”: o realizado não recebe bônus de técnica.
 - 🟡 Vídeo demonstrativo: o aluno só vê vídeo marcado como verificado pelo treinador. **Nenhum dos 150 tem vídeo ainda** (pendência de mídia).
 - 🟡 Versão reduzida “hoje tenho só 30 min”: flag `permite_versao_reduzida` existe no programa; a UI do aluno ainda não oferece a versão reduzida.
@@ -45,7 +48,7 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 ## Pendências reais (precisam de você)
 
 1. **Logotipo original**: o app usa o SVG público do site oficial. Se houver arquivo vetorial do designer (com variações de cor), substitua `public/brand/logo.svg`, `logo-fundo-claro.svg` e `mark.svg`.
-2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0018 e o deploy na Vercel já estão feitos.
+2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0019 e o deploy na Vercel já estão feitos.
 3. **Primeiro treinador**: após criar sua conta, mudar `role` para `treinador` em `profiles`.
 4. **Biblioteca de exercícios**: revisar a lista curada de 150 (foi montada pelo Claude, não veio de uma lista sua), aprovar/rejeitar substituições e cadastrar vídeos verificados. Cardio (esteira, bike) ficou fora por escopo.
 5. **WhatsApp de atendimento**: preencher `BRAND.contact.whatsapp` se quiser o botão “Falar com o Montinho”.

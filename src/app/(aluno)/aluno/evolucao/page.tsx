@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { listCheckIns, listEvolucao } from "@/lib/db";
 import { getPlanoAtivo, listVersoes } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
+import { RegistrarRelatorio } from "@/components/chalala/RegistrarRelatorio";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
 import { BRAND } from "@/config/brand";
 import { getAluno } from "@/lib/db";
@@ -36,6 +38,10 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
       <header>
         <h1 className="text-2xl font-bold">Sua evolução</h1>
         <p className="text-sm text-fg-muted mt-1">Primeiro o essencial. Depois, os detalhes — sempre a partir do que você registrou.</p>
+        <Link href="/aluno/conquistas" className="mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">
+          Minhas conquistas e card dos 30 dias →
+        </Link>
+        <RegistrarRelatorio />
       </header>
       {aderencia ? (
         <Card id="consistencia" className="scroll-mt-20">

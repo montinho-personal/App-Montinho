@@ -33,6 +33,8 @@ import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
 import type { ExercicioPrescrito, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
+import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
 
@@ -45,6 +47,8 @@ type Props = {
   sessaoInicial: SessaoCompleta | null;
   outraSessao: { id: string; treinoId: string | null; nome: string | null } | null;
   sessaoConcluida: SessaoCompleta | null;
+  /** Primeiro nome (só aparece no card se o aluno ativar). */
+  nomeAluno?: string;
 };
 
 type SerieLocal = {
@@ -88,7 +92,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "" }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
@@ -426,59 +430,40 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   }
 
   if (concluida) {
-    const feitas = concluida.series_concluidas;
-    const planejadas = concluida.series_planejadas;
-    const recordes = detectarRecordesLocais(concluida, ultimas);
+    const base: BaseConclusao = {
+      sessaoId: concluida.id,
+      status: concluida.status === "abandonada" ? "abandonada" : "concluida",
+      nomeTreino: concluida.nome_treino ?? treino.nome,
+      series: concluida.series_concluidas,
+      seriesPlanejadas: concluida.series_planejadas,
+      duracaoMin: concluida.duracao_seg ? Math.max(1, Math.round(concluida.duracao_seg / 60)) : null,
+      data: dataLocal(concluida.finalizado_em ?? concluida.iniciado_em),
+    };
     return (
-      <div className="space-y-5">
-        <Card className="border-success/40 bg-grain-strong">
-          <CardBody className="text-center py-8 space-y-2">
-            <Icon name="check" size={40} className="mx-auto text-success" />
-            <h1 className="text-2xl font-bold">{concluida.status === "abandonada" ? "Treino encerrado" : "Treino concluído"}</h1>
-            <p className="text-fg-muted">
-              Você realizou <span className="text-fg font-bold">{feitas}</span> de <span className="text-fg font-bold">{planejadas}</span> séries propostas.
-            </p>
-            {concluida.duracao_seg ? <p className="text-sm text-fg-subtle">{Math.round(concluida.duracao_seg / 60)} min de treino</p> : null}
-          </CardBody>
-        </Card>
-        {recordes.length ? (
-          <Card className="border-accent/40">
-            <CardBody className="space-y-1">
-              <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Marcas de hoje</p>
-              {recordes.map((r) => (
-                <p key={r} className="text-sm">
-                  {r}
-                </p>
-              ))}
+      <TelaChalala base={base} nome={nomeAluno}>
+          <Card>
+            <CardBody className="space-y-3">
+              <p className="font-semibold text-sm">Como foi o treino? (opcional)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {(["leve", "ok", "pesado", "dor"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={async () => {
+                      setFeedback(f);
+                      await fetch(`/api/sessoes/${concluida.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: concluida.status === "abandonada" ? "abandonada" : "concluida", feedback_percepcao: f }) }).catch(() => undefined);
+                    }}
+                    aria-pressed={feedback === f}
+                    className={`touch rounded-lg border px-2 py-2 text-sm font-semibold ${feedback === f ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}
+                  >
+                    {f === "leve" ? "Leve" : f === "ok" ? "Na medida" : f === "pesado" ? "Pesado" : "Senti dor"}
+                  </button>
+                ))}
+              </div>
+              {feedback === "dor" ? <p className="text-xs text-fg-muted">Obrigado por avisar. O {BRAND.name} verá isso antes do próximo treino. Se a dor for forte, procure avaliação.</p> : null}
             </CardBody>
           </Card>
-        ) : null}
-        <Card>
-          <CardBody className="space-y-3">
-            <p className="font-semibold text-sm">Como foi o treino? (opcional)</p>
-            <div className="grid grid-cols-4 gap-2">
-              {(["leve", "ok", "pesado", "dor"] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={async () => {
-                    setFeedback(f);
-                    await fetch(`/api/sessoes/${concluida.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: concluida.status === "abandonada" ? "abandonada" : "concluida", feedback_percepcao: f }) }).catch(() => undefined);
-                  }}
-                  aria-pressed={feedback === f}
-                  className={`touch rounded-lg border px-2 py-2 text-sm font-semibold ${feedback === f ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}
-                >
-                  {f === "leve" ? "Leve" : f === "ok" ? "Na medida" : f === "pesado" ? "Pesado" : "Senti dor"}
-                </button>
-              ))}
-            </div>
-            {feedback === "dor" ? <p className="text-xs text-fg-muted">Obrigado por avisar. O {BRAND.name} verá isso antes do próximo treino. Se a dor for forte, procure avaliação.</p> : null}
-          </CardBody>
-        </Card>
-        <Link href="/aluno" className="touch inline-flex w-full items-center justify-center rounded-lg bg-accent px-5 py-3 font-bold text-bg">
-          Voltar ao início
-        </Link>
-      </div>
+      </TelaChalala>
     );
   }
 
@@ -830,14 +815,3 @@ function AdaptacaoForm({ onEnviar, onCancelar }: { onEnviar: (motivo: "nao_conse
 }
 
 /** Recordes reais da sessão comparados com a última execução conhecida (só carga). */
-function detectarRecordesLocais(s: SessaoCompleta, ultimas: Record<string, UltimaExecucao | null>): string[] {
-  const out: string[] = [];
-  for (const e of s.exercicios) {
-    const u = e.exercicio_id ? ultimas[e.exercicio_id] : null;
-    if (!u || !u.series.length) continue;
-    const maxAntes = Math.max(...u.series.map((x) => x.carga_kg ?? 0));
-    const maxHoje = Math.max(...e.series.filter((x) => x.tipo !== "aquecimento").map((x) => x.carga_kg ?? 0));
-    if (maxHoje > maxAntes && maxHoje > 0) out.push(`${e.nome}: melhor carga até agora (${maxHoje} kg, antes ${maxAntes} kg).`);
-  }
-  return out.slice(0, 3);
-}

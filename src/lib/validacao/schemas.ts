@@ -259,3 +259,19 @@ export const pausaSchema = z
   .object({ inicio: dataISO, fim: dataISO.nullable().optional(), tipo: z.enum(TIPOS_PAUSA).default("outro"), motivo: textoOpcional(300) })
   .refine((p) => !p.fim || p.fim >= p.inicio, { message: "O fim não pode ser antes do início", path: ["fim"] });
 export const encerrarPausaSchema = z.object({ pausa_id: z.string().min(1).max(64), fim: dataISO });
+
+// Meu Chalalá de hoje — eventos (sem conteúdo privado) e reconhecimento do personal
+export const eventoChalalaSchema = z
+  .object({
+    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado"]),
+    modelo: z.string().regex(/^[A-Za-z]{1,20}$/).nullable().optional(),
+    formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento"]).nullable().optional(),
+  })
+  .strict();
+export const reconhecimentoSchema = z.object({
+  aluno_id: z.string().min(1).max(64),
+  conquista_id: z.string().min(1).max(64).nullable().optional(),
+  mensagem: z.string().trim().min(3, "Escreva a mensagem").max(600),
+  notificar: z.boolean().optional(),
+});

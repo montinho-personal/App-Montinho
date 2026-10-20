@@ -147,3 +147,24 @@
     border: 0;
   }
 }
+
+/* Meu Chalalá de hoje — celebração breve e discreta (desligável; reduz movimento) */
+@keyframes chalala-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes chalala-brilho {
+  0% { opacity: 0; transform: scale(0.4); }
+  40% { opacity: 0.55; }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+.chalala-pop { animation: chalala-pop 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.chalala-brilho { animation: chalala-brilho 900ms ease-out 1 both; }
+.sem-animacao .chalala-pop,
+.sem-animacao .chalala-brilho { animation: none; }
+.sem-animacao .chalala-brilho { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .chalala-pop { animation: none; }
+  .chalala-brilho { display: none; }
+}

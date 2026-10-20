@@ -87,3 +87,12 @@ Início (próximo treino + “Começar treino”, progresso da semana com denomi
 - **Perfil do aluno → aba Consistência**: defina a **meta semanal** (vale a partir da segunda-feira seguinte, com histórico) e registre **pausas** (férias, lesão, descanso prescrito). Semanas com 4 dias ou mais em pausa não contam e não quebram a sequência.
 - **Como a aderência é calculada**: treino concluído (≥ 50% das séries) vale 1; parcial vale 0,5; treino extra não conta; o total da semana é limitado à meta. Sem prescrição na semana, ela não entra na conta.
 - O aluno vê na tela inicial “Você completou X dos seus Y treinos desta semana” e, em Evolução, o calendário e a sequência de semanas.
+
+## Meu Chalalá de hoje (conclusão do treino e cards)
+
+- Ao concluir, o aluno vê **“CHALALÁ! TREINO CONCLUÍDO!”** com duração real (descontando pausas), exercícios, séries, a meta da semana e a conquista daquela sessão (se houver). A frase abaixo é **automática** e está marcada como tal.
+- **Compartilhar minha conquista** é opcional: abre um editor com 4 modelos (Treino pago, Missão cumprida, Nova conquista, Eu voltei). O app só oferece o modelo que os dados sustentam (ex.: “Missão cumprida” só quando a meta foi de fato atingida).
+- A **foto do aluno não sai do celular**: o card é montado no próprio aparelho. Formatos: Stories, Feed, Quadrado e PNG transparente.
+- No celular, “Compartilhar” abre a lista de apps (Instagram, WhatsApp…). Se o navegador não permitir, a imagem é salva e o app explica como postar.
+- **Aluno → Conquistas**: histórico permanente, critério de cada conquista e o card “Minha evolução em 30 dias”.
+- **Menu → Celebrar conquistas** (você): veja as conquistas recentes, escreva sua mensagem e envie. O aluno vê como “escrita pelo seu personal” e, se ativou notificações, recebe um aviso. Ali também ficam os números de uso dos cards (abertura do compartilhamento ≠ publicação confirmada).

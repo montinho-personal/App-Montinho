@@ -12,13 +12,14 @@ import { CheckInDiario } from "@/components/aluno/CheckInDiario";
 import { BRAND } from "@/config/brand";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
+import { listarReconhecimentos } from "@/lib/data/conquistas";
 
 export const metadata = { title: "Início" };
 
 export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
@@ -26,6 +27,7 @@ export default async function AlunoHomePage() {
     listIntervencoes(alunoId, 3),
     getCheckInHoje(alunoId),
     listDieta(alunoId),
+    listarReconhecimentos(alunoId, 1),
   ]);
   if (!aluno) return null;
   const aderencia = await aderenciaDoAluno(aluno);
@@ -114,11 +116,29 @@ export default async function AlunoHomePage() {
         <Card>
           <CardBody className="space-y-2">
             <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual.extras} />
-            <Link href="/aluno/evolucao#consistencia" className="inline-block text-xs text-accent underline-offset-2 hover:underline">
-              Ver calendário de consistência
-            </Link>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <Link href="/aluno/evolucao#consistencia" className="inline-block text-xs text-accent underline-offset-2 hover:underline">
+                Ver calendário de consistência
+              </Link>
+              <Link href="/aluno/conquistas" className="inline-block text-xs text-accent underline-offset-2 hover:underline">
+                Minhas conquistas
+              </Link>
+            </div>
           </CardBody>
         </Card>
+      ) : null}
+
+      {/* Reconhecimento escrito pelo personal (recente) */}
+      {reconhecimentos[0] && Date.parse(reconhecimentos[0].created_at) > new Date().getTime() - 14 * 86_400_000 ? (
+        <Link href="/aluno/conquistas" className="block">
+          <Card className="border-accent/50 hover:border-accent transition-colors">
+            <CardBody className="space-y-1 py-3">
+              <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Reconhecimento do {BRAND.name}</p>
+              <p className="text-sm">“{reconhecimentos[0].mensagem}”</p>
+              <p className="text-[11px] text-fg-subtle">Escrita pelo seu personal · {dataBR(reconhecimentos[0].created_at)}</p>
+            </CardBody>
+          </Card>
+        </Link>
       ) : null}
 
       {/* 3. Último progresso relevante */}
