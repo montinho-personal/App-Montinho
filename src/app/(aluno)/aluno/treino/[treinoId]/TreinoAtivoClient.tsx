@@ -559,7 +559,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                     ))}
                     {bloqueado ? (
                       pedidoTempo ? <p className="text-xs font-semibold text-success">Pedido de ajuste enviado.</p> : (
-                        <button type="button" onClick={() => void pedirAjusteTempo()} className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => void pedirAjusteTempo()} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
                           Pedir ajuste ao {BRAND.name}
                         </button>
                       )
@@ -581,7 +581,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
         </Card>
         <ol className="space-y-2" aria-label="Exercícios deste treino">
           {exercicios.map((e, i) => (
-            <li key={e.id} className={`flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 ${adiadosIds.has(e.id) ? "opacity-50" : ""}`}>
+            <li key={e.id} className={`flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 ${adiadosIds.has(e.id) ? "border-dashed bg-transparent" : ""}`}>
               <span className="w-7 h-7 rounded-full bg-bg border border-border text-xs font-bold flex items-center justify-center text-fg-muted" aria-hidden>
                 {i + 1}
               </span>
@@ -617,7 +617,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
         <p className={`text-xs font-semibold ${syncLabel[sync].cor}`} role="status" aria-live="polite">
           {syncLabel[sync].texto}
           {sync === "erro" ? (
-            <button type="button" onClick={() => void sincronizar()} className="ml-2 underline">
+            <button type="button" onClick={() => void sincronizar()} className="alvo ml-2 underline">
               tentar agora
             </button>
           ) : null}

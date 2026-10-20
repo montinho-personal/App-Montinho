@@ -78,7 +78,7 @@ export function ComparadorFotos({ fotos }: { fotos: Foto[] }) {
           </button>
         </div>
         <button
-          className="text-[12px] font-semibold px-3 py-1.5 rounded-md border border-border bg-card text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
+          className="alvo text-[12px] font-semibold px-3 py-1.5 rounded-md border border-border bg-card text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
           title="Gera um comparativo com a sua logo pra compartilhar nos stories (em breve)"
         >
           ⬇ Exportar comparativo

@@ -93,7 +93,7 @@ export default async function AlunoHomePage() {
               <Icon name="play" /> Começar treino
             </Link>
             {treinos.length > 1 ? (
-              <Link href="/aluno/treinar" className="block text-center text-sm text-fg-muted hover:text-fg">
+              <Link href="/aluno/treinar" className="block py-1 text-center text-sm text-fg-muted hover:text-fg">
                 Prefere outro treino hoje? Ver todos
               </Link>
             ) : null}
@@ -106,7 +106,7 @@ export default async function AlunoHomePage() {
             <h2 className="font-bold">Ainda não há treino liberado</h2>
             <p className="text-sm text-fg-muted">O {BRAND.name} está preparando seu programa. Assim que ele for publicado, aparece aqui.</p>
             {BRAND.contact.whatsapp ? (
-              <a className="inline-block text-sm text-accent underline-offset-2 hover:underline" href={`https://wa.me/${BRAND.contact.whatsapp}`} target="_blank" rel="noreferrer">
+              <a className="inline-block text-sm text-accent underline-offset-2 hover:underline min-h-6 py-0.5" href={`https://wa.me/${BRAND.contact.whatsapp}`} target="_blank" rel="noreferrer">
                 Falar com o {BRAND.name}
               </a>
             ) : null}
@@ -120,10 +120,10 @@ export default async function AlunoHomePage() {
           <CardBody className="space-y-2">
             <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual.extras} />
             <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <Link href="/aluno/evolucao#consistencia" className="inline-block text-xs text-accent underline-offset-2 hover:underline">
+              <Link href="/aluno/evolucao#consistencia" className="inline-block text-xs text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
                 Ver calendário de consistência
               </Link>
-              <Link href="/aluno/conquistas" className="inline-block text-xs text-accent underline-offset-2 hover:underline">
+              <Link href="/aluno/conquistas" className="inline-block text-xs text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
                 Minhas conquistas
               </Link>
             </div>
@@ -166,7 +166,7 @@ export default async function AlunoHomePage() {
             <p className="text-[11px] uppercase tracking-wider text-success font-semibold">Progresso real (30 dias)</p>
             <p className="font-bold mt-1">{resumo30.conquistas[0].titulo}</p>
             <p className="text-sm text-fg-muted">{resumo30.conquistas[0].detalhe}</p>
-            <Link href="/aluno/evolucao" className="inline-block mt-2 text-sm text-accent underline-offset-2 hover:underline">
+            <Link href="/aluno/evolucao" className="inline-block mt-2 text-sm text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
               Ver evolução
             </Link>
           </CardBody>

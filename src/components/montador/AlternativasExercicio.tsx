@@ -25,7 +25,7 @@ export function AlternativasExercicio({ origem, nomeDigitado, itens, equivalenci
     <div className="mx-2 mb-2 rounded-lg border border-accent/30 bg-surface p-3 text-[12px]" role="region" aria-label="Alternativas ao exercício">
       <div className="mb-2 flex items-center justify-between">
         <span className="font-bold">Alternativas {origem ? `a ${origem.nome}` : ""}</span>
-        <button type="button" onClick={onFechar} className="text-fg-muted hover:text-fg" aria-label="Fechar alternativas">
+        <button type="button" onClick={onFechar} className="alvo text-fg-muted hover:text-fg" aria-label="Fechar alternativas">
           <Icon name="x" size={14} />
         </button>
       </div>

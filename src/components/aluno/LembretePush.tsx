@@ -87,7 +87,7 @@ export function LembretePush({ compacto = false }: { compacto?: boolean }) {
             <>
               <p className="font-semibold">Lembrete de treino em aberto: ativado neste aparelho</p>
               <p className="text-xs text-fg-muted">{explicacao}</p>
-              <button type="button" onClick={desativar} className="text-xs text-fg-subtle underline-offset-2 hover:underline">
+              <button type="button" onClick={desativar} className="alvo text-xs text-fg-subtle underline-offset-2 hover:underline">
                 Desativar
               </button>
             </>

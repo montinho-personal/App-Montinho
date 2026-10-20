@@ -39,8 +39,8 @@ export default async function MemoriaPage() {
         <div className="rounded-xl border border-border bg-card p-5">
           <h2 className="font-bold">De onde vêm as sugestões</h2>
           <dl className="mt-3 space-y-2 text-sm">
-            <Fonte nome="Biblioteca de exercícios" valor={`${biblioteca.length} exercícios`} detalhe={<Link href="/treinador/biblioteca" className="text-accent hover:underline">abrir</Link>} />
-            <Fonte nome="Templates reutilizáveis" valor={`${templates.length} template(s)`} detalhe={<Link href="/treinador/templates" className="text-accent hover:underline">abrir</Link>} />
+            <Fonte nome="Biblioteca de exercícios" valor={`${biblioteca.length} exercícios`} detalhe={<Link href="/treinador/biblioteca" className="alvo text-accent hover:underline">abrir</Link>} />
+            <Fonte nome="Templates reutilizáveis" valor={`${templates.length} template(s)`} detalhe={<Link href="/treinador/templates" className="alvo text-accent hover:underline">abrir</Link>} />
             <Fonte nome="Treinos já prescritos (memória)" valor={`${acervo.length} programa(s) salvos`} />
             <Fonte nome="Suas preferências recorrentes" valor={pref.baseadoEm ? `calculadas de ${pref.baseadoEm} prescrição(ões)` : "sem dados ainda"} />
             <Fonte nome="Sugestões automáticas" valor={FEATURES.iaMemoria ? "regras + camada de IA" : "regras explícitas (sem IA)"} detalhe={<span className="text-fg-subtle">substituições e busca</span>} />

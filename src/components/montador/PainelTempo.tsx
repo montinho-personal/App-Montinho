@@ -54,7 +54,7 @@ export function PainelTempo({ resultado, efetivos, doTreino, tempoAlvo, onTreino
             alvo {alvo} min: {diferenca === 0 ? "no alvo" : diferenca! > 0 ? `${diferenca} min acima` : `${-diferenca!} min abaixo`}
           </span>
         ) : null}
-        <button type="button" onClick={() => setAberto((v) => !v)} className="ml-auto text-accent underline-offset-2 hover:underline" aria-expanded={aberto}>
+        <button type="button" onClick={() => setAberto((v) => !v)} className="alvo ml-auto text-accent underline-offset-2 hover:underline" aria-expanded={aberto}>
           {aberto ? "fechar tempos" : "ajustar tempos"}
         </button>
       </div>

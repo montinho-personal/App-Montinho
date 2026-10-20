@@ -56,7 +56,7 @@ function Sugestoes({ l }: { l: LinhaCentral }) {
                 </label>
                 <textarea id={`m-${l.alunoId}-${sg.tipo}`} rows={3} value={textos[sg.tipo] ?? sg.rascunho} onChange={(e) => setTextos({ ...textos, [sg.tipo]: e.target.value.slice(0, 600) })} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
                 <div className="flex flex-wrap gap-3">
-                  <button type="button" onClick={() => void copiar(sg)} className="font-semibold text-accent underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => void copiar(sg)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
                     Copiar mensagem
                   </button>
                   {sg.acao === "reconhecer" ? (
@@ -148,7 +148,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: LinhaCentra
       <ul className="space-y-2 md:hidden">
         {lista.map((l) => (
           <li key={l.alunoId} className="rounded-xl border border-border bg-card p-3 space-y-2">
-            <Link href={`/treinador/alunos/${l.alunoId}`} className="font-semibold hover:text-accent">{l.nome}</Link>
+            <Link href={`/treinador/alunos/${l.alunoId}`} className="alvo font-semibold hover:text-accent">{l.nome}</Link>
             <dl className="grid grid-cols-4 gap-1 text-center text-xs">
               <div><dt className="text-[10px] text-fg-subtle">Semana</dt><dd className="font-mono">{l.meta ? `${num(l.semanaPontos)}/${l.meta}` : "—"}</dd></div>
               <div><dt className="text-[10px] text-fg-subtle">28 dias</dt><dd className="font-mono">{l.aderencia28 === null ? "—" : `${l.aderencia28}%`}</dd></div>
@@ -183,7 +183,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: LinhaCentra
             {lista.map((l) => (
               <tr key={l.alunoId} className="border-t border-border align-top">
                 <td className="px-3 py-2">
-                  <Link href={`/treinador/alunos/${l.alunoId}`} className="font-semibold hover:text-accent">{l.nome}</Link>
+                  <Link href={`/treinador/alunos/${l.alunoId}`} className="alvo font-semibold hover:text-accent">{l.nome}</Link>
                 </td>
                 <td className="px-2 py-2 text-right font-mono">{l.meta ?? "—"}</td>
                 <td className="px-2 py-2 text-right font-mono">{l.meta ? `${num(l.semanaPontos)}/${l.meta}` : "—"}</td>

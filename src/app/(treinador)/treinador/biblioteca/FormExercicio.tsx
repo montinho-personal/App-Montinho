@@ -158,7 +158,7 @@ export function FormExercicio({ inicial, itens, onCancelar, onSalvo }: { inicial
                 ? `Exercícios parecidos (${PADRAO_LABEL[padrao]}) não têm músculo secundário relevante: o volume conta só para ${GRUPO_LABEL[grupo]}. Preencha abaixo se quiser.`
                 : "Pesos definidos por você."}
           {!usandoSugestao && temSugestao ? (
-            <button type="button" onClick={usarSugestao} className="ml-1 font-semibold text-accent underline-offset-2 hover:underline">
+            <button type="button" onClick={usarSugestao} className="alvo ml-1 font-semibold text-accent underline-offset-2 hover:underline">
               Usar sugestão automática
             </button>
           ) : null}

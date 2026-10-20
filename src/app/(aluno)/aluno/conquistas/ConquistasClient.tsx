@@ -43,7 +43,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, pr
                 <p className="text-[11px] text-fg-subtle">
                   Escrita pelo seu personal · {fmtData.format(new Date(r.created_at))}
                 </p>
-                <button type="button" onClick={() => setEditor({ dados: { reconhecimento: { mensagem: r.mensagem, autor: BRAND.name, conquista: r.conquista }, data: diaLocal(r.created_at) }, modelo: "reconhecimento", origem: "reconhecimento" })} className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                <button type="button" onClick={() => setEditor({ dados: { reconhecimento: { mensagem: r.mensagem, autor: BRAND.name, conquista: r.conquista }, data: diaLocal(r.created_at) }, modelo: "reconhecimento", origem: "reconhecimento" })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
                   Gerar card
                 </button>
               </CardBody>
@@ -107,7 +107,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, pr
                     {c.descricao ? <p className="text-sm text-fg-muted">{c.descricao}</p> : null}
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       {c.codigo !== "relatorio_mensal" ? (
-                        <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico" })} className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico" })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
                           Gerar card
                         </button>
                       ) : null}

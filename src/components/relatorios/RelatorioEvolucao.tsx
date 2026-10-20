@@ -86,7 +86,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
           </Link>
         ))}
         {exportarHref ? (
-          <a href={exportarHref} className="ml-auto text-xs text-fg-muted underline-offset-2 hover:underline hover:text-fg">
+          <a href={exportarHref} className="alvo ml-auto text-xs text-fg-muted underline-offset-2 hover:underline hover:text-fg">
             Exportar registros (CSV)
           </a>
         ) : null}
@@ -136,7 +136,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
               {modo === "aluno" && invisivel.length > 2 ? <p className="text-[11px] text-fg-subtle">+{invisivel.length - 2} na análise completa.</p> : null}
             </section>
           ) : null}
-          <a href="#analise" className="inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">
+          <a href="#analise" className="inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
             {modo === "aluno" ? "Ver minha evolução completa ↓" : "Ver análise completa ↓"}
           </a>
           {comentarioTreinador ? (

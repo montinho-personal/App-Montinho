@@ -38,7 +38,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
       <header>
         <h1 className="text-2xl font-bold">Sua evolução</h1>
         <p className="text-sm text-fg-muted mt-1">Primeiro o essencial. Depois, os detalhes — sempre a partir do que você registrou.</p>
-        <Link href="/aluno/conquistas" className="mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">
+        <Link href="/aluno/conquistas" className="mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
           Minhas conquistas e card dos 30 dias →
         </Link>
         <RegistrarRelatorio />

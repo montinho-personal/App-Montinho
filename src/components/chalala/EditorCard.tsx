@@ -227,7 +227,7 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">Minha foto</p>
                 {ativos.foto ? (
-                  <button type="button" onClick={removerFoto} className="text-xs text-fg-muted underline-offset-2 hover:underline">
+                  <button type="button" onClick={removerFoto} className="alvo text-xs text-fg-muted underline-offset-2 hover:underline">
                     Remover foto
                   </button>
                 ) : null}
@@ -299,10 +299,10 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
             </fieldset>
 
             <div className="flex gap-3 text-xs">
-              <button type="button" onClick={desfazer} disabled={!historico.length} className="text-fg-muted underline-offset-2 hover:underline disabled:opacity-40">
+              <button type="button" onClick={desfazer} disabled={!historico.length} className="alvo text-fg-muted underline-offset-2 hover:underline disabled:opacity-40">
                 Desfazer
               </button>
-              <button type="button" onClick={restaurar} className="text-fg-muted underline-offset-2 hover:underline">
+              <button type="button" onClick={restaurar} className="alvo text-fg-muted underline-offset-2 hover:underline">
                 Restaurar modelo original
               </button>
             </div>

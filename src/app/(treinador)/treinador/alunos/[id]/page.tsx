@@ -97,7 +97,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
 
   return (
     <div className="space-y-6">
-      <Link href="/treinador/alunos" className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
+      <Link href="/treinador/alunos" className="text-fg-muted text-sm hover:text-fg inline-flex min-h-6 items-center gap-1">
         ← Alunos
       </Link>
 

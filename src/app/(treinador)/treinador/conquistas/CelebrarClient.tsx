@@ -93,7 +93,7 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
             {sel ? (
               <p className="text-xs text-fg-muted">
                 Para <strong className="text-fg">{sel.aluno}</strong> — {sel.titulo}{" "}
-                <button type="button" onClick={() => setSel(null)} className="text-accent underline-offset-2 hover:underline">
+                <button type="button" onClick={() => setSel(null)} className="alvo text-accent underline-offset-2 hover:underline">
                   trocar
                 </button>
               </p>
@@ -116,7 +116,7 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
               <span>{msg.length}/600</span>
             </div>
             {!msg ? (
-              <button type="button" onClick={() => setMsg(EXEMPLO)} className="text-xs text-accent underline-offset-2 hover:underline">
+              <button type="button" onClick={() => setMsg(EXEMPLO)} className="alvo text-xs text-accent underline-offset-2 hover:underline">
                 Usar o exemplo como ponto de partida
               </button>
             ) : null}

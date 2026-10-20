@@ -74,7 +74,7 @@ function AtribuirTreinoModal({
       <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-bold">Atribuir treino</h2>
-          <button onClick={onClose} className="text-fg-muted hover:text-fg text-2xl leading-none">✕</button>
+          <button onClick={onClose} className="alvo text-fg-muted hover:text-fg text-2xl leading-none">✕</button>
         </div>
         <div className="p-6 space-y-4">
           {templates.length === 0 ? (

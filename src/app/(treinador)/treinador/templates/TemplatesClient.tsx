@@ -574,7 +574,7 @@ function ExercicioPicker({
       >
         <CardHeader className="flex items-center justify-between sticky top-0 bg-card z-10">
           <CardTitle>Escolher exercício</CardTitle>
-          <button onClick={onClose} className="text-fg-subtle hover:text-fg text-xl">✕</button>
+          <button onClick={onClose} className="alvo text-fg-subtle hover:text-fg text-xl">✕</button>
         </CardHeader>
         <CardBody className="space-y-3">
           <Input
@@ -654,7 +654,7 @@ function TemplateView({
               <p className="text-xs text-fg-subtle mt-1">{template.publico_alvo}</p>
             ) : null}
           </div>
-          <button onClick={onClose} className="text-fg-subtle hover:text-fg text-xl shrink-0 ml-3">
+          <button onClick={onClose} className="alvo text-fg-subtle hover:text-fg text-xl shrink-0 ml-3">
             ✕
           </button>
         </CardHeader>

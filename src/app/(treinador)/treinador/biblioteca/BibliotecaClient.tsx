@@ -176,7 +176,7 @@ export function BibliotecaClient({ inicial, equivalenciasIniciais, favoritosInic
             <Chip ativo={!!filtros.incluirSecundarios} onClick={() => setFiltro({ incluirSecundarios: !filtros.incluirSecundarios })}>+ como secundário</Chip>
           ) : null}
           {filtrosAtivos ? (
-            <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => setFiltros({})}>
+            <button type="button" className="alvo text-accent underline-offset-2 hover:underline" onClick={() => setFiltros({})}>
               limpar filtros
             </button>
           ) : null}
@@ -330,18 +330,18 @@ function Ficha({
           {sugestoes.map((s) => (
             <li key={s.item.id} className="rounded-lg border border-border p-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <button type="button" onClick={() => onAbrir(s.item.id)} className="text-sm font-semibold hover:text-accent text-left">{s.item.nome}</button>
+                <button type="button" onClick={() => onAbrir(s.item.id)} className="alvo text-sm font-semibold hover:text-accent text-left">{s.item.nome}</button>
                 <span className={`text-[10px] uppercase tracking-wider ${s.origem === "aprovada" ? "text-success" : "text-fg-subtle"}`}>{ORIGEM_SUGESTAO_LABEL[s.origem]}</span>
               </div>
               <p className="text-[11px] text-fg-muted">{s.motivos.join(" · ")}</p>
               {s.alertas.length ? <p className="text-[11px] text-warning">{s.alertas.join(" · ")}</p> : null}
               <div className="mt-1 flex gap-2 text-xs">
                 {s.origem !== "aprovada" ? (
-                  <button type="button" className="font-semibold text-success hover:underline" onClick={() => onRevisar(item.id, s.item.id, "aprovada")}>Aprovar</button>
+                  <button type="button" className="alvo font-semibold text-success hover:underline" onClick={() => onRevisar(item.id, s.item.id, "aprovada")}>Aprovar</button>
                 ) : (
-                  <button type="button" className="text-fg-muted hover:underline" onClick={() => onRevisar(item.id, s.item.id, "sugerida")}>Desfazer aprovação</button>
+                  <button type="button" className="alvo text-fg-muted hover:underline" onClick={() => onRevisar(item.id, s.item.id, "sugerida")}>Desfazer aprovação</button>
                 )}
-                <button type="button" className="font-semibold text-red hover:underline" onClick={() => onRevisar(item.id, s.item.id, "rejeitada")}>Rejeitar</button>
+                <button type="button" className="alvo font-semibold text-red hover:underline" onClick={() => onRevisar(item.id, s.item.id, "rejeitada")}>Rejeitar</button>
               </div>
             </li>
           ))}
@@ -353,7 +353,7 @@ function Ficha({
               {rejeitadas.map((r) => (
                 <li key={r.alternativaId} className="flex justify-between gap-2">
                   <span>{nomeDe(r.alternativaId)}</span>
-                  <button type="button" className="text-accent hover:underline" onClick={() => onRevisar(item.id, r.alternativaId, "sugerida")}>Voltar a sugerir</button>
+                  <button type="button" className="alvo text-accent hover:underline" onClick={() => onRevisar(item.id, r.alternativaId, "sugerida")}>Voltar a sugerir</button>
                 </li>
               ))}
             </ul>

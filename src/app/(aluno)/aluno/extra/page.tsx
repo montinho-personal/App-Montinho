@@ -15,7 +15,7 @@ export default async function TreinoExtraPage() {
   const titulos = Object.fromEntries(extras.map((x) => [x.id, x.titulo]));
   return (
     <div className="space-y-5">
-      <Link href="/aluno" className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+      <Link href="/aluno" className="inline-flex min-h-6 items-center gap-1 text-sm text-fg-muted hover:text-fg">
         ← Início
       </Link>
       <header>

@@ -65,7 +65,7 @@ export function CheckInDiario({ jaRespondido = false }: CheckInDiarioProps) {
           </div>
           <button
             onClick={() => setAberto(true)}
-            className="text-xs text-accent hover:underline"
+            className="alvo text-xs text-accent hover:underline"
           >
             editar
           </button>
@@ -123,7 +123,7 @@ export function CheckInDiario({ jaRespondido = false }: CheckInDiarioProps) {
                     onClick={() => setValores((v) => ({ ...v, [p.key]: n }))}
                     className={`h-9 rounded-md text-[11px] font-bold transition-colors ${
                       ativo
-                        ? "bg-accent text-fg"
+                        ? "bg-accent text-bg"
                         : "bg-card border border-border text-fg-muted hover:border-accent/40"
                     }`}
                   >

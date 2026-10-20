@@ -89,7 +89,7 @@ function NovoAlunoModal({ onClose }: { onClose: () => void }) {
       <div className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-bold">Novo aluno</h2>
-          <button onClick={onClose} className="text-fg-muted hover:text-fg text-2xl leading-none">✕</button>
+          <button onClick={onClose} className="alvo text-fg-muted hover:text-fg text-2xl leading-none">✕</button>
         </div>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

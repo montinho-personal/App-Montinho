@@ -13,7 +13,7 @@ export default async function DietaPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/aluno" className="text-fg-muted text-sm hover:text-fg">← Início</Link>
+      <Link href="/aluno" className="alvo text-fg-muted text-sm hover:text-fg">← Início</Link>
       <header>
         <Badge tone="accent">Plano alimentar</Badge>
         <h1 className="text-2xl font-bold mt-3">Seu plano alimentar</h1>

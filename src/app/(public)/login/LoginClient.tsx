@@ -110,11 +110,11 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
               <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
               <FieldHint>
                 Ou{" "}
-                <button type="button" onClick={handleMagicLink} className="text-accent underline-offset-2 hover:underline">
+                <button type="button" onClick={handleMagicLink} className="alvo text-accent underline-offset-2 hover:underline">
                   receber link no e-mail
                 </button>
                 {" · "}
-                <button type="button" onClick={handleEsqueciSenha} className="text-accent underline-offset-2 hover:underline">
+                <button type="button" onClick={handleEsqueciSenha} className="alvo text-accent underline-offset-2 hover:underline">
                   esqueci a senha
                 </button>
               </FieldHint>

@@ -247,7 +247,7 @@ export function PrescricaoClient({ templates }: Props) {
           {/* Referências */}
           <div>
             <button onClick={() => setMostrarRefs(!mostrarRefs)}
-              className="text-sm text-fg-subtle hover:text-fg transition-colors">
+              className="alvo text-sm text-fg-subtle hover:text-fg transition-colors">
               {mostrarRefs ? "▲" : "▼"} Referências científicas ({resultado.referencias.length})
             </button>
             {mostrarRefs && (

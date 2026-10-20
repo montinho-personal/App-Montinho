@@ -23,7 +23,7 @@ export default async function ConquistasPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Minhas conquistas</h1>
-        <Link href="/aluno/evolucao" className="text-sm text-fg-muted hover:text-fg">
+        <Link href="/aluno/evolucao" className="alvo text-sm text-fg-muted hover:text-fg">
           Evolução →
         </Link>
       </div>

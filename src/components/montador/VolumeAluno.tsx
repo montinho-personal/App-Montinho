@@ -32,7 +32,7 @@ export function VolumeAluno({ dias, frequencia, metas, prioridades, nivel, edita
     <Card>
       <CardHeader className="flex items-center justify-between gap-2">
         <CardTitle className="text-base">Volume semanal programado</CardTitle>
-        <Link href={editarHref} className="text-xs font-semibold text-accent hover:underline">
+        <Link href={editarHref} className="alvo text-xs font-semibold text-accent hover:underline">
           Editar no montador
         </Link>
       </CardHeader>

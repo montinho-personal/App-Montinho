@@ -602,7 +602,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   // ----------------------------------------------------------------------------
   return (
     <div className="space-y-4 pb-20 xl:pb-0">
-      <Link href={`/treinador/alunos/${alunoId}`} className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
+      <Link href={`/treinador/alunos/${alunoId}`} className="text-fg-muted text-sm hover:text-fg inline-flex min-h-6 items-center gap-1">
         ← {alunoNome}
       </Link>
 
@@ -721,7 +721,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
               <section key={t.key} className={`rounded-xl border bg-card overflow-hidden ${t.ativo ? "border-border" : "border-dashed border-border opacity-70"}`} aria-label={`Treino ${t.letra}`}>
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 flex-wrap">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/30 text-lg font-black text-accent shrink-0" aria-hidden>{t.letra}</div>
-                  <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />
+                  <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-h-7 min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />
                   <span className={`text-[11px] font-mono shrink-0 ${t.ativo && !(frequencia[t.letra] ?? 0) ? "text-warning" : "text-fg-subtle"}`} title={t.ativo && !(frequencia[t.letra] ?? 0) ? "Este treino não está na semana/ciclo: não entra no volume semanal" : undefined}>{totalT} séries válidas · ×{frequencia[t.letra] ?? 0}/sem{t.ativo && !(frequencia[t.letra] ?? 0) ? " (fora da semana)" : ""}</span>
                   <label className="inline-flex items-center gap-1 text-[11px] text-fg-muted"><input type="checkbox" checked={t.ativo} onChange={(e) => updTreino(t.key, { ativo: e.target.checked })} /> ativo</label>
                   <select aria-label={`Copiar outro treino para ${t.letra}`} value="" onChange={(e) => e.target.value && copiarDe(t.key, e.target.value)} className="h-8 rounded-md border border-border bg-bg px-1.5 text-[11px] text-fg-muted">
@@ -777,9 +777,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                           >
                             <td className="px-1 py-1.5 text-center align-middle">
                               <div className="flex flex-col items-center">
-                                <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
+                                <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
                                 <span className="text-[10px] text-fg-subtle font-mono cursor-grab" title="Arraste para reordenar">{i + 1}</span>
-                                <button type="button" onClick={() => moverRow(t.key, r.key, 1)} disabled={i === t.rows.length - 1} className="text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para baixo"><Icon name="down" size={14} /></button>
+                                <button type="button" onClick={() => moverRow(t.key, r.key, 1)} disabled={i === t.rows.length - 1} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para baixo"><Icon name="down" size={14} /></button>
                               </div>
                             </td>
                             <td className="p-0 align-top">
@@ -802,7 +802,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   />
                                 </div>
                                 {r.nome.trim() ? (
-                                  <button type="button" onClick={() => setAlternativasDe(alternativasDe === r.key ? null : r.key)} aria-expanded={alternativasDe === r.key} title="Ver alternativas para este exercício" className="ml-2 mb-1 text-[11px] text-fg-subtle hover:text-accent">
+                                  <button type="button" onClick={() => setAlternativasDe(alternativasDe === r.key ? null : r.key)} aria-expanded={alternativasDe === r.key} title="Ver alternativas para este exercício" className="alvo ml-2 mb-1 text-[11px] text-fg-subtle hover:text-accent">
                                     ⇄ alternativas
                                   </button>
                                 ) : null}
@@ -896,8 +896,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             </td>
                             <td className="px-1 py-1.5 text-right whitespace-nowrap align-top">
                               <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: det ? configIgual(totalSeries(r.seriesConfig), repsResumo(r.seriesConfig), null) : detalhar(r.seriesConfig) })} className="rounded border border-border px-1.5 py-1 text-[10px] font-semibold text-fg-muted hover:text-accent" title="Séries iguais ou série a série (pirâmide)">{det ? "Iguais" : "Série a série"}</button>
-                              <button type="button" onClick={() => duplicarRow(t.key, r.key)} className="ml-1 rounded border border-border px-1.5 py-1 text-fg-muted hover:text-fg" title="Duplicar" aria-label="Duplicar exercício"><Icon name="copy" size={12} /></button>
-                              <button type="button" onClick={() => removeRow(t.key, r.key)} className="ml-1 rounded border border-border px-1.5 py-1 text-fg-subtle hover:text-red" title={r.id ? "Remover (o histórico de sessões anteriores é preservado)" : "Remover"} aria-label="Remover exercício"><Icon name="trash" size={12} /></button>
+                              <button type="button" onClick={() => duplicarRow(t.key, r.key)} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded border border-border px-1.5 py-1 text-fg-muted hover:text-fg" title="Duplicar" aria-label="Duplicar exercício"><Icon name="copy" size={12} /></button>
+                              <button type="button" onClick={() => removeRow(t.key, r.key)} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded border border-border px-1.5 py-1 text-fg-subtle hover:text-red" title={r.id ? "Remover (o histórico de sessões anteriores é preservado)" : "Remover"} aria-label="Remover exercício"><Icon name="trash" size={12} /></button>
                             </td>
                           </tr>
                           {alternativasDe === r.key ? (

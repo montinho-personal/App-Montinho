@@ -15,7 +15,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           {BRAND.contact.instagram ? (
             <>
               {" · "}
-              <a className="hover:text-fg underline-offset-2 hover:underline" href={`https://instagram.com/${BRAND.contact.instagram}`} target="_blank" rel="noreferrer">
+              <a className="alvo hover:text-fg underline-offset-2 hover:underline" href={`https://instagram.com/${BRAND.contact.instagram}`} target="_blank" rel="noreferrer">
                 @{BRAND.contact.instagram}
               </a>
             </>

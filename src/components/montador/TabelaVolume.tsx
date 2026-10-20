@@ -222,7 +222,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                 return (
                   <tr key={l.grupo} className="border-t border-border">
                     <td className="px-1 py-1.5">
-                      <button type="button" onClick={() => togglePrioridade(l.grupo)} disabled={!onPrioridades} className="inline-flex items-center gap-1.5 text-left disabled:cursor-default" title={!onPrioridades ? (prioritario ? "Prioritário" : undefined) : prioritario ? "Prioritário (clique para remover)" : "Marcar como prioritário"}>
+                      <button type="button" onClick={() => togglePrioridade(l.grupo)} disabled={!onPrioridades} className="inline-flex min-h-6 items-center gap-1.5 text-left disabled:cursor-default" title={!onPrioridades ? (prioritario ? "Prioritário" : undefined) : prioritario ? "Prioritário (clique para remover)" : "Marcar como prioritário"}>
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: GRUPO_COR[l.grupo] }} aria-hidden />
                         <span className={`font-semibold ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{l.label}</span>
                         {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
@@ -283,10 +283,10 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
       )}
 
       {onMetas ? <div className="flex flex-wrap gap-2 pt-1">
-        <button type="button" onClick={() => setEditandoMetas((v) => !v)} className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg">
+        <button type="button" onClick={() => setEditandoMetas((v) => !v)} className="alvo rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg">
           {editandoMetas ? "Concluir metas" : "Editar metas"}
         </button>
-        <button type="button" onClick={aplicarReferencia} className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg" title={AVISO_REFERENCIA}>
+        <button type="button" onClick={aplicarReferencia} className="alvo rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg" title={AVISO_REFERENCIA}>
           Preencher com faixas de referência
         </button>
         {editandoMetas ? (

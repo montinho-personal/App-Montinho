@@ -144,7 +144,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
               <div className="flex items-center justify-between">
                 <h2 className="font-bold">Extras liberados</h2>
                 {!form ? (
-                  <button type="button" onClick={() => setForm(vazio())} className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => setForm(vazio())} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
                     + Novo extra
                   </button>
                 ) : null}
@@ -215,15 +215,15 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
               {detalhe.extras.length ? (
                 <ul className="space-y-1.5">
                   {detalhe.extras.map((x) => (
-                    <li key={x.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 ${x.ativo ? "" : "opacity-50"}`}>
+                    <li key={x.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 ${x.ativo ? "" : "border-dashed"}`}>
                       <span>
-                        <strong>{x.titulo}</strong> <span className="text-xs text-fg-subtle">· {MODALIDADES[x.modalidade].rotulo} · {x.duracao_min} min{x.series_estimadas ? ` · ${x.series_estimadas} séries` : ""}</span>
+                        <strong>{x.titulo}</strong>{x.ativo ? null : <span className="text-xs text-warning"> (pausado)</span>} <span className="text-xs text-fg-subtle">· {MODALIDADES[x.modalidade].rotulo} · {x.duracao_min} min{x.series_estimadas ? ` · ${x.series_estimadas} séries` : ""}</span>
                       </span>
                       <span className="flex gap-3 text-xs">
-                        <button type="button" onClick={() => setForm({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao ?? "", duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas })} className="text-accent underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => setForm({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao ?? "", duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas })} className="alvo text-accent underline-offset-2 hover:underline">
                           editar
                         </button>
-                        <button type="button" onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PATCH", { id: x.id, ativo: !x.ativo }, x.ativo ? "Extra pausado." : "Extra reativado.")} className="text-fg-muted underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PATCH", { id: x.id, ativo: !x.ativo }, x.ativo ? "Extra pausado." : "Extra reativado.")} className="alvo text-fg-muted underline-offset-2 hover:underline">
                           {x.ativo ? "pausar" : "reativar"}
                         </button>
                       </span>

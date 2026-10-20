@@ -85,7 +85,7 @@ export default async function TreinadorDashboardPage() {
                         {al.janela} · {al.acao}
                       </p>
                     </div>
-                    <Link href={al.tipo === "sem_plano" ? `/treinador/alunos/${al.alunoId}/treinos` : `/treinador/alunos/${al.alunoId}`} className="text-xs text-accent underline-offset-2 hover:underline shrink-0">
+                    <Link href={al.tipo === "sem_plano" ? `/treinador/alunos/${al.alunoId}/treinos` : `/treinador/alunos/${al.alunoId}`} className="alvo text-xs text-accent underline-offset-2 hover:underline shrink-0">
                       {al.tipo === "sem_plano" ? "Montar" : al.tipo === "adaptacao" ? "Responder" : "Abrir"}
                     </Link>
                   </li>
@@ -109,7 +109,7 @@ export default async function TreinadorDashboardPage() {
                     <Avatar nome={aluno.profile?.nome ?? "?"} size={36} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Link href={`/treinador/alunos/${aluno.id}`} className="text-sm font-semibold truncate hover:text-accent">
+                        <Link href={`/treinador/alunos/${aluno.id}`} className="block min-h-6 truncate text-sm font-semibold hover:text-accent">
                           {aluno.profile?.nome}
                         </Link>
                         <AlunoStatusPill status={aluno.status} />
@@ -145,7 +145,7 @@ export default async function TreinadorDashboardPage() {
                       {a.descricao ? ` · “${a.descricao}”` : ""}
                     </p>
                   </div>
-                  <Link href={`/treinador/alunos/${a.aluno_id}#adaptacoes`} className="text-xs text-accent underline-offset-2 hover:underline">
+                  <Link href={`/treinador/alunos/${a.aluno_id}#adaptacoes`} className="alvo text-xs text-accent underline-offset-2 hover:underline">
                     Responder
                   </Link>
                 </li>

@@ -38,7 +38,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
   if (!treino.ativo && !emAndamento) {
     return (
       <div className="space-y-4">
-        <Link href="/aluno/treinar" className="text-fg-muted text-sm hover:text-fg">
+        <Link href="/aluno/treinar" className="alvo text-fg-muted text-sm hover:text-fg">
           ← Voltar
         </Link>
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Este treino não está mais liberado. Veja seus treinos atuais em “Treinar”.</div>

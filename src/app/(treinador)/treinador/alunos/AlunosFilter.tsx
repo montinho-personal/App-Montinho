@@ -54,10 +54,10 @@ export function AlunosFilter({ counts }: { counts: Counts }) {
               onClick={() => update("status", f.key)}
               disabled={pending}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                active ? "bg-accent text-fg" : "text-fg-muted hover:text-fg"
+                active ? "bg-accent text-bg" : "text-fg-muted hover:text-fg"
               }`}
             >
-              {f.label} <span className="opacity-60">({counts[f.statusKey]})</span>
+              {f.label} <span className="opacity-80">({counts[f.statusKey]})</span>
             </button>
           );
         })}
