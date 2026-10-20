@@ -5,11 +5,14 @@ import { z } from "zod";
 import { requireTreinadorApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { IMPORTACOES } from "@/lib/historico";
-import { importarHistoricoResumo } from "@/lib/data/historico";
+import { importarHistoricoResumo, registrarDiasDeTreino } from "@/lib/data/historico";
+import { getPlanoAtivo } from "@/lib/data/programas";
 import { lerJson } from "@/lib/validacao/schemas";
 import { normalizarNome } from "@/lib/grupos";
 
-const schema = z.object({ importacao_id: z.string().min(1).max(80) });
+// acao "resumo": grava o resumo por exercício; "dias": registra os dias de
+// treino identificados como sessões importadas (aderência e conquistas).
+const schema = z.object({ importacao_id: z.string().min(1).max(80), acao: z.enum(["resumo", "dias"]).default("resumo") });
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Ctx) {
@@ -24,6 +27,13 @@ export async function POST(request: Request, { params }: Ctx) {
   if (!aluno) return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404 });
   if (normalizarNome(aluno.profile?.nome) !== normalizarNome(imp.alunoNome)) return NextResponse.json({ error: `Este histórico é de ${imp.alunoNome}.` }, { status: 409 });
   try {
+    if (data.acao === "dias") {
+      const plano = await getPlanoAtivo(id);
+      const treinos = plano.treinos.filter((t) => t.ativo).map((t) => ({ id: t.id, letra: t.letra, nome: t.nome, series: t.exercicios.reduce((a, e) => a + (e.series || 0), 0) }));
+      if (!treinos.length) return NextResponse.json({ error: "Cadastre o treino da aluna antes." }, { status: 409 });
+      const r = await registrarDiasDeTreino(id, imp, treinos);
+      return NextResponse.json({ ok: true, ...r }, { status: r.novos ? 201 : 200 });
+    }
     const r = await importarHistoricoResumo(id, imp);
     return NextResponse.json({ ok: true, ...r }, { status: r.novas ? 201 : 200 });
   } catch (e) {

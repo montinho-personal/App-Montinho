@@ -78,3 +78,25 @@ export type BaseCarga = { data: string; nome: string; carga_max: number };
 export function baseCargaDoResumo(rs: Array<Pick<HistoricoResumo, "data" | "exercicio_nome" | "carga_max_kg" | "series">>): BaseCarga[] {
   return rs.filter((r) => r.series > 0 && (r.carga_max_kg ?? 0) > 0).map((r) => ({ data: r.data, nome: r.exercicio_nome, carga_max: Number(r.carga_max_kg) }));
 }
+
+/**
+ * Dias de treino do resumo como sessões (para aderência, sequência e
+ * conquistas). Só dias com a letra do treino identificada. Sem séries
+ * detalhadas: só a contagem (séries do resumo × séries prescritas na letra).
+ */
+export type DiaDeTreino = { data: string; letra: string; seriesConcluidas: number; seriesPlanejadas: number; clientKey: string };
+
+export function diasDeTreinoDoResumo(imp: Pick<ImportacaoResumo, "id" | "linhas">, seriesPorLetra: Record<string, number>): DiaDeTreino[] {
+  const porDia = new Map<string, { letra: string | null; series: number }>();
+  for (const l of imp.linhas) {
+    if (l.series <= 0) continue;
+    const d = porDia.get(l.data) ?? { letra: null, series: 0 };
+    d.series += l.series;
+    d.letra ??= l.letra ?? null;
+    porDia.set(l.data, d);
+  }
+  return [...porDia.entries()]
+    .filter(([, d]) => d.letra && seriesPorLetra[d.letra] != null)
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([data, d]) => ({ data, letra: d.letra!, seriesConcluidas: d.series, seriesPlanejadas: seriesPorLetra[d.letra!], clientKey: `hist:${imp.id}:${data}` }));
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseCargaDoResumo, diasDoResumo, linhasParaGravar } from "./resumo";
+import { baseCargaDoResumo, diasDeTreinoDoResumo, diasDoResumo, linhasParaGravar } from "./resumo";
 import { IMPORTACAO, LINHAS } from "./adriana-nascimento";
 import { importacoesParaAluno } from "./index";
 import { evolucaoExercicio } from "@/lib/relatorios/calcular";
@@ -72,5 +72,16 @@ describe("resumo como base de recordes", () => {
   });
   it("sem reps por série no resumo: nunca gera recorde de repetições contra ele", () => {
     expect(recordesDaSessao(sessao(80), [], base)).toEqual([]);
+  });
+});
+
+describe("dias de treino do resumo (aderência e conquistas)", () => {
+  it("7 dias, um por data, com a letra e as séries do resumo", () => {
+    const seriesPorLetra = Object.fromEntries(PRESCRICAO.treinos.map((t) => [t.letra, t.exercicios.reduce((a, e) => a + e.series, 0)]));
+    const dias = diasDeTreinoDoResumo(IMPORTACAO, seriesPorLetra);
+    expect(dias.map((d) => [d.data.slice(5), d.letra, d.seriesConcluidas, d.seriesPlanejadas])).toEqual([
+      ["10-07", "C", 21, 25], ["10-08", "D", 24, 24], ["10-09", "B", 24, 24], ["10-13", "B", 24, 24], ["10-15", "A", 21, 21], ["10-16", "C", 25, 25], ["10-19", "A", 21, 21],
+    ]);
+    expect(new Set(dias.map((d) => d.clientKey)).size).toBe(7);
   });
 });

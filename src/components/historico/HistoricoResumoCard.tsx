@@ -11,13 +11,16 @@ import type { LinhaResumo } from "@/lib/historico/resumo";
 
 const kg = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("pt-BR")} kg`);
 
-export function HistoricoResumoCard({ alunoId, importacao, gravadas }: { alunoId: string; importacao: { id: string; titulo: string; linhas: LinhaResumo[]; avisos: string[] }; gravadas: number }) {
+export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistrados }: { alunoId: string; importacao: { id: string; titulo: string; linhas: LinhaResumo[]; avisos: string[] }; gravadas: number; diasRegistrados: number }) {
   const router = useRouter();
   const toast = useToast();
   const [enviando, setEnviando] = useState(false);
   const validas = importacao.linhas.filter((l) => l.series > 0);
   const [feito, setFeito] = useState(gravadas >= validas.length);
   const dias = new Set(validas.map((l) => l.data)).size;
+  const diasComTreino = [...new Set(validas.filter((l) => l.letra).map((l) => l.data))].sort();
+  const letraDoDia = (d: string) => validas.find((l) => l.data === d && l.letra)?.letra ?? "";
+  const [diasFeito, setDiasFeito] = useState(diasRegistrados >= diasComTreino.length);
   const linhas = [...importacao.linhas].sort((a, b) => (a.data === b.data ? a.exercicio.localeCompare(b.exercicio) : a.data < b.data ? -1 : 1));
 
   async function importar() {
@@ -28,6 +31,17 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas }: { alunoId
     if (!res?.ok) return toast.error(d?.error ?? "Não foi possível importar.");
     setFeito(true);
     toast.success(d?.novas ? `${d.novas} registro(s) importado(s).` : "Este histórico já estava importado — nada foi duplicado.");
+    router.refresh();
+  }
+
+  async function contarDias() {
+    setEnviando(true);
+    const res = await fetch(`/api/alunos/${alunoId}/historico`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ importacao_id: importacao.id, acao: "dias" }) }).catch(() => null);
+    setEnviando(false);
+    const d = await res?.json().catch(() => ({}));
+    if (!res?.ok) return toast.error(d?.error ?? "Não foi possível registrar os dias.");
+    setDiasFeito(true);
+    toast.success(d?.novos ? `${d.novos} dia(s) de treino registrado(s).` : "Estes dias já estavam registrados — nada foi duplicado.");
     router.refresh();
   }
 
@@ -77,6 +91,24 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas }: { alunoId
             {enviando ? "Importando…" : "Importar este histórico"}
           </button>
         )}
+        {feito && diasComTreino.length ? (
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-xs font-semibold">Aderência e conquistas</p>
+            <p className="text-xs text-fg-muted">
+              Dias com o treino identificado: {diasComTreino.map((d) => `${dataBR(d).slice(0, 5)} (${letraDoDia(d)})`).join(" · ")}.
+            </p>
+            {diasFeito ? (
+              <p className="text-xs text-success">Estes {diasComTreino.length} dias já contam na consistência, na sequência de semanas e nas conquistas.</p>
+            ) : (
+              <>
+                <p className="text-xs text-fg-subtle">Cada dia vira um treino concluído (marcado como importado), com as séries do resumo. Não cria cargas por série.</p>
+                <button type="button" disabled={enviando} onClick={() => void contarDias()} className="touch w-full rounded-lg border border-accent px-4 py-2.5 font-bold text-accent disabled:opacity-60">
+                  {enviando ? "Registrando…" : `Contar estes ${diasComTreino.length} dias na aderência`}
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
       </CardBody>
     </Card>
   );
