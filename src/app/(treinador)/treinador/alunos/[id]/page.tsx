@@ -10,7 +10,7 @@ import { getPlanoAtivo, listVersoes } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { listAdaptacoes, listIntervencoes } from "@/lib/data/acompanhamento";
 import { frequenciaDoCalendario, type Calendario, type DiaVolume } from "@/lib/volume/calcular";
-import { descreverTecnica } from "@/lib/volume/tecnicas";
+import { descreverTecnica, TECNICA_CURTA } from "@/lib/volume/tecnicas";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { indicePorNome } from "@/lib/biblioteca/itens";
 import { normalizarNome } from "@/lib/grupos";
@@ -30,10 +30,6 @@ type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ dias
 
 export const metadata = { title: "Aluno" };
 
-const TECNICA_CURTA: Record<string, string> = {
-  superset: "superset", biset: "bi-set", dropset: "drop set", rest_pause: "rest-pause", cluster: "cluster",
-  piramide: "pirâmide", isometria: "isometria", unilateral: "unilateral", myo_reps: "myo-reps",
-};
 
 export default async function AlunoDetailPage({ params, searchParams }: PageProps) {
   await requireTreinadorPage();

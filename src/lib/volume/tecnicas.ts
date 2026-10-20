@@ -51,6 +51,20 @@ export const REGRAS_TECNICAS: Record<RegraTecnicas, { label: string; descricao: 
   },
 };
 
+/** Nome curto de cada técnica (tabelas e listas). */
+export const TECNICA_CURTA: Record<Tecnica, string> = {
+  normal: "",
+  superset: "superset",
+  biset: "bi-set",
+  dropset: "drop set",
+  rest_pause: "rest-pause",
+  cluster: "cluster",
+  piramide: "pirâmide",
+  isometria: "isometria",
+  unilateral: "unilateral",
+  myo_reps: "myo-reps",
+};
+
 /** Valores assumidos quando o treinador não informa (mostrados como "assumido"). */
 export const EXTRAS_PADRAO: Record<TecnicaComExtras, number> = { dropset: 1, rest_pause: 2, myo_reps: 3 };
 

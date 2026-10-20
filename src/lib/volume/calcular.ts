@@ -109,6 +109,8 @@ export type LinhaVolume = {
   secundario: number;
   /** Parte do total que vem de drops/mini-séries de técnicas avançadas. */
   deTecnicas: number;
+  /** Técnicas usadas nos exercícios diretos do grupo e quanto cada uma somou (0 = só conta 1 por série). */
+  tecnicas: Partial<Record<Tecnica, number>>;
   /** Estimativa ponderada = séries diretas + secundário estimado (nunca substitui o total direto). */
   ponderado: number;
   /** Quantos exercícios deste grupo precisam de revisão (heurística/legado). */
@@ -219,6 +221,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         secundario: 0,
         ponderado: 0,
         deTecnicas: 0,
+        tecnicas: {},
         exerciciosRevisar: 0,
         inferior: GRUPOS_INFERIORES.includes(g),
         superior: GRUPOS_SUPERIORES.includes(g),
@@ -271,6 +274,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
       linha.porDia[dia.letra] = (linha.porDia[dia.letra] ?? 0) + validas; // por SESSÃO do dia
       linha.total += semana;
       linha.deTecnicas += tec.bonus * fator * vezes;
+      if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) linha.tecnicas[ex.tecnica] = (linha.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes;
       if (vezes > 0) tocados.add(g);
 
       if (opcoes.incluirSecundario) {
@@ -313,6 +317,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
     linha.total = Math.round(linha.total * 100) / 100;
     linha.secundario = Math.round(linha.secundario * 100) / 100;
     linha.deTecnicas = Math.round(linha.deTecnicas * 100) / 100;
+    for (const k of Object.keys(linha.tecnicas) as Tecnica[]) linha.tecnicas[k] = Math.round((linha.tecnicas[k] ?? 0) * 100) / 100;
     linha.ponderado = Math.round((linha.total + linha.secundario) * 100) / 100;
     linha.frequencia = Math.round(linha.frequencia * 100) / 100;
     if (!linha.meta) {

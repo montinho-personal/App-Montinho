@@ -76,4 +76,16 @@ describe("técnicas avançadas no volume", () => {
     expect(descreverTecnica({ tecnica: "rest_pause", tecnicaExtras: 1, tecnicaSeries: 2 }, 3)).toBe("1 mini-série nas últimas 2 séries");
     expect(descreverTecnica({ tecnica: "superset" }, 3)).toBeNull();
   });
+  it("cada grupo informa quais técnicas usa e quanto cada uma somou", () => {
+    const r = calcularVolumeSemanal(
+      dia([
+        { id: "1", nome: "Tríceps corda", grupo: "triceps", series: 3, tecnica: "dropset", tecnicaExtras: 2, tecnicaSeries: 1 },
+        { id: "2", nome: "Tríceps francês", grupo: "triceps", series: 3, tecnica: "superset" },
+        { id: "3", nome: "Rosca", grupo: "biceps", series: 3 },
+      ]),
+      { frequencia: { A: 2 } }
+    );
+    expect(r.linhas.find((l) => l.grupo === "triceps")!.tecnicas).toEqual({ dropset: 2, superset: 0 });
+    expect(r.linhas.find((l) => l.grupo === "biceps")!.tecnicas).toEqual({});
+  });
 });

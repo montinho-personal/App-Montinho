@@ -6,11 +6,12 @@
 // painel. Recalcula a cada tecla (função pura, sem servidor).
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { GRUPO_COR, GRUPO_LABEL, GRUPOS_SELECIONAVEIS } from "@/lib/grupos";
 import { STATUS_META_LABEL, type LinhaVolume, type MetaVolume, type ResultadoVolume } from "@/lib/volume/calcular";
-import { REGRAS_TECNICAS, type RegraTecnicas } from "@/lib/volume/tecnicas";
+import { REGRAS_TECNICAS, TECNICA_CURTA, type RegraTecnicas } from "@/lib/volume/tecnicas";
+import type { Tecnica } from "@/lib/volume/calcular";
 import { AVISO_REFERENCIA, aplicarPrioridades, referenciasPorNivel, type NivelReferencia } from "@/lib/volume/referencias";
 import { Icon } from "@/components/ui/Icon";
 
@@ -92,6 +93,13 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("padrao");
   const [compacto, setCompacto] = useState(false);
+  // Celular: começa compacto (só Semana/Meta) para a tabela caber na tela; o treinador pode desmarcar.
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- largura da tela só existe no navegador
+      if (window.matchMedia("(max-width: 640px)").matches) setCompacto(true);
+    } catch {}
+  }, []);
   const [editandoMetas, setEditandoMetas] = useState(false);
   const [verRealizado, setVerRealizado] = useState(false);
 
@@ -219,6 +227,13 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                         <span className={`font-semibold ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{l.label}</span>
                         {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
                       </button>
+                      {Object.keys(l.tecnicas).length ? (
+                        <span className="block text-[10px] text-accent leading-snug">
+                          {(Object.entries(l.tecnicas) as Array<[Tecnica, number]>)
+                            .map(([t, v]) => `${TECNICA_CURTA[t]}${v ? ` +${numBR(v)}` : ""}`)
+                            .join(" · ")}
+                        </span>
+                      ) : null}
                       {!compacto && l.status !== "sem_meta" ? <span className={`block text-[10px] ${STATUS_COR[l.status]}`}>{STATUS_META_LABEL[l.status]}{l.diferenca ? ` (${l.diferenca > 0 ? "+" : ""}${numBR(l.diferenca)})` : ""}</span> : null}
                     </td>
                     {!compacto ? letras.map((x) => (
