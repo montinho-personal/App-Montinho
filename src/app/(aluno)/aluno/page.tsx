@@ -15,13 +15,17 @@ import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { listarReconhecimentos } from "@/lib/data/conquistas";
 import { getConfigExtra, listarExtras } from "@/lib/data/extras";
+import { estrategiaVigente } from "@/lib/data/estrategias";
+import { faseAtual, inicioDasFases } from "@/lib/estrategia/fases";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { SuaEstrategiaCard } from "@/components/estrategia/SuaEstrategiaCard";
 
 export const metadata = { title: "Início" };
 
 export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
@@ -32,12 +36,14 @@ export default async function AlunoHomePage() {
     listarReconhecimentos(alunoId, 1),
     getConfigExtra(alunoId),
     listarExtras(alunoId, true),
+    estrategiaVigente(alunoId),
   ]);
   if (!aluno) return null;
   const aderencia = await aderenciaDoAluno(aluno);
 
   const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
-  const treinos = plano.treinos.filter((t) => t.ativo);
+  // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
+  const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
   const letras = treinos.map((t) => t.letra);
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, letras);
   const proximo = treinos.find((t) => t.letra === semana.proximaLetra) ?? treinos[0] ?? null;
@@ -115,6 +121,8 @@ export default async function AlunoHomePage() {
           </CardBody>
         </Card>
       )}
+
+      {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
 
       {/* 2. Progresso da semana em relação à meta individual */}
       {aderencia.semanaAtual?.meta ? (

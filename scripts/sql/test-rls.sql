@@ -580,4 +580,25 @@ begin
   raise notice 'T16 OK: personal registra conquista do aluno sem duplicar; isolamento mantido';
 end $$;
 select test_logout();
+-- T17 — 0027: estratégia importada (personal grava; aluno só lê a própria)
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into estrategias_aluno (aluno_id, titulo, dados) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Operação Teste', '{"versao":1}');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from estrategias_aluno;
+  if n <> 1 then raise exception 'T17: aluna A deveria ver a própria estratégia (viu %)', n; end if;
+  begin insert into estrategias_aluno (aluno_id, dados) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '{}'); exception when others then ok := true; end;
+  if not ok then raise exception 'T17: aluno gravou estratégia'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from estrategias_aluno;
+  if n <> 0 then raise exception 'T17: aluno B viu estratégia de A'; end if;
+  raise notice 'T17 OK: estratégia — personal grava, aluno só lê a própria';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

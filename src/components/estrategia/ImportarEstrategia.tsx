@@ -1,0 +1,90 @@
+"use client";
+
+// Escolher o PDF do Montinho Strategy → o app lê e mostra o que encontrou
+// (para conferir) antes de salvar. Usado no “Novo aluno” e no perfil.
+import { useRef, useState } from "react";
+import type { EstrategiaImportada } from "@/lib/estrategia/ler";
+
+export type Lida = { estrategia: EstrategiaImportada; dias: Array<{ letra: string; nome: string; foco: string }>; arquivo_nome: string };
+
+export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) => void; lida: Lida | null }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [lendo, setLendo] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function escolher(f: File | undefined) {
+    if (!f) return;
+    setErro(null);
+    setLendo(true);
+    const fd = new FormData();
+    fd.append("arquivo", f);
+    const res = await fetch("/api/estrategia/ler", { method: "POST", body: fd }).catch(() => null);
+    setLendo(false);
+    const d = await res?.json().catch(() => ({}));
+    if (!res?.ok) {
+      setErro(d?.error ?? "Não foi possível ler o relatório.");
+      onLida(null);
+      return;
+    }
+    onLida(d as Lida);
+  }
+
+  const e = lida?.estrategia;
+  return (
+    <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
+      <input ref={input} type="file" accept="application/pdf,.pdf" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
+      {!e ? (
+        <>
+          <p className="text-sm font-semibold">Relatório do Montinho Strategy (PDF)</p>
+          <p className="text-xs text-fg-muted">O app lê o relatório e já monta os dias da semana por músculo, as metas de séries, as fases e o acompanhamento.</p>
+          <label htmlFor="estrategia-pdf" className="touch inline-flex cursor-pointer items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-card">
+            {lendo ? "Lendo o relatório…" : "Escolher PDF"}
+          </label>
+        </>
+      ) : (
+        <div className="space-y-2 text-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-success">Relatório lido</p>
+              <p className="font-bold">{e.titulo ?? "Estratégia"}{e.aluno ? <span className="font-normal text-fg-muted"> · {e.aluno}</span> : null}</p>
+            </div>
+            <button type="button" onClick={() => { onLida(null); if (input.current) input.current.value = ""; }} className="alvo text-xs text-fg-muted underline">trocar</button>
+          </div>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs [overflow-wrap:anywhere]">
+            <dt className="text-fg-subtle">Objetivo</dt><dd>{e.objetivo ?? "—"}</dd>
+            <dt className="text-fg-subtle">Experiência</dt><dd>{e.experiencia ?? "—"}</dd>
+            <dt className="text-fg-subtle">Disponibilidade</dt><dd>{e.diasPorSemana ? `${e.diasPorSemana} dias/semana` : "—"}{e.minutosPorTreino ? ` · ${e.minutosPorTreino} min` : ""}</dd>
+            <dt className="text-fg-subtle">Divisão</dt><dd>{e.divisao ?? "—"}</dd>
+            <dt className="text-fg-subtle">Intensidade</dt><dd>{e.intensidade ?? "—"}</dd>
+            <dt className="text-fg-subtle">Volume</dt><dd>{e.volumeTotal ? `${e.volumeTotal} séries/semana` : "—"}</dd>
+            <dt className="text-fg-subtle">Fases</dt><dd>{e.fases.length ? e.fases.map((f) => f.nome).join(" → ") : "—"}</dd>
+          </dl>
+          {lida.dias.length ? (
+            <div>
+              <p className="text-xs font-semibold">Dias da semana por músculo (séries/semana)</p>
+              <ul className="mt-1 space-y-1 text-xs">
+                {lida.dias.map((d) => (
+                  <li key={d.letra} className="rounded-md bg-card px-2 py-1">
+                    <span className="font-bold">{d.letra} · {d.nome}</span>
+                    <span className="block text-fg-muted">{d.foco}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-warning">Divisão sem modelo automático: os dias serão montados por você no montador. O restante da estratégia é salvo.</p>
+          )}
+        </div>
+      )}
+      {erro ? <p className="text-xs text-red" role="alert">{erro}</p> : null}
+    </div>
+  );
+}
+
+/** Salva a estratégia lida no aluno (cria o plano inicial se ele ainda não tiver treino). */
+export async function salvarEstrategiaNoAluno(alunoId: string, lida: Lida): Promise<{ ok: boolean; planoCriado?: boolean; motivoSemPlano?: string | null; error?: string }> {
+  const res = await fetch(`/api/alunos/${alunoId}/estrategia`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estrategia: lida.estrategia, arquivo_nome: lida.arquivo_nome, criar_plano: true }) }).catch(() => null);
+  const d = await res?.json().catch(() => ({}));
+  if (!res?.ok) return { ok: false, error: d?.error ?? "Não foi possível salvar a estratégia." };
+  return { ok: true, planoCriado: d.planoCriado, motivoSemPlano: d.motivoSemPlano };
+}

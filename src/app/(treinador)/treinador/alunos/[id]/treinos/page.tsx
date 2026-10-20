@@ -9,6 +9,8 @@ import { listSessoes } from "@/lib/data/sessoes";
 import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular";
 import { volumeRealizadoPorGrupo } from "@/lib/volume/calcular";
 import { MontadorClient } from "./MontadorClient";
+import { estrategiaVigente } from "@/lib/data/estrategias";
+import { diasDaEstrategia, focoDoDia } from "@/lib/estrategia/divisao";
 import type { Anamnese } from "@/lib/supabase/types-extended";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -30,7 +32,8 @@ export default async function MontadorPage({ params }: PageProps) {
     listarFavoritos(sessao.userId),
     lerTemposTreinador(sessao.userId),
   ]);
-  const uso = await usoDosExercicios(biblioteca);
+  const [uso, estrategia] = await Promise.all([usoDosExercicios(biblioteca), estrategiaVigente(id)]);
+  const focoEstrategia = estrategia ? Object.fromEntries(diasDaEstrategia(estrategia.dados).map((d) => [d.letra, focoDoDia(d)])) : {};
   if (!aluno) notFound();
 
   const p28 = periodoDias(28);
@@ -53,6 +56,7 @@ export default async function MontadorPage({ params }: PageProps) {
       correcoes={[...correcoes.entries()].map(([nome, v]) => ({ nome, grupo: v.grupo, secundarios: v.secundarios }))}
       anamnese={(anamnese as Anamnese | null) ?? null}
       realizadoSemanal={realizadoSemanal}
+      focoEstrategia={focoEstrategia}
     />
   );
 }

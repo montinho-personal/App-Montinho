@@ -13,7 +13,8 @@ export const metadata = { title: "Treinar" };
 export default async function TreinarPage() {
   const sessao = await requireAlunoPage();
   const [plano, emAndamento, sessoes] = await Promise.all([getPlanoAtivo(sessao.alunoId), getSessaoEmAndamento(sessao.alunoId), listSessoes(sessao.alunoId, { limite: 60 })]);
-  const treinos = plano.treinos.filter((t) => t.ativo);
+  // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
+  const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, treinos.map((t) => t.letra));
   const ultimaPorLetra = new Map<string, string>();
   for (const s of sessoes) if (s.letra && !ultimaPorLetra.has(s.letra)) ultimaPorLetra.set(s.letra, s.finalizado_em ?? s.iniciado_em);

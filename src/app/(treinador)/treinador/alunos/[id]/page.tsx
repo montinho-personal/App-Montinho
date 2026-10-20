@@ -33,6 +33,9 @@ import { assinaturaTreinos, prescricoesParaAluno } from "@/lib/prescricoes";
 import { auditarPrescricao } from "@/lib/prescricoes/auditar";
 import { PrescricaoProntaCard } from "@/components/prescricoes/PrescricaoProntaCard";
 import { HistoricoResumoCard } from "@/components/historico/HistoricoResumoCard";
+import { EstrategiaPerfilCard } from "@/components/estrategia/EstrategiaPerfilCard";
+import { estrategiaVigente } from "@/lib/data/estrategias";
+import { faseAtual, inicioDasFases } from "@/lib/estrategia/fases";
 import { importacoesParaAluno } from "@/lib/historico";
 import { listarHistoricoResumo } from "@/lib/data/historico";
 import { listarExtras, listarSolicitacoes } from "@/lib/data/extras";
@@ -67,7 +70,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
-  const [aderencia, pedidosExtra, extrasAluno, historicoResumo] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id)]);
+  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id)]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
 
@@ -145,6 +148,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
         </Card>
       ) : null}
 
+      <EstrategiaPerfilCard alunoId={id} vigente={estrategia?.dados ?? null} importadaEm={estrategia?.created_at ?? null} fase={estrategia ? faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), hojeLocal) : null} />
       {prescricoesParaAluno(aluno.profile?.nome).map((pr) => (
         <PrescricaoProntaCard
           key={pr.id}

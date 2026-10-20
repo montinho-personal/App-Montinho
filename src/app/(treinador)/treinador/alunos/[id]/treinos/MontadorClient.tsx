@@ -90,6 +90,8 @@ type Estado = { programa: ProgramaVM; treinos: TreinoVM[] };
 type BibliotecaItem = { id: string; nome: string; grupo_muscular: GrupoMuscular; grupos_secundarios: GrupoMuscular[]; sinonimos: string[]; equipamento: string[] };
 
 type Props = {
+  /** Foco de cada dia segundo a estratégia importada (séries/semana por músculo). */
+  focoEstrategia?: Record<string, string>;
   /** Padrões de tempo do treinador (nível acima do treino). */
   temposTreinador: Partial<ParametrosTempo>;
   alunoId: string;
@@ -215,7 +217,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {} }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -719,6 +721,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             const totalT = t.rows.reduce((s, r) => s + (r.nome.trim() ? Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento) : 0), 0);
             return (
               <section key={t.key} className={`rounded-xl border bg-card overflow-hidden ${t.ativo ? "border-border" : "border-dashed border-border opacity-70"}`} aria-label={`Treino ${t.letra}`}>
+                {focoEstrategia[t.letra] ? (
+                  <p className="border-b border-border bg-bg/40 px-3 py-1.5 text-[11px] text-fg-muted"><span className="font-semibold text-fg">Foco da estratégia:</span> {focoEstrategia[t.letra]}</p>
+                ) : null}
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 flex-wrap">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/30 text-lg font-black text-accent shrink-0" aria-hidden>{t.letra}</div>
                   <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-h-7 min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />

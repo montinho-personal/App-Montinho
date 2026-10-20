@@ -331,3 +331,43 @@ export const regrasAcompanhamentoSchema = z
   })
   .partial()
   .strict();
+
+// Estratégia importada do Montinho Strategy (o mesmo formato de src/lib/estrategia/ler.ts).
+const txt = (max: number) => z.string().trim().max(max).nullable();
+const listaTxt = (max: number, n = 20) => z.array(z.string().trim().max(max)).max(n);
+export const estrategiaSchema = z.object({
+  versao: z.literal(1),
+  aluno: txt(120),
+  titulo: txt(160),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  objetivo: txt(200),
+  objetivosSecundarios: txt(300),
+  experiencia: txt(60),
+  diasPorSemana: z.number().int().min(1).max(7).nullable(),
+  minutosPorTreino: z.number().int().min(10).max(300).nullable(),
+  prioridades: listaTxt(60, 12),
+  comoPriorizar: listaTxt(200),
+  divisao: txt(120),
+  justificativaDivisao: txt(3000),
+  adaptacoes: txt(3000),
+  intensidade: txt(200),
+  volume: z.array(z.object({ rotulo: z.string().trim().max(60), grupo: z.enum(GRUPOS).nullable(), series: z.number().int().min(0).max(60) })).max(30),
+  volumeTotal: z.number().int().min(0).max(500).nullable(),
+  frequencia: txt(200),
+  fases: z.array(z.object({ numero: z.number().int().min(1).max(20), nome: z.string().trim().max(80), semanas: z.number().int().min(1).max(52).nullable() })).max(12),
+  preparacao: listaTxt(80),
+  preparacaoMotivo: txt(2000),
+  progressao: listaTxt(300),
+  checkinSemanal: listaTxt(80),
+  pontosFortes: listaTxt(400),
+  pontosAtencao: listaTxt(600),
+  frase: txt(400),
+  logicaExercicios: listaTxt(600),
+  aerobico: txt(400),
+  encerramento: txt(3000),
+});
+export const salvarEstrategiaSchema = z.object({
+  estrategia: estrategiaSchema,
+  arquivo_nome: z.string().trim().max(200).nullable().optional(),
+  criar_plano: z.boolean().default(true),
+});

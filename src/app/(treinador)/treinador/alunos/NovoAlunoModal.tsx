@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 import { useRouter } from "next/navigation";
+import { ImportarEstrategia, salvarEstrategiaNoAluno, type Lida } from "@/components/estrategia/ImportarEstrategia";
 
 type FormState = {
   nome: string;
@@ -44,6 +45,14 @@ function NovoAlunoModal({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState<FormState>(initial);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [lida, setLida] = useState<Lida | null>(null);
+
+  function aoLer(l: Lida | null) {
+    setLida(l);
+    const e = l?.estrategia;
+    if (!e) return;
+    setForm((f) => ({ ...f, nome: f.nome || e.aluno || "", objetivo: f.objetivo || e.objetivo || "" }));
+  }
 
   function set(key: keyof FormState, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -75,6 +84,18 @@ function NovoAlunoModal({ onClose }: { onClose: () => void }) {
         setErro(data.error ?? "Erro ao criar aluno");
         return;
       }
+      const criado = await res.json().catch(() => null);
+      if (lida && criado?.id) {
+        const r = await salvarEstrategiaNoAluno(criado.id, lida);
+        if (!r.ok) {
+          setErro(`Aluno criado, mas a estratégia não foi salva: ${r.error} Importe de novo no perfil do aluno.`);
+          router.refresh();
+          return;
+        }
+        router.push(`/treinador/alunos/${criado.id}`);
+        onClose();
+        return;
+      }
       router.refresh();
       onClose();
     } catch {
@@ -92,6 +113,7 @@ function NovoAlunoModal({ onClose }: { onClose: () => void }) {
           <button onClick={onClose} className="alvo text-fg-muted hover:text-fg text-2xl leading-none">✕</button>
         </div>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="p-6 space-y-4">
+          <ImportarEstrategia lida={lida} onLida={aoLer} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Label htmlFor="a-nome">Nome completo *</Label>
