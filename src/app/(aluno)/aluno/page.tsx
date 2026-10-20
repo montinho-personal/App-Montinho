@@ -13,7 +13,10 @@ import { CheckInDiario } from "@/components/aluno/CheckInDiario";
 import { BRAND } from "@/config/brand";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
-import { listarReconhecimentos } from "@/lib/data/conquistas";
+import { listarConquistas, listarReconhecimentos } from "@/lib/data/conquistas";
+import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
+import { sessaoParaConquista } from "@/lib/conquistas/mapear";
+import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
 import { getConfigExtra, listarExtras } from "@/lib/data/extras";
 import { estrategiaVigente } from "@/lib/data/estrategias";
 import { faseAtual, inicioDasFases } from "@/lib/estrategia/fases";
@@ -25,7 +28,7 @@ export const metadata = { title: "Início" };
 export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia, conquistas] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
@@ -37,9 +40,13 @@ export default async function AlunoHomePage() {
     getConfigExtra(alunoId),
     listarExtras(alunoId, true),
     estrategiaVigente(alunoId),
+    listarConquistas(alunoId),
   ]);
   if (!aluno) return null;
   const aderencia = await aderenciaDoAluno(aluno);
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()) });
+  const proximaMed = proximaMedalha(medalhas);
+  const ganhas = medalhas.filter((m) => m.conquistada).length;
 
   const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
@@ -123,6 +130,26 @@ export default async function AlunoHomePage() {
       )}
 
       {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
+
+      {proximaMed ? (
+        <Link href="/aluno/conquistas" className="block">
+          <Card className="transition-colors hover:border-accent/40">
+            <CardBody className="flex items-center gap-3 py-3">
+              <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Sua próxima medalha · {ganhas} de {medalhas.length}</p>
+                <p className="font-semibold leading-tight">{proximaMed.titulo}</p>
+                {proximaMed.alvo ? (
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(((proximaMed.atual ?? 0) / proximaMed.alvo) * 100)}%` }} />
+                  </div>
+                ) : null}
+                {proximaMed.falta ? <p className="mt-1 text-xs text-fg-muted">{proximaMed.falta}</p> : null}
+              </div>
+            </CardBody>
+          </Card>
+        </Link>
+      ) : null}
 
       {/* 2. Progresso da semana em relação à meta individual */}
       {aderencia.semanaAtual?.meta ? (

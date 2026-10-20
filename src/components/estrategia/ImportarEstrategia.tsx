@@ -39,7 +39,7 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
   const e = lida?.estrategia;
   return (
     <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
-      <input ref={input} type="file" accept="application/pdf,.pdf,application/json,.json" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
+      <input ref={input} type="file" accept="application/pdf,.pdf,application/json,.json,text/plain,application/octet-stream,*/*" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
       {!e ? (
         <>
           <p className="text-sm font-semibold">Estratégia do Montinho Strategy</p>

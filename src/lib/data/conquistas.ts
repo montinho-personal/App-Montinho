@@ -162,12 +162,12 @@ export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise
   };
 }
 
-export async function resumoMensalDoAluno(aluno: AlunoBase): Promise<{ mensal: ResumoMensal; conquistas: ConquistaRow[] }> {
+export async function resumoMensalDoAluno(aluno: AlunoBase): Promise<{ mensal: ResumoMensal; conquistas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
   const { todas, sessoes, aderencia } = await sincronizarConquistas(aluno);
   const hoje = dataLocal(new Date());
   const primeira = sessoes.map((s) => dataLocal(s.iniciado_em)).sort()[0];
   const inicio = [aluno.data_inicio ?? dataLocal(aluno.created_at), primeira].filter(Boolean).sort()[0] ?? hoje;
-  return { mensal: resumoMensal({ sessoes, aderencia, conquistas: todas, inicioAcompanhamento: inicio, hoje }), conquistas: todas };
+  return { mensal: resumoMensal({ sessoes, aderencia, conquistas: todas, inicioAcompanhamento: inicio, hoje }), conquistas: todas, sessoes, aderencia };
 }
 
 // ---------------------------------------------------------------------------

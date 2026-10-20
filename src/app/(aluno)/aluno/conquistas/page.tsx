@@ -6,6 +6,8 @@ import { getAluno } from "@/lib/db";
 import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
 import { CATALOGO } from "@/lib/conquistas/regras";
 import { ConquistasClient } from "./ConquistasClient";
+import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 export const metadata = { title: "Conquistas" };
 
@@ -13,7 +15,9 @@ export default async function ConquistasPage() {
   const sessao = await requireAlunoPage();
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
-  const [{ mensal, conquistas }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
+  const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()) });
+  const proxima = proximaMedalha(medalhas);
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
   const conquistados = new Set(conquistas.map((c) => c.codigo));
   const proximas = Object.entries(CATALOGO)
@@ -33,6 +37,8 @@ export default async function ConquistasPage() {
         conquistas={conquistas.map((c) => ({ id: c.id, codigo: c.codigo, titulo: c.titulo, descricao: c.descricao, conquistado_em: c.conquistado_em, dados: c.dados }))}
         reconhecimentos={reconhecimentos.map((r) => ({ id: r.id, mensagem: r.mensagem, created_at: r.created_at, conquista: r.conquista_id ? (titulos.get(r.conquista_id) ?? null) : null }))}
         proximas={proximas}
+        medalhas={medalhas}
+        proxima={proxima}
         criterios={Object.fromEntries(Object.entries(CATALOGO).map(([k, v]) => [k, v.criterio]))}
       />
     </div>
