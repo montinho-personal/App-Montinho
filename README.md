@@ -9,6 +9,8 @@ Aplicação web responsiva com dois lados:
 
 Stack: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth + Storage) · Vercel.
 
+- Entrega da Consistência 2.0 + Chalalá: [ENTREGA-CONSISTENCIA.md](ENTREGA-CONSISTENCIA.md)
+
 ## Documentação
 
 | Arquivo | Para quê |
