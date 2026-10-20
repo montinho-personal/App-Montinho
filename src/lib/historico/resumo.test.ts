@@ -16,7 +16,7 @@ describe("histórico da Adriana (resumo do app anterior)", () => {
     expect(new Set(g.map((l) => l.exercicio_nome)).size).toBe(new Set(PRESCRICAO.treinos.flatMap((t) => t.exercicios.map((e) => e.nome))).size);
     expect(new Set(g.map((l) => `${l.data}:${l.letra}`))).toEqual(new Set(["2026-10-07:C", "2026-10-08:D", "2026-10-09:B", "2026-10-13:B", "2026-10-15:A", "2026-10-16:C", "2026-10-19:A"]));
     expect(g.every((l) => l.reps_total === null)).toBe(true);
-    expect(g.filter((l) => l.exercicio_nome === "Stiff com halteres").map((l) => l.series)).toEqual([8, 16]);
+    expect(g.filter((l) => l.exercicio_nome === "Stiff com halteres").map((l) => [l.series, l.volume_kg])).toEqual([[4, 1060], [4, 1180]]);
     expect(g.filter((l) => l.exercicio_nome === "Abdominal prancha").map((l) => [l.data.slice(5), l.letra, l.series, l.carga_max_kg])).toEqual([["10-07", "C", 1, null], ["10-15", "A", 1, null], ["10-16", "C", 1, null], ["10-19", "A", 1, null]]);
     expect(diasDoResumo(LINHAS)).toEqual(["2026-10-07", "2026-10-08", "2026-10-09", "2026-10-13", "2026-10-15", "2026-10-16", "2026-10-19"]);
     const abd = g.filter((l) => l.exercicio_nome === "Cadeira abdutora").map((l) => [l.data.slice(5), l.carga_max_kg, l.volume_kg]);

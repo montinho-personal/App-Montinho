@@ -64,10 +64,12 @@ export const LINHAS: LinhaResumo[] = [
   // Cadeira flexora (só no treino C)
   l("2026-10-07", FLEX, "Cadeira Flexora", 4, 30, 1026, "C"),
   l("2026-10-16", FLEX, "Cadeira Flexora", 4, 36, 1425, "C"),
-  // Stiff com halteres (só no treino C). O app anterior mostra 8 e 16 séries
-  // (a ficha prevê 4×10): transcrito como está, sem ajustar.
-  l("2026-10-07", STIFF, "Stiff com Halteres", 8, 28, 2120, "C", "App anterior registrou 8 séries (a ficha prevê 4×10)."),
-  l("2026-10-16", STIFF, "Stiff com Halteres", 16, 32, 4720, "C", "App anterior registrou 16 séries (a ficha prevê 4×10)."),
+  // Stiff com halteres (só no treino C; bi-set C1). O app anterior contou o
+  // bi-set em dobro (8 e 16 séries); o personal confirmou 4 séries. Volume
+  // corrigido na mesma proporção — confere com o peso médio do print
+  // (16/10: 1.180 ÷ 40 reps = 29,5 kg).
+  l("2026-10-07", STIFF, "Stiff com Halteres", 4, 28, 1060, "C", "Corrigido: app anterior mostrava 8 séries e 2.120 kg (bi-set contado em dobro)."),
+  l("2026-10-16", STIFF, "Stiff com Halteres", 4, 32, 1180, "C", "Corrigido: app anterior mostrava 16 séries e 4.720 kg (bi-set contado em dobro)."),
   // Agachamento búlgaro e terra sumô (só no treino C)
   l("2026-10-07", BULG, "Agachamento búlgaro halteres", 4, 18, 408, "C"),
   l("2026-10-16", BULG, "Agachamento búlgaro halteres", 4, 24, 636, "C"),
