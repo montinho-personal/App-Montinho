@@ -16,6 +16,10 @@ const PANT = "Panturrilha no leg press horizontal (180°)";
 const LEG = "Leg press horizontal (180°)";
 const SMITH = "Agachamento no Smith";
 const ELEV = "Elevação pélvica com barra";
+const FLEX = "Cadeira flexora";
+const STIFF = "Stiff com halteres";
+const PRANCHA = "Abdominal prancha";
+const PRANCHA_OBS = "60 s completos — informado pelo personal (o app anterior não registrava a prancha).";
 
 const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
   data, exercicio, nomeOriginal, bibliotecaId: BIBLIOTECA[exercicio]?.id ?? null, letra, series, cargaMax, volume, observacao,
@@ -23,14 +27,14 @@ const l = (data: string, exercicio: string, nomeOriginal: string, series: number
 
 export const LINHAS: LinhaResumo[] = [
   // Cadeira abdutora (6 sessões)
-  l("2026-10-07", ABD, "Cadeira Abdutora", 4, 80, 3070),
+  l("2026-10-07", ABD, "Cadeira Abdutora", 4, 80, 3070, "C", "Treino C deduzido: cadeira flexora e stiff (só no C) no mesmo dia."),
   l("2026-10-09", ABD, "Cadeira Abdutora", 4, 80, 4610),
   l("2026-10-13", ABD, "Cadeira Abdutora", 4, 80, 3900),
   l("2026-10-15", ABD, "Cadeira Abdutora", 4, 100, 4210, "A", "Treino A deduzido: cadeira extensora (só no A) no mesmo dia."),
   l("2026-10-16", ABD, "Cadeira Abdutora", 4, 90, 3440, "C", "Treino C deduzido: panturrilha 4×15 (bi-set do C) no mesmo dia."),
   l("2026-10-19", ABD, "Cadeira Abdutora", 4, 110, 4900, "A", "Treino A deduzido: cadeira extensora (só no A) no mesmo dia."),
   // Panturrilha no leg press 180 (07/10 aparece com 0 séries: registrado, não feito)
-  l("2026-10-07", PANT, "Panturrilha no leg press 180", 0, null, null, null, "0 séries no app anterior — não conta como feito."),
+  l("2026-10-07", PANT, "Panturrilha no leg press 180", 0, null, null, "C", "0 séries no app anterior — não conta como feito."),
   l("2026-10-08", PANT, "Panturrilha no leg press 180", 4, 55, 4200, "D", "Volume ÷ 80 repetições (4×20 do treino D) = 52,5 kg de média."),
   l("2026-10-16", PANT, "Panturrilha no leg press 180", 4, 55, 2445, "C", "Volume ÷ 60 repetições (4×15 do bi-set do C) ≈ 40,8 kg de média."),
   // Cadeira extensora (só no treino A)
@@ -45,6 +49,15 @@ export const LINHAS: LinhaResumo[] = [
   // Elevação pélvica (só no treino A)
   l("2026-10-15", ELEV, "Elevação pelvica", 4, 40, 1260, "A"),
   l("2026-10-19", ELEV, "Elevação pelvica", 4, 40, 1260, "A"),
+  // Cadeira flexora (só no treino C)
+  l("2026-10-07", FLEX, "Cadeira Flexora", 4, 30, 1026, "C"),
+  l("2026-10-16", FLEX, "Cadeira Flexora", 4, 36, 1425, "C"),
+  // Stiff com halteres (só no treino C). O app anterior mostra 8 e 16 séries
+  // (a ficha prevê 4×10): transcrito como está, sem ajustar.
+  l("2026-10-07", STIFF, "Stiff com Halteres", 8, 28, 2120, "C", "App anterior registrou 8 séries (a ficha prevê 4×10)."),
+  l("2026-10-16", STIFF, "Stiff com Halteres", 16, 32, 4720, "C", "App anterior registrou 16 séries (a ficha prevê 4×10)."),
+  // Prancha: 1 × 60 s completos em todos os dias de treino A e C identificados.
+  ...["2026-10-07", "2026-10-15", "2026-10-16", "2026-10-19"].map((d) => l(d, PRANCHA, "Abdominal prancha", 1, null, null, ["2026-10-15", "2026-10-19"].includes(d) ? "A" : "C", PRANCHA_OBS)),
 ];
 
 export const IMPORTACAO: ImportacaoResumo = {

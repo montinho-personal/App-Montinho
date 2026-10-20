@@ -57,7 +57,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   const exerciciosGrafico = [...marcas.map((m) => ({ chave: m.chave, nome: m.exercicio }))];
   for (const r of historicoResumo) {
     const chave = normalizarNome(r.exercicio_nome);
-    if (r.series > 0 && !exerciciosGrafico.some((e) => e.chave === chave)) exerciciosGrafico.push({ chave, nome: r.exercicio_nome });
+    if (r.series > 0 && r.carga_max_kg != null && !exerciciosGrafico.some((e) => e.chave === chave)) exerciciosGrafico.push({ chave, nome: r.exercicio_nome });
   }
 
   // Volume programado (plano ativo) × realizado (média semanal no período)
