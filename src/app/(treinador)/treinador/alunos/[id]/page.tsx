@@ -10,11 +10,11 @@ import { getPlanoAtivo, listVersoes } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { listAdaptacoes, listIntervencoes } from "@/lib/data/acompanhamento";
 import { frequenciaDoCalendario, type Calendario, type DiaVolume } from "@/lib/volume/calcular";
-import { descreverTecnica, TECNICA_CURTA } from "@/lib/volume/tecnicas";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { indicePorNome } from "@/lib/biblioteca/itens";
 import { normalizarNome } from "@/lib/grupos";
 import { VolumeAluno } from "@/components/montador/VolumeAluno";
+import { TreinoAcordeao } from "@/components/treinos/TreinoAcordeao";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
@@ -207,42 +207,9 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   </Card>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
                       {treinosAtivos.map((t) => (
-                        <Card key={t.id}>
-                          <CardBody>
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/30 flex items-center justify-center" aria-hidden>
-                                <span className="text-xl font-black text-accent">{t.letra}</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-bold truncate">{t.nome}</p>
-                                <p className="text-xs text-fg-subtle">
-                                  {t.exercicios.length} exercícios · {t.exercicios.reduce((n, e) => n + Math.max(0, e.series - (e.series_aquecimento ?? 0)), 0)} séries válidas · ×{plano.programa?.frequencia?.[t.letra] ?? 1}/sem
-                                </p>
-                              </div>
-                            </div>
-                            <ul className="mt-3 space-y-1 text-xs text-fg-muted">
-                              {t.exercicios.map((e) => (
-                                <li key={e.id} className="flex justify-between gap-2 min-w-0">
-                                  <span className="truncate min-w-0">
-                                    {e.nome}
-                                    {descreverTecnica({ tecnica: e.tecnica, tecnicaExtras: e.tecnica_extras, tecnicaSeries: e.tecnica_series }, Math.max(0, e.series - (e.series_aquecimento ?? 0))) ? (
-                                      <span className="ml-1 text-accent">
-                                        · {TECNICA_CURTA[e.tecnica]} ({descreverTecnica({ tecnica: e.tecnica, tecnicaExtras: e.tecnica_extras, tecnicaSeries: e.tecnica_series }, Math.max(0, e.series - (e.series_aquecimento ?? 0)))})
-                                      </span>
-                                    ) : e.tecnica && e.tecnica !== "normal" && TECNICA_CURTA[e.tecnica] ? (
-                                      <span className="ml-1 text-accent">· {TECNICA_CURTA[e.tecnica]}</span>
-                                    ) : null}
-                                  </span>
-                                  <span className="font-mono shrink-0 max-w-[45%] truncate" title={`${e.series}×${e.reps}`}>
-                                    {e.series}×{e.reps}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </CardBody>
-                        </Card>
+                        <TreinoAcordeao key={t.id} letra={t.letra} nome={t.nome} exercicios={t.exercicios} vezesSemana={plano.programa?.frequencia?.[t.letra] ?? 1} editarHref={`/treinador/alunos/${id}/treinos`} />
                       ))}
                     </div>
                     <VolumeAluno
