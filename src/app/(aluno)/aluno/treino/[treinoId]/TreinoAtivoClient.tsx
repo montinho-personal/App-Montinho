@@ -23,6 +23,8 @@ import { BotaoVideoTelaCheia } from "@/components/ui/VideoTelaCheia";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
 import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
+import { conviteSerieExtra, type Deficit } from "@/lib/treino/serie-extra";
+import { GRUPO_LABEL } from "@/lib/grupos";
 import { RitmoTreino } from "@/components/aluno/RitmoTreino";
 import { estimarPrescricao, descansoAposSerie } from "@/lib/tempo/prescricao";
 import { offsetRelogio } from "@/lib/tempo/ritmo";
@@ -55,6 +57,8 @@ type Props = {
   /** Horário do servidor na renderização (corrige relógio do aparelho). */
   agoraServidor: number;
   ultimas: Record<string, UltimaExecucao | null>;
+  /** Séries que ficaram para trás nos últimos dias (convite da série extra). */
+  perdidas?: Record<string, Deficit>;
   sessaoInicial: SessaoCompleta | null;
   outraSessao: { id: string; treinoId: string | null; nome: string | null } | null;
   sessaoConcluida: SessaoCompleta | null;
@@ -115,7 +119,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -655,14 +659,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                   </label>
                 </div>
                 {possivel ? (
-                  <div role="status" className={`rounded-lg border p-3 text-sm space-y-1 ${bloqueado ? "border-warning/40 bg-warning/10" : possivel.status === "reduzido" ? "border-accent/40 bg-accent/10" : "border-success/30 bg-success/10"}`}>
-                    <p className="font-semibold">{possivel.status === "completo" ? "Cabe no seu tempo" : possivel.status === "reduzido" ? `Versão de hoje: cerca de ${Math.round(possivel.estimadoSeg / 60)} min` : "Sem versão segura para esse tempo"}</p>
+                  <div role="status" className={`rounded-lg border p-3 text-sm space-y-1 ${bloqueado || possivel.apertado ? "border-warning/40 bg-warning/10" : possivel.status === "reduzido" ? "border-accent/40 bg-accent/10" : "border-success/30 bg-success/10"}`}>
+                    <p className="font-semibold">{possivel.status === "completo" ? (possivel.apertado ? "Dá para fazer completo, com tempo apertado" : "Cabe no seu tempo") : possivel.status === "reduzido" ? `Versão de hoje: cerca de ${Math.round(possivel.estimadoSeg / 60)} min` : "Sem versão segura para esse tempo"}</p>
                     {possivel.explicacao.slice(possivel.status === "reduzido" ? 1 : 0).map((t) => (
                       <p key={t} className="text-xs text-fg-muted">{t}</p>
                     ))}
                     {ganhoDescanso.ajuda && possivelMenor ? (
                       <div className="mt-2 space-y-2 rounded-md border border-border bg-bg/40 p-2.5">
-                        <p className="text-xs font-semibold">⏱ Quer encaixar mais? Descanso 20% menor</p>
+                        <p className="text-xs font-semibold">{descansoMenor ? "⏱ Descanso 20% menor escolhido" : "⏱ Quer encaixar mais? Descanso 20% menor"}</p>
                         <p className="text-xs text-fg-muted">
                           Ex.: 1:30 vira 1:10 (nunca abaixo de 45 s).{" "}
                           {possivelMenor.status === "completo"
@@ -794,12 +798,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
           const feitas = lista.filter((s) => s.tipo === "valida" && s.concluida).length;
           const planejadas = lista.filter((s) => s.tipo === "valida").length;
           const completo = planejadas > 0 && feitas >= planejadas;
+          // Séries além do prescrito hoje (feitas com “+ Série extra”).
+          const extrasFeitas = Math.max(0, feitas - (se.series_planejadas ?? planejadas));
           const ultima = ultimas[ex.id];
           const expandido = aberto === se.id;
           const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
           const tecnicaTxt = [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
           const pend = pendencias.find((p) => p.seId === se.id);
           const statusAtual = statusEx[se.id] ?? se.status;
+          const convite = completo && statusAtual !== "concluido" ? conviteSerieExtra(perdidas[ex.id] ?? { exercicio: 0, grupo: 0 }, { rotuloGrupo: ex.grupo_muscular ? GRUPO_LABEL[ex.grupo_muscular] : null, cuidado: sessao.checkin_pre === "desconforto" || sessao.checkin_pre === "cansado" }) : null;
           return (
             <Card key={se.id} id={`ex-${se.id}`} className={`scroll-mt-20 ${conferindo && pend ? "border-warning ring-1 ring-warning/50" : completo ? "border-success/40" : expandido ? "border-accent/40" : ""}`}>
               <CardBody className="p-0">
@@ -919,6 +926,21 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                         );
                       })}
                     </div>
+                    {convite ? (
+                      extrasFeitas >= convite.sugeridas ? (
+                        <p role="status" className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs font-semibold text-success">
+                          ✓ {extrasFeitas > 1 ? `${extrasFeitas} séries extras feitas` : "Série extra feita"}: já conta no volume da semana.
+                        </p>
+                      ) : (
+                        <div role="note" className={`space-y-2 rounded-lg border p-3 ${convite.tom === "repor" ? "border-accent/40 bg-accent/10" : "border-border bg-bg/40"}`}>
+                          <p className="text-sm font-semibold">{convite.titulo}</p>
+                          <p className="text-xs text-fg-muted">{convite.texto}</p>
+                          <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-accent/60 px-3 py-2 text-xs font-bold text-accent">
+                            + Fazer série extra agora
+                          </button>
+                        </div>
+                      )
+                    ) : null}
                     {completo && statusAtual !== "concluido" ? (
                       <button type="button" onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
                         <Icon name="check" size={18} /> Finalizar exercício

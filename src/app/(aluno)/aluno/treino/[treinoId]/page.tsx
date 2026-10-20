@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getPlanoAtivo, getTreinoComExercicios } from "@/lib/data/programas";
 import { listarExtras } from "@/lib/data/extras";
-import { getSessao, getSessaoEmAndamento, ultimasExecucoes } from "@/lib/data/sessoes";
+import { getSessao, getSessaoEmAndamento, seriesPerdidasRecentes, ultimasExecucoes } from "@/lib/data/sessoes";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
 import { TreinoAtivoClient } from "./TreinoAtivoClient";
@@ -28,7 +28,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
   if (!treino || treino.aluno_id !== sessao.alunoId) notFound();
 
-  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas] = await Promise.all([
     sessaoId ? getSessao(sessao.alunoId, sessaoId) : getSessaoEmAndamento(sessao.alunoId),
     ultimasExecucoes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
     listarBiblioteca(),
@@ -37,6 +37,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
     historicoParaEvolucao(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, exercicioId: e.id, bibliotecaId: e.biblioteca_id ?? null, nome: e.nome, tecnica: normalizarTecnica(e.tecnica) }))),
     getConfigEvolucao(sessao.alunoId),
     desbloqueiaParaTreino(sessao.alunoId, treino.exercicios.map((e) => e.id)),
+    seriesPerdidasRecentes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, grupo: e.grupo_muscular ?? null }))),
   ]);
   // Extra: a liberação é conferida de novo no servidor ao começar.
   const extra = extras.find((x) => x.id === extraId && x.treino_id === treino.id) ?? null;
@@ -74,6 +75,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
       agoraServidor={agoraServidorMs()}
       exercicios={exercicios}
       ultimas={ultimas}
+      perdidas={perdidas}
       sessaoInicial={sessaoAtiva}
       outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino } : null}
       sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}

@@ -14,6 +14,7 @@ import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
 import { exigirExtraLiberado } from "./extras";
 import { comDescansoReduzido, temposComDescansoReduzido, treinoPossivel, type ResultadoPossivel } from "@/lib/treino/possivel";
 import type { Recuperacao } from "@/lib/treino/extra";
+import { deficitRecente, REGRAS_SERIE_EXTRA, type Deficit, type SessaoPassada } from "@/lib/treino/serie-extra";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 
@@ -134,6 +135,28 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
     out[ex.id] = achado;
   }
   return out;
+}
+
+/**
+ * Séries que ficaram para trás nos últimos dias, por exercício do treino de
+ * hoje (convite da “+ Série extra”). Conta também exercícios adiados na
+ * versão reduzida.
+ */
+export async function seriesPerdidasRecentes(alunoId: string, exercicios: Array<{ id: string; nome: string; grupo: string | null }>, agoraMs = Date.now()): Promise<Record<string, Deficit>> {
+  const desde = new Date(agoraMs - REGRAS_SERIE_EXTRA.dias * 86_400_000).toISOString();
+  const sessoes = await listSessoes(alunoId, { desde, limite: 30, status: "concluida" });
+  const porId = new Map(exercicios.map((e) => [e.id, e]));
+  const passadas: SessaoPassada[] = sessoes.map((s) => {
+    const adiados = ((s.snapshot as { reducao?: { adiados?: Array<{ id: string; nome: string; series: number }> } } | null)?.reducao?.adiados ?? []).map((a) => ({ exercicioId: a.id, nome: a.nome, grupo: porId.get(a.id)?.grupo ?? null, planejadas: a.series, feitas: 0 }));
+    return {
+      data: s.finalizado_em ?? s.iniciado_em,
+      exercicios: [
+        ...s.exercicios.map((e) => ({ exercicioId: e.exercicio_id, nome: e.nome, grupo: e.grupo_muscular ?? null, planejadas: e.series_planejadas ?? 0, feitas: e.series.filter((x) => x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause").length })),
+        ...adiados,
+      ],
+    };
+  });
+  return Object.fromEntries(exercicios.map((e) => [e.id, deficitRecente(passadas, e, agoraMs)]));
 }
 
 // ---------------------------------------------------------------------------

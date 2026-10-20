@@ -24,7 +24,7 @@ describe("treino possível hoje", () => {
   it("remove primeiro 'pode adiar', do fim para o começo, e nunca o essencial", () => {
     const xs = treino();
     const full = treinoPossivel({ exercicios: xs, tempoDisponivelMin: 999, permiteReduzida: true }).originalSeg;
-    const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor((full - 60) / 60), permiteReduzida: true });
+    const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor((full - 600) / 60), permiteReduzida: true });
     expect(r.status).toBe("reduzido");
     expect(r.adiados[0].nome).toBe("Abdominal");
     expect(r.incluidos).toContain(xs[0].id);
@@ -34,7 +34,7 @@ describe("treino possível hoje", () => {
   it("prioridade muscular do aluno é preservada entre os adiáveis", () => {
     const xs = treino();
     const full = treinoPossivel({ exercicios: xs, tempoDisponivelMin: 999, permiteReduzida: true }).originalSeg;
-    const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor((full - 60) / 60), permiteReduzida: true, prioridadesMusculares: ["abdomen"] });
+    const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor((full - 600) / 60), permiteReduzida: true, prioridadesMusculares: ["abdomen"] });
     expect(r.adiados[0].nome).toBe("Elevação lateral");
   });
 
@@ -121,5 +121,18 @@ describe("treino possível hoje", () => {
       const menor = treinoPossivel({ exercicios: treino(), tempoDisponivelMin: 120, permiteReduzida: true, descansoReduzido: true });
       expect(ganhoDescansoReduzido(normal, menor).ajuda).toBe(false);
     });
+  });
+
+  it("passa só alguns minutos do tempo → não reduz, avisa que está apertado", () => {
+    const xs = treino();
+    const full = treinoPossivel({ exercicios: xs, tempoDisponivelMin: 999, permiteReduzida: true }).originalSeg;
+    const alvo = Math.ceil(full / 60) - 1;
+    const r = treinoPossivel({ exercicios: xs, tempoDisponivelMin: alvo, permiteReduzida: true });
+    expect(r.status).toBe("completo");
+    expect(r.apertado).toBe(true);
+    expect(r.adiados).toEqual([]);
+    expect(r.explicacao.join(" ")).toMatch(/Tempo apertado/);
+    const longe = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor(full / 60) - 8, permiteReduzida: true });
+    expect(longe.apertado).toBe(false);
   });
 });

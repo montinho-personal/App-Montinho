@@ -28,7 +28,18 @@ export const REGRAS_POSSIVEL = {
   maxMinutos: 240,
   /** Opção do aluno: descansos encurtados (fração do prescrito e piso em segundos). */
   descansoReduzido: { fator: 0.8, pisoSeg: 45 },
+  /**
+   * Folga “tempo apertado”: se o completo passa do tempo disponível por pouco
+   * (10% do tempo, entre 2 e 5 min), NÃO reduz — só avisa para não se alongar
+   * nos descansos e nas conversas.
+   */
+  folga: { fracao: 0.1, minSeg: 120, maxSeg: 300 },
 };
+
+export function folgaSeg(tempoDisponivelMin: number): number {
+  const f = REGRAS_POSSIVEL.folga;
+  return Math.min(f.maxSeg, Math.max(f.minSeg, Math.round(tempoDisponivelMin * 60 * f.fracao)));
+}
 
 /** 90 s → 70 s; 120 s → 95 s; 60 s → 50 s; ≤ 45 s não muda. */
 export function encurtarDescanso(seg: number): number;
@@ -76,6 +87,8 @@ export type ResultadoPossivel = {
   essenciaisSeg: number;
   /** true quando os descansos foram encurtados (opção do aluno, autorizada). */
   descansoReduzido: boolean;
+  /** Completo, mas passa um pouco do tempo: segue inteiro com aviso. */
+  apertado: boolean;
   explicacao: string[];
 };
 
@@ -124,9 +137,25 @@ export function treinoPossivel(input: {
   const completoSeg = reduzDescanso ? estimar(todos) : originalSeg;
   const seriesOriginais = exs.reduce((n, e) => n + seriesValidas(e), 0);
   const essenciais = new Set(exs.filter((e) => e.prioridade === "essencial").map((e) => e.id));
-  const base = { tempoDisponivelMin: input.tempoDisponivelMin, originalSeg, seriesOriginais, essenciaisSeg: essenciais.size ? estimar(essenciais) : 0, descansoReduzido: reduzDescanso };
+  const base = { tempoDisponivelMin: input.tempoDisponivelMin, originalSeg, seriesOriginais, essenciaisSeg: essenciais.size ? estimar(essenciais) : 0, descansoReduzido: reduzDescanso, apertado: false };
   const notaDescanso = "Descansos 20% menores (ex.: 1:30 → 1:10), nunca abaixo de 45 s; séries e técnicas não mudam.";
 
+  // Passa por poucos minutos: mantém tudo e só avisa (vale para qualquer programa).
+  if (!reduzDescanso && completoSeg > budget && completoSeg <= budget + folgaSeg(input.tempoDisponivelMin)) {
+    return {
+      ...base,
+      status: "completo",
+      apertado: true,
+      estimadoSeg: completoSeg,
+      incluidos: [...todos],
+      adiados: [],
+      seriesMantidas: seriesOriginais,
+      explicacao: [
+        `O treino completo leva cerca de ${min(completoSeg)} min — bem perto dos seus ${input.tempoDisponivelMin} min, então ele fica inteiro.`,
+        "Tempo apertado: siga o cronômetro de descanso, evite pausas longas e conversa entre as séries, e deixe o aparelho do próximo exercício já em vista.",
+      ],
+    };
+  }
   if (completoSeg <= budget) {
     return {
       ...base,
