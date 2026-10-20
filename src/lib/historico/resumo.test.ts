@@ -10,8 +10,10 @@ import type { SessaoCompleta } from "@/lib/data/sessoes";
 describe("histórico da Adriana (resumo do app anterior)", () => {
   it("transcreve exatamente os prints e ignora o dia com 0 séries", () => {
     const g = linhasParaGravar(IMPORTACAO);
-    expect(LINHAS).toHaveLength(42);
-    expect(g).toHaveLength(41);
+    expect(LINHAS).toHaveLength(44);
+    expect(g).toHaveLength(43);
+    // Todos os 25 exercícios da ficha têm histórico.
+    expect(new Set(g.map((l) => l.exercicio_nome)).size).toBe(new Set(PRESCRICAO.treinos.flatMap((t) => t.exercicios.map((e) => e.nome))).size);
     expect(new Set(g.map((l) => `${l.data}:${l.letra}`))).toEqual(new Set(["2026-10-07:C", "2026-10-08:D", "2026-10-09:B", "2026-10-13:B", "2026-10-15:A", "2026-10-16:C", "2026-10-19:A"]));
     expect(g.every((l) => l.reps_total === null)).toBe(true);
     expect(g.filter((l) => l.exercicio_nome === "Stiff com halteres").map((l) => l.series)).toEqual([8, 16]);
