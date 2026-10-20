@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: { default: BRAND.fullName, template: `%s · ${BRAND.name}` },
   description: BRAND.description,
   applicationName: BRAND.fullName,
-  appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: `${BRAND.name} Personal`, statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 
