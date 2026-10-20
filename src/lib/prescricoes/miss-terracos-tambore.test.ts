@@ -39,15 +39,13 @@ describe("prescrição Miss Terraços Tamboré — conforme a ficha do personal"
       expect([n, reps(l, n), E(l, n).tecnica]).toEqual([n, ["20", "15", "12", "10"], "piramide"]);
   });
 
-  it("descansos: informados preservados; não informados ficam sem definição", () => {
+  it("descansos: padrão do Montinho (sem descanso individual), exceto dentro do bi-set", () => {
     const desc = (l: string, n: string) => E(l, n).series.map((s) => s.descanso);
-    expect(desc("A", "Leg press horizontal (180°)")).toEqual([75, 75, 75, 75]);
-    expect(desc("A", "Cadeira abdutora")).toEqual([60, 60, 60, 60]);
-    expect(desc("A", "Elevação pélvica com barra")).toEqual([90, 90, 90, 90]);
-    expect(desc("B", "Remada baixa pegada aberta")).toEqual([null, null, null, null]);
-    expect(desc("D", "Crucifixo máquina")).toEqual([null, null, null, null]);
-    expect(desc("B", "Cadeira abdutora")).toEqual([60, 60, 60, 60]);
-    expect(desc("D", "Panturrilha no leg press horizontal (180°)")).toEqual([60, 60, 60, 60]);
+    for (const t of PRESCRICAO.treinos) for (const e of t.exercicios) {
+      const dentroBiset = e.tecnica === "biset" && e.descanso_seg === 0;
+      if (!dentroBiset) expect([t.letra, e.nome, e.descanso_seg, e.descanso_apos_seg]).toEqual([t.letra, e.nome, null, null]);
+    }
+    expect(desc("A", "Leg press horizontal (180°)")).toEqual([null, null, null, null]);
   });
 
   it("RIR: 0 onde é 0 (não é ‘sem RIR’), 3 onde é 3, vazio onde não foi informado", () => {
@@ -59,15 +57,15 @@ describe("prescrição Miss Terraços Tamboré — conforme a ficha do personal"
     expect(E("B", "Rosca martelo").rir).toBeNull();
   });
 
-  it("três bi-sets: 4 rodadas, sem descanso entre os dois, 60 s após a rodada; sem séries extras", () => {
+  it("três bi-sets: 4 rodadas, sem descanso entre os dois, descanso padrão após a rodada; sem séries extras", () => {
     const b = aud.flatMap((t) => t.bisets.map((x) => ({ ...x, letra: t.letra })));
     expect(b.map((x) => [x.letra, x.exercicios])).toEqual([["B", ["Crucifixo inverso máquina pronada", "Rosca martelo"]], ["C", ["Stiff com halteres", "Panturrilha no leg press horizontal (180°)"]], ["D", ["Desenvolvimento Arnold", "Elevação lateral com halteres"]]]);
-    for (const x of b) expect([x.rodadas, x.descansoEntre, x.descansoRodada]).toEqual([4, 0, 60]);
+    for (const x of b) expect([x.rodadas, x.descansoEntre, x.descansoRodada]).toEqual([4, 0, null]);
     expect(reps("C", "Panturrilha no leg press horizontal (180°)")).toEqual(["15", "15", "15", "15"]);
   });
 
-  it("exercício por tempo: prancha 1 × 60 s, descanso 60 s", () => {
-    for (const l of ["A", "C"]) expect(E(l, "Abdominal prancha").series).toEqual([{ reps: "60s", descanso: 60 }]);
+  it("exercício por tempo: prancha 1 × 60 s, descanso padrão", () => {
+    for (const l of ["A", "C"]) expect(E(l, "Abdominal prancha").series).toEqual([{ reps: "60s", descanso: null }]);
   });
 
   it("nenhuma carga, aquecimento ou técnica extra inventada", () => {

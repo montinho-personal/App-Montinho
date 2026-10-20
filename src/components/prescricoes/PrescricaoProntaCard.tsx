@@ -66,7 +66,7 @@ export function PrescricaoProntaCard({ alunoId, prescricao, auditoria, pendencia
           </table>
         </div>
         <p className="text-xs text-fg-muted">
-          Bi-sets: {auditoria.flatMap((t) => t.bisets.map((b) => `${t.letra}: ${b.exercicios.join(" + ")}`)).join(" · ") || "nenhum"} — 4 rodadas, sem descanso entre os dois, 60 s após a rodada.
+          Bi-sets: {auditoria.flatMap((t) => t.bisets.map((b) => `${t.letra}: ${b.exercicios.join(" + ")}`)).join(" · ") || "nenhum"} — 4 rodadas, sem descanso entre os dois; após a rodada, o descanso padrão.
         </p>
         {pendencias.length ? (
           <details className="text-xs">

@@ -10,6 +10,7 @@
 //    desfazer/refazer; campos avançados só quando o treinador quiser.
 // ============================================================================
 
+import { aplicarDescansoPadrao } from "@/lib/tempo/descanso-padrao";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -426,6 +427,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       if (!l || !src) return e;
       return { ...e, treinos: [...e.treinos, { ...src, key: novaKey(), id: null, letra: l, nome: `${src.nome} (cópia)`, rows: src.rows.map(cloneRow) }] };
     });
+  // Limpa descansos individuais de todos os dias: passa a valer o padrão (bi-set mantém o 0 entre os exercícios).
+  const usarDescansoPadrao = () => {
+    if (!window.confirm("Usar o descanso padrão em todos os exercícios?\n\nEntre séries e após cada exercício passa a valer o seu padrão (1min30 / 2 min, ou o que estiver em Ajustes). Dentro de bi-sets continua sem descanso entre os exercícios. Depois, toque em Salvar.")) return;
+    commit((e) => ({ ...e, treinos: e.treinos.map((t) => ({ ...t, rows: aplicarDescansoPadrao(t.rows) })) }));
+  };
   const copiarDe = (destinoKey: string, origemKey: string) =>
     commit((e) => {
       const src = e.treinos.find((t) => t.key === origemKey);
@@ -624,6 +630,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           <label className="inline-flex items-center gap-1.5 text-xs text-fg-muted rounded-md border border-border px-3 h-11">
             <input type="checkbox" checked={avancado} onChange={(e) => setAvancado(e.target.checked)} /> campos avançados
           </label>
+          <button type="button" onClick={usarDescansoPadrao} className="touch rounded-md border border-border px-3 text-sm text-fg-muted hover:text-fg inline-flex items-center gap-1.5" title="Limpa os descansos individuais: passa a valer o padrão"><Icon name="timer" size={16} /> Usar descanso padrão</button>
           <button type="button" onClick={() => setShowExemplos((v) => !v)} className="touch rounded-md border border-accent/40 px-3 text-sm font-semibold text-accent hover:bg-accent/10 inline-flex items-center gap-1.5"><Icon name="sparkles" size={16} /> Já montei algo parecido?</button>
           <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo da alteração (opcional)" aria-label="Motivo da alteração" className="h-11 rounded-md border border-border bg-bg px-3 text-sm w-56" maxLength={300} />
           <button type="button" onClick={() => void salvar()} disabled={saving} className="touch rounded-md bg-accent px-5 text-sm font-bold text-bg hover:bg-accent-hover disabled:opacity-50">{saving ? "Salvando…" : "Salvar (Ctrl+S)"}</button>

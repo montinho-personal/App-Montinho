@@ -9,7 +9,10 @@
 //    exercício segue independente para carga, reps e histórico. Descanso 0 s no
 //    1º exercício (execução imediata do 2º) e o descanso da rodada no 2º.
 //  • Exercício por tempo: repetições "60s" (o cálculo de tempo usa 60 s).
-//  • Campo não informado (descanso, RIR) fica sem definição (null).
+//  • Descansos: o PADRÃO do Montinho (1min30 entre séries, 2 min após o
+//    exercício) — decisão do personal em 20/10/2026, no lugar dos descansos
+//    individuais da ficha. Por isso ficam sem definição (null = padrão).
+//  • RIR não informado fica sem definição (null).
 //  • RIR 0 = zero repetições em reserva (não é “sem RIR”).
 //  • Cargas: nunca preenchidas.
 // ============================================================================
@@ -92,11 +95,11 @@ function ex(nome: string, reps: string[], descansoSeg: number | null, o: Opc = {
 
 const P20 = ["20", "15", "12", "10"];
 const pir = (nome: string, reps: string[], desc: number | null, rir: number | null) => ex(nome, reps, desc, { tecnica: "piramide", rir });
-const prancha = () => ex("Abdominal prancha", ["60s"], 60, { tecnica: "isometria", descansoApos: 60 });
+const prancha = () => ex("Abdominal prancha", ["60s"], null, { tecnica: "isometria" });
 /** 1º exercício do bi-set: sem descanso entre os movimentos. */
 const biA = (nome: string, reps: string[], bloco: string) => ex(nome, reps, 0, { tecnica: "biset", bloco, descansoApos: 0 });
-/** 2º exercício do bi-set: descanso da rodada (60 s). */
-const biB = (nome: string, reps: string[], bloco: string) => ex(nome, reps, 60, { tecnica: "biset", bloco });
+/** 2º exercício do bi-set: descanso da rodada = padrão entre séries. */
+const biB = (nome: string, reps: string[], bloco: string) => ex(nome, reps, null, { tecnica: "biset", bloco });
 const x4 = (r: string) => [r, r, r, r];
 
 const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[], observacoes: string | null = null): TreinoInput => ({ letra, nome, ativo: true, observacoes, exercicios });
@@ -120,43 +123,40 @@ export const PRESCRICAO: SalvarPlanoInput = {
   treinos: [
     treino("A", "Lower — Quadríceps e glúteos", [
       prancha(),
-      pir("Elevação pélvica com barra", P20, 90, 0),
-      pir("Agachamento no Smith", ["15", "12", "10", "10"], 90, 3),
-      pir("Leg press horizontal (180°)", P20, 75, 3),
-      pir("Cadeira extensora", P20, 90, 3),
-      pir("Cadeira abdutora", P20, 60, 3),
+      pir("Elevação pélvica com barra", P20, null, 0),
+      pir("Agachamento no Smith", ["15", "12", "10", "10"], null, 3),
+      pir("Leg press horizontal (180°)", P20, null, 3),
+      pir("Cadeira extensora", P20, null, 3),
+      pir("Cadeira abdutora", P20, null, 3),
     ], "Acompanhado presencialmente pelo personal."),
     treino("B", "Upper — Costas, bíceps e glúteos", [
       pir("Remada baixa pegada aberta", P20, null, null),
-      pir("Remada unilateral halteres", P20, 90, 3),
-      pir("Puxada frontal pegada aberta pronada", P20, 90, 3),
+      pir("Remada unilateral halteres", P20, null, 3),
+      pir("Puxada frontal pegada aberta pronada", P20, null, 3),
       biA("Crucifixo inverso máquina pronada", x4("10"), "B1"),
       biB("Rosca martelo", x4("10"), "B1"),
-      ex("Cadeira abdutora", x4("15"), 60),
+      ex("Cadeira abdutora", x4("15"), null),
     ]),
     treino("C", "Lower — Posteriores, glúteos e panturrilhas", [
       prancha(),
-      pir("Cadeira abdutora", P20, 90, 3),
-      pir("Agachamento búlgaro halteres", ["12", "12", "10", "10"], 90, 3),
-      pir("Levantamento terra sumô", ["15", "12", "10", "10"], 90, 0),
-      pir("Cadeira flexora", P20, 90, 3),
+      pir("Cadeira abdutora", P20, null, 3),
+      pir("Agachamento búlgaro halteres", ["12", "12", "10", "10"], null, 3),
+      pir("Levantamento terra sumô", ["15", "12", "10", "10"], null, 0),
+      pir("Cadeira flexora", P20, null, 3),
       biA("Stiff com halteres", x4("10"), "C1"),
       biB("Panturrilha no leg press horizontal (180°)", x4("15"), "C1"),
     ], "Acompanhado presencialmente pelo personal."),
     treino("D", "Upper — Peitoral, ombros e tríceps", [
       pir("Crucifixo máquina", P20, null, null),
-      pir("Supino inclinado 45° halteres", P20, 90, 3),
+      pir("Supino inclinado 45° halteres", P20, null, 3),
       biA("Desenvolvimento Arnold", ["12", "12", "10", "10"], "D1"),
       biB("Elevação lateral com halteres", ["12", "12", "10", "10"], "D1"),
-      pir("Tríceps pulley barra W", P20, 90, 3),
-      ex("Panturrilha no leg press horizontal (180°)", x4("20"), 60),
+      pir("Tríceps pulley barra W", P20, null, 3),
+      ex("Panturrilha no leg press horizontal (180°)", x4("20"), null),
     ]),
   ],
   motivo: "Cadastro da prescrição (Upper/Lower 4×/semana) a partir da ficha do personal",
 };
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
-export const PENDENCIAS = [
-  "Descanso não informado: Remada baixa pegada aberta (B1) e Crucifixo máquina (D1) — ficam sem descanso definido; o app usa o padrão (90 s) só na estimativa de tempo.",
-  "Descanso entre um exercício e o próximo não foi informado: a estimativa usa o padrão do app (2 min).",
-];
+export const PENDENCIAS: string[] = [];
