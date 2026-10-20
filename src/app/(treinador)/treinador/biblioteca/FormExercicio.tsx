@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldHint } from "@/components/ui/Input";
 import { GRUPO_LABEL, GRUPOS_SELECIONAVEIS } from "@/lib/grupos";
 import { parseVideoSource } from "@/lib/video";
+import { sugerirPesosSecundarios } from "@/lib/biblioteca/pesos";
 import {
   ARTICULACAO_LABEL,
   CAMPO_REGISTRO_LABEL,
@@ -29,7 +30,7 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-export function FormExercicio({ inicial, onCancelar, onSalvo }: { inicial: ItemBiblioteca | null; onCancelar: () => void; onSalvo: (i: ItemBiblioteca) => void }) {
+export function FormExercicio({ inicial, itens, onCancelar, onSalvo }: { inicial: ItemBiblioteca | null; itens: ItemBiblioteca[]; onCancelar: () => void; onSalvo: (i: ItemBiblioteca) => void }) {
   const toast = useToast();
   const [nome, setNome] = useState(inicial?.nome ?? "");
   const [sinonimos, setSinonimos] = useState((inicial?.sinonimos ?? []).join(", "));
@@ -48,6 +49,21 @@ export function FormExercicio({ inicial, onCancelar, onSalvo }: { inicial: ItemB
   const [video, setVideo] = useState(inicial?.midia ? (inicial.midia.provider === "youtube" ? `https://youtu.be/${inicial.midia.id}` : inicial.midia.id) : "");
   const [verificado, setVerificado] = useState(inicial?.midia?.verificada ?? false);
   const [salvando, setSalvando] = useState(false);
+  // Pesos dos secundários: sem nada salvo, o formulário usa a sugestão automática
+  // (exercícios parecidos da biblioteca) até o treinador mexer em algum peso.
+  const [pesosEditados, setPesosEditados] = useState(Object.keys(inicial?.pesosSecundarios ?? {}).length > 0);
+  const sugestao = useMemo(() => sugerirPesosSecundarios(grupo, padrao || null, itens, inicial?.id), [grupo, padrao, itens, inicial?.id]);
+  const pesosEfetivos = pesosEditados ? pesos : sugestao.pesos;
+  const usandoSugestao = !pesosEditados;
+  const temSugestao = Object.keys(sugestao.pesos).length > 0;
+  function setPeso(g: GrupoMuscular, v: string) {
+    setPesos({ ...pesosEfetivos, [g]: v === "" ? undefined : Math.max(0, Math.min(1, Number(v))) });
+    setPesosEditados(true);
+  }
+  function usarSugestao() {
+    setPesos(sugestao.pesos);
+    setPesosEditados(false);
+  }
 
   const fonte = parseVideoSource(video);
 
@@ -60,7 +76,7 @@ export function FormExercicio({ inicial, onCancelar, onSalvo }: { inicial: ItemB
       nome: nome.trim(),
       sinonimos: lista(sinonimos),
       grupo_muscular: grupo,
-      pesos_secundarios: Object.fromEntries(Object.entries(pesos).filter(([g, w]) => g !== grupo && w && w > 0)),
+      pesos_secundarios: Object.fromEntries(Object.entries(pesosEfetivos).filter(([g, w]) => g !== grupo && w && w > 0)),
       padrao_movimento: padrao || null,
       articulacoes,
       equipamento,
@@ -133,13 +149,29 @@ export function FormExercicio({ inicial, onCancelar, onSalvo }: { inicial: ItemB
 
       <fieldset>
         <legend className="text-sm font-medium text-fg-muted mb-1">Músculos secundários e peso no volume ponderado (0 a 1)</legend>
+        <p className="mb-2 text-xs text-fg-muted" aria-live="polite">
+          {!padrao
+            ? "Escolha o padrão de movimento: os pesos são preenchidos automaticamente."
+            : usandoSugestao && temSugestao
+              ? `Preenchido automaticamente com base em ${sugestao.baseadoEm} exercício(s) parecido(s) da biblioteca (${PADRAO_LABEL[padrao]}). Ajuste se quiser; vale ao salvar.`
+              : usandoSugestao
+                ? `Exercícios parecidos (${PADRAO_LABEL[padrao]}) não têm músculo secundário relevante: o volume conta só para ${GRUPO_LABEL[grupo]}. Preencha abaixo se quiser.`
+                : "Pesos definidos por você."}
+          {!usandoSugestao && temSugestao ? (
+            <button type="button" onClick={usarSugestao} className="ml-1 font-semibold text-accent underline-offset-2 hover:underline">
+              Usar sugestão automática
+            </button>
+          ) : null}
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {GRUPOS_SELECIONAVEIS.filter((g) => g !== grupo && !["cardio", "full_body", "nao_classificado"].includes(g)).map((g) => (
-            <label key={g} className="flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1 text-xs">
-              <span>{GRUPO_LABEL[g]}</span>
-              <input type="number" min={0} max={1} step={0.25} value={pesos[g] ?? ""} onChange={(e) => setPesos((p) => ({ ...p, [g]: e.target.value === "" ? undefined : Number(e.target.value) }))} className="w-14 rounded border border-border bg-bg px-1 text-right" aria-label={`Peso de ${GRUPO_LABEL[g]}`} />
-            </label>
-          ))}
+          {GRUPOS_SELECIONAVEIS.filter((g) => g !== grupo && !["cardio", "full_body", "nao_classificado", "ombros", "pernas"].includes(g))
+            .sort((a, b) => Number(!!pesosEfetivos[b]) - Number(!!pesosEfetivos[a]))
+            .map((g) => (
+              <label key={g} className={`flex items-center justify-between gap-2 rounded-md border px-2 py-1 text-xs ${pesosEfetivos[g] ? "border-accent bg-accent/10 font-semibold" : "border-border"}`}>
+                <span>{GRUPO_LABEL[g]}</span>
+                <input type="number" inputMode="decimal" min={0} max={1} step={0.25} value={pesosEfetivos[g] ?? ""} onChange={(e) => setPeso(g, e.target.value)} className="w-14 rounded border border-border bg-bg px-1 text-right" aria-label={`Peso de ${GRUPO_LABEL[g]}`} />
+              </label>
+            ))}
         </div>
       </fieldset>
 

@@ -77,11 +77,16 @@ export function Sidebar({ items, usuario }: SidebarProps) {
     </div>
   );
 
+  // O logo leva ao primeiro item do menu (Visão geral).
+  const inicio = items[0]?.href ?? "/";
+
   return (
     <>
       {/* Mobile: barra superior + gaveta */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b border-border bg-surface/95 backdrop-blur px-3 py-2">
-        <Logo variant="full" height={30} priority />
+        <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
+          <Logo variant="full" height={30} priority />
+        </Link>
         <button type="button" onClick={() => setMobileOpen(true)} className="touch rounded-md border border-border px-3 text-fg-muted" aria-label="Abrir menu" aria-expanded={mobileOpen}>
           <Icon name="menu" />
         </button>
@@ -91,7 +96,9 @@ export function Sidebar({ items, usuario }: SidebarProps) {
         <div className="md:hidden fixed inset-0 z-50 bg-black/60" onClick={() => setMobileOpen(false)}>
           <aside className="h-full w-72 bg-surface border-r border-border flex flex-col" onClick={(e) => e.stopPropagation()} aria-label="Menu">
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-              <Logo variant="full" height={30} />
+              <Link href={inicio} onClick={() => setMobileOpen(false)} aria-label="Ir para a visão geral" className="rounded-md">
+                <Logo variant="full" height={30} />
+              </Link>
               <button type="button" onClick={() => setMobileOpen(false)} className="touch text-fg-muted" aria-label="Fechar menu">
                 <Icon name="x" />
               </button>
@@ -105,7 +112,9 @@ export function Sidebar({ items, usuario }: SidebarProps) {
       {/* Desktop */}
       <aside className={`hidden md:flex ${collapsed ? "w-[72px]" : "w-64"} shrink-0 bg-surface border-r border-border flex-col h-screen sticky top-0 transition-[width] duration-200`}>
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-4">
-          {collapsed ? <Logo variant="mark" height={36} priority /> : <Logo variant="full" height={38} priority />}
+          <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
+            {collapsed ? <Logo variant="mark" height={36} priority /> : <Logo variant="full" height={38} priority />}
+          </Link>
           <button type="button" onClick={toggle} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} className="grid h-8 w-8 place-items-center rounded-md border border-border text-xs text-fg-muted hover:text-fg shrink-0">
             <span aria-hidden>{collapsed ? "›" : "‹"}</span>
           </button>

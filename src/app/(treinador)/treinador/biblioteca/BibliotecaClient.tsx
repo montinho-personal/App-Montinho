@@ -223,7 +223,7 @@ export function BibliotecaClient({ inicial, equivalenciasIniciais, favoritosInic
           </button>
         ) : null}
         {form !== "fechado" ? (
-          <FormExercicio inicial={form === "novo" ? null : form} onCancelar={() => setForm("fechado")} onSalvo={aoSalvar} />
+          <FormExercicio inicial={form === "novo" ? null : form} itens={itens} onCancelar={() => setForm("fechado")} onSalvo={aoSalvar} />
         ) : selecionado ? (
           <Ficha
             item={selecionado}
