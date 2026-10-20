@@ -28,6 +28,9 @@ import { ComparadorMedidas } from "./ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
+import { assinaturaTreinos, prescricoesParaAluno } from "@/lib/prescricoes";
+import { auditarPrescricao } from "@/lib/prescricoes/auditar";
+import { PrescricaoProntaCard } from "@/components/prescricoes/PrescricaoProntaCard";
 import { listarExtras, listarSolicitacoes } from "@/lib/data/extras";
 import { AcompanhamentoClient } from "./AcompanhamentoClient";
 import type { Anamnese } from "@/lib/supabase/types-extended";
@@ -137,6 +140,16 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
         </Card>
       ) : null}
 
+      {prescricoesParaAluno(aluno.profile?.nome).map((pr) => (
+        <PrescricaoProntaCard
+          key={pr.id}
+          alunoId={id}
+          prescricao={{ id: pr.id, titulo: pr.titulo }}
+          auditoria={auditarPrescricao(pr.plano)}
+          pendencias={pr.pendencias}
+          jaCadastrada={plano.treinos.length > 0 && assinaturaTreinos(plano.treinos) === assinaturaTreinos(pr.plano.treinos)}
+        />
+      ))}
       <Tabs
         tabs={[
           {
