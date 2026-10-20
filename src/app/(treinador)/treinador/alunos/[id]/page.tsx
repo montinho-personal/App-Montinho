@@ -23,6 +23,7 @@ import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsist
 import { MetaPausasCard } from "@/components/aderencia/MetaPausasCard";
 import { dataBR, diasAte, tempoRelativo } from "@/lib/format";
 import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
+import { EditarAlunoButton } from "./EditarAlunoModal";
 import { ComparadorFotos } from "./ComparadorFotos";
 import { ComparadorMedidas } from "./ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
@@ -128,6 +129,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               Revisar treino
             </Link>
             <AtribuirTreinoButton alunoId={id} templates={templates} />
+            <EditarAlunoButton alunoId={id} inicial={{ nome: aluno.profile?.nome ?? "", telefone: aluno.telefone ?? "", status: aluno.status, data_nascimento: aluno.data_nascimento ?? "", data_inicio: aluno.data_inicio ?? "", acesso_ate: aluno.acesso_ate ?? "", objetivo: aluno.objetivo ?? "" }} />
           </div>
         </CardBody>
       </Card>

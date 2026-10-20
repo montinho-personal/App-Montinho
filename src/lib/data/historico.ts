@@ -79,9 +79,13 @@ async function criarSessoesDosDias(alunoId: string, imp: ImportacaoResumo, trein
   const { data: existentes } = await db.from("training_sessions").select("client_key").eq("aluno_id", alunoId).like("client_key", `hist:${imp.id}:%`);
   const ja = new Set((existentes ?? []).map((r: { client_key: string }) => r.client_key));
   const novas = linhas.filter((l) => !ja.has(l.client_key));
-  if (!novas.length) return { novos: 0, total: linhas.length };
+  if (!novas.length) {
+    await atualizarUltimoTreino(alunoId, linhas.map((l) => l.finalizado_em));
+    return { novos: 0, total: linhas.length };
+  }
   const { error } = await db.from("training_sessions").upsert(novas, { onConflict: "aluno_id,client_key", ignoreDuplicates: true });
   if (error) throw new Error(error.message);
+  await atualizarUltimoTreino(alunoId, linhas.map((l) => l.finalizado_em));
   return { novos: novas.length, total: linhas.length };
 }
 
@@ -144,4 +148,14 @@ async function completarSeriesDosDias(alunoId: string, imp: ImportacaoResumo, tr
     n += m.sets.length;
   }
   return n;
+}
+
+/** “Último treino” da lista de alunos: só avança, nunca volta no tempo. */
+async function atualizarUltimoTreino(alunoId: string, datas: string[]) {
+  if (!datas.length) return;
+  const ultimo = new Date(Math.max(...datas.map((d) => new Date(d).getTime()))).toISOString();
+  const db = await getDb();
+  const { data: a } = await db.from("alunos").select("ultimo_treino_em").eq("id", alunoId).maybeSingle();
+  if (a?.ultimo_treino_em && new Date(a.ultimo_treino_em).getTime() >= new Date(ultimo).getTime()) return;
+  await db.from("alunos").update({ ultimo_treino_em: ultimo }).eq("id", alunoId);
 }
