@@ -135,7 +135,11 @@ export const exercicioSessaoPatchSchema = z.object({
 });
 
 /** Troca de exercício pelo aluno (null = voltar ao original do plano). */
-export const trocaExercicioSchema = z.object({ biblioteca_id: z.string().min(1).max(64).nullable() });
+export const trocaExercicioSchema = z.object({
+  biblioteca_id: z.string().min(1).max(64).nullable(),
+  /** Só no modo demo (memória por instância): o exercício original, para validar a troca. */
+  original: z.object({ nome: z.string().min(1).max(120), biblioteca_id: z.string().max(64).nullable() }).optional(),
+});
 
 export const adaptacaoSchema = z.object({
   session_id: z.string().max(64).nullable().optional(),

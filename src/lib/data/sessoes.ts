@@ -406,9 +406,18 @@ export async function atualizarExercicioSessao(alunoId: string, sessionId: strin
  * com `bibliotecaId = null`). Só antes de registrar séries dele: séries,
  * repetições e descanso continuam os do plano.
  */
-export async function trocarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, bibliotecaId: string | null): Promise<SessionExercise> {
+export async function trocarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, bibliotecaId: string | null, originalDemo?: { nome: string; biblioteca_id: string | null }): Promise<SessionExercise> {
   const sessao = await getSessao(alunoId, sessionId);
   const se = sessao?.exercicios.find((x) => x.id === sessionExerciseId);
+  // Demo: a sessão vive na memória de outra instância do servidor. Valida a troca
+  // pelas mesmas regras e deixa o app seguir (nada é gravado no demo mesmo).
+  if ((!sessao || !se) && isDemoMode() && originalDemo) {
+    if (!bibliotecaId) return { id: sessionExerciseId, session_id: sessionId, nome: originalDemo.nome, biblioteca_id: originalDemo.biblioteca_id, substituido_de: null } as SessionExercise;
+    const trocas = await trocasParaExercicios(alunoId, [{ id: sessionExerciseId, ...originalDemo }]);
+    const op = trocas[sessionExerciseId]?.opcoes.find((o) => o.id === bibliotecaId);
+    if (!op) throw new Error("Esta troca não está liberada para este exercício");
+    return { id: sessionExerciseId, session_id: sessionId, nome: op.nome, biblioteca_id: op.id, grupo_muscular: op.grupo, substituido_de: { nome: originalDemo.nome, biblioteca_id: originalDemo.biblioteca_id, grupo_muscular: null } } as SessionExercise;
+  }
   if (!sessao || !se) throw new Error("Exercício da sessão não encontrado");
   if (sessao.status !== "em_andamento") throw new Error("Este treino já foi encerrado");
   if (se.series.some((x) => x.tipo !== "aquecimento")) throw new Error("Já há séries registradas neste exercício. Troque antes de começar.");

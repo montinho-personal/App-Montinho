@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: Ctx) {
   const { data, error: vErr } = await lerJson(request, trocaExercicioSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
-    const se = await trocarExercicioSessao(sessao.alunoId, id, seid, data.biblioteca_id);
+    const se = await trocarExercicioSessao(sessao.alunoId, id, seid, data.biblioteca_id, data.original);
     return NextResponse.json({ ok: true, exercicio: se });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Não foi possível trocar agora" }, { status: 400 });

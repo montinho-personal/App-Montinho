@@ -410,7 +410,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   async function trocarExercicio(se: SessaoCompleta["exercicios"][number], bibliotecaId: string | null) {
     if (!sessao) return;
     setTrocando(true);
-    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ biblioteca_id: bibliotecaId }) }).catch(() => null);
+    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ biblioteca_id: bibliotecaId, original: { nome: se.substituido_de?.nome ?? exercicios.find((e) => e.id === se.exercicio_id)?.nome ?? se.nome, biblioteca_id: se.substituido_de ? se.substituido_de.biblioteca_id : (exercicios.find((e) => e.id === se.exercicio_id)?.biblioteca_id ?? null) } }) }).catch(() => null);
     setTrocando(false);
     const corpo = res ? await res.json().catch(() => ({})) : {};
     if (!res?.ok) {
