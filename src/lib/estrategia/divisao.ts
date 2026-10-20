@@ -26,9 +26,47 @@ const UPPER: DiaModelo = { nome: "Superiores", grupos: SUPERIORES };
 const LOWER: DiaModelo = { nome: "Inferiores", grupos: PERNAS };
 const FULL: DiaModelo = { nome: "Corpo inteiro", grupos: [...SUPERIORES, ...PERNAS] };
 
+/** Cada nome de dia que pode aparecer na divisão (“Push/Pull/Legs/Costas/Legs”). */
+const DIA_POR_NOME: Record<string, DiaModelo[]> = {
+  push: [PUSH], empurrar: [PUSH],
+  pull: [PULL], puxar: [PULL],
+  legs: [LEGS], leg: [LEGS], pernas: [LEGS], perna: [LEGS],
+  upper: [UPPER], superior: [UPPER], superiores: [UPPER],
+  lower: [LOWER], inferior: [LOWER], inferiores: [LOWER],
+  full: [FULL], fullbody: [FULL], corpointeiro: [FULL],
+  ppl: [PUSH, PULL, LEGS],
+  costas: [{ nome: "Costas", grupos: ["costas", "ombro_posterior", "trapezio", "biceps", "antebraco"] }],
+  peito: [{ nome: "Peito", grupos: ["peito", "ombro_anterior", "triceps"] }],
+  ombro: [{ nome: "Ombros", grupos: ["ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio"] }],
+  ombros: [{ nome: "Ombros", grupos: ["ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio"] }],
+  braco: [{ nome: "Braços", grupos: ["biceps", "triceps", "antebraco"] }],
+  bracos: [{ nome: "Braços", grupos: ["biceps", "triceps", "antebraco"] }],
+  gluteo: [{ nome: "Glúteos", grupos: ["gluteo", "posteriores", "abdutores", "adutores"] }],
+  gluteos: [{ nome: "Glúteos", grupos: ["gluteo", "posteriores", "abdutores", "adutores"] }],
+  posterior: [{ nome: "Posterior e glúteos", grupos: ["posteriores", "gluteo"] }],
+  posteriores: [{ nome: "Posterior e glúteos", grupos: ["posteriores", "gluteo"] }],
+  quadriceps: [{ nome: "Quadríceps", grupos: ["quadriceps", "adutores", "panturrilha"] }],
+};
+
+/** Divisão escrita dia a dia: cada parte separada por “/”, “+”, “,” ou “-”. Só vale se todas forem reconhecidas. */
+function diasPorNome(divisao: string): DiaModelo[] | null {
+  const partes = semAcento(divisao).split(/[/+,;|–—-]|\se\s/).map((x) => x.replace(/\s+/g, "")).filter(Boolean);
+  if (partes.length < 2) return null;
+  const dias: DiaModelo[] = [];
+  for (const p of partes) {
+    const m = DIA_POR_NOME[p];
+    if (!m) return null;
+    dias.push(...m);
+  }
+  return dias.length <= 6 ? dias : null;
+}
+
 /** Modelos pelo nome da divisão (sem acento, minúsculo, sem espaços). */
 export function modeloDaDivisao(divisao: string | null, dias: number | null): DiaModelo[] | null {
   if (!divisao) return null;
+  const porNome = diasPorNome(divisao);
+  // Divisão curta (2–3 dias) com o dobro de dias disponíveis repete o ciclo (Upper/Lower 4×, PPL 6×).
+  if (porNome) return porNome.length <= 3 && dias && dias >= porNome.length * 2 && porNome.length * 2 <= 6 ? [...porNome, ...porNome] : porNome;
   const d = semAcento(divisao).replace(/\s+/g, "").replace(/[–—-]/g, "/");
   const has = (...xs: string[]) => xs.every((x) => d.includes(x));
   if (has("push", "pull", "legs") && (d.includes("superior") || d.includes("upper"))) return [PUSH, PULL, LEGS, UPPER];

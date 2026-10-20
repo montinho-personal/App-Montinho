@@ -1,7 +1,8 @@
 // Salva a estratégia (conferida pelo personal) no aluno. Se o aluno ainda
 // não tem treino ativo, cria o plano inicial pelo mesmo caminho do montador
-// (dias por músculo, metas de séries, frequência). Plano existente nunca é
-// substituído aqui. Cada importação fica guardada como versão.
+// (dias por músculo, metas de séries, frequência). Plano com exercícios nunca
+// é substituído aqui; plano só com dias vazios (criado por uma importação
+// anterior) é refeito, reaproveitando os dias pela letra. Cada importação fica guardada como versão.
 import { NextResponse } from "next/server";
 import { requireTreinadorApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
@@ -32,9 +33,16 @@ export async function POST(request: Request, { params }: Ctx) {
     if (data.criar_plano) {
       const atual = await getPlanoAtivo(id);
       const plano = planoDaEstrategia(e);
-      if (atual.treinos.some((t) => t.ativo)) motivoSemPlano = "O aluno já tem treino ativo: o plano não foi alterado (ajuste no montador).";
+      const ativos = atual.treinos.filter((t) => t.ativo);
+      const soDiasVazios = ativos.length > 0 && ativos.every((t) => t.exercicios.length === 0);
+      if (ativos.length && !soDiasVazios) motivoSemPlano = "O aluno já tem treino ativo: o plano não foi alterado (ajuste no montador).";
       else if (!plano) motivoSemPlano = `Divisão “${e.divisao ?? "—"}” sem modelo automático: monte os dias no montador.`;
       else {
+        plano.treinos = plano.treinos.map((t) => ({ ...t, id: atual.treinos.find((x) => x.letra === t.letra)?.id ?? null }));
+        // Dia vazio da importação anterior que não existe na nova divisão: desativado (nunca apagado).
+        for (const t of ativos) {
+          if (!plano.treinos.some((n) => n.letra === t.letra)) plano.treinos.push({ id: t.id, letra: t.letra, nome: t.nome, ativo: false, observacoes: t.observacoes ?? null, exercicios: [] });
+        }
         const ok = salvarPlanoSchema.safeParse(plano);
         if (!ok.success) motivoSemPlano = "Plano gerado inválido; nada foi criado.";
         else {

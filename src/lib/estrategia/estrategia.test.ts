@@ -56,11 +56,22 @@ describe("dias da semana por músculo", () => {
     expect(g("D")).toMatchObject({ peito: 8, costas: 8, biceps: 6, triceps: 4, ombro_anterior: 3, ombro_lateral: 3, ombro_posterior: 2 });
     expect(g("C").peito).toBeUndefined();
   });
+  it("5 dias com Legs e Costas repetidos: volume dividido entre os dias do grupo", () => {
+    const dias = diasDaEstrategia({ divisao: "Push/Pull/Legs/Costas/Legs", diasPorSemana: 7, volume: [{ rotulo: "Dorsais", grupo: "costas", series: 20 }, { rotulo: "Quadríceps", grupo: "quadriceps", series: 12 }] });
+    expect(dias.map((d) => d.letra)).toEqual(["A", "B", "C", "D", "E"]);
+    const s = (l: string, g: string) => dias.find((d) => d.letra === l)!.grupos.find((x) => x.grupo === g)?.series;
+    expect([s("B", "costas"), s("D", "costas")]).toEqual([10, 10]);
+    expect([s("C", "quadriceps"), s("E", "quadriceps")]).toEqual([6, 6]);
+  });
   it("divisões conhecidas e desconhecidas", () => {
     expect(modeloDaDivisao("Upper/Lower", 4)).toHaveLength(4);
     expect(modeloDaDivisao("Push / Pull / Legs", 3)).toHaveLength(3);
     expect(modeloDaDivisao("Full body", 3)).toHaveLength(3);
     expect(modeloDaDivisao("ABCDE do Montinho", 5)).toBeNull();
+    // Divisão escrita dia a dia (ex.: 5 dias com Legs duas vezes)
+    expect(modeloDaDivisao("Push/Pull/Legs/Costas/Legs", 7)?.map((d) => d.nome)).toEqual(["Push — Peito, ombros e tríceps", "Pull — Costas e bíceps", "Legs — Pernas", "Costas", "Legs — Pernas"]);
+    expect(modeloDaDivisao("PPL + Superiores", 4)).toHaveLength(4);
+    expect(modeloDaDivisao("Push/Pull/Legs", 6)).toHaveLength(6);
     expect(grupoDoRotulo("Posterior de coxa")).toBe("posteriores");
     // Nomes sugeridos no Strategy
     expect(["Peito", "Costas", "Ombros", "Bíceps", "Tríceps", "Quadríceps", "Posterior", "Glúteos", "Panturrilha", "Abdômen"].map(grupoDoRotulo)).toEqual(["peito", "costas", "ombros", "biceps", "triceps", "quadriceps", "posteriores", "gluteo", "panturrilha", "abdomen"]);
