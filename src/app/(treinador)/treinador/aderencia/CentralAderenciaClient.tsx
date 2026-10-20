@@ -6,6 +6,9 @@ import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 import { ordenarCentral, REGRAS_CENTRAL, type LinhaCentral, type OrdemCentral, type RegrasCentral, type Sugestao } from "@/lib/aderencia/central";
 import { dataLocal } from "@/lib/aderencia/calcular";
+import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBarras";
+
+type Linha = LinhaCentral & { semanas?: SemanaBarra[] };
 
 const ORDENS: Array<{ v: OrdemCentral; l: string }> = [
   { v: "queda", l: "Maior redução de frequência" },
@@ -118,7 +121,7 @@ function RegrasForm({ regras }: { regras: RegrasCentral }) {
   );
 }
 
-export function CentralAderenciaClient({ linhas, regras }: { linhas: LinhaCentral[]; regras: RegrasCentral }) {
+export function CentralAderenciaClient({ linhas, regras }: { linhas: Linha[]; regras: RegrasCentral }) {
   const [ordem, setOrdem] = useState<OrdemCentral>("queda");
   const [soSinais, setSoSinais] = useState(false);
   const lista = useMemo(() => ordenarCentral(soSinais ? linhas.filter((l) => l.sinais.some((s) => s.natureza !== "info")) : linhas, ordem), [linhas, ordem, soSinais]);
@@ -148,7 +151,10 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: LinhaCentra
       <ul className="space-y-2 md:hidden">
         {lista.map((l) => (
           <li key={l.alunoId} className="rounded-xl border border-border bg-card p-3 space-y-2">
-            <Link href={`/treinador/alunos/${l.alunoId}`} className="alvo font-semibold hover:text-accent">{l.nome}</Link>
+            <div className="flex items-center justify-between gap-3">
+              <Link href={`/treinador/alunos/${l.alunoId}`} className="alvo font-semibold hover:text-accent">{l.nome}</Link>
+              {l.semanas ? <SemanasBarras semanas={l.semanas} compacto altura={26} className="w-24" /> : null}
+            </div>
             <dl className="grid grid-cols-4 gap-1 text-center text-xs">
               <div><dt className="text-[10px] text-fg-subtle">Semana</dt><dd className="font-mono">{l.meta ? `${num(l.semanaPontos)}/${l.meta}` : "—"}</dd></div>
               <div><dt className="text-[10px] text-fg-subtle">28 dias</dt><dd className="font-mono">{l.aderencia28 === null ? "—" : `${l.aderencia28}%`}</dd></div>
@@ -172,6 +178,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: LinhaCentra
               <th className="px-3 py-2 text-left">Aluno</th>
               <th className="px-2 py-2 text-right">Meta</th>
               <th className="px-2 py-2 text-right">Semana</th>
+              <th className="px-2 py-2 text-left" title="Treinos ÷ meta em cada semana">8 semanas</th>
               <th className="px-2 py-2 text-right" title="Últimas 4 semanas completas">Aderência 28d</th>
               <th className="px-2 py-2 text-right" title="Diferença para as 4 semanas anteriores">Tendência</th>
               <th className="px-2 py-2 text-right">Último treino</th>
@@ -187,6 +194,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: LinhaCentra
                 </td>
                 <td className="px-2 py-2 text-right font-mono">{l.meta ?? "—"}</td>
                 <td className="px-2 py-2 text-right font-mono">{l.meta ? `${num(l.semanaPontos)}/${l.meta}` : "—"}</td>
+                <td className="px-2 py-2">{l.semanas ? <SemanasBarras semanas={l.semanas} compacto altura={24} className="w-24" /> : null}</td>
                 <td className="px-2 py-2 text-right font-mono">{l.aderencia28 === null ? "—" : `${l.aderencia28}%`}</td>
                 <td className={`px-2 py-2 text-right font-mono ${corTend(l)}`}>{tend(l)}</td>
                 <td className="px-2 py-2 text-right font-mono">{ultimo(l)}</td>

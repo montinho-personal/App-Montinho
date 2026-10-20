@@ -15,6 +15,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
 import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
+import { SemanasBarras } from "@/components/graficos/SemanasBarras";
 
 export const metadata = { title: "Evolução" };
 
@@ -52,6 +53,10 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
           </CardHeader>
           <CardBody className="space-y-4">
             <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-fg-muted">Últimas 12 semanas</p>
+              <SemanasBarras semanas={aderencia.semanas} quantidade={12} altura={72} />
+            </div>
             <ResumoAderencia r={aderencia} />
             <CalendarioConsistencia dias={aderencia.dias} sessoes={aderencia.sessoesPorId} hoje={dataLocal(new Date())} />
           </CardBody>

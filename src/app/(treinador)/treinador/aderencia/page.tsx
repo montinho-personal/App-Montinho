@@ -16,7 +16,7 @@ export default async function CentralAderenciaPage() {
   const hoje = dataLocal(new Date());
   const linhas = alunos.map((a) => {
     const d = dados[a.id];
-    return linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas, { sessaoAbertaDesde: d.sessaoAbertaDesde, planoAlteradoEm: d.planoAlteradoEm, pausaTipo: d.pausaTipo }, regras);
+    return { ...linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas, { sessaoAbertaDesde: d.sessaoAbertaDesde, planoAlteradoEm: d.planoAlteradoEm, pausaTipo: d.pausaTipo }, regras), semanas: d.semanas.slice(-8).map(({ inicio, meta, pontos, pausada, atual, status }) => ({ inicio, meta, pontos, pausada, atual, status })) };
   });
   return (
     <div className="space-y-5">

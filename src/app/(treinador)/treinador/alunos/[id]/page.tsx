@@ -21,6 +21,8 @@ import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
 import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
 import { MetaPausasCard } from "@/components/aderencia/MetaPausasCard";
+import { SemanasBarras } from "@/components/graficos/SemanasBarras";
+import { AnelPercentual } from "@/components/graficos/AnelPercentual";
 import { dataBR, diasAte, tempoRelativo } from "@/lib/format";
 import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
 import { EditarAlunoButton } from "./EditarAlunoModal";
@@ -126,6 +128,21 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               <Field label="Início" value={dataBR(aluno.data_inicio)} />
               <Field label="Acesso até" value={dataBR(aluno.acesso_ate)} hint={diasAcesso !== null ? (diasAcesso < 0 ? `vencido há ${Math.abs(diasAcesso)}d` : `${diasAcesso}d restantes`) : undefined} tone={diasAcesso !== null && diasAcesso < 0 ? "red" : diasAcesso !== null && diasAcesso <= 7 ? "gold" : "neutral"} />
             </div>
+            {aderencia.semanas.length >= 2 ? (
+              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
+                <div className="flex items-center gap-3">
+                  <AnelPercentual valor={aderencia.indices.d28.pct} rotulo="Aderência nas últimas 4 semanas" tamanho={52} />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-fg-subtle">Aderência 4 semanas</p>
+                    <p className="text-sm font-semibold">{aderencia.semanaAtual?.meta ? `Esta semana: ${aderencia.semanaAtual.pontos.toLocaleString("pt-BR")}/${aderencia.semanaAtual.meta}` : "Sem meta nesta semana"}</p>
+                  </div>
+                </div>
+                <div className="min-w-[180px] flex-1 max-w-xs">
+                  <p className="text-[10px] uppercase tracking-wider text-fg-subtle mb-1">Últimas 8 semanas</p>
+                  <SemanasBarras semanas={aderencia.semanas} quantidade={8} altura={44} />
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-col gap-2 self-start">
             <Link href={`/treinador/alunos/${id}/treinos`} className="touch inline-flex items-center justify-center rounded-md bg-accent px-4 text-sm font-bold text-bg hover:bg-accent-hover">
@@ -246,6 +263,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                 <Card>
                   <CardBody className="space-y-4">
                     <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
+                    <div>
+                      <p className="mb-1.5 text-xs font-semibold text-fg-muted">Últimas 12 semanas</p>
+                      <SemanasBarras semanas={aderencia.semanas} quantidade={12} altura={72} />
+                    </div>
                     <ResumoAderencia r={aderencia} />
                     <CalendarioConsistencia dias={aderencia.dias} sessoes={aderencia.sessoesPorId} hoje={hojeLocal} />
                   </CardBody>

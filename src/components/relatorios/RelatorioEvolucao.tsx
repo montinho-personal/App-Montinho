@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Heatmap, HeatmapLegend } from "@/components/ui/Heatmap";
+import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
+import { CargasEmAltaLista } from "@/components/graficos/CargasEmAltaLista";
+import { Sparkline } from "@/components/graficos/Sparkline";
 import type { SessaoCompleta } from "@/lib/data/sessoes";
 import type { Programa, ProgramaVersao } from "@/lib/supabase/types-sessoes";
 import type { Evolucao } from "@/lib/supabase/types";
@@ -81,6 +84,9 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   const dorAlta = ciPeriodo.filter((c) => (c.dor ?? 0) >= 7).length;
   const sessoesComDor = noPeriodo.filter((s) => s.feedback_percepcao === "dor").length;
 
+  const emAlta = cargasEmAlta(sessoes, historicoResumo, 3);
+  const pesos = evolucao.map((e) => e.peso_kg).filter((v): v is number => typeof v === "number");
+  const cinturas = evolucao.map((e) => e.cintura_cm).filter((v): v is number => typeof v === "number");
   const medidas = evolucao.slice(-6);
   const primeira = evolucao[0];
   const ultima = evolucao.at(-1);
@@ -131,6 +137,13 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
                 </li>
               ))}
             </ul>
+          ) : null}
+          {emAlta.length ? (
+            <section className="space-y-2" aria-labelledby="cargas-alta-titulo">
+              <h3 id="cargas-alta-titulo" className="text-[11px] font-bold uppercase tracking-wider text-accent">Cargas em alta</h3>
+              <CargasEmAltaLista itens={emAlta} />
+              <p className="text-[11px] text-fg-subtle">Carga máxima registrada por dia, do primeiro registro ao mais recente. Só aparecem exercícios em que ela subiu.</p>
+            </section>
           ) : null}
           {invisivel.length ? (
             <section className="space-y-2" aria-labelledby="invisivel-titulo">
@@ -311,28 +324,28 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         {comparacao.length === 0 ? (
           <p className="text-sm text-fg-muted">Sem séries registradas no período.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-[10px] uppercase tracking-wider text-fg-subtle">
-              <tr>
-                <th className="text-left font-semibold py-1">Grupo</th>
-                <th className="text-right font-semibold py-1 pl-2">Prog./sem</th>
-                <th className="text-right font-semibold py-1 pl-2">Feito/sem</th>
-                <th className="text-right font-semibold py-1 pl-3">%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {comparacao.map((c) => (
-                <tr key={c.grupo} className="border-t border-border">
-                  <td className="py-1.5">{c.label}</td>
-                  <td className="py-1.5 pl-2 text-right font-mono">{c.programado}</td>
-                  <td className="py-1.5 pl-2 text-right font-mono">{c.realizado}</td>
-                  <td className={`py-1.5 pl-3 text-right font-mono ${c.aderencia !== null && c.aderencia < 70 ? "text-warning" : ""}`}>{c.aderencia !== null ? `${c.aderencia}%` : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="space-y-2.5" aria-label="Séries por semana: feito em relação ao programado">
+            {comparacao.map((c) => {
+              const escala = Math.max(c.programado, c.realizado, 1) * 1.15;
+              return (
+                <li key={c.grupo}>
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span>{c.label}</span>
+                    <span className="font-mono text-xs text-fg-muted">
+                      <span className="font-semibold text-fg">{c.realizado.toLocaleString("pt-BR")}</span> de {c.programado.toLocaleString("pt-BR")}/sem
+                      {c.aderencia !== null ? <span className={`ml-2 ${c.aderencia < 70 ? "text-warning" : ""}`}>{c.aderencia}%</span> : null}
+                    </span>
+                  </div>
+                  <div className="relative mt-1 h-2 rounded-full bg-border/60" aria-hidden>
+                    <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${(c.realizado / escala) * 100}%` }} />
+                    {c.programado > 0 ? <div className="absolute -inset-y-1 w-0.5 rounded-full bg-fg-muted" style={{ left: `${(c.programado / escala) * 100}%` }} title={`Programado: ${c.programado}/sem`} /> : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
-        <p className="text-[11px] text-fg-subtle mt-2">Séries válidas (sem aquecimento), volume direto por músculo principal. Tonelagem no período: {tonelagem(noPeriodo).toLocaleString("pt-BR")} kg — compare apenas os mesmos exercícios.</p>
+        <p className="text-[11px] text-fg-subtle mt-2">Barra dourada = feito por semana; traço = programado. Séries válidas (sem aquecimento), volume direto por músculo principal. Tonelagem no período: {tonelagem(noPeriodo).toLocaleString("pt-BR")} kg — compare apenas os mesmos exercícios.</p>
       </Acordeao>
 
       <Acordeao titulo="Recuperação e percepção" resumo={ciPeriodo.length ? `${ciPeriodo.length} check-ins` : "sem check-ins no período"}>
@@ -380,6 +393,24 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
                 </tbody>
               </table>
             </div>
+            {pesos.length >= 3 || cinturas.length >= 3 ? (
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                {pesos.length >= 3 ? (
+                  <div className="flex items-center gap-2 text-xs text-fg-muted">
+                    <span>Peso</span>
+                    <Sparkline valores={pesos} largura={96} altura={26} />
+                    <span className="font-mono text-fg">{pesos.at(-1)!.toLocaleString("pt-BR")} kg</span>
+                  </div>
+                ) : null}
+                {cinturas.length >= 3 ? (
+                  <div className="flex items-center gap-2 text-xs text-fg-muted">
+                    <span>Cintura</span>
+                    <Sparkline valores={cinturas} largura={96} altura={26} />
+                    <span className="font-mono text-fg">{cinturas.at(-1)!.toLocaleString("pt-BR")} cm</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {primeira && ultima && primeira.id !== ultima.id ? (
               <p className="text-xs text-fg-muted mt-2">
                 Desde {dataBR(primeira.data)}: peso {delta(primeira.peso_kg, ultima.peso_kg, "kg")} · cintura {delta(primeira.cintura_cm, ultima.cintura_cm, "cm")}. Variações pequenas são normais (hidratação, horário, ciclo).

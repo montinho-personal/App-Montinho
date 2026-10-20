@@ -22,13 +22,17 @@ import { estrategiaVigente } from "@/lib/data/estrategias";
 import { faseAtual, inicioDasFases } from "@/lib/estrategia/fases";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { SuaEstrategiaCard } from "@/components/estrategia/SuaEstrategiaCard";
+import { listarHistoricoResumo } from "@/lib/data/historico";
+import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
+import { SemanasBarras } from "@/components/graficos/SemanasBarras";
+import { CargasEmAltaLista } from "@/components/graficos/CargasEmAltaLista";
 
 export const metadata = { title: "Início" };
 
 export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia, conquistas] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia, conquistas, historicoResumo] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
@@ -41,6 +45,7 @@ export default async function AlunoHomePage() {
     listarExtras(alunoId, true),
     estrategiaVigente(alunoId),
     listarConquistas(alunoId),
+    listarHistoricoResumo(alunoId),
   ]);
   if (!aluno) return null;
   const aderencia = await aderenciaDoAluno(aluno);
@@ -58,6 +63,7 @@ export default async function AlunoHomePage() {
   // Horário de São Paulo (o servidor roda em UTC).
   const saudacao = saudacaoSP();
   const duracaoEstimada = proximo?.duracao_estimada_min ?? estimarDuracao(sessoes, proximo?.letra ?? null);
+  const emAlta = cargasEmAlta(sessoes, historicoResumo, 2);
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
 
   return (
@@ -156,6 +162,7 @@ export default async function AlunoHomePage() {
         <Card>
           <CardBody className="space-y-2">
             <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual.extras} />
+            <SemanasBarras semanas={aderencia.semanas} quantidade={8} altura={52} className="pt-1" />
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <Link href="/aluno/evolucao#consistencia" className="inline-block text-xs text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
                 Ver calendário de consistência
@@ -196,14 +203,24 @@ export default async function AlunoHomePage() {
         </Link>
       ) : null}
 
-      {/* 3. Último progresso relevante */}
-      {resumo30.conquistas.length ? (
+      {/* 3. Último progresso relevante (só o que os registros provam) */}
+      {resumo30.conquistas.length || emAlta.length ? (
         <Card className="border-success/30">
-          <CardBody>
-            <p className="text-[11px] uppercase tracking-wider text-success font-semibold">Progresso real (30 dias)</p>
-            <p className="font-bold mt-1">{resumo30.conquistas[0].titulo}</p>
-            <p className="text-sm text-fg-muted">{resumo30.conquistas[0].detalhe}</p>
-            <Link href="/aluno/evolucao" className="inline-block mt-2 text-sm text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
+          <CardBody className="space-y-3">
+            <p className="text-[11px] uppercase tracking-wider text-success font-semibold">Seu progresso real</p>
+            {resumo30.conquistas.length ? (
+              <div>
+                <p className="font-bold">{resumo30.conquistas[0].titulo}</p>
+                <p className="text-sm text-fg-muted">{resumo30.conquistas[0].detalhe}</p>
+              </div>
+            ) : null}
+            {emAlta.length ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-fg-muted">Cargas que subiram desde o primeiro registro</p>
+                <CargasEmAltaLista itens={emAlta} compacto />
+              </div>
+            ) : null}
+            <Link href="/aluno/evolucao" className="inline-block text-sm text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
               Ver evolução
             </Link>
           </CardBody>

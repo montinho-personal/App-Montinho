@@ -154,7 +154,7 @@ export function linhaCentral(
 
 export type OrdemCentral = "queda" | "tempo_sem_treino" | "melhora" | "retomaram" | "nome";
 
-export function ordenarCentral(linhas: LinhaCentral[], ordem: OrdemCentral): LinhaCentral[] {
+export function ordenarCentral<T extends LinhaCentral>(linhas: T[], ordem: OrdemCentral): T[] {
   const v = [...linhas];
   const nulos = (x: number | null, fallback: number) => (x === null ? fallback : x);
   switch (ordem) {
