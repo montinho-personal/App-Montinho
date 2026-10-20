@@ -118,3 +118,15 @@ describe("mensagem da conclusão (automática, baseada em fatos)", () => {
     expect(r.modeloSugerido).toBe("A");
   });
 });
+
+describe("histórico importado (não conta para aderência/conquistas)", () => {
+  it("não gera conquistas, mas serve de base para recordes", () => {
+    const imp = (d: string, carga: number) => s(d, { carga, reps: [10], conta_aderencia: false });
+    const xs = [imp("2026-09-01", 30), imp("2026-09-08", 30), imp("2026-09-15", 30), s("2026-10-10", { carga: 32, reps: [10] })];
+    const r = detectar(xs);
+    expect(r.find((x) => x.codigo === "primeiro_treino")?.sessaoId).toBe(xs[3].id); // 1º treino é o do app
+    expect(r.filter((x) => x.codigo === "recorde").map((x) => x.sessaoId)).toEqual([xs[3].id]); // recorde contra o histórico
+    expect(codigos(r)).not.toContain("eu_voltei");
+  });
+});
+

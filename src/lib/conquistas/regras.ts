@@ -48,6 +48,8 @@ export type SerieConquista = { tipo: string; carga_kg: number | null; reps: numb
 export type SessaoConquista = SessaoAderencia & {
   feedback_percepcao?: string | null;
   checkin_pre?: string | null;
+  /** false = histórico importado: serve de base para recordes, mas não gera conquistas. */
+  conta_aderencia?: boolean;
   exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[] }>;
 };
 
@@ -121,7 +123,10 @@ export function textoRecorde(r: ItemRecorde): string {
 /** Todas as conquistas que os dados sustentam (a persistência deduplica). */
 export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   const out: ConquistaDetectada[] = [];
-  const ordenadas = [...e.sessoes].filter((s) => s.status !== "em_andamento").sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
+  const todas = [...e.sessoes].filter((s) => s.status !== "em_andamento").sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
+  // Base de comparação para recordes: inclui o histórico importado.
+  const baseRecordes = todas.filter((s) => ["concluida", "parcial"].includes(classificarSessao(s)));
+  const ordenadas = todas.filter((s) => s.conta_aderencia !== false);
   const concluidas = ordenadas.filter((s) => classificarSessao(s) === "concluida");
   const validas = ordenadas.filter((s) => ["concluida", "parcial"].includes(classificarSessao(s)));
 
@@ -177,9 +182,11 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   }
 
   // Recordes (uma conquista por sessão, até 3 marcas).
-  for (let i = 0; i < validas.length; i++) {
-    const r = recordesDaSessao(validas[i], validas.slice(0, i));
-    if (r.length) out.push(nova("recorde", validas[i].id, validas[i].iniciado_em, validas[i].id, r.map(textoRecorde).join(" · "), { recordes: r }));
+  for (let i = 0; i < baseRecordes.length; i++) {
+    const s = baseRecordes[i];
+    if (s.conta_aderencia === false) continue; // histórico importado não vira conquista
+    const r = recordesDaSessao(s, baseRecordes.slice(0, i));
+    if (r.length) out.push(nova("recorde", s.id, s.iniciado_em, s.id, r.map(textoRecorde).join(" · "), { recordes: r }));
   }
 
   if (e.relatorioVistoEm) out.push(nova("relatorio_mensal", "1", e.relatorioVistoEm, null, "Você abriu sua evolução completa."));

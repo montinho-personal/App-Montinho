@@ -48,7 +48,7 @@ async function carregarBruto(alunoIds: string[] | null): Promise<Bruto> {
     };
   }
   const db = await getDb();
-  let qs = db.from("training_sessions").select("id, aluno_id, iniciado_em, status, modo, series_planejadas, series_concluidas, treino_id, letra, nome_treino, duracao_seg").gte("iniciado_em", desde).order("iniciado_em").limit(5000);
+  let qs = db.from("training_sessions").select("id, aluno_id, iniciado_em, status, modo, series_planejadas, series_concluidas, treino_id, letra, nome_treino, duracao_seg, conta_aderencia").gte("iniciado_em", desde).order("iniciado_em").limit(5000);
   let qm = db.from("metas_semanais").select("*").order("vigente_desde");
   let qp = db.from("pausas_aluno").select("*").order("inicio");
   let qv = db.from("programa_versoes").select("aluno_id, created_at, snapshot").order("created_at").limit(2000);
@@ -80,7 +80,8 @@ function entradaDoAluno(alunoId: string, inicioAcompanhamento: string, b: Bruto,
   if (prog && !metasPrograma.length && somaFrequencia(prog.frequencia) > 0) metasPrograma.push({ desde: dataLocal(prog.created_at), meta: somaFrequencia(prog.frequencia), origem: "programa" });
   if (prog && !calendarios.length) calendarios.push({ desde: dataLocal(prog.created_at), calendario: (prog.calendario ?? null) as Calendario | null });
   const metasPersonal: MetaVigente[] = b.metas.filter((m) => m.aluno_id === alunoId).map((m) => ({ desde: m.vigente_desde, meta: m.meta, origem: "personal" }));
-  const sessoes = b.sessoes.filter((s) => (s as SessaoAderencia & { aluno_id?: string }).aluno_id === alunoId);
+  // Histórico importado com conta_aderencia=false não entra na aderência.
+  const sessoes = b.sessoes.filter((s) => (s as SessaoAderencia & { aluno_id?: string; conta_aderencia?: boolean }).aluno_id === alunoId && (s as { conta_aderencia?: boolean }).conta_aderencia !== false);
   const primeira = sessoes.map((s) => dataLocal(s.iniciado_em)).sort()[0];
   const limite = somarDias(hoje, -DIAS_MAX);
   const inicio = [inicioAcompanhamento, primeira].filter(Boolean).sort()[0] ?? hoje;

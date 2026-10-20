@@ -71,11 +71,15 @@ export type ResumoPeriodo = {
 
 export type Conquista = { tipo: "consistencia" | "carga" | "reps" | "volume" | "frequencia" | "retomada"; titulo: string; detalhe: string };
 
+/** Histórico importado marcado para não contar fica fora de aderência, calendário e semana. */
+export const contaAderencia = (s: { conta_aderencia?: boolean | null }) => s.conta_aderencia !== false;
+
 export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia | null | undefined, dias: number, agora = new Date()): ResumoPeriodo {
   const p = periodoDias(dias, agora);
   const ant = periodoAnterior(p);
-  const feitas = sessoesNoPeriodo(sessoes, p).filter((s) => s.status === "concluida");
-  const feitasAnt = sessoesNoPeriodo(sessoes, ant).filter((s) => s.status === "concluida");
+  const contam = sessoes.filter(contaAderencia);
+  const feitas = sessoesNoPeriodo(contam, p).filter((s) => s.status === "concluida");
+  const feitasAnt = sessoesNoPeriodo(contam, ant).filter((s) => s.status === "concluida");
   const planejadas = sessoesPlanejadasNoPeriodo(frequencia, p);
   const planejadasAnt = sessoesPlanejadasNoPeriodo(frequencia, ant);
   const aderencia = planejadas > 0 ? Math.min(100, Math.round((feitas.length / planejadas) * 100)) : null;
@@ -245,7 +249,7 @@ export function calendarioSessoes(sessoes: SessaoCompleta[], p: Periodo): DiaCal
     const d = new Date(t).toISOString().slice(0, 10);
     porDia.set(d, { data: d, status: "nenhum", letra: null, duracaoMin: null });
   }
-  for (const s of sessoesNoPeriodo(sessoes, p)) {
+  for (const s of sessoesNoPeriodo(sessoes.filter(contaAderencia), p)) {
     const d = (s.finalizado_em ?? s.iniciado_em).slice(0, 10);
     const atual = porDia.get(d);
     if (!atual) continue;
@@ -272,7 +276,7 @@ export function estadoSemana(sessoes: SessaoCompleta[], frequencia: Frequencia |
   const dow = (inicioSemana.getDay() + 6) % 7; // segunda = 0
   inicioSemana.setDate(inicioSemana.getDate() - dow);
   inicioSemana.setHours(0, 0, 0, 0);
-  const concluidas = sessoes.filter((s) => s.status === "concluida").sort((a, b) => (a.iniciado_em < b.iniciado_em ? 1 : -1));
+  const concluidas = sessoes.filter((s) => s.status === "concluida" && contaAderencia(s)).sort((a, b) => (a.iniciado_em < b.iniciado_em ? 1 : -1));
   const semana = concluidas.filter((s) => new Date(s.finalizado_em ?? s.iniciado_em).getTime() >= inicioSemana.getTime());
   const letrasFeitas: string[] = semana.map((s) => s.letra).filter((l): l is NonNullable<typeof l> => Boolean(l));
   const planejadasSemana = Math.round(sessoesSemanaPlanejadas(frequencia));

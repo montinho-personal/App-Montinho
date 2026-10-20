@@ -135,7 +135,9 @@ export type TrainingSession = {
   series_concluidas: number;
   feedback_percepcao: "leve" | "ok" | "pesado" | "dor" | null;
   feedback_comentario: string | null;
-  origem: "app" | "legado_logbook" | "treinador";
+  origem: "app" | "legado_logbook" | "treinador" | "importado";
+  /** 0024: false = histórico importado que não entra em aderência/sequência/conquistas. */
+  conta_aderencia?: boolean;
   /** 0017: tempo estimado congelado no início, pausas, check-in pré-treino, modo. */
   tempo_estimado_seg?: number | null;
   pausado_seg?: number;
