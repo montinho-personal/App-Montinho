@@ -15,7 +15,8 @@ export const tecnicaDe = (e: Pick<ExercicioSessao, "prescricao">): string | null
   return normalizarTecnica(p?.tecnica);
 };
 
-export const identidadeDe = (e: Pick<ExercicioSessao, "exercicio_id" | "biblioteca_id" | "nome" | "prescricao">): IdentidadeExercicio => ({ exercicioId: e.exercicio_id, bibliotecaId: e.biblioteca_id, nome: e.nome, tecnica: tecnicaDe(e) });
+// Exercício trocado pelo aluno: o vínculo com o slot do plano (exercicio_id) não vale para comparar cargas.
+export const identidadeDe = (e: Pick<ExercicioSessao, "exercicio_id" | "biblioteca_id" | "nome" | "prescricao"> & { substituido_de?: unknown }): IdentidadeExercicio => ({ exercicioId: e.substituido_de ? null : e.exercicio_id, bibliotecaId: e.biblioteca_id, nome: e.nome, tecnica: tecnicaDe(e) });
 
 export const seriesDe = (e: Pick<ExercicioSessao, "series">): SerieReg[] => e.series.map((x) => ({ serie: x.serie, tipo: x.tipo, carga: x.carga_kg, reps: x.reps, lado: x.lado }));
 

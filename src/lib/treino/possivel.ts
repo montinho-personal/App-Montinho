@@ -2,9 +2,13 @@
 // “Meu treino possível hoje” — regra PURA, explícita e testada.
 //
 // Só adapta quando o personal autorizou (programa.permite_versao_reduzida) e
-// SÓ remove exercícios inteiros, nesta ordem:
-//   1. “pode adiar” (fora das prioridades musculares, do fim para o começo);
-//   2. “normal” (mesma ordem);
+// encurta nesta ordem:
+//   0. uma série a menos nos exercícios de MÚSCULOS MENORES (bíceps, tríceps,
+//      ombro lateral/posterior, panturrilha, abdômen…), do fim para o começo,
+//      nunca abaixo de 2 séries válidas; músculos principais e prioritários,
+//      essenciais, técnicas e supersets ficam completos;
+//   1. sai exercício inteiro “pode adiar” (fora das prioridades, do fim);
+//   2. sai exercício inteiro “normal” (mesma ordem);
 //   “essencial” nunca sai.
 // Nunca muda técnica, séries ou repetições. Descansos só encurtam se o ALUNO
 // escolher a opção “descanso 20% menor” (também exige a autorização acima):
@@ -73,6 +77,18 @@ type ExercicioLike = Pick<ExercicioPrescrito, "id" | "nome" | "series" | "reps" 
 
 export type StatusPossivel = "completo" | "reduzido" | "inviavel" | "nao_autorizado";
 
+/** Grupos que perdem uma série antes de qualquer exercício sair. */
+export const GRUPOS_MENORES = ["biceps", "triceps", "antebraco", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio", "panturrilha", "abdomen", "core", "adutores", "abdutores", "lombar"];
+
+export type Corte = { id: string; nome: string; de: number; para: number };
+
+/** O mesmo exercício com a última série de trabalho a menos. */
+export function menosUmaSerie<T extends ExercicioLike>(e: T): T {
+  const cfg = (e.series_config ?? null) as SerieConfig | null;
+  const series_config: SerieConfig | null = !cfg ? null : cfg.modo === "iguais" ? { ...cfg, series: Math.max(0, cfg.series - 1) } : { ...cfg, series: cfg.series.slice(0, -1) };
+  return { ...e, series: Math.max(0, e.series - 1), ...(cfg ? { series_config } : {}) };
+}
+
 export type Adiado = { id: string; nome: string; prioridade: PrioridadeExercicio; series: number };
 
 export type ResultadoPossivel = {
@@ -82,6 +98,8 @@ export type ResultadoPossivel = {
   estimadoSeg: number;
   incluidos: string[];
   adiados: Adiado[];
+  /** Exercícios de músculos menores com uma série a menos hoje. */
+  cortes: Corte[];
   seriesOriginais: number;
   seriesMantidas: number;
   essenciaisSeg: number;
@@ -130,15 +148,16 @@ export function treinoPossivel(input: {
   const exs = reduzDescanso ? input.exercicios.map(comDescansoReduzido) : input.exercicios;
   const tempos = reduzDescanso ? temposComDescansoReduzido(input.tempos) : input.tempos;
   const budget = Math.round(input.tempoDisponivelMin * 60);
-  const estimar = (ids: Set<string>) => estimarPrescricao(exs.filter((e) => ids.has(e.id)), tempos).totalSeg;
+  let lista = exs;
+  const estimar = (ids: Set<string>) => estimarPrescricao(lista.filter((e) => ids.has(e.id)), tempos).totalSeg;
   const todos = new Set(exs.map((e) => e.id));
   // “O completo leva” é sempre com os descansos prescritos.
   const originalSeg = estimarPrescricao(input.exercicios, input.tempos).totalSeg;
   const completoSeg = reduzDescanso ? estimar(todos) : originalSeg;
   const seriesOriginais = exs.reduce((n, e) => n + seriesValidas(e), 0);
   const essenciais = new Set(exs.filter((e) => e.prioridade === "essencial").map((e) => e.id));
-  const base = { tempoDisponivelMin: input.tempoDisponivelMin, originalSeg, seriesOriginais, essenciaisSeg: essenciais.size ? estimar(essenciais) : 0, descansoReduzido: reduzDescanso, apertado: false };
-  const notaDescanso = "Descansos 20% menores (ex.: 1:30 → 1:10), nunca abaixo de 45 s; séries e técnicas não mudam.";
+  const base = { tempoDisponivelMin: input.tempoDisponivelMin, originalSeg, seriesOriginais, essenciaisSeg: essenciais.size ? estimar(essenciais) : 0, descansoReduzido: reduzDescanso, apertado: false, cortes: [] as Corte[] };
+  const notaDescanso = "Descansos 20% menores (ex.: 1:30 → 1:10), nunca abaixo de 45 s; técnicas não mudam.";
 
   // Passa por poucos minutos: mantém tudo e só avisa (vale para qualquer programa).
   if (!reduzDescanso && completoSeg > budget && completoSeg <= budget + folgaSeg(input.tempoDisponivelMin)) {
@@ -181,6 +200,21 @@ export function treinoPossivel(input: {
     };
   }
 
+  // 0) Uma série a menos nos músculos menores (do fim para o começo).
+  const prioridades = input.prioridadesMusculares ?? [];
+  const emBloco = (e: ExercicioLike) => !!e.bloco?.trim() && (e.tecnica === "superset" || e.tecnica === "biset");
+  const cortaveis = [...exs]
+    .reverse()
+    .filter((e) => e.prioridade !== "essencial" && !!e.grupo_muscular && GRUPOS_MENORES.includes(e.grupo_muscular) && !prioridades.includes(e.grupo_muscular) && (!e.tecnica || e.tecnica === "normal") && !emBloco(e) && seriesValidas(e) >= 3);
+  const cortados = new Set<string>();
+  let estimado = completoSeg;
+  for (const c of cortaveis) {
+    if (estimado <= budget) break;
+    cortados.add(c.id);
+    lista = lista.map((e) => (e.id === c.id ? menosUmaSerie(e) : e));
+    estimado = estimar(todos);
+  }
+
   // Ordem de remoção: adiável antes de normal; fora das prioridades antes; do fim para o começo.
   const removiveis = unidades(exs, input.prioridadesMusculares ?? [])
     .filter((u) => u.prioridade !== "essencial")
@@ -188,19 +222,32 @@ export function treinoPossivel(input: {
 
   const mantidos = new Set(todos);
   const removidos: string[] = [];
-  let estimado = completoSeg;
   for (const u of removiveis) {
     if (estimado <= budget) break;
     for (const id of u.ids) mantidos.delete(id);
     removidos.push(...u.ids);
     estimado = estimar(mantidos);
   }
+  // Se algum exercício saiu, devolve as séries cortadas que deixaram de ser necessárias.
+  if (removidos.length) {
+    for (const id of [...cortados].reverse()) {
+      if (!mantidos.has(id)) continue;
+      const antes = lista;
+      lista = lista.map((e) => (e.id === id ? exs.find((x) => x.id === id)! : e));
+      const novo = estimar(mantidos);
+      if (novo <= budget) {
+        cortados.delete(id);
+        estimado = novo;
+      } else lista = antes;
+    }
+  }
   const porId = new Map(exs.map((e) => [e.id, e]));
   const adiados: Adiado[] = removidos.map((id) => {
     const e = porId.get(id)!;
     return { id, nome: e.nome, prioridade: e.prioridade ?? "normal", series: seriesValidas(e) };
   });
-  const seriesMantidas = exs.filter((e) => mantidos.has(e.id)).reduce((n, e) => n + seriesValidas(e), 0);
+  const seriesMantidas = lista.filter((e) => mantidos.has(e.id)).reduce((n, e) => n + seriesValidas(e), 0);
+  const cortes: Corte[] = exs.filter((e) => cortados.has(e.id) && mantidos.has(e.id)).map((e) => ({ id: e.id, nome: e.nome, de: seriesValidas(e), para: seriesValidas(e) - 1 }));
   const incluidos = exs.filter((e) => mantidos.has(e.id)).map((e) => e.id);
   const minimo = Math.ceil(seriesOriginais * REGRAS_POSSIVEL.minFracaoSeries);
 
@@ -213,6 +260,7 @@ export function treinoPossivel(input: {
       status: "inviavel",
       estimadoSeg: estimado,
       incluidos,
+      cortes,
       adiados,
       seriesMantidas,
       explicacao: [
@@ -227,12 +275,14 @@ export function treinoPossivel(input: {
     status: "reduzido",
     estimadoSeg: estimado,
     incluidos,
+    cortes,
     adiados,
     seriesMantidas,
     explicacao: [
       `Versão de cerca de ${min(estimado)} min (o completo leva ${min(originalSeg)} min).`,
-      `Ficam para outro dia: ${adiados.map((a) => a.nome).join(", ")}.`,
-      reduzDescanso ? notaDescanso : "Descansos, séries e técnicas dos exercícios mantidos não mudam.",
+      ...(cortes.length ? [`Uma série a menos (músculos menores): ${cortes.map((c) => `${c.nome} ${c.de}→${c.para}`).join(", ")}. Os músculos principais ficam completos.`] : []),
+      ...(adiados.length ? [`Ficam para outro dia: ${adiados.map((a) => a.nome).join(", ")}.`] : []),
+      reduzDescanso ? notaDescanso : "Descansos e técnicas não mudam.",
     ],
   };
 }
@@ -244,7 +294,11 @@ export function treinoPossivel(input: {
 export function ganhoDescansoReduzido(normal: ResultadoPossivel, menor: ResultadoPossivel): { ajuda: boolean; recuperados: string[] } {
   if (!menor.descansoReduzido || normal.status === "completo" || normal.status === "nao_autorizado" || menor.status === "inviavel") return { ajuda: false, recuperados: [] };
   const fora = new Set(menor.adiados.map((a) => a.id));
-  const recuperados = normal.adiados.filter((a) => !fora.has(a.id)).map((a) => a.nome);
+  const cortadosMenor = new Set(menor.cortes.map((c) => c.id));
+  const recuperados = [
+    ...normal.adiados.filter((a) => !fora.has(a.id)).map((a) => a.nome),
+    ...normal.cortes.filter((c) => !cortadosMenor.has(c.id)).map((c) => `${c.nome} com ${c.de} séries`),
+  ];
   const ajuda = normal.status === "inviavel" || recuperados.length > 0;
   return { ajuda, recuperados };
 }

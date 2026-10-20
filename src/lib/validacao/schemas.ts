@@ -134,6 +134,9 @@ export const exercicioSessaoPatchSchema = z.object({
   percepcao: z.enum(["muito_leve", "moderado", "pesado", "muito_pesado"]).nullable().optional(),
 });
 
+/** Troca de exercício pelo aluno (null = voltar ao original do plano). */
+export const trocaExercicioSchema = z.object({ biblioteca_id: z.string().min(1).max(64).nullable() });
+
 export const adaptacaoSchema = z.object({
   session_id: z.string().max(64).nullable().optional(),
   session_exercise_id: z.string().max(64).nullable().optional(),

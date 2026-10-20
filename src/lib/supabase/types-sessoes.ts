@@ -170,6 +170,8 @@ export type SessionExercise = {
   observacao_aluno: string | null;
   /** 0031 — percepção de esforço ao finalizar o exercício. */
   percepcao?: PercepcaoExercicio | null;
+  /** 0032 — exercício do plano que o aluno trocou hoje (nulo = sem troca). */
+  substituido_de?: { nome: string; biblioteca_id: string | null; grupo_muscular: GrupoMuscular | null } | null;
   created_at: string;
 };
 

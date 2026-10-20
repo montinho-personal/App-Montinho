@@ -12,10 +12,12 @@ import type { SerieTipo, SessionExercise, SessionExerciseStatus, PercepcaoExerci
 import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
 // Ciclo intencional (só chamadas em tempo de execução): extras usa listSessoes.
 import { exigirExtraLiberado } from "./extras";
-import { comDescansoReduzido, temposComDescansoReduzido, treinoPossivel, type ResultadoPossivel } from "@/lib/treino/possivel";
+import { menosUmaSerie, comDescansoReduzido, temposComDescansoReduzido, treinoPossivel, type ResultadoPossivel } from "@/lib/treino/possivel";
 import type { Recuperacao } from "@/lib/treino/extra";
 import { deficitRecente, REGRAS_SERIE_EXTRA, type Deficit, type SessaoPassada } from "@/lib/treino/serie-extra";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
+import { trocasParaExercicios } from "./trocas";
+import { completarGrupos } from "./biblioteca";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 
 export type SessaoCompleta = TrainingSession & {
@@ -122,7 +124,7 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
     const alvo = normalizarNome(ex.nome);
     let achado: UltimaExecucao | null = null;
     for (const s of sessoes) {
-      const se = s.exercicios.find((e) => (e.exercicio_id === ex.id || normalizarNome(e.nome) === alvo) && e.series.some((x) => (x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause") && (x.carga_kg != null || x.reps != null)));
+      const se = s.exercicios.find((e) => ((e.exercicio_id === ex.id && !e.substituido_de) || normalizarNome(e.nome) === alvo) && e.series.some((x) => (x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause") && (x.carga_kg != null || x.reps != null)));
       if (se) {
         achado = {
           data: s.finalizado_em ?? s.iniciado_em,
@@ -192,6 +194,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
   const treino = await getTreinoComExercicios(input.treinoId);
   if (!treino || treino.aluno_id !== alunoId) throw new Error("Treino não encontrado para este aluno");
   if (!treino.ativo) throw new Error("Este treino não está mais liberado");
+  treino.exercicios = await completarGrupos(treino.exercicios);
 
   // Versão do dia: completa, reduzida (regras do personal) ou extra liberado.
   let modo: "normal" | "reduzido" | "extra" = "normal";
@@ -211,6 +214,9 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
       modo = "reduzido";
       const ok = new Set(reducao.incluidos);
       doDia = treino.exercicios.filter((e) => ok.has(e.id));
+      // Músculos menores com uma série a menos hoje.
+      const cortar = new Set(reducao.cortes.map((c) => c.id));
+      doDia = doDia.map((e) => (cortar.has(e.id) ? menosUmaSerie(e) : e));
     }
     // Descansos encurtados valem para a sessão inteira (cronômetro e estimativa).
     if (reducao.descansoReduzido) {
@@ -237,7 +243,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
       treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos },
       exercicios: doDia,
       // Versão realizada ≠ treino original: guarda o que ficou para outro dia.
-      ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg, descanso_reduzido: reducao.descansoReduzido } } : {}),
+      ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg, descanso_reduzido: reducao.descansoReduzido, cortes: reducao.cortes } } : {}),
       ...(extra ? { extra: { id: extra.id, modalidade: extra.modalidade, titulo: extra.titulo, grupos: extra.grupos, series_estimadas: extra.series_estimadas }, recuperacao: input.recuperacao ?? null } : {}),
     },
     series_planejadas: planejadas,
@@ -393,6 +399,40 @@ export async function atualizarExercicioSessao(alunoId: string, sessionId: strin
   }
   if (error) throw new Error(error.message);
   return (count ?? 0) > 0;
+}
+
+/**
+ * Troca o exercício da sessão por uma opção permitida (ou volta ao original
+ * com `bibliotecaId = null`). Só antes de registrar séries dele: séries,
+ * repetições e descanso continuam os do plano.
+ */
+export async function trocarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, bibliotecaId: string | null): Promise<SessionExercise> {
+  const sessao = await getSessao(alunoId, sessionId);
+  const se = sessao?.exercicios.find((x) => x.id === sessionExerciseId);
+  if (!sessao || !se) throw new Error("Exercício da sessão não encontrado");
+  if (sessao.status !== "em_andamento") throw new Error("Este treino já foi encerrado");
+  if (se.series.some((x) => x.tipo !== "aquecimento")) throw new Error("Já há séries registradas neste exercício. Troque antes de começar.");
+  const original = se.substituido_de ?? { nome: se.nome, biblioteca_id: se.biblioteca_id, grupo_muscular: se.grupo_muscular };
+  let patch: Partial<SessionExercise>;
+  if (!bibliotecaId) {
+    patch = { nome: original.nome, nome_normalizado: normalizarNome(original.nome), biblioteca_id: original.biblioteca_id, grupo_muscular: original.grupo_muscular, substituido_de: null };
+  } else {
+    const trocas = await trocasParaExercicios(alunoId, [{ id: se.id, nome: original.nome, biblioteca_id: original.biblioteca_id }]);
+    const op = trocas[se.id]?.opcoes.find((o) => o.id === bibliotecaId);
+    if (!op) throw new Error("Esta troca não está liberada para este exercício");
+    patch = { nome: op.nome, nome_normalizado: normalizarNome(op.nome), biblioteca_id: op.id, grupo_muscular: op.grupo, substituido_de: original };
+  }
+  if (isDemoMode()) {
+    const alvo = demoStore().sessionExercises.find((x) => x.id === sessionExerciseId && x.session_id === sessionId);
+    if (!alvo) throw new Error("Exercício da sessão não encontrado");
+    Object.assign(alvo, patch);
+    return { ...alvo };
+  }
+  const db = await getDb();
+  const { data, error } = await db.from("session_exercises").update(patch).eq("id", sessionExerciseId).eq("session_id", sessionId).select("*").maybeSingle();
+  if (error) throw new Error(/substituido_de/i.test(error.message) ? "A troca de exercício ainda não foi ativada no banco (migração 0032)." : error.message);
+  if (!data) throw new Error("Exercício da sessão não encontrado");
+  return data as SessionExercise;
 }
 
 export type FinalizarInput = {

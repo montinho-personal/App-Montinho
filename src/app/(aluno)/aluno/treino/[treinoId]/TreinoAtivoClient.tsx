@@ -24,6 +24,7 @@ import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
 import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
 import { conviteSerieExtra, type Deficit } from "@/lib/treino/serie-extra";
+import type { OpcaoTroca, TrocasDoExercicio } from "@/lib/treino/troca";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { RitmoTreino } from "@/components/aluno/RitmoTreino";
 import { estimarPrescricao, descansoAposSerie } from "@/lib/tempo/prescricao";
@@ -49,7 +50,7 @@ import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 
-type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
+type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null; /** Trocado hoje pelo aluno. */ trocado?: boolean };
 
 type Props = {
   treino: { id: string; letra: string; nome: string; observacoes: string | null; tempos: Partial<ParametrosTempo> };
@@ -59,6 +60,10 @@ type Props = {
   ultimas: Record<string, UltimaExecucao | null>;
   /** Séries que ficaram para trás nos últimos dias (convite da série extra). */
   perdidas?: Record<string, Deficit>;
+  /** Opções de troca por exercício do plano (regras do personal/catálogo). */
+  trocas?: Record<string, TrocasDoExercicio>;
+  /** Última execução de cada opção de troca (para vir preenchido). */
+  ultimasTroca?: Record<string, UltimaExecucao | null>;
   sessaoInicial: SessaoCompleta | null;
   outraSessao: { id: string; treinoId: string | null; nome: string | null } | null;
   sessaoConcluida: SessaoCompleta | null;
@@ -76,7 +81,7 @@ type Props = {
 };
 
 const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
-const identidade = (ex: ExercicioView) => ({ exercicioId: ex.id, bibliotecaId: ex.biblioteca_id ?? null, nome: ex.nome, tecnica: normalizarTecnica(ex.tecnica) });
+const identidade = (ex: ExercicioView) => ({ exercicioId: ex.trocado ? null : ex.id, bibliotecaId: ex.biblioteca_id ?? null, nome: ex.nome, tecnica: normalizarTecnica(ex.tecnica) });
 
 type SerieLocal = {
   clientKey: string;
@@ -119,7 +124,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -161,6 +166,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [pedidoTempo, setPedidoTempo] = useState(false);
   // Opção do aluno para encaixar mais exercícios: descansos 20% menores.
   const [descansoMenor, setDescansoMenor] = useState(false);
+  // Troca de exercício: painel aberto e trocas feitas nesta tela (seId → biblioteca_id; null = original).
+  const [trocaAberta, setTrocaAberta] = useState<string | null>(null);
+  const [trocadoLocal, setTrocadoLocal] = useState<Record<string, string | null>>({});
+  const [trocando, setTrocando] = useState(false);
   const drenando = useRef(false);
   // Rascunho (o que ainda não foi concluído): só é gravado depois de restaurado,
   // para a tela vazia do primeiro render não apagar o que estava guardado.
@@ -179,7 +188,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       for (const [idx, se] of s.exercicios.entries()) {
         // Já vem preenchido com o que o aluno fez da última vez (ele só ajusta, se precisar).
         const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[idx];
-        const anterior = exDoPlano ? ultimas[exDoPlano.id] : null;
+        const anterior = se.substituido_de && se.biblioteca_id ? (ultimasTroca[se.biblioteca_id] ?? null) : exDoPlano ? ultimas[exDoPlano.id] : null;
         // Série a série do último treino: 1ª com a 1ª, 2ª com a 2ª… (aquecimentos fora); série a mais repete a última.
         const validasAntes = anterior?.series.filter((u) => u.tipo !== "aquecimento").sort((a, b) => a.serie - b.serie) ?? [];
         const daUltimaVez = (n: number) => validasAntes[n - 1] ?? validasAntes.at(-1) ?? null;
@@ -226,7 +235,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         hidratadaRef.current = s.id;
       }
     },
-    [storage, toast, exercicios, ultimas]
+    [storage, toast, exercicios, ultimas, ultimasTroca]
   );
 
   // Grava o rascunho a cada mudança (digitação, exercício aberto, descanso).
@@ -387,6 +396,44 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   function abrirLeitura(id: string | null | undefined) {
     const item = id ? desbloqueia?.itens[id] : null;
     if (item) setLeitura(item);
+  }
+
+  /** Opção de troca ativa neste exercício da sessão (ou null = o do plano). */
+  function trocaAtiva(se: SessaoCompleta["exercicios"][number]): OpcaoTroca | null {
+    const bid = se.id in trocadoLocal ? trocadoLocal[se.id] : se.substituido_de ? se.biblioteca_id : null;
+    if (!bid) return null;
+    const op = (trocas[se.exercicio_id ?? ""]?.opcoes ?? []).find((o) => o.id === bid);
+    return op ?? { id: bid, nome: se.nome, grupo: (se.grupo_muscular ?? "outro") as OpcaoTroca["grupo"], rapido: false, motivo: "", alerta: null, video: null };
+  }
+
+  /** Troca (ou desfaz) e já preenche peso/reps com a última vez do novo exercício. */
+  async function trocarExercicio(se: SessaoCompleta["exercicios"][number], bibliotecaId: string | null) {
+    if (!sessao) return;
+    setTrocando(true);
+    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ biblioteca_id: bibliotecaId }) }).catch(() => null);
+    setTrocando(false);
+    const corpo = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) {
+      toast.error(corpo.error ?? "Sem conexão: não deu para trocar agora.");
+      return;
+    }
+    setTrocadoLocal((cur) => ({ ...cur, [se.id]: bibliotecaId }));
+    setTrocaAberta(null);
+    const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id);
+    const anterior = bibliotecaId ? ultimasTroca[bibliotecaId] : exDoPlano ? ultimas[exDoPlano.id] : null;
+    const validasAntes = anterior?.series.filter((u) => u.tipo !== "aquecimento").sort((a, b) => a.serie - b.serie) ?? [];
+    setSeries((cur) => {
+      let n = 0;
+      return {
+        ...cur,
+        [se.id]: (cur[se.id] ?? []).map((x) => {
+          if (x.concluida || x.tipo === "aquecimento") return x;
+          const u = validasAntes[n++] ?? validasAntes.at(-1) ?? null;
+          return { ...x, carga: u?.carga_kg != null ? String(u.carga_kg).replace(".", ",") : "", reps: u?.reps != null ? String(u.reps) : "" };
+        }),
+      };
+    });
+    toast.success(bibliotecaId ? "Exercício trocado. Séries e repetições continuam as do seu treino." : "Voltou para o exercício do plano.");
   }
 
   /** Evolução Inteligente: no máximo 1 aviso por exercício e 3 por sessão (limites do personal). */
@@ -597,6 +644,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   if (!sessao) {
     const completoMin = Math.round(estimarPrescricao(exercicios, treino.tempos).totalSeg / 60);
     const adiadosIds = new Set(possivel?.status === "reduzido" ? possivel.adiados.map((a) => a.id) : []);
+    const cortesIds = new Set(possivel?.status === "reduzido" ? possivel.cortes.map((c) => c.id) : []);
     const bloqueado = possivel?.status === "inviavel" || possivel?.status === "nao_autorizado";
     return (
       <div className="space-y-5">
@@ -664,6 +712,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     {possivel.explicacao.slice(possivel.status === "reduzido" ? 1 : 0).map((t) => (
                       <p key={t} className="text-xs text-fg-muted">{t}</p>
                     ))}
+                    {possivel.status === "reduzido" || possivel.apertado ? (() => {
+                      const lentos = exercicios.filter((e) => !adiadosIds.has(e.id) && trocas[e.id]?.lento && trocas[e.id].opcoes.some((o) => o.rapido)).map((e) => e.nome);
+                      return lentos.length ? <p className="text-xs text-fg-muted">⚡ Para ganhar tempo: {lentos.join(", ")} {lentos.length > 1 ? "levam" : "leva"} tempo para montar. No treino, toque em “⇄ Trocar exercício” para usar uma máquina parecida.</p> : null;
+                    })() : null}
                     {ganhoDescanso.ajuda && possivelMenor ? (
                       <div className="mt-2 space-y-2 rounded-md border border-border bg-bg/40 p-2.5">
                         <p className="text-xs font-semibold">{descansoMenor ? "⏱ Descanso 20% menor escolhido" : "⏱ Quer encaixar mais? Descanso 20% menor"}</p>
@@ -713,9 +765,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{e.nome}</p>
                 <p className="text-xs text-fg-subtle">
-                  {e.series} × {e.reps}
+                  {cortesIds.has(e.id) ? e.series - 1 : e.series} × {e.reps}
                   {e.descanso_seg ? (possivel?.descansoReduzido && encurtarDescanso(e.descanso_seg) !== e.descanso_seg ? ` · descanso ${encurtarDescanso(e.descanso_seg)}s (era ${e.descanso_seg}s)` : ` · descanso ${e.descanso_seg}s`) : ""}
-                  {adiadosIds.has(e.id) ? " · fica para outro dia" : e.prioridade === "essencial" && possivel?.status === "reduzido" ? " · essencial" : ""}
+                  {adiadosIds.has(e.id) ? " · fica para outro dia" : cortesIds.has(e.id) ? " · 1 série a menos hoje" : e.prioridade === "essencial" && possivel?.status === "reduzido" ? " · essencial" : ""}
                 </p>
               </div>
             </li>
@@ -792,20 +844,26 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
       <div className="space-y-3">
         {sessao.exercicios.map((se, idx) => {
-          const ex = exercicios.find((e) => e.id === se.exercicio_id) ?? (exercicios[idx] as ExercicioView | undefined);
-          if (!ex) return null;
+          const exPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? (exercicios[idx] as ExercicioView | undefined);
+          if (!exPlano) return null;
+          const troca = trocaAtiva(se);
+          const ex: ExercicioView = troca ? { ...exPlano, nome: troca.nome, biblioteca_id: troca.id, grupo_muscular: troca.grupo, video: troca.video ? { provider: troca.video.provider as VideoSource["provider"], id: troca.video.id } : null, instrucoes: [], trocado: true } : exPlano;
+          const opcoesTroca = trocas[exPlano.id]?.opcoes ?? [];
+          const montagemLenta = !troca && !!trocas[exPlano.id]?.lento && opcoesTroca.some((o) => o.rapido);
+          const tempoCurto = !!sessao.tempo_disponivel_min;
           const lista = series[se.id] ?? [];
           const feitas = lista.filter((s) => s.tipo === "valida" && s.concluida).length;
           const planejadas = lista.filter((s) => s.tipo === "valida").length;
           const completo = planejadas > 0 && feitas >= planejadas;
           // Séries além do prescrito hoje (feitas com “+ Série extra”).
           const extrasFeitas = Math.max(0, feitas - (se.series_planejadas ?? planejadas));
-          const ultima = ultimas[ex.id];
+          const ultima = troca ? (ultimasTroca[troca.id] ?? null) : ultimas[ex.id];
           const expandido = aberto === se.id;
           const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
           const tecnicaTxt = [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
           const pend = pendencias.find((p) => p.seId === se.id);
           const statusAtual = statusEx[se.id] ?? se.status;
+          const podeTrocar = opcoesTroca.length > 0 && statusAtual !== "concluido" && !lista.some((x) => x.tipo !== "aquecimento" && x.concluida);
           const convite = completo && statusAtual !== "concluido" ? conviteSerieExtra(perdidas[ex.id] ?? { exercicio: 0, grupo: 0 }, { rotuloGrupo: ex.grupo_muscular ? GRUPO_LABEL[ex.grupo_muscular] : null, cuidado: sessao.checkin_pre === "desconforto" || sessao.checkin_pre === "cansado" }) : null;
           return (
             <Card key={se.id} id={`ex-${se.id}`} className={`scroll-mt-20 ${conferindo && pend ? "border-warning ring-1 ring-warning/50" : completo ? "border-success/40" : expandido ? "border-accent/40" : ""}`}>
@@ -820,7 +878,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       {ex.video ? <span className="ml-1.5 inline-flex items-center rounded-full border border-accent/40 px-1.5 py-px align-middle text-[10px] font-bold text-accent">▶ vídeo</span> : null}
                     </span>
                     <span className="block text-xs text-fg-subtle mt-0.5">
-                      {ex.series} × {ex.reps}
+                      {(se.prescricao as { series?: number } | null)?.series ?? ex.series} × {ex.reps}
                       {ex.series_aquecimento ? ` (${ex.series_aquecimento} aquec.)` : ""}
                       {descansoDoDia(ex) ? ` · ${descansoDoDia(ex)}s` : ""}
                       {ex.rir != null ? ` · RIR ${ex.rir}` : ex.ie != null ? ` · esforço ${ex.ie}/10` : ""}
@@ -838,17 +896,34 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                   </span>
                   <Icon name={expandido ? "up" : "down"} className="text-fg-subtle shrink-0" />
                 </button>
-                {completo && prefsEvo.aoConcluir ? <ResumoDoExercicio ex={ex} series={lista} historico={historico[ex.id] ?? []} dor={sessao.checkin_pre === "desconforto"} /> : null}
+                {completo && prefsEvo.aoConcluir ? <ResumoDoExercicio ex={ex} series={lista} historico={troca ? [] : (historico[ex.id] ?? [])} dor={sessao.checkin_pre === "desconforto"} /> : null}
 
                 {expandido ? (
                   <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+                    {troca ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
+                        <span>⇄ Trocado hoje · no plano: <strong>{exPlano.nome}</strong></span>
+                        {podeTrocar ? (
+                          <button type="button" disabled={trocando} onClick={() => void trocarExercicio(se, null)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                            Voltar ao original
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : montagemLenta && tempoCurto && podeTrocar ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
+                        <span>⏱ Tempo curto? Este exercício leva tempo para montar (anilhas/peso). Uma máquina parecida é mais rápida.</span>
+                        <button type="button" onClick={() => { setTrocaAberta(se.id); requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                          Ver opções
+                        </button>
+                      </div>
+                    ) : null}
                     {ex.video ? <BotaoVideoTelaCheia source={ex.video} titulo={ex.nome} /> : null}
                     {ex.observacoes ? (
                       <p className="text-sm text-fg-muted rounded-md bg-accent-soft/60 border border-accent/20 px-3 py-2">
                         <span className="text-accent font-semibold">Nota do {BRAND.name}:</span> {ex.observacoes}
                       </p>
                     ) : null}
-                    {desbloqueia?.porques[ex.id] ? (
+                    {!troca && desbloqueia?.porques[ex.id] ? (
                       <details className="rounded-md border border-accent/30 bg-accent-soft/40 px-3 py-2 text-sm" onToggle={(e) => (e.currentTarget.open ? enviarEvento({ tipo: "explicacao_aberta", origem: "treino" }) : undefined)}>
                         <summary className="cursor-pointer font-semibold text-accent">Por que esse exercício está no meu treino?</summary>
                         <p className="mt-1 text-fg">{desbloqueia.porques[ex.id]}</p>
@@ -950,6 +1025,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                         + Série extra
                       </button>
+                      {podeTrocar ? (
+                        <button type="button" onClick={() => { const abrir = trocaAberta !== se.id; setTrocaAberta(abrir ? se.id : null); if (abrir) requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} aria-expanded={trocaAberta === se.id} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
+                          ⇄ Trocar exercício
+                        </button>
+                      ) : null}
                       <button type="button" onClick={() => setAdaptacaoAberta(adaptacaoAberta === se.id ? null : se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                         Não consegui este exercício
                       </button>
@@ -957,6 +1037,32 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         Pular hoje
                       </button>
                     </div>
+                    {trocaAberta === se.id ? (
+                      <div id={`troca-${se.id}`} role="dialog" aria-label={`Trocar ${exPlano.nome}`} className="scroll-mt-24 space-y-2 rounded-lg border border-accent/40 bg-bg/60 p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold">Trocar por</p>
+                          <button type="button" onClick={() => setTrocaAberta(null)} aria-label="Fechar" className="alvo text-fg-muted hover:text-fg">✕</button>
+                        </div>
+                        <p className="text-xs text-fg-muted">Mesmas séries, repetições e descanso do seu treino. Você marca peso e repetições normalmente.</p>
+                        <ul className="space-y-1.5">
+                          {opcoesTroca.filter((o) => o.id !== troca?.id).map((o) => (
+                            <li key={o.id}>
+                              <button type="button" disabled={trocando} onClick={() => void trocarExercicio(se, o.id)} className="touch w-full rounded-lg border border-border px-3 py-2 text-left hover:border-accent disabled:opacity-60">
+                                <span className="block text-sm font-semibold">
+                                  {o.nome}
+                                  {o.rapido ? <span className="ml-1.5 rounded-full border border-success/50 px-1.5 py-px align-middle text-[10px] font-bold text-success">⚡ monta rápido</span> : null}
+                                  {o.video ? <span className="ml-1.5 rounded-full border border-accent/40 px-1.5 py-px align-middle text-[10px] font-bold text-accent">▶ vídeo</span> : null}
+                                </span>
+                                <span className="block text-[11px] text-fg-subtle">
+                                  {o.motivo}
+                                  {ultimasTroca[o.id] ? ` · última vez: ${ultimasTroca[o.id]!.series.filter((x) => x.tipo !== "aquecimento").map((x) => `${x.carga_kg ?? "—"}kg×${x.reps ?? "—"}`).slice(0, 2).join(", ")}` : ""}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                     {adaptacaoAberta === se.id ? <AdaptacaoForm onEnviar={(motivo, desc) => pedirAdaptacao(ex, se.id, motivo, desc)} onCancelar={() => setAdaptacaoAberta(null)} /> : null}
                   </div>
                 ) : null}

@@ -9,6 +9,7 @@ import { normalizarNome } from "@/lib/grupos";
 import { CATALOGO } from "@/lib/biblioteca/catalogo";
 import { indicePorNome, itemDoBanco, itemDoCatalogo, type LinhaBiblioteca } from "@/lib/biblioteca/itens";
 import type { Equivalencia, ItemBiblioteca, StatusEquivalencia } from "@/lib/biblioteca/tipos";
+import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { demoStore } from "@/lib/mock/store";
 import { VIDEOS_DEMO } from "@/lib/mock/videos-demo";
 
@@ -58,6 +59,30 @@ export async function listarEquivalencias(): Promise<Equivalencia[]> {
     origem: r.origem === "catalogo" ? "catalogo" : "treinador",
     status: r.status as StatusEquivalencia,
     nota: (r.nota as string | null) ?? null,
+  }));
+}
+
+/** Completa o grupo muscular que faltar (exercícios antigos) pelo nome na biblioteca. */
+export async function completarGrupos<T extends { nome: string; biblioteca_id?: string | null; grupo_muscular: GrupoMuscular | null }>(exs: T[]): Promise<T[]> {
+  if (exs.every((e) => e.grupo_muscular)) return exs;
+  const itens = await listarBiblioteca();
+  const porId = new Map(itens.map((i) => [i.id, i]));
+  const porNome = indicePorNome(itens);
+  return exs.map((e) => (e.grupo_muscular ? e : { ...e, grupo_muscular: ((e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined) ?? porNome.get(normalizarNome(e.nome)))?.grupo ?? null }));
+}
+
+/** Equivalências para o app do aluno (função 0032: sem notas; a tabela é fechada para o aluno). */
+export async function listarEquivalenciasParaAluno(): Promise<Equivalencia[]> {
+  if (isDemoMode()) return demo().equivalencias;
+  const db = await getDb();
+  const { data, error } = await db.rpc("equivalencias_revisadas");
+  if (error) return []; // banco sem a 0032: só as regras (mesmo padrão + mesmo músculo)
+  return ((data ?? []) as Array<{ exercicio_id: string; alternativa_id: string; origem: string; status: string }>).map((r) => ({
+    exercicioId: r.exercicio_id,
+    alternativaId: r.alternativa_id,
+    origem: r.origem === "catalogo" ? "catalogo" : "treinador",
+    status: r.status as StatusEquivalencia,
+    nota: null,
   }));
 }
 

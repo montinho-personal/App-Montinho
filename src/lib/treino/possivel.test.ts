@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { comDescansoReduzido, encurtarDescanso, ganhoDescansoReduzido, temposComDescansoReduzido, treinoPossivel } from "./possivel";
+import { estimarPrescricao } from "@/lib/tempo/prescricao";
+import { menosUmaSerie, comDescansoReduzido, encurtarDescanso, ganhoDescansoReduzido, temposComDescansoReduzido, treinoPossivel } from "./possivel";
 import type { PrioridadeExercicio } from "@/lib/supabase/types-sessoes";
 
 let n = 0;
@@ -134,5 +135,29 @@ describe("treino possível hoje", () => {
     expect(r.explicacao.join(" ")).toMatch(/Tempo apertado/);
     const longe = treinoPossivel({ exercicios: xs, tempoDisponivelMin: Math.floor(full / 60) - 8, permiteReduzida: true });
     expect(longe.apertado).toBe(false);
+  });
+
+  describe("músculos menores perdem uma série antes de algum exercício sair", () => {
+    const xs = () => [ex("Supino", { grupo: "peito" }), ex("Remada", { grupo: "costas" }), ex("Rosca", { grupo: "biceps" }), ex("Tríceps", { grupo: "triceps" }), ex("Panturrilha", { grupo: "panturrilha" }), ex("Lateral", { grupo: "ombro_lateral", series: 2 })];
+    const menores = ["Panturrilha", "Rosca", "Tríceps"];
+    it("corta 1 série dos menores e mantém peito/costas e todos os exercícios", () => {
+      const lista = xs();
+      // Tempo que cabe exatamente com os três menores 4→3.
+      const cortado = lista.map((e) => (menores.includes(e.nome) ? menosUmaSerie(e) : e));
+      const alvo = Math.ceil(estimarPrescricao(cortado).totalSeg / 60);
+      const r = treinoPossivel({ exercicios: lista, tempoDisponivelMin: alvo, permiteReduzida: true });
+      expect(r.status).toBe("reduzido");
+      expect(r.adiados).toEqual([]);
+      expect(r.cortes.map((c) => c.nome).sort()).toEqual(menores);
+      expect(r.cortes[0]).toMatchObject({ de: 4, para: 3 });
+      expect(r.explicacao.join(" ")).toMatch(/Uma série a menos/);
+    });
+    it("não corta grupo prioritário nem exercício com 2 séries", () => {
+      const lista = xs();
+      const full = treinoPossivel({ exercicios: lista, tempoDisponivelMin: 999, permiteReduzida: true }).originalSeg;
+      const r = treinoPossivel({ exercicios: lista, tempoDisponivelMin: Math.floor((full - 600) / 60), permiteReduzida: true, prioridadesMusculares: ["biceps"] });
+      expect(r.cortes.map((c) => c.nome)).not.toContain("Rosca");
+      expect(r.cortes.map((c) => c.nome)).not.toContain("Lateral");
+    });
   });
 });

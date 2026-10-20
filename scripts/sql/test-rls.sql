@@ -687,4 +687,21 @@ begin
   raise notice 'T20 OK: desbloqueia — conteúdo publicado, versões e progresso isolados';
 end $$;
 select test_logout();
+
+-- T21 — 0032: troca de exercício (aluna lê equivalências mas não escreve; grava a troca só na própria sessão)
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from exercicio_equivalencias;
+  if n <> 0 then raise exception 'T21: tabela de equivalências deveria seguir fechada para a aluna'; end if;
+  select count(*) into n from equivalencias_revisadas();
+  if n < 1 then raise exception 'T21: aluna deveria ler as equivalências pela função (sem notas)'; end if;
+  begin update exercicio_equivalencias set status = 'rejeitada'; get diagnostics n = row_count; if n = 0 then ok := true; end if; exception when others then ok := true; end;
+  if not ok then raise exception 'T21: aluna alterou equivalência'; end if;
+  perform 1 from information_schema.columns where table_name = 'session_exercises' and column_name = 'substituido_de';
+  if not found then raise exception 'T21: coluna substituido_de ausente'; end if;
+  raise notice 'T21 OK: troca de exercício — equivalências só pela função, sem escrita';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

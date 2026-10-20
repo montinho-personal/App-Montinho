@@ -14,6 +14,7 @@ import { agoraServidorMs } from "@/lib/tempo/ritmo";
 import { getConfigEvolucao, historicoParaEvolucao } from "@/lib/data/evolucao";
 import { normalizarTecnica } from "@/lib/evolucao/adaptar";
 import { desbloqueiaParaTreino } from "@/lib/data/desbloqueia";
+import { trocasParaExercicios } from "@/lib/data/trocas";
 
 type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string; extra?: string; rec?: string; tempo?: string }> };
 
@@ -28,7 +29,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
   if (!treino || treino.aluno_id !== sessao.alunoId) notFound();
 
-  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas] = await Promise.all([
     sessaoId ? getSessao(sessao.alunoId, sessaoId) : getSessaoEmAndamento(sessao.alunoId),
     ultimasExecucoes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
     listarBiblioteca(),
@@ -38,7 +39,11 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
     getConfigEvolucao(sessao.alunoId),
     desbloqueiaParaTreino(sessao.alunoId, treino.exercicios.map((e) => e.id)),
     seriesPerdidasRecentes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, grupo: e.grupo_muscular ?? null }))),
+    trocasParaExercicios(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
   ]);
+  // Última vez de cada opção de troca (para já vir com peso e repetições).
+  const opcoesTroca = [...new Map(Object.values(trocas).flatMap((t) => t.opcoes).map((o) => [o.id, o])).values()];
+  const ultimasTroca = opcoesTroca.length ? await ultimasExecucoes(sessao.alunoId, opcoesTroca.map((o) => ({ id: o.id, nome: o.nome }))) : {};
   // Extra: a liberação é conferida de novo no servidor ao começar.
   const extra = extras.find((x) => x.id === extraId && x.treino_id === treino.id) ?? null;
 
@@ -60,6 +65,7 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
     const b = (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined) ?? porNome.get(normalizarNome(e.nome));
     return {
       ...e,
+      grupo_muscular: e.grupo_muscular ?? b?.grupo ?? null,
       video: b?.midia?.verificada ? { provider: b.midia.provider as VideoProvider, id: b.midia.id } : null,
       instrucoes: (b?.execucao ?? []).slice(0, 3),
       descricao: null,
@@ -76,6 +82,8 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
       exercicios={exercicios}
       ultimas={ultimas}
       perdidas={perdidas}
+      trocas={trocas}
+      ultimasTroca={ultimasTroca}
       sessaoInicial={sessaoAtiva}
       outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino } : null}
       sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
