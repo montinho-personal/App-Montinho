@@ -15,6 +15,12 @@ import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { indicePorNome } from "@/lib/biblioteca/itens";
 import { normalizarNome } from "@/lib/grupos";
 import { VolumeAluno } from "@/components/montador/VolumeAluno";
+import { aderenciaDoAluno } from "@/lib/data/aderencia";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
+import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
+import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
+import { MetaPausasCard } from "@/components/aderencia/MetaPausasCard";
 import { dataBR, diasAte, tempoRelativo } from "@/lib/format";
 import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
 import { ComparadorFotos } from "./ComparadorFotos";
@@ -53,6 +59,8 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
+  const aderencia = await aderenciaDoAluno(aluno);
+  const hojeLocal = dataLocal(new Date());
 
   const treinosAtivos = plano.treinos.filter((t) => t.ativo);
   // Mesmos dados que o montador usa: técnicas, secundários e pesos da biblioteca.
@@ -193,6 +201,26 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                     />
                   </>
                 )}
+              </div>
+            ),
+          },
+          {
+            key: "consistencia",
+            label: "Consistência",
+            content: (
+              <div className="space-y-4">
+                <Card>
+                  <CardBody className="space-y-4">
+                    <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
+                    <ResumoAderencia r={aderencia} />
+                    <CalendarioConsistencia dias={aderencia.dias} sessoes={aderencia.sessoesPorId} hoje={hojeLocal} />
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardBody>
+                    <MetaPausasCard alunoId={id} metaAtual={aderencia.metaAtual.meta} origem={aderencia.metaAtual.origem} metas={aderencia.metas} pausas={aderencia.pausas} hoje={hojeLocal} />
+                  </CardBody>
+                </Card>
               </div>
             ),
           },

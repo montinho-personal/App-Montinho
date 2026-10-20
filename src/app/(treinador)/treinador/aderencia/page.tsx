@@ -1,0 +1,30 @@
+import { requireTreinadorPage } from "@/lib/auth/session";
+import { listAlunos } from "@/lib/db";
+import { aderenciaDeTodos } from "@/lib/data/aderencia";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { linhaCentral } from "@/lib/aderencia/central";
+import { CentralAderenciaClient } from "./CentralAderenciaClient";
+
+export const metadata = { title: "Central de aderência" };
+export const dynamic = "force-dynamic";
+
+export default async function CentralAderenciaPage() {
+  await requireTreinadorPage();
+  const alunos = (await listAlunos()).filter((a) => a.status !== "arquivado");
+  const dados = await aderenciaDeTodos(alunos);
+  const hoje = dataLocal(new Date());
+  const linhas = alunos.map((a) => {
+    const d = dados[a.id];
+    return linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas);
+  });
+  return (
+    <div className="space-y-5">
+      <header>
+        <p className="text-xs uppercase tracking-wider text-accent font-bold">Acompanhamento</p>
+        <h1 className="text-2xl font-bold">Central de aderência</h1>
+        <p className="text-sm text-fg-muted mt-1">Consistência de cada aluno em relação à própria meta semanal. Os sinais descrevem o que aconteceu (dias sem registro, queda de frequência, retomada) — a decisão de como agir é sua.</p>
+      </header>
+      <CentralAderenciaClient linhas={linhas} />
+    </div>
+  );
+}

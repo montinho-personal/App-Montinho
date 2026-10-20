@@ -5,14 +5,16 @@ export function brl(centavos: number): string {
   }).format(centavos / 100);
 }
 
+const FMT_DATA_BR = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+
+/** Data no padrão brasileiro, sempre no fuso de Brasília (igual no servidor e no navegador). */
 export function dataBR(iso: string | null | undefined): string {
   if (!iso) return "—";
+  // "AAAA-MM-DD" é uma data de calendário: não passa por fuso.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
   const d = new Date(iso);
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(d);
+  return Number.isNaN(d.getTime()) ? "—" : FMT_DATA_BR.format(d);
 }
 
 export function diasAte(iso: string | null | undefined): number | null {

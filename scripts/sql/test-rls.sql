@@ -398,4 +398,39 @@ begin
   raise notice 'T11 OK: check-in pré-treino validado, isolado por aluno; modo padrão normal';
 end $$;
 select test_logout();
+-- ============================================================================
+-- T12 — 0018: meta semanal versionada e pausas (treinador escreve; aluno só lê o seu)
+-- ============================================================================
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into metas_semanais (aluno_id, meta, vigente_desde) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 3, '2026-10-01'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 4, '2026-10-01');
+insert into pausas_aluno (aluno_id, inicio, fim, tipo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-10-10', '2026-10-17', 'ferias');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from metas_semanais;
+  if n <> 1 then raise exception 'T12: aluna A deveria ver só a própria meta (viu %)', n; end if;
+  select count(*) into n from pausas_aluno;
+  if n <> 1 then raise exception 'T12: aluna A deveria ver a própria pausa'; end if;
+  begin insert into metas_semanais (aluno_id, meta, vigente_desde) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 7, '2026-10-20'); exception when others then ok := true; end;
+  if not ok then raise exception 'T12: aluno alterou a própria meta'; end if;
+  ok := false;
+  begin insert into pausas_aluno (aluno_id, inicio, tipo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-10-20', 'ferias'); exception when others then ok := true; end;
+  if not ok then raise exception 'T12: aluno criou pausa'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from pausas_aluno;
+  if n <> 0 then raise exception 'T12: aluno B viu pausa de A'; end if;
+end $$;
+select test_logout();
+do $$
+declare ok boolean := false;
+begin
+  begin insert into pausas_aluno (aluno_id, inicio, fim) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-10-20', '2026-10-01'); exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T12: aceitou pausa terminando antes de começar'; end if;
+  raise notice 'T12 OK: metas e pausas — treinador escreve, aluno lê só o seu, datas validadas';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

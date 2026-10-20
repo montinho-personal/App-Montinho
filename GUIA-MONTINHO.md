@@ -80,3 +80,10 @@ Início (próximo treino + “Começar treino”, progresso da semana com denomi
 - Se ele ficar **30 minutos sem registrar nenhuma série** com o treino aberto, chega a notificação “Treino X ainda está em aberto · você registrou N de M séries”. Tocar abre o treino para conferir e finalizar. É **1 lembrete por treino**.
 - **iPhone**: só funciona com o app adicionado à Tela de Início (Compartilhar → Adicionar à Tela de Início) e aberto por esse ícone. Android/computador: funciona no navegador.
 - Para parar: Perfil → Desativar.
+
+## Central de aderência (Consistência 2.0)
+
+- **Menu → Central de aderência**: todos os alunos com meta semanal, treinos da semana, aderência dos últimos 28 dias, tendência, última sessão, próxima prevista e sinais para acompanhar (ex.: “12 dias sem registrar treino”). Os sinais descrevem fatos; o app nunca rotula o aluno.
+- **Perfil do aluno → aba Consistência**: defina a **meta semanal** (vale a partir da segunda-feira seguinte, com histórico) e registre **pausas** (férias, lesão, descanso prescrito). Semanas com 4 dias ou mais em pausa não contam e não quebram a sequência.
+- **Como a aderência é calculada**: treino concluído (≥ 50% das séries) vale 1; parcial vale 0,5; treino extra não conta; o total da semana é limitado à meta. Sem prescrição na semana, ela não entra na conta.
+- O aluno vê na tela inicial “Você completou X dos seus Y treinos desta semana” e, em Evolução, o calendário e a sequência de semanas.

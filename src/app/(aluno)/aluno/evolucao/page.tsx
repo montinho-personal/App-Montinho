@@ -5,6 +5,13 @@ import { listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
 import { BRAND } from "@/config/brand";
+import { getAluno } from "@/lib/db";
+import { aderenciaDoAluno } from "@/lib/data/aderencia";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
+import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
+import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
 
 export const metadata = { title: "Evolução" };
 
@@ -20,6 +27,8 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
     listVersoes(sessao.alunoId, 10),
     listIntervencoes(sessao.alunoId, 5),
   ]);
+  const aluno = await getAluno(sessao.alunoId);
+  const aderencia = aluno ? await aderenciaDoAluno(aluno) : null;
   const comentario = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem" || i.tipo === "revisao_treino"));
 
   return (
@@ -28,6 +37,18 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         <h1 className="text-2xl font-bold">Sua evolução</h1>
         <p className="text-sm text-fg-muted mt-1">Primeiro o essencial. Depois, os detalhes — sempre a partir do que você registrou.</p>
       </header>
+      {aderencia ? (
+        <Card id="consistencia" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle className="text-base">Sua consistência</CardTitle>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
+            <ResumoAderencia r={aderencia} />
+            <CalendarioConsistencia dias={aderencia.dias} sessoes={aderencia.sessoesPorId} hoje={dataLocal(new Date())} />
+          </CardBody>
+        </Card>
+      ) : null}
       <RelatorioEvolucao
         modo="aluno"
         dias={dias}

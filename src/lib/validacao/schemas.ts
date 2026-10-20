@@ -246,3 +246,16 @@ export const temposSchema = z
   })
   .partial()
   .strict();
+
+// Central de aderência
+const dataISO = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD)");
+export const metaSemanalSchema = z.object({
+  meta: z.coerce.number().int().min(1).max(7),
+  vigente_desde: dataISO,
+  observacao: textoOpcional(300),
+});
+export const TIPOS_PAUSA = ["ferias", "lesao", "descanso_prescrito", "viagem", "saude", "outro"] as const;
+export const pausaSchema = z
+  .object({ inicio: dataISO, fim: dataISO.nullable().optional(), tipo: z.enum(TIPOS_PAUSA).default("outro"), motivo: textoOpcional(300) })
+  .refine((p) => !p.fim || p.fim >= p.inicio, { message: "O fim não pode ser antes do início", path: ["fim"] });
+export const encerrarPausaSchema = z.object({ pausa_id: z.string().min(1).max(64), fim: dataISO });

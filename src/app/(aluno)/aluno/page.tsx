@@ -10,6 +10,8 @@ import { estadoSemana, resumoPeriodo } from "@/lib/relatorios/calcular";
 import { dataBR, tempoRelativo } from "@/lib/format";
 import { CheckInDiario } from "@/components/aluno/CheckInDiario";
 import { BRAND } from "@/config/brand";
+import { aderenciaDoAluno } from "@/lib/data/aderencia";
+import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 
 export const metadata = { title: "Início" };
 
@@ -26,6 +28,7 @@ export default async function AlunoHomePage() {
     listDieta(alunoId),
   ]);
   if (!aluno) return null;
+  const aderencia = await aderenciaDoAluno(aluno);
 
   const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
   const treinos = plano.treinos.filter((t) => t.ativo);
@@ -106,20 +109,14 @@ export default async function AlunoHomePage() {
         </Card>
       )}
 
-      {/* 2. Progresso da semana (denominador = frequência do programa) */}
-      {treinos.length ? (
+      {/* 2. Progresso da semana em relação à meta individual */}
+      {aderencia.semanaAtual?.meta ? (
         <Card>
-          <CardBody className="flex items-center gap-4">
-            <div className="flex-1">
-              <p className="text-[11px] uppercase tracking-wider text-fg-subtle font-semibold">Esta semana</p>
-              <p className="text-lg font-bold mt-0.5">
-                {semana.feitasSemana} de {semana.planejadasSemana || treinos.length} treinos
-              </p>
-              <p className="text-xs text-fg-muted">{semana.letrasFeitasSemana.length ? `Feitos: ${semana.letrasFeitasSemana.join(", ")}` : "Nenhum ainda — a semana é flexível, sem culpa."}</p>
-            </div>
-            <div className="w-24 h-2 rounded-full bg-bg border border-border overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={semana.planejadasSemana || treinos.length} aria-valuenow={semana.feitasSemana} aria-label="Progresso da semana">
-              <div className="h-full bg-accent" style={{ width: `${Math.min(100, (semana.feitasSemana / Math.max(1, semana.planejadasSemana || treinos.length)) * 100)}%` }} />
-            </div>
+          <CardBody className="space-y-2">
+            <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual.extras} />
+            <Link href="/aluno/evolucao#consistencia" className="inline-block text-xs text-accent underline-offset-2 hover:underline">
+              Ver calendário de consistência
+            </Link>
           </CardBody>
         </Card>
       ) : null}
