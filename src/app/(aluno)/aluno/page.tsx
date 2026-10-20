@@ -1,3 +1,4 @@
+import { saudacao as saudacaoSP } from "@/components/brand/BrandLockup";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -41,8 +42,8 @@ export default async function AlunoHomePage() {
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, letras);
   const proximo = treinos.find((t) => t.letra === semana.proximaLetra) ?? treinos[0] ?? null;
   const resumo30 = resumoPeriodo(sessoes, plano.programa?.frequencia, 30);
-  const hora = new Date().getHours();
-  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  // Horário de São Paulo (o servidor roda em UTC).
+  const saudacao = saudacaoSP();
   const duracaoEstimada = proximo?.duracao_estimada_min ?? estimarDuracao(sessoes, proximo?.letra ?? null);
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
 

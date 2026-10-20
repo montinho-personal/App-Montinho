@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { BrandLockup, FioDourado } from "@/components/brand/BrandLockup";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
 type NavItem = { label: string; href: string; icon: IconName };
@@ -69,7 +70,7 @@ export function Sidebar({ items, usuario }: SidebarProps) {
 
   const rodape = (
     <div className="border-t border-border p-3 space-y-2">
-      {!collapsed && usuario ? <p className="text-xs text-fg-subtle truncate px-1">{usuario.nome}</p> : null}
+      {!collapsed && usuario ? <p className="text-xs text-fg-subtle truncate px-1">Olá, <span className="text-fg">{usuario.nome.split(" ")[0]}</span></p> : null}
       <button type="button" onClick={sair} className={`flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-fg-muted hover:bg-card hover:text-fg min-h-[44px] ${collapsed ? "justify-center" : ""}`}>
         <Icon name="logout" size={16} />
         {collapsed ? <span className="sr-only">Sair</span> : "Sair"}
@@ -83,22 +84,25 @@ export function Sidebar({ items, usuario }: SidebarProps) {
   return (
     <>
       {/* Mobile: barra superior + gaveta */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b border-border bg-surface/95 backdrop-blur px-3 py-2">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between bg-[linear-gradient(180deg,#161616_0%,rgba(10,10,10,0.94)_100%)] backdrop-blur px-4">
         <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
-          <Logo variant="full" height={30} priority />
+          <BrandLockup priority />
         </Link>
-        <button type="button" onClick={() => setMobileOpen(true)} className="touch rounded-md border border-border px-3 text-fg-muted" aria-label="Abrir menu" aria-expanded={mobileOpen}>
-          <Icon name="menu" />
+        <button type="button" onClick={() => setMobileOpen(true)} className="touch flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-accent" aria-label="Abrir menu" aria-expanded={mobileOpen}>
+          <Icon name="menu" size={18} />
+          <span aria-hidden>Menu</span>
         </button>
+        <FioDourado />
       </div>
-      <div className="md:hidden h-[52px]" aria-hidden />
+      <div className="md:hidden h-16" aria-hidden />
       {mobileOpen ? (
         <div className="md:hidden fixed inset-0 z-50 bg-black/60" onClick={() => setMobileOpen(false)}>
           <aside className="h-full w-72 bg-surface border-r border-border flex flex-col" onClick={(e) => e.stopPropagation()} aria-label="Menu">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+            <div className="relative flex items-center justify-between px-4 py-4">
               <Link href={inicio} onClick={() => setMobileOpen(false)} aria-label="Ir para a visão geral" className="rounded-md">
-                <Logo variant="full" height={30} />
+                <BrandLockup />
               </Link>
+              <FioDourado />
               <button type="button" onClick={() => setMobileOpen(false)} className="touch text-fg-muted" aria-label="Fechar menu">
                 <Icon name="x" />
               </button>
@@ -111,10 +115,11 @@ export function Sidebar({ items, usuario }: SidebarProps) {
 
       {/* Desktop */}
       <aside className={`hidden md:flex ${collapsed ? "w-[72px]" : "w-64"} shrink-0 bg-surface border-r border-border flex-col h-screen sticky top-0 transition-[width] duration-200`}>
-        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-4">
+        <div className="relative flex items-center justify-between gap-2 px-3 py-5">
           <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
-            {collapsed ? <Logo variant="mark" height={36} priority /> : <Logo variant="full" height={38} priority />}
+            {collapsed ? <Logo variant="mark" height={40} priority /> : <BrandLockup priority />}
           </Link>
+          <FioDourado />
           <button type="button" onClick={toggle} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} className="grid h-8 w-8 place-items-center rounded-md border border-border text-xs text-fg-muted hover:text-fg shrink-0">
             <span aria-hidden>{collapsed ? "›" : "‹"}</span>
           </button>
