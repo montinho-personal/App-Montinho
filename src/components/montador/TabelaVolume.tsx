@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { GRUPO_COR, GRUPO_LABEL, GRUPOS_SELECIONAVEIS } from "@/lib/grupos";
 import { STATUS_META_LABEL, type LinhaVolume, type MetaVolume, type ResultadoVolume } from "@/lib/volume/calcular";
+import { REGRAS_TECNICAS, type RegraTecnicas } from "@/lib/volume/tecnicas";
 import { AVISO_REFERENCIA, aplicarPrioridades, referenciasPorNivel, type NivelReferencia } from "@/lib/volume/referencias";
 import { Icon } from "@/components/ui/Icon";
 
@@ -26,6 +27,11 @@ type Props = {
   onMetas: (m: Partial<Record<GrupoMuscular, MetaVolume>>) => void;
   onPrioridades: (p: string[]) => void;
   onSecundario: (v: boolean) => void;
+  /** Regra de contagem das técnicas avançadas (drop set, rest-pause, myo-reps). */
+  regraTecnicas?: RegraTecnicas;
+  onRegraTecnicas?: (r: RegraTecnicas) => void;
+  ajustarPorRir?: boolean;
+  onAjustarPorRir?: (v: boolean) => void;
 };
 
 /** Número no padrão brasileiro (vírgula decimal, até 2 casas). */
@@ -60,7 +66,7 @@ export function TabelaVolume(props: Props) {
             <Icon name="table" className="text-accent" /> Volume semanal
           </span>
           <span className="text-xs text-fg-muted">
-            {props.resultado.subtotais.total} séries · {props.resultado.sessoesSemana} sessões/sem · toque para ver
+            {numBR(props.resultado.subtotais.total)} séries · {numBR(props.resultado.sessoesSemana)} sessões/sem · toque para ver
           </span>
         </button>
         {abertoMobile ? (
@@ -81,7 +87,7 @@ export function TabelaVolume(props: Props) {
   );
 }
 
-function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario, semTitulo = false }: Props & { semTitulo?: boolean }) {
+function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario, regraTecnicas = "moderada", onRegraTecnicas, ajustarPorRir = false, onAjustarPorRir, semTitulo = false }: Props & { semTitulo?: boolean }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("padrao");
   const [compacto, setCompacto] = useState(false);
@@ -122,7 +128,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
       <div className="flex items-center justify-between">
         {semTitulo ? <span /> : <h3 className="font-extrabold">Volume semanal</h3>}
         <span className="text-[11px] text-fg-subtle">
-          {resultado.sessoesSemana} sessões/sem · {resultado.subtotais.total} séries válidas
+          {numBR(resultado.sessoesSemana)} sessões/sem · {numBR(resultado.subtotais.total)} séries válidas
         </span>
       </div>
 
@@ -143,6 +149,26 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
         <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted" title="Volume ponderado: soma às séries diretas uma fração de série para cada músculo secundário, com o peso cadastrado na biblioteca (ex.: supino → tríceps 0,5). Sem peso cadastrado, usa 50%.">
           <input type="checkbox" checked={incluirSecundario} onChange={(e) => onSecundario(e.target.checked)} /> volume ponderado (estimado)
         </label>
+        {onRegraTecnicas ? (
+          <select
+            aria-label="Como contar técnicas avançadas"
+            title={`Como drops e mini-séries entram no volume. ${REGRAS_TECNICAS[regraTecnicas].descricao}`}
+            value={regraTecnicas}
+            onChange={(e) => onRegraTecnicas(e.target.value as RegraTecnicas)}
+            className="rounded-full border border-border bg-bg px-2 py-1 text-[11px]"
+          >
+            {(Object.keys(REGRAS_TECNICAS) as RegraTecnicas[]).map((k) => (
+              <option key={k} value={k}>
+                Técnicas: {REGRAS_TECNICAS[k].label}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        {onAjustarPorRir ? (
+          <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted" title="Séries longe da falha valem menos: RIR 0–3 = 1 série; RIR 4–5 = 0,5; acima de 5 = 0. Usa o RIR prescrito de cada exercício.">
+            <input type="checkbox" checked={ajustarPorRir} onChange={(e) => onAjustarPorRir(e.target.checked)} /> ajustar por RIR
+          </label>
+        ) : null}
         {temRealizado ? (
           <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted">
             <input type="checkbox" checked={verRealizado} onChange={(e) => setVerRealizado(e.target.checked)} /> programado × realizado
@@ -169,7 +195,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                     {l}
                   </th>
                 )) : null}
-                <th className="text-right font-semibold px-1 py-1" title="Séries diretas válidas por semana (sem aquecimento)">Sem.</th>
+                <th className="text-right font-semibold px-1 py-1" title="Séries diretas válidas por semana (sem aquecimento). * inclui drops/mini-séries de técnicas avançadas pela regra escolhida.">Sem.</th>
                 <th className="text-right font-semibold px-1 py-1">Meta</th>
                 {!compacto ? <th className="text-right font-semibold px-1 py-1" title="Sessões por semana em que o grupo recebe séries">Freq.</th> : null}
                 {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Participação secundária estimada (fração de série × frequência)">+sec</th> : null}
@@ -189,14 +215,17 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                         <span className={`font-semibold ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{l.label}</span>
                         {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
                       </button>
-                      {!compacto && l.status !== "sem_meta" ? <span className={`block text-[10px] ${STATUS_COR[l.status]}`}>{STATUS_META_LABEL[l.status]}{l.diferenca ? ` (${l.diferenca > 0 ? "+" : ""}${l.diferenca})` : ""}</span> : null}
+                      {!compacto && l.status !== "sem_meta" ? <span className={`block text-[10px] ${STATUS_COR[l.status]}`}>{STATUS_META_LABEL[l.status]}{l.diferenca ? ` (${l.diferenca > 0 ? "+" : ""}${numBR(l.diferenca)})` : ""}</span> : null}
                     </td>
                     {!compacto ? letras.map((x) => (
                       <td key={x} className="px-1 py-1.5 text-right font-mono text-fg-muted">
                         {l.porDia[x] ? numBR(l.porDia[x]) : "·"}
                       </td>
                     )) : null}
-                    <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`}>{numBR(l.total)}</td>
+                    <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`} title={l.deTecnicas ? `${numBR(l.total - l.deTecnicas)} séries + ${numBR(l.deTecnicas)} de drops/mini-séries` : undefined}>
+                      {numBR(l.total)}
+                      {l.deTecnicas ? <span className="text-accent">*</span> : null}
+                    </td>
                     <td className="px-1 py-1.5 text-right font-mono">
                       {editandoMetas ? (
                         <span className="inline-flex items-center gap-0.5">
@@ -210,7 +239,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
                         <span className="text-fg-subtle">—</span>
                       )}
                     </td>
-                    {!compacto ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.frequencia ? `${l.frequencia}×` : "·"}</td> : null}
+                    {!compacto ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.frequencia ? `${numBR(l.frequencia)}×` : "·"}</td> : null}
                     {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-subtle">{l.secundario ? `+${numBR(l.secundario)}` : "·"}</td> : null}
                     {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.ponderado ? numBR(l.ponderado) : "·"}</td> : null}
                     {verRealizado ? <td className={`px-1 py-1.5 text-right font-mono ${real != null && l.total > 0 && real < l.total * 0.7 ? "text-warning" : "text-fg-muted"}`}>{real ?? "·"}</td> : null}
@@ -220,13 +249,13 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
               <tr className="border-t-2 border-border-strong text-[11px] text-fg-muted">
                 <td className="px-1 py-1.5 font-semibold">Inferiores (soma)</td>
                 {!compacto ? letras.map((x) => <td key={x} />) : null}
-                <td className="px-1 py-1.5 text-right font-mono">{resultado.subtotais.inferiores}</td>
+                <td className="px-1 py-1.5 text-right font-mono">{numBR(resultado.subtotais.inferiores)}</td>
                 <td colSpan={5} />
               </tr>
               <tr className="text-[11px] text-fg-muted">
                 <td className="px-1 py-1 font-semibold">Superiores (soma)</td>
                 {!compacto ? letras.map((x) => <td key={x} />) : null}
-                <td className="px-1 py-1 text-right font-mono">{resultado.subtotais.superiores}</td>
+                <td className="px-1 py-1 text-right font-mono">{numBR(resultado.subtotais.superiores)}</td>
                 <td colSpan={5} />
               </tr>
             </tbody>
@@ -263,6 +292,7 @@ function Conteudo({ resultado, metas, prioridades, nivel, incluirSecundario, rea
 
       <ul className="space-y-0.5 text-[10.5px] text-fg-subtle leading-snug">
         <li>Unidade: séries válidas prescritas por grupo e semana (aquecimento e cardio não contam).</li>
+        {resultado.linhas.some((l) => l.deTecnicas > 0) ? <li><span className="text-accent">*</span> inclui drops/mini-séries de técnicas avançadas (passe o dedo/mouse no número para ver a conta).</li> : null}
         {resultado.avisos.map((a, i) => (
           <li key={i}>{a}</li>
         ))}

@@ -9,8 +9,8 @@ Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 l
 | `npm run lint` | PASSOU | 0 erros, 0 avisos (regras React Compiler incluídas) |
 | `npx tsc --noEmit` | PASSOU | sem erros |
 | `npm run build` | PASSOU | 44 rotas compiladas; rotas autenticadas marcadas `force-dynamic` |
-| `npm test` (vitest) | PASSOU | 9 arquivos · **82 testes** |
-| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0013 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T7) |
+| `npm test` (vitest) | PASSOU | 10 arquivos · **93 testes** |
+| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0014 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T8) |
 
 ## Testes automatizados por tema
 
@@ -25,7 +25,8 @@ Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 l
 | Busca | `src/lib/biblioteca/busca.test.ts` (10) | “pulley” → puxadas; “rosca scott” → variações; “leg” → leg press sem flexora/extensora; parcial e sem acento; sinônimos; grupo/equipamento/padrão; filtros (grupo com e sem secundários, equipamento, tipo, favoritos, sem mídia); favoritos/uso sobem sem trazer irrelevantes; equipamento em texto livre |
 | Substituição | `src/lib/biblioteca/substituicao.test.ts` (6) | supino reto → halteres e máquina; mesmo músculo não basta; equipamento ausente descarta com motivo; restrição de joelho rebaixa e alerta; avançado para iniciante alerta; aprovada no topo e rejeitada nunca aparece |
 | Preferências | `src/lib/memoria/preferencias.test.ts` (2) | só itens salvos e não excluídos; acervo vazio não alega aprendizado |
-| RLS / migração (SQL) | `scripts/sql/test-rls.sql` (7 blocos) | T1 logbook legado migrado sem perda (duplicata preservada); T2 aluno A só lê os próprios treinos/sessões/séries/fotos; T3 aluno não cria sessão para B, não cria template, não escreve no logbook, não lê/escreve memória, não altera plano, não apaga versões; T4 sessão própria idempotente (reenvio rejeitado; dois treinos iguais no mesmo dia permitidos); T5 aluno B isolado de A; T6 treinador vê tudo, versões imutáveis, memória acessível; T7 catálogo com 150 itens e ≥300 sugestões, sem nomes duplicados, reaplicar a 0013 é idempotente e não altera prescrições, aluno lê a biblioteca mas não escreve nem vê equivalências/favoritos, favoritos de um treinador invisíveis ao outro |
+| Técnicas no volume | `src/lib/volume/tecnicas.test.ts` (11) | drop set moderado (3 + 1); teto por série; clássica não soma; alta = 1 por drop; rest-pause assumido com aviso; myo-reps em todas as séries; aquecimento fora e técnica limitada às séries válidas; cluster/superset/bi-set/pirâmide/isometria = 1; secundário acompanha; ajuste por RIR; descrição para o aluno |
+| RLS / migração (SQL) | `scripts/sql/test-rls.sql` (8 blocos) | T1 logbook legado migrado sem perda (duplicata preservada); T2 aluno A só lê os próprios treinos/sessões/séries/fotos; T3 aluno não cria sessão para B, não cria template, não escreve no logbook, não lê/escreve memória, não altera plano, não apaga versões; T4 sessão própria idempotente (reenvio rejeitado; dois treinos iguais no mesmo dia permitidos); T5 aluno B isolado de A; T6 treinador vê tudo, versões imutáveis, memória acessível; T7 catálogo com 150 itens e ≥300 sugestões, sem nomes duplicados, reaplicar a 0013 é idempotente e não altera prescrições, aluno lê a biblioteca mas não escreve nem vê equivalências/favoritos, favoritos de um treinador invisíveis ao outro; T8 0014 aceita myo-reps, limita drops/mini-séries, recusa técnica desconhecida e não altera prescrições antigas |
 
 ## Critérios de aceitação do Prompt Mestre (§12)
 
@@ -65,3 +66,11 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 | e2e demo — aluno | PASSOU | “Como executar” com até 3 dicas; vídeo não verificado não aparece |
 | e2e demo — APIs | PASSOU | aluno recebe 403 em favoritos/equivalências/criar; nome duplicado → 409; equivalência consigo → 400 |
 | Login real com treinador em produção | NÃO EXECUTADO | requer sua senha; só o build e as tabelas foram verificados |
+
+## Técnicas avançadas no volume (20/10/2026)
+
+| Item | Status | Evidência |
+|---|---|---|
+| Migration 0014 em produção | PASSOU | colunas `tecnica_extras`/`tecnica_series` e check com `myo_reps` conferidos no banco |
+| e2e demo — montador | PASSOU | tríceps 6 → drop set (1 drop assumido) 6,5* → 2 drops 7* → Clássica 6 / Alta 8 / Moderada 7; myo-reps 8*; aviso explicando a regra; sem erros no console; celular ok |
+| Pesquisa (estudos, treinadores, apps) | FEITA | VOLUME-TECNICAS.md, com o que não foi verificado marcado |

@@ -7,7 +7,7 @@ export const GRUPOS = [
   "panturrilha", "abdomen", "core", "lombar", "cardio", "full_body", "pernas", "nao_classificado", "outro",
 ] as const;
 
-export const TECNICAS = ["normal", "superset", "biset", "dropset", "rest_pause", "cluster", "piramide", "isometria", "unilateral"] as const;
+export const TECNICAS = ["normal", "superset", "biset", "dropset", "rest_pause", "cluster", "piramide", "isometria", "unilateral", "myo_reps"] as const;
 export const LETRAS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
 const texto = (max: number) => z.string().trim().max(max);
@@ -32,6 +32,8 @@ export const exercicioInputSchema = z.object({
   grupo_confianca: z.enum(["alta", "media", "baixa"]).nullable().optional().default(null),
   series_aquecimento: inteiro(0, 10).default(0),
   tecnica: z.enum(TECNICAS).default("normal"),
+  tecnica_extras: inteiroOpcional(0, 10),
+  tecnica_series: inteiroOpcional(0, 20),
   bloco: textoOpcional(20),
   unilateral: z.boolean().default(false),
   carga_alvo: textoOpcional(40),

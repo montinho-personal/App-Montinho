@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
+import { EXTRAS_PADRAO, temExtras, type RegraTecnicas } from "@/lib/volume/tecnicas";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { CartaoAnamnese } from "@/components/montador/CartaoAnamnese";
 import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
@@ -44,6 +45,10 @@ type Row = {
   seriesConfig: SerieConfig;
   aquecimento: number;
   tecnica: Tecnica;
+  /** Drops (drop set) ou mini-séries (rest-pause/myo-reps); "" = assumir o padrão. */
+  tecnicaExtras: string;
+  /** Em quantas séries a técnica é aplicada; "" = padrão (última série; myo-reps: todas). */
+  tecnicaSeries: string;
   bloco: string;
   unilateral: boolean;
   observacoes: string;
@@ -112,6 +117,7 @@ const TECNICAS: Array<{ v: Tecnica; l: string }> = [
   { v: "cluster", l: "Cluster" },
   { v: "piramide", l: "Pirâmide" },
   { v: "isometria", l: "Isometria" },
+  { v: "myo_reps", l: "Myo-reps" },
   { v: "unilateral", l: "Unilateral" },
 ];
 
@@ -127,7 +133,7 @@ const PRESETS: Array<{ nome: string; letras: TreinoLetra[]; calendario: Calendar
 
 let seq = 0;
 const novaKey = () => `k${Date.now().toString(36)}-${seq++}`;
-const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
+const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
 const cloneRow = (r: Row): Row => ({ ...r, key: novaKey(), id: null, seriesConfig: JSON.parse(JSON.stringify(r.seriesConfig)) });
 const emptyTreino = (letra: TreinoLetra): TreinoVM => ({ key: novaKey(), id: null, letra, nome: `Treino ${letra}`, ativo: true, observacoes: "", rows: [emptyRow()] });
 
@@ -143,6 +149,8 @@ function rowDeExercicio(e: ExercicioPrescrito): Row {
     seriesConfig: cfg,
     aquecimento: e.series_aquecimento ?? 0,
     tecnica: e.tecnica ?? "normal",
+    tecnicaExtras: e.tecnica_extras != null ? String(e.tecnica_extras) : "",
+    tecnicaSeries: e.tecnica_series != null ? String(e.tecnica_series) : "",
     bloco: e.bloco ?? "",
     unilateral: e.unilateral ?? false,
     observacoes: e.observacoes ?? "",
@@ -193,6 +201,31 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [avancado, setAvancado] = useState(false);
   const [incluirSecundario, setIncluirSecundario] = useState(false);
+  // Regra das técnicas avançadas e ajuste por RIR: preferência do treinador neste navegador.
+  const [regraTecnicas, setRegraTecnicasState] = useState<RegraTecnicas>("moderada");
+  const [ajustarPorRir, setAjustarPorRirState] = useState(false);
+  useEffect(() => {
+    try {
+      const r = localStorage.getItem("montinho:regraTecnicas");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferência local só existe no navegador
+      if (r === "classica" || r === "moderada" || r === "alta") setRegraTecnicasState(r);
+      if (localStorage.getItem("montinho:ajustarPorRir") === "1") setAjustarPorRirState(true);
+    } catch {
+      /* sem armazenamento local: fica o padrão */
+    }
+  }, []);
+  const setRegraTecnicas = useCallback((v: RegraTecnicas) => {
+    setRegraTecnicasState(v);
+    try {
+      localStorage.setItem("montinho:regraTecnicas", v);
+    } catch {}
+  }, []);
+  const setAjustarPorRir = useCallback((v: boolean) => {
+    setAjustarPorRirState(v);
+    try {
+      localStorage.setItem("montinho:ajustarPorRir", v ? "1" : "0");
+    } catch {}
+  }, []);
   const [motivo, setMotivo] = useState("");
   const [showFinalizados, setShowFinalizados] = useState(false);
   const [showExemplos, setShowExemplos] = useState(false);
@@ -242,13 +275,13 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             const item = itemDaLinha(r);
             // Pesos da biblioteca valem quando os secundários não foram alterados à mão.
             const pesos = !r.secundarios.length && item ? item.pesosSecundarios : null;
-            return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : item?.secundarios.length ? item.secundarios : g.secundarios, pesosSecundarios: pesos, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, contaVolume: r.contaVolume };
+            return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : item?.secundarios.length ? item.secundarios : g.secundarios, pesosSecundarios: pesos, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, tecnicaExtras: r.tecnicaExtras === "" ? null : Number(r.tecnicaExtras), tecnicaSeries: r.tecnicaSeries === "" ? null : Number(r.tecnicaSeries), rir: r.rir === "" ? null : Number(r.rir), contaVolume: r.contaVolume };
           }),
       })),
     [estado.treinos, resolver, itemDaLinha]
   );
 
-  const volume = useMemo(() => calcularVolumeSemanal(diasVolume, { frequencia, metas: estado.programa.metas_volume, incluirSecundario, agruparOmbros: false }), [diasVolume, frequencia, estado.programa.metas_volume, incluirSecundario]);
+  const volume = useMemo(() => calcularVolumeSemanal(diasVolume, { frequencia, metas: estado.programa.metas_volume, incluirSecundario, agruparOmbros: false, regraTecnicas, ajustarPorRir }), [diasVolume, frequencia, estado.programa.metas_volume, incluirSecundario, regraTecnicas, ajustarPorRir]);
 
   // Perfil ATUAL do aluno para as alternativas (nunca um treino antigo "genérico").
   const contextoAluno = useMemo<ContextoAluno>(
@@ -392,7 +425,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           nome: t.nome,
           ativo: true,
           observacoes: "",
-          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
+          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
         }));
       const restantes = somenteLetra ? e.treinos.filter((t) => t.letra !== somenteLetra) : e.treinos.filter((t) => t.id && !novos.some((n) => n.letra === t.letra)).map((t) => ({ ...t, ativo: false }));
       const treinos = [...restantes, ...novos].sort((a, b) => LETRAS_TREINO.indexOf(a.letra) - LETRAS_TREINO.indexOf(b.letra));
@@ -435,6 +468,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             grupo_confianca: g.confianca,
             series_aquecimento: r.aquecimento,
             tecnica: r.tecnica,
+            tecnica_extras: temExtras(r.tecnica) && r.tecnicaExtras !== "" ? Number(r.tecnicaExtras) : null,
+            tecnica_series: temExtras(r.tecnica) && r.tecnicaSeries !== "" ? Number(r.tecnicaSeries) : null,
             bloco: r.bloco.trim() || null,
             unilateral: r.unilateral,
             carga_alvo: r.cargaAlvo.trim() || null,
@@ -730,6 +765,14 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   <select value={r.tecnica} onChange={(e) => updRow(t.key, r.key, { tecnica: e.target.value as Tecnica, unilateral: e.target.value === "unilateral" ? true : r.unilateral })} className="rounded border border-border bg-bg px-1" aria-label="Técnica">
                                     {TECNICAS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}
                                   </select>
+                                  {temExtras(r.tecnica) ? (
+                                    <span className="inline-flex items-center gap-1 text-fg-muted" title="Usado no volume semanal. Em branco = valor padrão (mostrado em cinza).">
+                                      <input inputMode="numeric" value={r.tecnicaExtras} placeholder={String(EXTRAS_PADRAO[r.tecnica])} onChange={(e) => updRow(t.key, r.key, { tecnicaExtras: e.target.value.replace(/\D/g, "").slice(0, 2) })} className="w-8 rounded border border-border bg-bg px-1 text-center font-mono" aria-label={r.tecnica === "dropset" ? "Drops por série" : "Mini-séries por série"} />
+                                      {r.tecnica === "dropset" ? "drop(s)" : "mini(s)"} em
+                                      <input inputMode="numeric" value={r.tecnicaSeries} placeholder={r.tecnica === "myo_reps" ? "todas" : "1"} onChange={(e) => updRow(t.key, r.key, { tecnicaSeries: e.target.value.replace(/\D/g, "").slice(0, 2) })} className="w-10 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Em quantas séries" />
+                                      série(s)
+                                    </span>
+                                  ) : null}
                                   {(r.tecnica === "superset" || r.tecnica === "biset") ? <input value={r.bloco} onChange={(e) => updRow(t.key, r.key, { bloco: e.target.value })} placeholder="bloco (ex.: S1)" className="w-20 rounded border border-border bg-bg px-1" aria-label="Bloco do superset" /> : null}
                                   <label className="inline-flex items-center gap-1 text-fg-muted"><input type="checkbox" checked={r.unilateral} onChange={(e) => updRow(t.key, r.key, { unilateral: e.target.checked })} /> unilateral</label>
                                   <input value={r.cargaAlvo} onChange={(e) => updRow(t.key, r.key, { cargaAlvo: e.target.value })} placeholder="carga-alvo" className="w-20 rounded border border-border bg-bg px-1" aria-label="Carga-alvo" />
@@ -862,6 +905,10 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             onMetas={(m) => updPrograma({ metas_volume: m })}
             onPrioridades={(p) => updPrograma({ prioridades: p })}
             onSecundario={setIncluirSecundario}
+            regraTecnicas={regraTecnicas}
+            onRegraTecnicas={setRegraTecnicas}
+            ajustarPorRir={ajustarPorRir}
+            onAjustarPorRir={setAjustarPorRir}
           />
         </div>
       </div>

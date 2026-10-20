@@ -9,13 +9,13 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 - **Nunca** usar a service role (`src/lib/supabase/admin.ts`) em leituras normais; páginas e APIs usam `src/lib/supabase/rls.ts` + `src/lib/auth/session.ts`.
 - Identidade do aluno vem de `requireAlunoPage()/requireAlunoApi()` — jamais de constante ou parâmetro de URL sem `podeAcessarAluno`.
 - Modo demo só com `NEXT_PUBLIC_DEMO_MODE=true` (`src/lib/env.ts`); dados demo vivem em `src/lib/mock/store.ts`.
-- Volume semanal = séries válidas × frequência por letra (`src/lib/volume/calcular.ts`). Rótulos neutros; nada de “ideal/sobrecarga” automático.
+- Volume semanal = séries válidas × frequência por letra (`src/lib/volume/calcular.ts`); técnicas avançadas pela regra declarada em `src/lib/volume/tecnicas.ts` (fontes em VOLUME-TECNICAS.md). Rótulos neutros; nada de “ideal/sobrecarga” automático.
 - Memória de prescrições guarda só estrutura desidentificada (`src/lib/memoria/similaridade.ts#desidentificar`).
 - Entrada de API sempre validada com zod (`src/lib/validacao/schemas.ts`).
 
 ## Onde fica cada coisa
 - Marca: `src/config/brand.ts` + `public/brand/*` (logo oficial do site; trocar por vetor original quando houver).
-- Banco: `supabase/migrations/` (aditivas; novas vão em `0014_…`). Produção: projeto `app-montinho` (ref `bixfqkisvzrpxbiscqdd`), app em <https://app-montinho.vercel.app>. Teste local: `npm run db:test`.
+- Banco: `supabase/migrations/` (aditivas; novas vão em `0015_…`). Produção: projeto `app-montinho` (ref `bixfqkisvzrpxbiscqdd`), app em <https://app-montinho.vercel.app>. Teste local: `npm run db:test`.
 - Documentação: README, SETUP, GUIA-MONTINHO, ARQUITETURA, AUDITORIA-INICIAL, CHECKLIST-TESTES, ROADMAP.
 
 ## Ao editar

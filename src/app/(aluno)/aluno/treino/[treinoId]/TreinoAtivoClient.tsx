@@ -10,6 +10,7 @@
 //  • "Não consegui" → pedido de adaptação. Finalização com resumo real.
 // ============================================================================
 
+import { descreverTecnica } from "@/lib/volume/tecnicas";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,6 +62,7 @@ const TECNICA_LABEL: Record<string, string> = {
   piramide: "Pirâmide: a carga e as repetições mudam a cada série (veja a prescrição de cada uma).",
   isometria: "Isometria: segure a posição pelo tempo indicado.",
   unilateral: "Unilateral: faça um lado de cada vez. Registre uma série por lado ou o total.",
+  myo_reps: "Myo-reps: faça a série até perto da falha, descanse 3–5 respirações e faça mini-séries curtas com a mesma carga.",
 };
 
 function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
@@ -463,7 +465,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
           const completo = planejadas > 0 && feitas >= planejadas;
           const ultima = ultimas[ex.id];
           const expandido = aberto === se.id;
-          const tecnicaTxt = TECNICA_LABEL[ex.tecnica] ?? "";
+          const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
+          const tecnicaTxt = [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
           return (
             <Card key={se.id} className={completo ? "border-success/40" : expandido ? "border-accent/40" : ""}>
               <CardBody className="p-0">

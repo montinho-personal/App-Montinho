@@ -27,6 +27,7 @@ Abra o aluno → **Revisar treino** (ou **Montar treino**). O montador tem três
    - **Campos avançados** (chave no topo): séries de aquecimento, técnica (superset, bi-set, drop set, rest-pause, cluster, isometria, unilateral), bloco do superset, carga-alvo, “conta volume” (desligue para cardio/mobilidade) e músculos secundários.
    - Linhas com **⚠** cruzam a anamnese com o exercício (lesões/dores registradas).
 3. **Tabela de volume** (direita no computador; botão “Volume semanal” no celular): recalcula a cada tecla.
+   - **Técnicas avançadas**: em “campos avançados”, escolha Drop set, Rest-pause ou Myo-reps e informe quantos drops/mini-séries e em quantas séries. Na tabela, “Técnicas: …” escolhe como isso conta (Clássica = 1 por série; **Moderada** = +0,5 por drop/mini, padrão; Alta = cada drop vale 1). Números com `*` incluem técnicas. “Ajustar por RIR” reduz séries longe da falha. Detalhes e fontes: VOLUME-TECNICAS.md.
 
 **Salvar** (ou Ctrl+S) grava uma **versão** do plano. Nada do histórico do aluno é apagado: exercícios removidos ficam arquivados, sessões antigas continuam ligadas à prescrição da época. Use “Motivo da alteração” para deixar registrado o porquê (o aluno vê como revisão sua). Desfazer/refazer: Ctrl+Z / Ctrl+Y.
 

@@ -149,13 +149,14 @@ describe("calcularVolumeSemanal — cenários obrigatórios", () => {
     expect(linha(r, "peito")?.total).toBe(4);
   });
 
-  it("rest-pause e drop set: 1 série válida por série prescrita, com aviso", () => {
-    const r = calcularVolumeSemanal(
-      [{ letra: "A", exercicios: [ex("Rosca drop", "biceps", 3, { tecnica: "dropset" }), ex("Tríceps rest-pause", "triceps", 2, { tecnica: "rest_pause" })] }],
-      { frequencia: { A: 1 } }
-    );
-    expect(linha(r, "biceps")?.total).toBe(3);
-    expect(linha(r, "triceps")?.total).toBe(2);
+  it("rest-pause e drop set: regra clássica = 1 por série; moderada soma drops/minis, com aviso", () => {
+    const dias: DiaVolume[] = [{ letra: "A", exercicios: [ex("Rosca drop", "biceps", 3, { tecnica: "dropset" }), ex("Tríceps rest-pause", "triceps", 2, { tecnica: "rest_pause" })] }];
+    const classica = calcularVolumeSemanal(dias, { frequencia: { A: 1 }, regraTecnicas: "classica" });
+    expect(linha(classica, "biceps")?.total).toBe(3);
+    expect(linha(classica, "triceps")?.total).toBe(2);
+    const r = calcularVolumeSemanal(dias, { frequencia: { A: 1 } });
+    expect(linha(r, "biceps")?.total).toBe(3.5); // 1 drop assumido na última série = +0,5
+    expect(linha(r, "triceps")?.total).toBe(3); // 2 minis assumidas = +1
     expect(r.avisos.some((a) => a.toLowerCase().includes("drop"))).toBe(true);
   });
 

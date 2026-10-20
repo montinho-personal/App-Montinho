@@ -270,4 +270,28 @@ begin
 end $$;
 
 select test_logout();
+
+-- ============================================================================
+-- T8 — 0014: técnicas avançadas (myo-reps, drops/mini-séries) sem mexer no histórico
+-- ============================================================================
+do $$
+declare ex_id uuid; ok boolean := false; n int;
+begin
+  select id into ex_id from exercicios limit 1;
+  if ex_id is null then raise exception 'T8: sem exercício para testar'; end if;
+  select count(*) into n from exercicios where tecnica_extras is not null or tecnica_series is not null;
+  if n <> 0 then raise exception 'T8: prescrições antigas ganharam valor de técnica (%)', n; end if;
+  update exercicios set tecnica = 'myo_reps', tecnica_extras = 4, tecnica_series = 2 where id = ex_id;
+  begin
+    update exercicios set tecnica_extras = 99 where id = ex_id;
+  exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T8: aceitou 99 drops/mini-séries'; end if;
+  ok := false;
+  begin
+    update exercicios set tecnica = 'inventada' where id = ex_id;
+  exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T8: aceitou técnica desconhecida'; end if;
+  update exercicios set tecnica = 'normal', tecnica_extras = null, tecnica_series = null where id = ex_id;
+  raise notice 'T8 OK: myo_reps aceito, limites de drops/mini-séries e técnica validados';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

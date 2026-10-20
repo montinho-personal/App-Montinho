@@ -135,6 +135,8 @@ export type ExercicioInput = {
   grupo_confianca: "alta" | "media" | "baixa" | null;
   series_aquecimento: number;
   tecnica: Tecnica;
+  tecnica_extras?: number | null;
+  tecnica_series?: number | null;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;
@@ -203,6 +205,8 @@ function montarSnapshot(programa: Programa, treinos: TreinoComExercicios[]): Sna
       grupos_secundarios: e.grupos_secundarios ?? [],
       series_aquecimento: e.series_aquecimento ?? 0,
       tecnica: e.tecnica ?? "normal",
+      tecnica_extras: e.tecnica_extras ?? null,
+      tecnica_series: e.tecnica_series ?? null,
       bloco: e.bloco ?? null,
       unilateral: e.unilateral ?? false,
       carga_alvo: e.carga_alvo ?? null,
@@ -417,6 +421,8 @@ function camposExercicio(e: ExercicioInput, ordem: number) {
     grupo_confianca: e.grupo_confianca,
     series_aquecimento: Math.max(0, Math.floor(Number(e.series_aquecimento) || 0)),
     tecnica: e.tecnica ?? "normal",
+    tecnica_extras: e.tecnica_extras ?? null,
+    tecnica_series: e.tecnica_series ?? null,
     bloco: e.bloco,
     unilateral: Boolean(e.unilateral),
     carga_alvo: e.carga_alvo,

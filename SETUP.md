@@ -10,7 +10,7 @@ com plano gratuito suficiente pra começar.
 A ordem recomendada: **Supabase → GitHub → Vercel**.
 
 > **Estado atual (19/10/2026): já está no ar.** Supabase `app-montinho`
-> (ref `bixfqkisvzrpxbiscqdd`, São Paulo) com as migrations 0001→0013 aplicadas;
+> (ref `bixfqkisvzrpxbiscqdd`, São Paulo) com as migrations 0001→0014 aplicadas;
 > código em `main` no GitHub (`montinho-personal/App-Montinho`); Vercel
 > `app-montinho` publicado em <https://app-montinho.vercel.app> com
 > `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `NEXT_PUBLIC_APP_URL`.
@@ -32,13 +32,14 @@ A ordem recomendada: **Supabase → GitHub → Vercel**.
 1. No menu lateral do Supabase, abra **SQL Editor**.
 2. Abra a pasta `supabase/migrations/` deste projeto. Você verá vários arquivos
    `.sql` numerados (`0001_...`, `0002_...`, etc.).
-3. **Na ordem numérica** (0001 → 0013), abra cada arquivo, copie todo o conteúdo, cole no SQL
+3. **Na ordem numérica** (0001 → 0014), abra cada arquivo, copie todo o conteúdo, cole no SQL
    Editor e clique **Run**. Faça um de cada vez, do menor número ao maior.
    A 0008 só cria valores de enum; a 0009 cria sessões, versões e memória e
    migra o logbook antigo sem apagar nada (rode fora do horário de uso se já houver dados);
    a 0010 endurece as funções (search_path fixo, trigger de cadastro fora da API);
    a 0011–0012 preparam a biblioteca inteligente (equipamentos, metadados, equivalências, favoritos)
    e a 0013 carrega o catálogo de 150 exercícios (pode rodar de novo sem duplicar nada).
+   A 0014 permite contar drop set, rest-pause e myo-reps no volume.
    Em produção a 0013 foi aplicada em 4 partes (`0013a`…`0013d`), com o mesmo conteúdo.
 
    > O catálogo vive em `src/lib/biblioteca/catalogo.ts`. Se alguém mudar esse arquivo, a 0013 é

@@ -15,7 +15,7 @@ export const metadata = { title: "Memória de treinos" };
 
 const TECNICA_LABEL: Record<string, string> = {
   superset: "Superset", biset: "Bi-set", dropset: "Drop set", rest_pause: "Rest-pause", cluster: "Cluster",
-  piramide: "Pirâmide", isometria: "Isometria", unilateral: "Unilateral",
+  piramide: "Pirâmide", isometria: "Isometria", unilateral: "Unilateral", myo_reps: "Myo-reps",
 };
 
 export default async function MemoriaPage() {

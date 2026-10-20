@@ -22,6 +22,10 @@ export type ExercicioPrescrito = Exercicio & {
   grupo_confianca: Confianca | null;
   series_aquecimento: number;
   tecnica: Tecnica;
+  /** Drops (drop set) ou mini-séries (rest-pause/myo-reps) por série; null = padrão. */
+  tecnica_extras?: number | null;
+  /** Em quantas séries válidas a técnica é aplicada; null = padrão. */
+  tecnica_series?: number | null;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;
@@ -81,6 +85,8 @@ export type SnapshotExercicio = {
   grupos_secundarios: GrupoMuscular[];
   series_aquecimento: number;
   tecnica: Tecnica;
+  tecnica_extras?: number | null;
+  tecnica_series?: number | null;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;

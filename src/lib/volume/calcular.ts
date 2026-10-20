@@ -22,6 +22,7 @@ import {
   SUBGRUPOS_OMBRO,
   type Confianca,
 } from "@/lib/grupos";
+import { bonusTecnica, EXTRAS_PADRAO, fatorRir, REGRAS_TECNICAS, temExtras, type RegraTecnicas } from "./tecnicas";
 
 export type Tecnica =
   | "normal"
@@ -32,7 +33,8 @@ export type Tecnica =
   | "cluster"
   | "piramide"
   | "isometria"
-  | "unilateral";
+  | "unilateral"
+  | "myo_reps";
 
 export type ExercicioVolume = {
   id: string;
@@ -45,6 +47,12 @@ export type ExercicioVolume = {
   /** Séries de aquecimento dentro de `series` (não contam como válidas). */
   seriesAquecimento?: number | null;
   tecnica?: Tecnica | null;
+  /** Drops (drop set) ou mini-séries (rest-pause, myo-reps) por série com a técnica. */
+  tecnicaExtras?: number | null;
+  /** Quantas séries válidas usam a técnica (padrão: última série; myo-reps: todas). */
+  tecnicaSeries?: number | null;
+  /** RIR prescrito (usado só com `ajustarPorRir`). */
+  rir?: number | null;
   /** false para cardio/mobilidade/técnica sem equivalência direta. */
   contaVolume?: boolean | null;
   /** Peso de cada músculo secundário (da biblioteca). Sem peso: usa `fatorSecundario`. */
@@ -78,6 +86,10 @@ export type OpcoesVolume = {
   usarPesosBiblioteca?: boolean;
   /** Agrupa ombro anterior/lateral/posterior em "ombros" (padrão true). */
   agruparOmbros?: boolean;
+  /** Como drops/mini-séries entram no volume (padrão "moderada"). Ver tecnicas.ts. */
+  regraTecnicas?: RegraTecnicas;
+  /** Reduz séries longe da falha pelo RIR prescrito (RIR 4–5 = 0,5; >5 = 0). Padrão false. */
+  ajustarPorRir?: boolean;
 };
 
 export type StatusMeta = "abaixo" | "na_meta" | "acima" | "sem_meta";
@@ -95,6 +107,8 @@ export type LinhaVolume = {
   frequencia: number;
   /** Estímulo secundário estimado (heurístico, separado do total). */
   secundario: number;
+  /** Parte do total que vem de drops/mini-séries de técnicas avançadas. */
+  deTecnicas: number;
   /** Estimativa ponderada = séries diretas + secundário estimado (nunca substitui o total direto). */
   ponderado: number;
   /** Quantos exercícios deste grupo precisam de revisão (heurística/legado). */
@@ -204,6 +218,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         frequencia: 0,
         secundario: 0,
         ponderado: 0,
+        deTecnicas: 0,
         exerciciosRevisar: 0,
         inferior: GRUPOS_INFERIORES.includes(g),
         superior: GRUPOS_SUPERIORES.includes(g),
@@ -214,7 +229,11 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
   };
 
   let sessoesSemana = 0;
-  let avisoTecnica = false;
+  const regra: RegraTecnicas = opcoes.regraTecnicas && REGRAS_TECNICAS[opcoes.regraTecnicas] ? opcoes.regraTecnicas : "moderada";
+  let usouTecnica = false;
+  let tecnicaAssumida = false;
+  let avisoCluster = false;
+  let reduziuRir = false;
   let avisoAquec = false;
 
   for (const dia of dias) {
@@ -232,17 +251,26 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         if (g === "cardio") getLinha("cardio");
         continue;
       }
-      const validas = seriesValidas(ex);
+      const base = seriesValidas(ex);
+      const tec = bonusTecnica(ex, base, regra);
+      const fator = opcoes.ajustarPorRir ? fatorRir(ex.rir) : 1;
+      if (fator < 1 && base > 0) reduziuRir = true;
+      if (temExtras(ex.tecnica) && base > 0) {
+        usouTecnica = true;
+        if (tec.assumido) tecnicaAssumida = true;
+      }
+      if (ex.tecnica === "cluster") avisoCluster = true;
+      const validas = (base + tec.bonus) * fator;
       const linha = getLinha(g);
       if (ex.confianca && ex.confianca !== "alta") linha.exerciciosRevisar += vezes > 0 ? 1 : 0;
       if (g === "pernas" || g === "nao_classificado") linha.exerciciosRevisar += 0; // já contado acima quando heurística
       if (inteiroNaoNegativo(ex.seriesAquecimento) > 0) avisoAquec = true;
-      if (ex.tecnica && ["dropset", "rest_pause", "cluster"].includes(ex.tecnica)) avisoTecnica = true;
 
       if (validas <= 0) continue;
       const semana = validas * vezes;
       linha.porDia[dia.letra] = (linha.porDia[dia.letra] ?? 0) + validas; // por SESSÃO do dia
       linha.total += semana;
+      linha.deTecnicas += tec.bonus * fator * vezes;
       if (vezes > 0) tocados.add(g);
 
       if (opcoes.incluirSecundario) {
@@ -261,8 +289,13 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
   }
 
   if (avisoAquec) avisos.push("Séries de aquecimento não contam como séries válidas.");
-  if (avisoTecnica)
-    avisos.push("Drop set, rest-pause e cluster contam 1 série válida por série prescrita (os \"drops\" não somam).");
+  if (usouTecnica)
+    avisos.push(
+      `Técnicas avançadas — regra ${REGRAS_TECNICAS[regra].label.toLowerCase()}: ${REGRAS_TECNICAS[regra].descricao}` +
+        (tecnicaAssumida ? ` Onde não foi informado, assumimos ${EXTRAS_PADRAO.dropset} drop e ${EXTRAS_PADRAO.rest_pause} mini-séries no rest-pause (na última série) e ${EXTRAS_PADRAO.myo_reps} mini-séries no myo-reps (em todas).` : "")
+    );
+  if (avisoCluster) avisos.push("Cluster conta 1 série por série prescrita (as pausas internas não somam séries).");
+  if (reduziuRir) avisos.push("Ajuste por RIR ligado: séries com RIR 4–5 contam 0,5 e acima de 5 não contam.");
   if (opcoes.incluirSecundario)
     avisos.push(
       usouPesos
@@ -279,6 +312,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
     linha.meta = meta && Number.isFinite(meta.min) && Number.isFinite(meta.max) ? { min: Math.max(0, meta.min), max: Math.max(0, meta.max) } : null;
     linha.total = Math.round(linha.total * 100) / 100;
     linha.secundario = Math.round(linha.secundario * 100) / 100;
+    linha.deTecnicas = Math.round(linha.deTecnicas * 100) / 100;
     linha.ponderado = Math.round((linha.total + linha.secundario) * 100) / 100;
     linha.frequencia = Math.round(linha.frequencia * 100) / 100;
     if (!linha.meta) {

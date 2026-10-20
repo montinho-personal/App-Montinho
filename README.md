@@ -37,20 +37,20 @@ Abra <http://localhost:3000>. Em demo, a tela de entrada mostra personas fictíc
 npm run lint        # ESLint (regras Next + React Compiler)
 npm run typecheck   # TypeScript
 npm run build       # build de produção
-npm test            # 82 testes unitários (volume, biblioteca, busca, substituição, memória, relatórios, fila, autorização)
+npm test            # 93 testes unitários (volume, biblioteca, busca, substituição, memória, relatórios, fila, autorização)
 PGHOST=localhost PGPORT=5432 PGUSER=postgres npm run db:test   # migrations + RLS em Postgres local
 ```
 
 ## Publicar
 
 **Já publicado:** <https://app-montinho.vercel.app> (Vercel, branch `main`) ligado ao
-Supabase `app-montinho` (ref `bixfqkisvzrpxbiscqdd`, migrations 0001→0013). Pendências
+Supabase `app-montinho` (ref `bixfqkisvzrpxbiscqdd`, migrations 0001→0014). Pendências
 que dependem da conta do dono (chave `service_role`, URL no Auth, primeiro treinador):
 SETUP.md → "Pendências de ativação".
 
 Para recriar do zero:
 
-1. Supabase: rodar `supabase/migrations/0001…0013` na ordem (SQL Editor ou `supabase db push`).
+1. Supabase: rodar `supabase/migrations/0001…0014` na ordem (SQL Editor ou `supabase db push`).
 2. Vercel: importar o repositório e definir `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`. **Não** defina `NEXT_PUBLIC_DEMO_MODE` em produção.
 3. Supabase Auth → URL Configuration: adicionar a URL da Vercel.
 4. Criar sua conta pelo app e mudar `profiles.role` para `treinador`.
@@ -74,7 +74,7 @@ src/
     ├── sync/          fila local idempotente
     ├── validacao/     schemas zod
     └── mock/          dados fictícios do modo demo
-supabase/migrations/   0001–0013 (0013 = catálogo de 150 exercícios)
+supabase/migrations/   0001–0014 (0013 = catálogo de 150 exercícios; 0014 = técnicas no volume)
 scripts/               testes de RLS em Postgres local, seed fictício
 docs/screenshots/      evidências visuais
 ```

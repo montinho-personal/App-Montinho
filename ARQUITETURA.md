@@ -49,6 +49,9 @@ Colunas novas em `exercicios`: `grupo_muscular`, `grupos_secundarios`, `grupo_or
 - 0013: catálogo v1 (150 exercícios + 351 sugestões). Upsert por `slug` que só atualiza itens `origem='catalogo'` de versão anterior; nunca toca `exercicios` (prescrições).
 - Fonte única: `src/lib/biblioteca/catalogo.ts` → `scripts/gerar-sql-catalogo.mts`. Busca: `busca.ts`; substituição: `substituicao.ts` (regras explicáveis, sem IA); volume ponderado: `calcular.ts` com `pesosSecundarios`.
 
+### 0014 — técnicas no volume
+`exercicios.tecnica` aceita `myo_reps`; novas colunas `tecnica_extras` (drops/mini-séries por série) e `tecnica_series` (em quantas séries). `null` = padrão do app. Cálculo em `src/lib/volume/tecnicas.ts` (regras Clássica/Moderada/Alta + ajuste opcional por RIR); fontes em VOLUME-TECNICAS.md.
+
 ### Três entidades separadas (Prompt Mestre §3.2)
 1. **Plano prescrito** — `programas` + `treinos` + `exercicios`. Editável; cada salvamento incrementa `versao` e grava `programa_versoes`.
 2. **Sessão realizada** — `training_sessions` (status `em_andamento|concluida|abandonada`, `snapshot` da prescrição, totais) + `session_exercises` + `session_sets` (carga, reps, RIR, tipo `valida|aquecimento|dropset|...`).
