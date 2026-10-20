@@ -131,6 +131,14 @@ export type TrainingSession = {
   feedback_percepcao: "leve" | "ok" | "pesado" | "dor" | null;
   feedback_comentario: string | null;
   origem: "app" | "legado_logbook" | "treinador";
+  /** 0017: tempo estimado congelado no início, pausas, check-in pré-treino, modo. */
+  tempo_estimado_seg?: number | null;
+  pausado_seg?: number;
+  checkin_pre?: "muito_bem" | "normal" | "cansado" | "desconforto" | "prefiro_nao" | null;
+  checkin_pre_nota?: string | null;
+  modo?: "normal" | "reduzido" | "extra";
+  tempo_disponivel_min?: number | null;
+  lembrete_enviado_em?: string | null;
   created_at: string;
   updated_at: string;
 };

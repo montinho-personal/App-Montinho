@@ -10,6 +10,8 @@ import { demoStore, uid } from "@/lib/mock/store";
 import { normalizarNome } from "@/lib/grupos";
 import type { SerieTipo, SessionExercise, SessionExerciseStatus, SessionSet, TrainingSession, TreinoLetra } from "@/lib/supabase/types-sessoes";
 import { getTreinoComExercicios } from "./programas";
+import { estimarPrescricao } from "@/lib/tempo/prescricao";
+import type { ParametrosTempo } from "@/lib/tempo/estimar";
 
 export type SessaoCompleta = TrainingSession & {
   exercicios: Array<SessionExercise & { series: SessionSet[] }>;
@@ -133,7 +135,7 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
 // ---------------------------------------------------------------------------
 // Escrita (aluno)
 // ---------------------------------------------------------------------------
-export async function iniciarSessao(alunoId: string, input: { treinoId: string; clientKey: string }): Promise<SessaoCompleta> {
+export async function iniciarSessao(alunoId: string, input: { treinoId: string; clientKey: string; checkinPre?: TrainingSession["checkin_pre"]; checkinPreNota?: string | null }): Promise<SessaoCompleta> {
   const agora = new Date().toISOString();
   // idempotência: mesma client_key → mesma sessão
   if (isDemoMode()) {
@@ -163,8 +165,13 @@ export async function iniciarSessao(alunoId: string, input: { treinoId: string; 
     iniciado_em: agora,
     finalizado_em: null,
     duracao_seg: null,
-    snapshot: { treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes }, exercicios: treino.exercicios },
+    snapshot: { treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: temposDoTreino(treino) }, exercicios: treino.exercicios },
     series_planejadas: planejadas,
+    tempo_estimado_seg: estimarPrescricao(treino.exercicios, temposDoTreino(treino)).totalSeg || null,
+    pausado_seg: 0,
+    checkin_pre: input.checkinPre ?? null,
+    checkin_pre_nota: input.checkinPreNota ?? null,
+    modo: "normal",
     series_concluidas: 0,
     feedback_percepcao: null,
     feedback_comentario: null,
@@ -311,7 +318,13 @@ export type FinalizarInput = {
   feedback_percepcao?: TrainingSession["feedback_percepcao"];
   feedback_comentario?: string | null;
   duracao_seg?: number | null;
+  pausado_seg?: number | null;
 };
+
+/** Tempos efetivos do treino (salvos pelo montador); legado: só os ajustes do treino. */
+function temposDoTreino(t: { tempos_efetivos?: Record<string, unknown> | null; tempos?: Record<string, unknown> | null }): Partial<ParametrosTempo> {
+  return ((t.tempos_efetivos ?? t.tempos ?? {}) as Partial<ParametrosTempo>) ?? {};
+}
 
 export async function finalizarSessao(alunoId: string, sessionId: string, input: FinalizarInput = {}): Promise<SessaoCompleta> {
   const agora = new Date().toISOString();
@@ -323,7 +336,8 @@ export async function finalizarSessao(alunoId: string, sessionId: string, input:
     if (s.status === "em_andamento") {
       s.status = status;
       s.finalizado_em = agora;
-      s.duracao_seg = input.duracao_seg ?? Math.round((Date.now() - new Date(s.iniciado_em).getTime()) / 1000);
+      s.pausado_seg = input.pausado_seg ?? s.pausado_seg ?? 0;
+      s.duracao_seg = input.duracao_seg ?? Math.max(0, Math.round((Date.now() - new Date(s.iniciado_em).getTime()) / 1000) - (s.pausado_seg ?? 0));
       s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length;
     }
     if (input.feedback_percepcao !== undefined) s.feedback_percepcao = input.feedback_percepcao;
@@ -341,7 +355,10 @@ export async function finalizarSessao(alunoId: string, sessionId: string, input:
     const { count } = await db.from("session_sets").select("id", { count: "exact", head: true }).eq("session_id", sessionId).neq("tipo", "aquecimento");
     patch.status = status;
     patch.finalizado_em = agora;
-    patch.duracao_seg = input.duracao_seg ?? Math.round((Date.now() - new Date(s.iniciado_em).getTime()) / 1000);
+    // Duração realizada = tempo de relógio menos as pausas registradas pelo aluno.
+    const pausado = input.pausado_seg ?? 0;
+    patch.pausado_seg = pausado;
+    patch.duracao_seg = input.duracao_seg ?? Math.max(0, Math.round((Date.now() - new Date(s.iniciado_em).getTime()) / 1000) - pausado);
     patch.series_concluidas = count ?? 0;
   }
   if (input.feedback_percepcao !== undefined) patch.feedback_percepcao = input.feedback_percepcao;

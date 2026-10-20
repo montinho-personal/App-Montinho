@@ -51,6 +51,7 @@ export const treinoInputSchema = z.object({
   duracao_estimada_min: inteiroOpcional(5, 300),
   tempo_alvo_min: inteiroOpcional(5, 300),
   tempos: z.record(z.string(), z.union([z.number().min(0).max(900), z.boolean()])).optional(),
+  tempos_efetivos: z.record(z.string(), z.union([z.number().min(0).max(1800), z.boolean()])).optional(),
   exercicios: z.array(exercicioInputSchema).max(40),
 });
 
@@ -89,9 +90,13 @@ export const salvarPlanoSchema = z.object({
     .optional(),
 });
 
+export const CHECKIN_PRE = ["muito_bem", "normal", "cansado", "desconforto", "prefiro_nao"] as const;
+
 export const iniciarSessaoSchema = z.object({
   treino_id: z.string().min(1).max(64),
   client_key: z.string().min(8).max(80),
+  checkin_pre: z.enum(CHECKIN_PRE).nullable().optional(),
+  checkin_pre_nota: textoOpcional(300),
 });
 
 export const serieSchema = z.object({
@@ -115,6 +120,7 @@ export const finalizarSessaoSchema = z.object({
   feedback_percepcao: z.enum(["leve", "ok", "pesado", "dor"]).nullable().optional(),
   feedback_comentario: textoOpcional(500),
   duracao_seg: inteiroOpcional(0, 36000),
+  pausado_seg: inteiroOpcional(0, 36000),
 });
 
 export const exercicioSessaoPatchSchema = z.object({

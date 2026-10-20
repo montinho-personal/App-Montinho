@@ -49,6 +49,8 @@ export type Treino = {
   /** Parâmetros de tempo do treino (descansos, s/rep, transição…); ver src/lib/tempo/estimar.ts. */
   tempos?: Record<string, unknown> | null;
   tempo_alvo_min?: number | null;
+  /** Parâmetros de tempo efetivos no salvamento (treinador + treino). */
+  tempos_efetivos?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };

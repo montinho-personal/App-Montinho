@@ -476,6 +476,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       ativo: t.ativo,
       observacoes: t.observacoes.trim() || null,
       tempos: t.tempos as Record<string, number | boolean>,
+      tempos_efetivos: duracoes[t.key]?.efetivos as Record<string, number | boolean> | undefined,
       tempo_alvo_min: Number(t.tempoAlvo) >= 5 ? Number(t.tempoAlvo) : null,
       duracao_estimada_min: duracoes[t.key]?.resultado.series ? Math.max(5, Math.min(300, Math.round(duracoes[t.key].resultado.totalSeg / 60))) : null,
       exercicios: t.rows

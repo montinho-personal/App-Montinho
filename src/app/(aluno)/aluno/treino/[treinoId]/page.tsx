@@ -8,6 +8,8 @@ import { normalizarNome } from "@/lib/grupos";
 import { TreinoAtivoClient } from "./TreinoAtivoClient";
 import { indicePorNome } from "@/lib/biblioteca/itens";
 import type { VideoProvider } from "@/lib/supabase/types-extended";
+import type { ParametrosTempo } from "@/lib/tempo/estimar";
+import { agoraServidorMs } from "@/lib/tempo/ritmo";
 
 type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string }> };
 
@@ -57,7 +59,8 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
 
   return (
     <TreinoAtivoClient
-      treino={{ id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes }}
+      treino={{ id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: ((treino.tempos_efetivos ?? treino.tempos ?? {}) as Partial<ParametrosTempo>) }}
+      agoraServidor={agoraServidorMs()}
       exercicios={exercicios}
       ultimas={ultimas}
       sessaoInicial={sessaoAtiva}

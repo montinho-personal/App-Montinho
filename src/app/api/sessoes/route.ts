@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const { data, error: vErr } = await lerJson(request, iniciarSessaoSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
-    const s = await iniciarSessao(sessao.alunoId, { treinoId: data.treino_id, clientKey: data.client_key });
+    const s = await iniciarSessao(sessao.alunoId, { treinoId: data.treino_id, clientKey: data.client_key, checkinPre: data.checkin_pre ?? null, checkinPreNota: data.checkin_pre_nota ?? null });
     return NextResponse.json(s, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao iniciar sessão";

@@ -376,4 +376,26 @@ begin
   begin update exercicios set descanso_apos_seg = 5000 where id = (select id from exercicios limit 1); raise exception 'T10: aceitou descanso de 5000 s'; exception when check_violation then null; end;
   raise notice 'T10 OK: padrão de tempos isolado por treinador, aluno sem escrita, limites validados';
 end $$;
+-- ============================================================================
+-- T11 — 0017: check-in pré-treino, pausas e modo da sessão
+-- ============================================================================
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  insert into training_sessions (aluno_id, treino_id, client_key, checkin_pre, tempo_estimado_seg)
+  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 't11-ok', 'cansado', 3000);
+  begin
+    insert into training_sessions (aluno_id, client_key, checkin_pre) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't11-x', 'animadissimo');
+  exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T11: aceitou check-in fora da lista'; end if;
+  ok := false;
+  begin
+    insert into training_sessions (aluno_id, client_key, checkin_pre) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 't11-b', 'normal');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T11: aluno A criou sessão com check-in para B'; end if;
+  if (select modo from training_sessions where client_key = 't11-ok') <> 'normal' then raise exception 'T11: modo padrão deveria ser normal'; end if;
+  raise notice 'T11 OK: check-in pré-treino validado, isolado por aluno; modo padrão normal';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

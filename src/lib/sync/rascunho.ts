@@ -25,6 +25,8 @@ export type Rascunho = {
   aberto: string | null;
   /** Fim do descanso em andamento (epoch ms). */
   descansoAte: number | null;
+  /** Pausas do treino: total já pausado e início da pausa atual (epoch ms). */
+  pausas?: { totalMs: number; desde: number | null };
   salvoEm: number;
 };
 
@@ -51,7 +53,7 @@ export function lerRascunho(storage: StorageLike, sessaoId: string, agora = Date
 
 export function gravarRascunho(storage: StorageLike, sessaoId: string, r: Omit<Rascunho, "v" | "salvoEm">, agora = Date.now()): void {
   try {
-    const vazio = !Object.values(r.series).some((l) => l.length) && !r.aberto && !r.descansoAte;
+    const vazio = !Object.values(r.series).some((l) => l.length) && !r.aberto && !r.descansoAte && !r.pausas?.totalMs && !r.pausas?.desde;
     if (vazio) storage.removeItem(chave(sessaoId));
     else storage.setItem(chave(sessaoId), JSON.stringify({ ...r, v: 1, salvoEm: agora }));
   } catch {

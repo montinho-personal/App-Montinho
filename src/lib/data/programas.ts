@@ -154,6 +154,7 @@ export type TreinoInput = {
   duracao_estimada_min?: number | null;
   tempo_alvo_min?: number | null;
   tempos?: Record<string, number | boolean>;
+  tempos_efetivos?: Record<string, number | boolean>;
   exercicios: ExercicioInput[];
 };
 
@@ -341,7 +342,7 @@ export async function salvarPlano(alunoId: string, autorId: string, input: Salva
   const resultado: TreinoComExercicios[] = [];
   for (let ordem = 0; ordem < input.treinos.length; ordem++) {
     const t = input.treinos[ordem];
-    const payload = { aluno_id: alunoId, letra: t.letra, nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, programa_id: programa.id, duracao_estimada_min: t.duracao_estimada_min ?? null, tempo_alvo_min: t.tempo_alvo_min ?? null, tempos: t.tempos ?? {} };
+    const payload = { aluno_id: alunoId, letra: t.letra, nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, programa_id: programa.id, duracao_estimada_min: t.duracao_estimada_min ?? null, tempo_alvo_min: t.tempo_alvo_min ?? null, tempos: t.tempos ?? {}, ...(t.tempos_efetivos ? { tempos_efetivos: t.tempos_efetivos } : {}) };
     let treino: Treino & { versao?: number };
     if (t.id) {
       const { data: existente } = await db.from("treinos").select("versao").eq("id", t.id).eq("aluno_id", alunoId).maybeSingle();

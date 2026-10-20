@@ -23,6 +23,10 @@ import { VideoPlayer } from "@/components/ui/VideoPlayer";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
 import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
+import { RitmoTreino } from "@/components/aluno/RitmoTreino";
+import { estimarPrescricao, descansoAposSerie } from "@/lib/tempo/prescricao";
+import { offsetRelogio } from "@/lib/tempo/ritmo";
+import type { ParametrosTempo } from "@/lib/tempo/estimar";
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
@@ -33,8 +37,10 @@ import { BRAND } from "@/config/brand";
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
 
 type Props = {
-  treino: { id: string; letra: string; nome: string; observacoes: string | null };
+  treino: { id: string; letra: string; nome: string; observacoes: string | null; tempos: Partial<ParametrosTempo> };
   exercicios: ExercicioView[];
+  /** Horário do servidor na renderização (corrige relógio do aparelho). */
+  agoraServidor: number;
   ultimas: Record<string, UltimaExecucao | null>;
   sessaoInicial: SessaoCompleta | null;
   outraSessao: { id: string; treinoId: string | null; nome: string | null } | null;
@@ -55,6 +61,14 @@ type SerieLocal = {
 
 type EstadoSync = "sincronizado" | "pendente" | "enviando" | "offline" | "erro";
 
+const CHECKIN_OPCOES = [
+  { v: "muito_bem", l: "Muito bem" },
+  { v: "normal", l: "Normal" },
+  { v: "cansado", l: "Cansado" },
+  { v: "desconforto", l: "Com desconforto" },
+  { v: "prefiro_nao", l: "Prefiro não responder" },
+] as const;
+
 const TECNICA_LABEL: Record<string, string> = {
   normal: "",
   superset: "Superset: faça junto com o exercício do mesmo bloco, sem descanso entre eles.",
@@ -74,7 +88,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
@@ -94,6 +108,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   // Conferência ao concluir: mostra o que falta marcar antes de finalizar.
   const [conferindo, setConferindo] = useState(false);
   const conferenciaRef = useRef<HTMLDivElement>(null);
+  // Ritmo: pausas do treino (persistidas no rascunho) e correção do relógio do aparelho.
+  const [pausas, setPausas] = useState<{ totalMs: number; desde: number | null }>({ totalMs: 0, desde: null });
+  const [offsetMs, setOffsetMs] = useState(0);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- relógio do aparelho só existe no navegador
+    setOffsetMs(offsetRelogio(agoraServidor, Date.now()));
+  }, [agoraServidor]);
+  const [checkinPre, setCheckinPre] = useState<(typeof CHECKIN_OPCOES)[number]["v"] | null>(null);
+  const [checkinNota, setCheckinNota] = useState("");
   const drenando = useRef(false);
   // Rascunho (o que ainda não foi concluído): só é gravado depois de restaurado,
   // para a tela vazia do primeiro render não apagar o que estava guardado.
@@ -145,6 +168,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
       if (primeiraVez) {
         const ordem = s.exercicios.map((e) => e.id);
         setAberto(rascunho?.aberto && ordem.includes(rascunho.aberto) ? rascunho.aberto : primeiroPendente(ordem, comRascunho));
+        if (rascunho?.pausas) setPausas(rascunho.pausas);
         const resta = rascunho?.descansoAte ? Math.ceil((rascunho.descansoAte - Date.now()) / 1000) : 0;
         if (resta > 0) setTimer({ seg: resta, key: Date.now(), fim: rascunho!.descansoAte! });
         const jaFez = Object.values(comRascunho).some((l) => l.some((x) => x.concluida));
@@ -158,8 +182,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   // Grava o rascunho a cada mudança (digitação, exercício aberto, descanso).
   useEffect(() => {
     if (!sessao || !storage || hidratadaRef.current !== sessao.id) return;
-    gravarRascunho(storage, sessao.id, { series: rascunhoDasSeries(series, planejadasRef.current), aberto, descansoAte: timer?.fim ?? null });
-  }, [series, aberto, timer, sessao, storage]);
+    gravarRascunho(storage, sessao.id, { series: rascunhoDasSeries(series, planejadasRef.current), aberto, descansoAte: timer?.fim ?? null, pausas });
+  }, [series, aberto, timer, sessao, storage, pausas]);
 
   // Reconciliação com a fila local (localStorage é um sistema externo: sincroniza fora do render)
   useEffect(() => {
@@ -241,7 +265,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     setIniciando(true);
     try {
       const chave = `sess:${treino.id}:${new Date().toISOString().slice(0, 10)}:${gerarClientKey("s").slice(2, 10)}`;
-      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave }) });
+      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Não foi possível iniciar");
       setSessao(data as SessaoCompleta);
@@ -281,8 +305,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     atualizar(seId, idx, { concluida: true, sincronizada: false });
     setPendentes((n) => n + 1);
     setSync("pendente");
-    if (!silencioso && ex.descanso_seg && ex.descanso_seg > 0 && s.tipo === "valida") {
-      const seg = ex.descanso_seg;
+    const ordem = sessao.exercicios.map((x) => x.id);
+    const descanso = descansoAposSerie(ex, s.serie, ordem.indexOf(seId) === ordem.length - 1, temposSessao);
+    if (!silencioso && descanso && descanso > 0) {
+      const seg = descanso;
       const fim = new Date().getTime() + seg * 1000;
       setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim }));
     }
@@ -322,7 +348,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   async function finalizar(status: "concluida" | "abandonada") {
     if (!sessao || !storage) return;
     setFinalizando(true);
-    enfileirar(storage, sessao.id, { tipo: "finalizar", sessionId: sessao.id, clientKey: `fim:${sessao.id}`, payload: { status, feedback_percepcao: feedback } });
+    enfileirar(storage, sessao.id, { tipo: "finalizar", sessionId: sessao.id, clientKey: `fim:${sessao.id}`, payload: { status, feedback_percepcao: feedback, pausado_seg: Math.round((pausas.totalMs + (pausas.desde ? new Date().getTime() + offsetMs - pausas.desde : 0)) / 1000) } });
     setPendentes((n) => n + 1);
     const r = await drenar(storage, sessao.id, enviar);
     setPendentes(r.restantes.length);
@@ -345,6 +371,27 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   // ------------------------------------------------------------------------
   const totalPlanejado = useMemo(() => Object.values(series).flat().filter((s) => s.tipo === "valida").length, [series]);
   const totalFeito = useMemo(() => Object.values(series).flat().filter((s) => s.tipo === "valida" && s.concluida).length, [series]);
+  // Plano de tempo congelado no início da sessão (snapshot); sem snapshot, usa o treino atual.
+  // (o React Compiler memoriza estes cálculos)
+  const snapshotSessao = sessao?.snapshot as { treino?: { tempos?: Partial<ParametrosTempo> }; exercicios?: ExercicioPrescrito[] } | null | undefined;
+  const temposSessao: Partial<ParametrosTempo> = snapshotSessao?.treino?.tempos ?? treino.tempos ?? {};
+  const plano = estimarPrescricao(snapshotSessao?.exercicios ?? exercicios, temposSessao);
+  const exerciciosFeitos = sessao
+    ? sessao.exercicios.filter((se) => {
+        const st = statusEx[se.id] ?? se.status;
+        if (st === "pulado" || st === "nao_consegui") return true;
+        const l = (series[se.id] ?? []).filter((x) => x.tipo === "valida");
+        return l.length > 0 && l.every((x) => x.concluida);
+      }).length
+    : 0;
+  function pausar() {
+    const agora = new Date().getTime() + offsetMs;
+    setPausas((p) => (p.desde ? p : { ...p, desde: agora }));
+  }
+  function retomar() {
+    const agora = new Date().getTime() + offsetMs;
+    setPausas((p) => (p.desde ? { totalMs: p.totalMs + Math.max(0, agora - p.desde), desde: null } : p));
+  }
   const pendencias = useMemo(
     () => (sessao ? verificarPendencias(sessao.exercicios.map((se, i) => ({ seId: se.id, nome: (exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício", status: statusEx[se.id] ?? se.status })), series) : []),
     [sessao, exercicios, series, statusEx]
@@ -456,6 +503,24 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                 ou comece este agora.
               </div>
             ) : null}
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-semibold">Como você está hoje? <span className="font-normal text-fg-subtle">(opcional)</span></legend>
+              <div className="flex flex-wrap gap-1.5">
+                {CHECKIN_OPCOES.map((o) => (
+                  <button key={o.v} type="button" aria-pressed={checkinPre === o.v} onClick={() => setCheckinPre(checkinPre === o.v ? null : o.v)} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${checkinPre === o.v ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              {checkinPre === "desconforto" ? (
+                <div className="space-y-1.5">
+                  <input value={checkinNota} onChange={(e) => setCheckinNota(e.target.value.slice(0, 300))} placeholder="Onde e como? (opcional)" className="h-10 w-full rounded-md border border-border bg-bg px-3 text-sm" aria-label="Descreva o desconforto" />
+                  <p className="text-xs text-fg-muted">Respeite seus limites hoje. Se for dor forte ou diferente do normal, fale com o {BRAND.name} antes de treinar. Isso não substitui avaliação profissional.</p>
+                </div>
+              ) : checkinPre === "cansado" ? (
+                <p className="text-xs text-fg-muted">Tudo bem. Faça o que for possível com boa execução; o {BRAND.name} verá como você chegou hoje.</p>
+              ) : null}
+            </fieldset>
             <Button variant="primary" size="lg" className="w-full touch" loading={iniciando} onClick={iniciar}>
               <Icon name="play" /> Começar treino
             </Button>
@@ -516,6 +581,18 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
           </p>
         </div>
       </header>
+
+      <RitmoTreino
+        plano={plano}
+        inicioIso={sessao.iniciado_em}
+        offsetMs={offsetMs}
+        pausas={pausas}
+        seriesFeitas={totalFeito}
+        exerciciosFeitos={exerciciosFeitos}
+        exerciciosTotal={sessao.exercicios.length}
+        onPausar={pausar}
+        onRetomar={retomar}
+      />
 
       <LembretePush compacto />
 
