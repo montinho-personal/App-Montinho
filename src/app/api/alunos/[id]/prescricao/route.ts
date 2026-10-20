@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTreinadorApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
-import { getPlanoAtivo, salvarPlano, type TreinoInput } from "@/lib/data/programas";
+import { getPlanoAtivo, listVersoes, salvarPlano, type TreinoInput } from "@/lib/data/programas";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
 import { assinaturaTreinos, PRESCRICOES } from "@/lib/prescricoes";
 import { auditarPrescricao } from "@/lib/prescricoes/auditar";
@@ -32,8 +32,9 @@ export async function POST(request: Request, { params }: Ctx) {
   const validado = salvarPlanoSchema.safeParse(pr.plano);
   if (!validado.success) return NextResponse.json({ error: "Prescrição inválida", detalhes: validado.error.issues.slice(0, 5) }, { status: 422 });
 
-  const atual = await getPlanoAtivo(id);
-  if (atual.treinos.length && assinaturaTreinos(atual.treinos) === assinaturaTreinos(pr.plano.treinos)) {
+  const [atual, versoes] = await Promise.all([getPlanoAtivo(id), listVersoes(id, 50)]);
+  // Já cadastrada (pela marca na versão) ou idêntica ao plano ativo → não grava de novo.
+  if (versoes.some((v) => v.motivo?.includes(`[${pr.id}]`)) || (atual.treinos.length && assinaturaTreinos(atual.treinos) === assinaturaTreinos(pr.plano.treinos))) {
     return NextResponse.json({ ok: true, jaCadastrada: true, auditoria: auditarPrescricao({ treinos: atual.treinos.map((t) => ({ ...t, letra: t.letra as TreinoLetra, exercicios: t.exercicios })) as TreinoInput[] }) });
   }
   // Treinos atuais (se houver) ficam arquivados — nada é apagado.

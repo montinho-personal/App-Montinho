@@ -156,7 +156,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           prescricao={{ id: pr.id, titulo: pr.titulo }}
           auditoria={auditarPrescricao(pr.plano)}
           pendencias={pr.pendencias}
-          jaCadastrada={plano.treinos.length > 0 && assinaturaTreinos(plano.treinos) === assinaturaTreinos(pr.plano.treinos)}
+          jaCadastrada={versoes.some((v) => v.motivo?.includes(`[${pr.id}]`)) || (plano.treinos.length > 0 && assinaturaTreinos(plano.treinos) === assinaturaTreinos(pr.plano.treinos))}
         />
       ))}
       {importacoesParaAluno(aluno.profile?.nome).map((imp) => (
