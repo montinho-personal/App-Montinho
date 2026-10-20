@@ -128,7 +128,18 @@ describe("calcularVolumeSemanal — cenários obrigatórios", () => {
     expect(linha(com, "triceps")?.secundario).toBe(2);
     expect(linha(com, "ombros")?.secundario).toBe(2); // ombro_anterior agrupado em ombros
     expect(com.subtotais.total).toBe(4); // sem dupla contagem
-    expect(com.avisos.some((a) => a.includes("heurística"))).toBe(true);
+    expect(com.avisos.some((a) => a.includes("comparação com a meta"))).toBe(true);
+  });
+
+  it("com o secundário ligado, a meta é comparada com direto + secundário", () => {
+    const dias: DiaVolume[] = [
+      { letra: "A", exercicios: [ex("Supino", "peito", 4, { secundarios: ["triceps"] }), ex("Tríceps corda", "triceps", 3)] },
+    ];
+    const metas = { triceps: { min: 4, max: 6 } };
+    const so = calcularVolumeSemanal(dias, { frequencia: { A: 1 }, metas });
+    expect(linha(so, "triceps")).toMatchObject({ total: 3, status: "abaixo", diferenca: -1 });
+    const com = calcularVolumeSemanal(dias, { frequencia: { A: 1 }, metas, incluirSecundario: true, fatorSecundario: 0.5 });
+    expect(linha(com, "triceps")).toMatchObject({ total: 3, secundario: 2, ponderado: 5, status: "na_meta" });
   });
 
   it("séries de aquecimento não contam", () => {

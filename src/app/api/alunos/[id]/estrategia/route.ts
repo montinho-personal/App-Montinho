@@ -31,12 +31,31 @@ export async function POST(request: Request, { params }: Ctx) {
   try {
     let planoCriado = false;
     let motivoSemPlano: string | null = null;
+    let metasAtualizadas = 0;
     if (data.criar_plano) {
       const atual = await getPlanoAtivo(id);
       const plano = planoDaEstrategia(e);
       const ativos = atual.treinos.filter((t) => t.ativo);
       const soDiasVazios = ativos.length > 0 && ativos.every((t) => t.exercicios.length === 0);
-      if (ativos.length && !soDiasVazios) motivoSemPlano = "O aluno já tem treino ativo: o plano não foi alterado (ajuste no montador).";
+      if (ativos.length && !soDiasVazios) {
+        motivoSemPlano = "O aluno já tem treino ativo: os treinos não foram alterados.";
+        // Metas de séries (faixas) do relatório entram no plano atual; outros grupos ficam como estão.
+        if (data.atualizar_metas && plano && atual.programa) {
+          const novas = plano.programa.metas_volume;
+          metasAtualizadas = Object.keys(novas).length;
+          if (metasAtualizadas) {
+            const metas = { ...(atual.programa.metas_volume ?? {}), ...novas };
+            if (isDemoMode()) {
+              const p = demoStore().programas.find((x) => x.id === atual.programa!.id);
+              if (p) p.metas_volume = metas;
+            } else {
+              const db = await getDb();
+              const { error: e3 } = await db.from("programas").update({ metas_volume: metas }).eq("id", atual.programa.id).eq("aluno_id", id);
+              if (e3) throw new Error(e3.message);
+            }
+          }
+        }
+      }
       else if (!plano) motivoSemPlano = `Divisão “${e.divisao ?? "—"}” sem modelo automático: monte os dias no montador.`;
       else {
         plano.treinos = plano.treinos.map((t) => ({ ...t, id: atual.treinos.find((x) => x.letra === t.letra)?.id ?? null }));
@@ -80,7 +99,7 @@ export async function POST(request: Request, { params }: Ctx) {
       await db.from("alunos").update({ objetivo: e.objetivo.slice(0, 300) }).eq("id", id);
     }
     await criarIntervencao(id, sessao.userId, { tipo: "decisao", titulo: "Estratégia importada", descricao: `${e.titulo ?? "Estratégia"} (Montinho Strategy)${planoCriado ? " — plano inicial criado." : ""}`, referencia: { estrategia_id: row.id }, visivel_aluno: false }).catch(() => undefined);
-    return NextResponse.json({ ok: true, id: row.id, planoCriado, motivoSemPlano, cadastroAtualizado }, { status: 201 });
+    return NextResponse.json({ ok: true, id: row.id, planoCriado, motivoSemPlano, cadastroAtualizado, metasAtualizadas }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Erro ao salvar a estratégia" }, { status: 500 });
   }

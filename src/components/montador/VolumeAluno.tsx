@@ -22,7 +22,7 @@ type Props = {
 
 export function VolumeAluno({ dias, frequencia, metas, prioridades, nivel, editarHref }: Props) {
   const { regraTecnicas, setRegraTecnicas, ajustarPorRir, setAjustarPorRir } = usePreferenciasVolume();
-  const [incluirSecundario, setIncluirSecundario] = useState(false);
+  const [incluirSecundario, setIncluirSecundario] = useState(true);
   const resultado = useMemo(
     () => calcularVolumeSemanal(dias, { frequencia, metas, incluirSecundario, agruparOmbros: false, regraTecnicas, ajustarPorRir }),
     [dias, frequencia, metas, incluirSecundario, regraTecnicas, ajustarPorRir]

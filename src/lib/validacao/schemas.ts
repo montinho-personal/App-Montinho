@@ -383,4 +383,6 @@ export const salvarEstrategiaSchema = z.object({
   cadastro: cadastroStrategySchema.nullable().optional(),
   arquivo_nome: z.string().trim().max(200).nullable().optional(),
   criar_plano: z.boolean().default(true),
+  /** Plano já existente: atualiza só as metas de séries (faixas) dos grupos do relatório. */
+  atualizar_metas: z.boolean().default(true),
 });

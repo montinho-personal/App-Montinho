@@ -127,9 +127,9 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
 }
 
 /** Salva a estratégia lida no aluno (cria o plano inicial se ele ainda não tiver treino). */
-export async function salvarEstrategiaNoAluno(alunoId: string, lida: Lida): Promise<{ ok: boolean; planoCriado?: boolean; motivoSemPlano?: string | null; cadastroAtualizado?: string[]; error?: string }> {
+export async function salvarEstrategiaNoAluno(alunoId: string, lida: Lida): Promise<{ ok: boolean; planoCriado?: boolean; motivoSemPlano?: string | null; cadastroAtualizado?: string[]; metasAtualizadas?: number; error?: string }> {
   const res = await fetch(`/api/alunos/${alunoId}/estrategia`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estrategia: lida.estrategia, cadastro: lida.cadastro ?? null, arquivo_nome: lida.arquivo_nome, criar_plano: true }) }).catch(() => null);
   const d = await res?.json().catch(() => ({}));
   if (!res?.ok) return { ok: false, error: d?.error ?? "Não foi possível salvar a estratégia." };
-  return { ok: true, planoCriado: d.planoCriado, motivoSemPlano: d.motivoSemPlano, cadastroAtualizado: d.cadastroAtualizado };
+  return { ok: true, planoCriado: d.planoCriado, motivoSemPlano: d.motivoSemPlano, cadastroAtualizado: d.cadastroAtualizado, metasAtualizadas: d.metasAtualizadas };
 }

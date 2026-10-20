@@ -236,7 +236,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [avancado, setAvancado] = useState(false);
-  const [incluirSecundario, setIncluirSecundario] = useState(false);
+  const [incluirSecundario, setIncluirSecundario] = useState(true);
   // Regra das técnicas avançadas e ajuste por RIR: preferência do treinador neste navegador.
   const { regraTecnicas, setRegraTecnicas, ajustarPorRir, setAjustarPorRir } = usePreferenciasVolume();
   const [motivo, setMotivo] = useState("");

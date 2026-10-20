@@ -303,8 +303,8 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
   if (opcoes.incluirSecundario)
     avisos.push(
       usouPesos
-        ? `Volume ponderado = séries diretas + secundário estimado com os pesos de cada exercício da biblioteca (ex.: supino: tríceps 0,5). Sem peso cadastrado, usa ${Math.round(fatorSec * 100)}% por série. É estimativa: o total direto continua sendo a referência.`
-        : `Estímulo secundário é uma estimativa heurística (${Math.round(fatorSec * 100)}% por série), mostrado à parte e não somado ao total.`
+        ? `Volume ponderado = séries diretas + secundário estimado com os pesos de cada exercício da biblioteca (ex.: supino: tríceps 0,5). Sem peso cadastrado, usa ${Math.round(fatorSec * 100)}% por série. A comparação com a meta usa esse total (direto + secundário).`
+        : `Estímulo secundário estimado (${Math.round(fatorSec * 100)}% por série) somado ao direto na comparação com a meta.`
     );
   if (!agruparOmbros && opcoes.metas && (opcoes.metas as Record<string, unknown>).ombros)
     avisos.push("Há meta para “Ombros” no total, mas os deltoides estão separados (anterior, lateral e posterior). Defina metas por porção ou agrupe os ombros.");
@@ -320,15 +320,17 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
     for (const k of Object.keys(linha.tecnicas) as Tecnica[]) linha.tecnicas[k] = Math.round((linha.tecnicas[k] ?? 0) * 100) / 100;
     linha.ponderado = Math.round((linha.total + linha.secundario) * 100) / 100;
     linha.frequencia = Math.round(linha.frequencia * 100) / 100;
+    // Com o secundário ligado, a meta é comparada com o total ponderado (direto + secundário).
+    const base = opcoes.incluirSecundario ? linha.ponderado : linha.total;
     if (!linha.meta) {
       linha.status = "sem_meta";
       linha.diferenca = null;
-    } else if (linha.total < linha.meta.min) {
+    } else if (base < linha.meta.min) {
       linha.status = "abaixo";
-      linha.diferenca = Math.round((linha.total - linha.meta.min) * 100) / 100;
-    } else if (linha.total > linha.meta.max) {
+      linha.diferenca = Math.round((base - linha.meta.min) * 100) / 100;
+    } else if (base > linha.meta.max) {
       linha.status = "acima";
-      linha.diferenca = Math.round((linha.total - linha.meta.max) * 100) / 100;
+      linha.diferenca = Math.round((base - linha.meta.max) * 100) / 100;
     } else {
       linha.status = "na_meta";
       linha.diferenca = 0;

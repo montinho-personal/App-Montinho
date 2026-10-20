@@ -208,10 +208,10 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                   </th>
                 )) : null}
                 <th className="text-right font-semibold px-1 py-1" title="Séries diretas válidas por semana (sem aquecimento). * inclui drops/mini-séries de técnicas avançadas pela regra escolhida.">Sem.</th>
-                <th className="text-right font-semibold px-1 py-1">Meta</th>
+                <th className="whitespace-nowrap text-right font-semibold px-1 py-1">Meta</th>
                 {!compacto ? <th className="text-right font-semibold px-1 py-1" title="Sessões por semana em que o grupo recebe séries">Freq.</th> : null}
                 {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Participação secundária estimada (fração de série × frequência)">+sec</th> : null}
-                {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Ponderado = séries diretas + secundário estimado. O total direto continua sendo a referência.">Pond.</th> : null}
+                {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Total = séries diretas + secundário estimado. É este total que é comparado com a meta.">Total</th> : null}
                 {verRealizado ? <th className="text-right font-semibold px-1 py-1">Real.</th> : null}
               </tr>
             </thead>
@@ -241,7 +241,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                         {l.porDia[x] ? numBR(l.porDia[x]) : "·"}
                       </td>
                     )) : null}
-                    <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`} title={l.deTecnicas ? `${numBR(l.total - l.deTecnicas)} séries + ${numBR(l.deTecnicas)} de drops/mini-séries` : undefined}>
+                    <td className={`px-1 py-1.5 text-right font-mono font-bold ${incluirSecundario ? "text-fg" : STATUS_COR[l.status]}`} title={l.deTecnicas ? `${numBR(l.total - l.deTecnicas)} séries + ${numBR(l.deTecnicas)} de drops/mini-séries` : undefined}>
                       {numBR(l.total)}
                       {l.deTecnicas ? <span className="text-accent">*</span> : null}
                     </td>
@@ -253,14 +253,14 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                           <input aria-label={`Meta máxima de ${l.label}`} type="number" min={0} max={80} value={metas[l.grupo]?.max ?? ""} onChange={(e) => setMeta(l.grupo, "max", e.target.value)} className="w-9 rounded border border-border bg-bg px-1 text-right text-[11px]" />
                         </span>
                       ) : l.meta ? (
-                        `${l.meta.min}–${l.meta.max}`
+                        <span className="whitespace-nowrap">{l.meta.max > l.meta.min ? `${l.meta.min}–${l.meta.max}` : l.meta.min}</span>
                       ) : (
                         <span className="text-fg-subtle">—</span>
                       )}
                     </td>
                     {!compacto ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.frequencia ? `${numBR(l.frequencia)}×` : "·"}</td> : null}
                     {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-subtle">{l.secundario ? `+${numBR(l.secundario)}` : "·"}</td> : null}
-                    {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.ponderado ? numBR(l.ponderado) : "·"}</td> : null}
+                    {incluirSecundario ? <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`}>{l.ponderado ? numBR(l.ponderado) : "·"}</td> : null}
                     {verRealizado ? <td className={`px-1 py-1.5 text-right font-mono ${real != null && l.total > 0 && real < l.total * 0.7 ? "text-warning" : "text-fg-muted"}`}>{real ?? "·"}</td> : null}
                   </tr>
                 );
