@@ -14,7 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#0a0a0a",
     theme_color: "#0a0a0a",
     lang: "pt-BR",
-    // Ícone do app instalado: marca + “MONTINHO PERSONAL”, tudo dentro da área segura
+    // Ícone do app instalado: logo oficial (public/brand/logo.svg), tudo dentro da área segura
     // (80% central), então serve também como “maskable” (Android recorta em círculo/squircle).
     icons: [
       { src: "/icons/icone-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
