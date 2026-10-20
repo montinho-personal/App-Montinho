@@ -19,6 +19,22 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
   const [lendo, setLendo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  /** Texto copiado no Strategy (“Copiar para o app Montinho”): vira o mesmo arquivo. */
+  async function colar() {
+    setErro(null);
+    let texto = "";
+    try {
+      texto = await navigator.clipboard.readText();
+    } catch {
+      texto = window.prompt("Cole aqui o que você copiou no Montinho Strategy:") ?? "";
+    }
+    if (!texto.trim()) {
+      setErro("Nada copiado. No Montinho Strategy, toque em “Copiar para o app Montinho” e volte aqui.");
+      return;
+    }
+    await escolher(new File([texto], "estrategia.montinho.json", { type: "application/json" }));
+  }
+
   async function escolher(f: File | undefined) {
     if (!f) return;
     setErro(null);
@@ -39,14 +55,19 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
   const e = lida?.estrategia;
   return (
     <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
-      <input ref={input} type="file" accept="application/pdf,.pdf,application/json,.json,text/plain,application/octet-stream,*/*" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
+      <input ref={input} type="file" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
       {!e ? (
         <>
           <p className="text-sm font-semibold">Estratégia do Montinho Strategy</p>
-          <p className="text-xs text-fg-muted">Escolha o arquivo “.montinho.json” (botão “Enviar para o app Montinho” no Strategy) ou o PDF do relatório. O app monta os dias da semana por músculo, as metas de séries, as fases e o acompanhamento.</p>
-          <label htmlFor="estrategia-pdf" className="touch inline-flex cursor-pointer items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-card">
-            {lendo ? "Lendo…" : "Escolher arquivo"}
-          </label>
+          <p className="text-xs text-fg-muted">No Strategy, toque em “Copiar para o app Montinho” e depois em “Colar do Strategy” aqui. Também dá para escolher o arquivo baixado ou o PDF do relatório. O app monta os dias da semana por músculo, as metas de séries, as fases e o acompanhamento.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={lendo} onClick={() => void colar()} className="touch inline-flex items-center justify-center rounded-lg bg-gold px-4 text-sm font-bold text-bg hover:brightness-110 disabled:opacity-60">
+              {lendo ? "Lendo…" : "Colar do Strategy"}
+            </button>
+            <label htmlFor="estrategia-pdf" className="touch inline-flex cursor-pointer items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-card">
+              Escolher arquivo
+            </label>
+          </div>
         </>
       ) : (
         <div className="space-y-2 text-sm">
