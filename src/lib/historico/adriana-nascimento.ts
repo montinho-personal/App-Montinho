@@ -21,6 +21,7 @@ const STIFF = "Stiff com halteres";
 const PRANCHA = "Abdominal prancha";
 const BULG = "Agachamento búlgaro halteres";
 const SUMO = "Levantamento terra sumô";
+const MARTELO = "Rosca martelo";
 const PRANCHA_OBS = "60 s completos — informado pelo personal (o app anterior não registrava a prancha).";
 
 const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
@@ -30,8 +31,8 @@ const l = (data: string, exercicio: string, nomeOriginal: string, series: number
 export const LINHAS: LinhaResumo[] = [
   // Cadeira abdutora (6 sessões)
   l("2026-10-07", ABD, "Cadeira Abdutora", 4, 80, 3070, "C", "Treino C deduzido: cadeira flexora e stiff (só no C) no mesmo dia."),
-  l("2026-10-09", ABD, "Cadeira Abdutora", 4, 80, 4610),
-  l("2026-10-13", ABD, "Cadeira Abdutora", 4, 80, 3900),
+  l("2026-10-09", ABD, "Cadeira Abdutora", 4, 80, 4610, "B", "Treino B deduzido: rosca martelo (só no B) no mesmo dia."),
+  l("2026-10-13", ABD, "Cadeira Abdutora", 4, 80, 3900, "B", "Treino B deduzido: rosca martelo (só no B) no mesmo dia."),
   l("2026-10-15", ABD, "Cadeira Abdutora", 4, 100, 4210, "A", "Treino A deduzido: cadeira extensora (só no A) no mesmo dia."),
   l("2026-10-16", ABD, "Cadeira Abdutora", 4, 90, 3440, "C", "Treino C deduzido: panturrilha 4×15 (bi-set do C) no mesmo dia."),
   l("2026-10-19", ABD, "Cadeira Abdutora", 4, 110, 4900, "A", "Treino A deduzido: cadeira extensora (só no A) no mesmo dia."),
@@ -63,6 +64,9 @@ export const LINHAS: LinhaResumo[] = [
   l("2026-10-16", BULG, "Agachamento búlgaro halteres", 4, 24, 636, "C"),
   l("2026-10-07", SUMO, "Levantamento terra sumô", 4, 40, 1340, "C"),
   l("2026-10-16", SUMO, "Levantamento terra sumô", 4, 45, 1695, "C"),
+  // Rosca martelo (só no treino B; bi-set B1)
+  l("2026-10-09", MARTELO, "Rosca Martelo", 4, 6, 204, "B"),
+  l("2026-10-13", MARTELO, "Rosca Martelo", 4, 6, 240, "B", "Volume ÷ 40 repetições (4×10) = 6 kg em todas as séries."),
   // Prancha: 1 × 60 s completos em todos os dias de treino A e C identificados.
   ...["2026-10-07", "2026-10-15", "2026-10-16", "2026-10-19"].map((d) => l(d, PRANCHA, "Abdominal prancha", 1, null, null, ["2026-10-15", "2026-10-19"].includes(d) ? "A" : "C", PRANCHA_OBS)),
 ];
