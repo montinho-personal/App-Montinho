@@ -18,6 +18,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { RestTimer } from "@/components/ui/RestTimer";
+import { LembretePush } from "@/components/aluno/LembretePush";
 import { VideoPlayer } from "@/components/ui/VideoPlayer";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
@@ -515,6 +516,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
           </p>
         </div>
       </header>
+
+      <LembretePush compacto />
 
       {timer ? (
         <div className="sticky top-2 z-30">

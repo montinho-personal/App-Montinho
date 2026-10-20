@@ -52,6 +52,10 @@ Colunas novas em `exercicios`: `grupo_muscular`, `grupos_secundarios`, `grupo_or
 ### 0014 — técnicas no volume
 `exercicios.tecnica` aceita `myo_reps`; novas colunas `tecnica_extras` (drops/mini-séries por série) e `tecnica_series` (em quantas séries). `null` = padrão do app. Cálculo em `src/lib/volume/tecnicas.ts` (regras Clássica/Moderada/Alta + ajuste opcional por RIR); fontes em VOLUME-TECNICAS.md.
 
+### 0015 — lembrete de treino em aberto (push)
+`push_inscricoes` (aparelhos do usuário, RLS: só os próprios; cadastro via `push_registrar()`), `training_sessions.lembrete_enviado_em` (1 lembrete por treino), `config_privada` (hash da chave do agendador, sem acesso pela API).
+Fluxo: `pg_cron` (a cada 5 min) → `pg_net` POST `/api/cron/lembretes` com a chave → a rota chama `lembretes_devidos(chave)` (treinos em andamento sem série há 30 min; marca como enviado) → `web-push` assina com VAPID e envia → `public/sw.js` mostra a notificação e abre o treino. Inscrições recusadas (404/410) são desativadas.
+
 ### Três entidades separadas (Prompt Mestre §3.2)
 1. **Plano prescrito** — `programas` + `treinos` + `exercicios`. Editável; cada salvamento incrementa `versao` e grava `programa_versoes`.
 2. **Sessão realizada** — `training_sessions` (status `em_andamento|concluida|abandonada`, `snapshot` da prescrição, totais) + `session_exercises` + `session_sets` (carga, reps, RIR, tipo `valida|aquecimento|dropset|...`).

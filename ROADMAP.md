@@ -18,6 +18,7 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 - ✅ Aluno: início com próximo treino e CTA, retomada sem culpa, Treinar, treino ativo com sessão real, fila local idempotente com indicador, última carga/reps, timer, séries extras, pular, pedido de adaptação, finalização com resumo e feedback opcional; Evolução em camadas; Perfil; Dieta preservada.
 - ✅ Marca Montinho (logo oficial do site, dourado, DM Sans), acessibilidade básica (foco, 44 px, reduced motion, labels).
 - ✅ Biblioteca inteligente: 150 exercícios (catálogo v1), busca por sinônimos, filtros, favoritos, substituições revisáveis pelo treinador, volume ponderado configurável, deltoides separados.
+- ✅ Lembrete push de treino em aberto: 30 min sem registrar série → notificação “ainda está em aberto” (1 por treino). Aluno ativa no treino ou no Perfil; no iPhone, só com o app na Tela de Início.
 - ✅ Conferência ao concluir: avisa as séries sem ✓ (separando as já preenchidas), com “Ir marcar”, “Marcar as preenchidas e concluir” e “Concluir assim mesmo”.
 - ✅ Retomar treino: se o app fechar, o aluno volta ao mesmo exercício com o que digitou, séries extras e o descanso em curso (rascunho no aparelho, `src/lib/sync/rascunho.ts`).
 - ✅ Técnicas avançadas no volume: drop set, rest-pause e myo-reps com drops/mini-séries e regra declarada (Clássica/Moderada/Alta) + ajuste opcional por RIR (VOLUME-TECNICAS.md).
@@ -42,7 +43,7 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 ## Pendências reais (precisam de você)
 
 1. **Logotipo original**: o app usa o SVG público do site oficial. Se houver arquivo vetorial do designer (com variações de cor), substitua `public/brand/logo.svg`, `logo-fundo-claro.svg` e `mark.svg`.
-2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0014 e o deploy na Vercel já estão feitos.
+2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0015 e o deploy na Vercel já estão feitos.
 3. **Primeiro treinador**: após criar sua conta, mudar `role` para `treinador` em `profiles`.
 4. **Biblioteca de exercícios**: revisar a lista curada de 150 (foi montada pelo Claude, não veio de uma lista sua), aprovar/rejeitar substituições e cadastrar vídeos verificados. Cardio (esteira, bike) ficou fora por escopo.
 5. **WhatsApp de atendimento**: preencher `BRAND.contact.whatsapp` se quiser o botão “Falar com o Montinho”.

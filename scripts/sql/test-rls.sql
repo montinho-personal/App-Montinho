@@ -294,4 +294,60 @@ begin
   update exercicios set tecnica = 'normal', tecnica_extras = null, tecnica_series = null where id = ex_id;
   raise notice 'T8 OK: myo_reps aceito, limites de drops/mini-séries e técnica validados';
 end $$;
+-- ============================================================================
+-- T9 — 0015: lembrete de treino em aberto (push)
+-- ============================================================================
+insert into config_privada (chave, valor)
+values ('lembrete_chave_sha256', encode(extensions.digest('chave-teste', 'sha256'), 'hex'))
+on conflict (chave) do update set valor = excluded.valor;
+-- treino da aluna A parado há 40 min (deve lembrar) e do aluno B com série há 5 min (não deve)
+insert into training_sessions (id, aluno_id, treino_id, client_key, letra, nome_treino, iniciado_em, series_planejadas)
+values ('99999999-0000-0000-0000-00000000000a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 't9-a', 'A', 'Treino A', now() - interval '40 minutes', 10),
+       ('99999999-0000-0000-0000-00000000000b', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-ccccccccccc2', 't9-b', 'A', 'Treino A', now() - interval '40 minutes', 10);
+insert into session_exercises (id, session_id, client_key, nome, ordem)
+values ('99999999-0000-0000-0000-0000000000eb', '99999999-0000-0000-0000-00000000000b', 't9-ex', 'Supino', 0);
+insert into session_sets (session_id, session_exercise_id, client_key, serie, concluida_em)
+values ('99999999-0000-0000-0000-00000000000b', '99999999-0000-0000-0000-0000000000eb', 't9-set', 1, now() - interval '5 minutes');
+
+select test_login('22222222-2222-2222-2222-222222222222');
+select push_registrar('https://push.exemplo.com/aparelho-da-aluna-a-0001', 'p256dh-a', 'auth-a', 'teste');
+select test_login('33333333-3333-3333-3333-333333333333');
+select push_registrar('https://push.exemplo.com/aparelho-do-aluno-b-0001', 'p256dh-b', 'auth-b', 'teste');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from push_inscricoes;
+  if n <> 1 then raise exception 'T9a: aluno B deveria ver só o próprio aparelho (viu %)', n; end if;
+  begin
+    insert into push_inscricoes (profile_id, endpoint, p256dh, auth) values ('22222222-2222-2222-2222-222222222222', 'https://push.exemplo.com/forjado-000000', 'x', 'y');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T9a: gravou inscrição direto na tabela (em nome de outro)'; end if;
+  ok := false;
+  begin perform * from lembretes_devidos('chave-teste', 30); exception when others then ok := true; end;
+  if not ok then raise exception 'T9a: aluno conseguiu listar lembretes'; end if;
+end $$;
+select test_logout();
+set role anon;
+do $$
+declare n int; ok boolean := false; sess uuid;
+begin
+  begin perform * from lembretes_devidos('chave-errada', 30); exception when others then ok := true; end;
+  if not ok then raise exception 'T9b: chave errada foi aceita'; end if;
+  select count(*), min(sessao_id::text)::uuid into n, sess from lembretes_devidos('chave-teste', 30);
+  if n <> 1 or sess <> '99999999-0000-0000-0000-00000000000a' then raise exception 'T9b: esperava 1 lembrete (treino parado da aluna A), veio % (%)', n, sess; end if;
+  select count(*) into n from lembretes_devidos('chave-teste', 30);
+  if n <> 0 then raise exception 'T9b: lembrete repetido para o mesmo treino'; end if;
+  perform push_desativar('chave-teste', 'https://push.exemplo.com/aparelho-da-aluna-a-0001');
+end $$;
+reset role;
+do $$
+begin
+  if (select ativo from push_inscricoes where endpoint = 'https://push.exemplo.com/aparelho-da-aluna-a-0001') then
+    raise exception 'T9c: inscrição recusada não foi desativada';
+  end if;
+  if (select lembrete_enviado_em from training_sessions where id = '99999999-0000-0000-0000-00000000000b') is not null then
+    raise exception 'T9c: treino com série recente foi lembrado';
+  end if;
+  raise notice 'T9 OK: lembrete só para treino parado, 1 vez, só com a chave; aparelhos isolados por usuário';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

@@ -216,3 +216,9 @@ export async function lerJson<T extends z.ZodTypeAny>(request: Request, schema: 
   }
   return { data: r.data, error: null };
 }
+
+// Notificações push: inscrição do aparelho (Web Push padrão).
+export const inscricaoPushSchema = z.object({
+  endpoint: z.string().url().startsWith("https://").max(1000),
+  keys: z.object({ p256dh: z.string().min(10).max(300), auth: z.string().min(8).max(100) }),
+});

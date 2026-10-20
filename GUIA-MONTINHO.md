@@ -73,3 +73,10 @@ Início (próximo treino + “Começar treino”, progresso da semana com denomi
 - **Vídeos**: nenhum vem preenchido (não inventamos links). Ao editar, cole o link e marque “verificado”; só então o aluno vê o vídeo.
 - **Editar** um exercício do catálogo o torna “seu”: atualizações futuras do catálogo não mexem nele. **Arquivar** esconde da busca sem afetar treinos que já usam.
 - **Volume ponderado (estimado)**: na tabela de volume, ligue a chave para somar os secundários pelos pesos da biblioteca (ex.: supino = 1 série de peito + 0,5 de tríceps + 0,5 de ombro anterior). É uma estimativa, explicada na própria tela.
+
+## Lembrete de treino em aberto (aluno)
+
+- Ao começar um treino (ou no **Perfil**), o aluno vê “Quer um lembrete se esquecer de finalizar o treino?” → **Ativar lembretes** → o celular pede permissão.
+- Se ele ficar **30 minutos sem registrar nenhuma série** com o treino aberto, chega a notificação “Treino X ainda está em aberto · você registrou N de M séries”. Tocar abre o treino para conferir e finalizar. É **1 lembrete por treino**.
+- **iPhone**: só funciona com o app adicionado à Tela de Início (Compartilhar → Adicionar à Tela de Início) e aberto por esse ícone. Android/computador: funciona no navegador.
+- Para parar: Perfil → Desativar.

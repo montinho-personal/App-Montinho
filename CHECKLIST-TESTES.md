@@ -10,7 +10,7 @@ Data: 19/10/2026. Ambiente: container Linux, Node 22, Next 16.2, PostgreSQL 16 l
 | `npx tsc --noEmit` | PASSOU | sem erros |
 | `npm run build` | PASSOU | 44 rotas compiladas; rotas autenticadas marcadas `force-dynamic` |
 | `npm test` (vitest) | PASSOU | 10 arquivos · **93 testes** |
-| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0014 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T8) |
+| `npm run db:test` (Postgres local) | PASSOU | migrations 0001→0015 em transação única; seed legado; `TODOS OS TESTES PASSARAM` (T1–T9) |
 
 ## Testes automatizados por tema
 
@@ -88,3 +88,12 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 |---|---|---|
 | Unitário | PASSOU | `src/lib/treino/pendencias.test.ts` (4): lista séries válidas sem ✓ e separa as já preenchidas; tudo marcado = sem aviso; aquecimento, “pular hoje” e “não consegui” não contam; texto em PT-BR |
 | e2e demo (celular) | PASSOU | marcou 1 série, preencheu outra sem ✓, pulou um exercício → “Concluir treino” abre o aviso “Faltam marcar 15 séries” com “Ir marcar” por exercício (o pulado fica fora) → “Marcar a série preenchida e concluir” → “Você realizou 2 de 19 séries” |
+
+## Lembrete de treino em aberto (20/10/2026)
+
+| Item | Status | Evidência |
+|---|---|---|
+| SQL (T9) | PASSOU | lembra só o treino parado há 30 min (o com série há 5 min não); 1 vez por treino; chave errada recusada; aluno não lista lembretes nem grava inscrição em nome de outro; vê só os próprios aparelhos; inscrição recusada é desativada |
+| Unitário | PASSOU | `src/lib/push/mensagem.test.ts` (2): título/corpo/link do treino; sem nome |
+| Produção | APLICADO | migration 0015, hash da chave em `config_privada`, `pg_cron` a cada 5 min chamando `/api/cron/lembretes`; chaves VAPID e `LEMBRETE_CHAVE` na Vercel |
+| Notificação no celular real | NÃO EXECUTADO | precisa de um aparelho com permissão concedida (ver GUIA) |

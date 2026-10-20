@@ -1,7 +1,7 @@
 // Ícones inline (SVG, sem dependência). Decorativos por padrão (aria-hidden).
 export type IconName =
   | "home" | "dumbbell" | "chart" | "user" | "check" | "play" | "pause" | "timer" | "chevron" | "warning"
-  | "info" | "plus" | "minus" | "copy" | "trash" | "undo" | "redo" | "up" | "down" | "search" | "star" | "logout" | "menu" | "x" | "table" | "book" | "users" | "sparkles";
+  | "info" | "plus" | "minus" | "copy" | "trash" | "undo" | "redo" | "up" | "down" | "search" | "star" | "logout" | "menu" | "x" | "table" | "book" | "users" | "sparkles" | "bell";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z",
@@ -32,6 +32,7 @@ const PATHS: Record<IconName, string> = {
   book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5z",
   users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
   sparkles: "M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8",
+  bell: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0",
 };
 
 export function Icon({ name, size = 20, className = "", label }: { name: IconName; size?: number; className?: string; label?: string }) {

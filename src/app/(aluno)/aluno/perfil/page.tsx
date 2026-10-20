@@ -9,6 +9,7 @@ import { listAdaptacoes, listIntervencoes } from "@/lib/data/acompanhamento";
 import { dataBR } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { SairButton } from "./SairButton";
+import { LembretePush } from "@/components/aluno/LembretePush";
 import { appMode } from "@/lib/env";
 
 export const metadata = { title: "Perfil" };
@@ -35,6 +36,8 @@ export default async function PerfilPage() {
           <AlunoStatusPill status={aluno.status} />
         </div>
       </header>
+
+      <LembretePush />
 
       <Card>
         <CardHeader>

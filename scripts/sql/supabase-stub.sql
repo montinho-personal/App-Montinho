@@ -1,5 +1,8 @@
 create schema if not exists auth;
 create schema if not exists storage;
+create schema if not exists extensions;  -- no Supabase real, pgcrypto/uuid vivem aqui
+create extension if not exists pgcrypto with schema extensions;
+grant usage on schema extensions to public;
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,

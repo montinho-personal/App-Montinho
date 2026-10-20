@@ -15,7 +15,7 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 ## Onde fica cada coisa
 - Marca: `src/config/brand.ts` + `public/brand/*` (logo oficial do site; trocar por vetor original quando houver).
-- Banco: `supabase/migrations/` (aditivas; novas vão em `0015_…`). Produção: projeto `app-montinho` (ref `bixfqkisvzrpxbiscqdd`), app em <https://app-montinho.vercel.app>. Teste local: `npm run db:test`.
+- Banco: `supabase/migrations/` (aditivas; novas vão em `0016_…`). Produção: projeto `app-montinho` (ref `bixfqkisvzrpxbiscqdd`), app em <https://app-montinho.vercel.app>. Teste local: `npm run db:test`.
 - Documentação: README, SETUP, GUIA-MONTINHO, ARQUITETURA, AUDITORIA-INICIAL, CHECKLIST-TESTES, ROADMAP.
 
 ## Ao editar
