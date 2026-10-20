@@ -74,3 +74,10 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 | Migration 0014 em produção | PASSOU | colunas `tecnica_extras`/`tecnica_series` e check com `myo_reps` conferidos no banco |
 | e2e demo — montador | PASSOU | tríceps 6 → drop set (1 drop assumido) 6,5* → 2 drops 7* → Clássica 6 / Alta 8 / Moderada 7; myo-reps 8*; aviso explicando a regra; sem erros no console; celular ok |
 | Pesquisa (estudos, treinadores, apps) | FEITA | VOLUME-TECNICAS.md, com o que não foi verificado marcado |
+
+## Retomar treino após fechar o app (20/10/2026)
+
+| Item | Status | Evidência |
+|---|---|---|
+| Unitário | PASSOU | `src/lib/sync/rascunho.test.ts` (6): guarda só o não concluído; restaura carga digitada, série extra, exercício aberto e descanso; série concluída nunca é sobrescrita; rascunho velho (>18 h) ou corrompido ignorado; finalizar limpa; abre no primeiro exercício pendente |
+| e2e demo (celular) | PASSOU | concluiu 2 séries, digitou 22,5 kg × 12 sem concluir, adicionou série extra, fechou a aba; reabriu pelo início → “Continuar treino” → mesmo exercício aberto, valores e série extra de volta, descanso continuando (01:27), aviso “Você voltou de onde parou” |

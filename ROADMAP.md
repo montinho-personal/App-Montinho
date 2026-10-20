@@ -18,6 +18,7 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 - ✅ Aluno: início com próximo treino e CTA, retomada sem culpa, Treinar, treino ativo com sessão real, fila local idempotente com indicador, última carga/reps, timer, séries extras, pular, pedido de adaptação, finalização com resumo e feedback opcional; Evolução em camadas; Perfil; Dieta preservada.
 - ✅ Marca Montinho (logo oficial do site, dourado, DM Sans), acessibilidade básica (foco, 44 px, reduced motion, labels).
 - ✅ Biblioteca inteligente: 150 exercícios (catálogo v1), busca por sinônimos, filtros, favoritos, substituições revisáveis pelo treinador, volume ponderado configurável, deltoides separados.
+- ✅ Retomar treino: se o app fechar, o aluno volta ao mesmo exercício com o que digitou, séries extras e o descanso em curso (rascunho no aparelho, `src/lib/sync/rascunho.ts`).
 - ✅ Técnicas avançadas no volume: drop set, rest-pause e myo-reps com drops/mini-séries e regra declarada (Clássica/Moderada/Alta) + ajuste opcional por RIR (VOLUME-TECNICAS.md).
 - 🟡 Registro do aluno ainda não tem tipo “drop/mini-série”: o realizado não recebe bônus de técnica.
 - 🟡 Vídeo demonstrativo: o aluno só vê vídeo marcado como verificado pelo treinador. **Nenhum dos 150 tem vídeo ainda** (pendência de mídia).

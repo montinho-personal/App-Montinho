@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState, useMemo } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,12 +41,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const warn = useCallback((msg: string) => push(msg, "warn"), [push]);
   const success = useCallback((msg: string) => push(msg, "success"), [push]);
 
+  // Valor estável: quem depende do toast em hooks não re-executa a cada aviso.
+  const valor = useMemo(() => ({ push, error, warn, success }), [push, error, warn, success]);
+
   function dismiss(id: number) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }
 
   return (
-    <ToastContext.Provider value={{ push, error, warn, success }}>
+    <ToastContext.Provider value={valor}>
       {children}
       {/* Portal */}
       <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full">

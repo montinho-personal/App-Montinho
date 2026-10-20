@@ -21,6 +21,7 @@ import { RestTimer } from "@/components/ui/RestTimer";
 import { VideoPlayer } from "@/components/ui/VideoPlayer";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
+import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
 import type { ExercicioPrescrito, SessionSet } from "@/lib/supabase/types-sessoes";
@@ -78,7 +79,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const [iniciando, setIniciando] = useState(false);
   const [series, setSeries] = useState<Record<string, SerieLocal[]>>({}); // session_exercise_id → séries
   const [aberto, setAberto] = useState<string | null>(() => sessaoInicial?.exercicios.find((e) => e.status === "pendente")?.id ?? sessaoInicial?.exercicios[0]?.id ?? null);
-  const [timer, setTimer] = useState<{ seg: number; key: number } | null>(null);
+  // `fim` (epoch ms) permite retomar o descanso se o app fechar no meio dele.
+  const [timer, setTimer] = useState<{ seg: number; key: number; fim: number } | null>(null);
   const [sync, setSync] = useState<EstadoSync>("sincronizado");
   const [pendentes, setPendentes] = useState(0);
   const [finalizando, setFinalizando] = useState(false);
@@ -86,6 +88,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   const [feedback, setFeedback] = useState<"leve" | "ok" | "pesado" | "dor" | null>(null);
   const [adaptacaoAberta, setAdaptacaoAberta] = useState<string | null>(null);
   const drenando = useRef(false);
+  // Rascunho (o que ainda não foi concluído): só é gravado depois de restaurado,
+  // para a tela vazia do primeiro render não apagar o que estava guardado.
+  const hidratadaRef = useRef<string | null>(null);
+  const planejadasRef = useRef<Record<string, number>>({});
   const storage = typeof window !== "undefined" ? window.localStorage : null;
 
   // ------------------------------------------------------------------------
@@ -120,13 +126,33 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
           });
         }
         next[se.id] = lista;
+        planejadasRef.current[se.id] = Math.max(planejadas, se.series.length);
       }
-      setSeries(next);
+      // Volta de onde parou: valores digitados, séries extras, exercício aberto e descanso.
+      const primeiraVez = hidratadaRef.current !== s.id;
+      const rascunho = primeiraVez && storage ? lerRascunho(storage, s.id) : null;
+      const { series: comRascunho, restaurou } = aplicarRascunho(next, rascunho);
+      setSeries(comRascunho);
       setPendentes(fila.length);
       setSync(fila.length ? "pendente" : "sincronizado");
+      if (primeiraVez) {
+        const ordem = s.exercicios.map((e) => e.id);
+        setAberto(rascunho?.aberto && ordem.includes(rascunho.aberto) ? rascunho.aberto : primeiroPendente(ordem, comRascunho));
+        const resta = rascunho?.descansoAte ? Math.ceil((rascunho.descansoAte - Date.now()) / 1000) : 0;
+        if (resta > 0) setTimer({ seg: resta, key: Date.now(), fim: rascunho!.descansoAte! });
+        const jaFez = Object.values(comRascunho).some((l) => l.some((x) => x.concluida));
+        if (restaurou || jaFez) toast.success("Você voltou de onde parou. Nada do que registrou foi perdido.");
+        hidratadaRef.current = s.id;
+      }
     },
-    [storage]
+    [storage, toast]
   );
+
+  // Grava o rascunho a cada mudança (digitação, exercício aberto, descanso).
+  useEffect(() => {
+    if (!sessao || !storage || hidratadaRef.current !== sessao.id) return;
+    gravarRascunho(storage, sessao.id, { series: rascunhoDasSeries(series, planejadasRef.current), aberto, descansoAte: timer?.fim ?? null });
+  }, [series, aberto, timer, sessao, storage]);
 
   // Reconciliação com a fila local (localStorage é um sistema externo: sincroniza fora do render)
   useEffect(() => {
@@ -250,7 +276,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     setSync("pendente");
     if (ex.descanso_seg && ex.descanso_seg > 0 && s.tipo === "valida") {
       const seg = ex.descanso_seg;
-      setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }));
+      const fim = new Date().getTime() + seg * 1000;
+      setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim }));
     }
     if (navigator.vibrate) navigator.vibrate(30);
     void sincronizar();
@@ -297,6 +324,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
       toast.warn("Suas séries ficaram guardadas no aparelho. Assim que a conexão voltar, finalizamos o treino automaticamente.");
       return;
     }
+    limparRascunho(storage, sessao.id);
     const res = await fetch(`/api/sessoes/${sessao.id}`);
     const data = (await res.json().catch(() => null)) as SessaoCompleta | null;
     setConcluida(data ?? { ...sessao, status });
