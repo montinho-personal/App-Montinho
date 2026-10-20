@@ -10,8 +10,8 @@ import type { SessaoCompleta } from "@/lib/data/sessoes";
 describe("histórico da Adriana (resumo do app anterior)", () => {
   it("transcreve exatamente os prints e ignora o dia com 0 séries", () => {
     const g = linhasParaGravar(IMPORTACAO);
-    expect(LINHAS).toHaveLength(15);
-    expect(g).toHaveLength(14);
+    expect(LINHAS).toHaveLength(17);
+    expect(g).toHaveLength(16);
     expect(g.every((l) => l.series === 4 && l.reps_total === null)).toBe(true);
     expect(diasDoResumo(LINHAS)).toEqual(["2026-10-07", "2026-10-08", "2026-10-09", "2026-10-13", "2026-10-15", "2026-10-16", "2026-10-19"]);
     const abd = g.filter((l) => l.exercicio_nome === "Cadeira abdutora").map((l) => [l.data.slice(5), l.carga_max_kg, l.volume_kg]);

@@ -15,6 +15,7 @@ const EXT = "Cadeira extensora";
 const PANT = "Panturrilha no leg press horizontal (180°)";
 const LEG = "Leg press horizontal (180°)";
 const SMITH = "Agachamento no Smith";
+const ELEV = "Elevação pélvica com barra";
 
 const l = (data: string, exercicio: string, nomeOriginal: string, series: number, cargaMax: number | null, volume: number | null, letra: string | null = null, observacao: string | null = null): LinhaResumo => ({
   data, exercicio, nomeOriginal, bibliotecaId: BIBLIOTECA[exercicio]?.id ?? null, letra, series, cargaMax, volume, observacao,
@@ -41,6 +42,9 @@ export const LINHAS: LinhaResumo[] = [
   // Agachamento no Smith (só no treino A)
   l("2026-10-15", SMITH, "Agachamento no Smith", 4, 35, 1040, "A"),
   l("2026-10-19", SMITH, "Agachamento no Smith", 4, 35, 1201, "A"),
+  // Elevação pélvica (só no treino A)
+  l("2026-10-15", ELEV, "Elevação pelvica", 4, 40, 1260, "A"),
+  l("2026-10-19", ELEV, "Elevação pelvica", 4, 40, 1260, "A"),
 ];
 
 export const IMPORTACAO: ImportacaoResumo = {
