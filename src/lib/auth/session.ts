@@ -14,6 +14,7 @@ import { appMode, DEMO_COOKIE } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DEMO_PERSONAS } from "@/lib/mock/personas";
 import { podeAcessarAluno, sessaoDoCookieDemo, type SessaoApp } from "./guards";
+import { CABECALHO_ALUNO } from "./cabecalho";
 
 export type { SessaoApp } from "./guards";
 
@@ -91,4 +92,19 @@ export async function requireAcessoAlunoApi(alunoId: string): Promise<GuardResul
   if (!s) return { sessao: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
   if (!podeAcessarAluno(s, alunoId)) return { sessao: null, error: NextResponse.json({ error: "Acesso negado" }, { status: 403 }) };
   return { sessao: s, error: null };
+}
+
+/**
+ * APIs do treino: o próprio aluno OU o personal em aula presencial. Para o
+ * personal, o aluno vem do cabeçalho CABECALHO_ALUNO e passa por
+ * podeAcessarAluno (a RLS do banco também só libera treinador).
+ */
+export async function requireAlunoDoTreinoApi(request: Request): Promise<GuardResult<{ alunoId: string; presencial: boolean; userId: string }>> {
+  const s = await getSessao();
+  if (!s) return { sessao: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
+  if (s.role === "aluno") return { sessao: { alunoId: s.alunoId, presencial: false, userId: s.userId }, error: null };
+  const alunoId = request.headers.get(CABECALHO_ALUNO)?.trim() ?? "";
+  if (!alunoId || alunoId.length > 64 || !/^[\w-]+$/.test(alunoId)) return { sessao: null, error: NextResponse.json({ error: "Escolha o aluno da aula" }, { status: 400 }) };
+  if (!podeAcessarAluno(s, alunoId)) return { sessao: null, error: NextResponse.json({ error: "Acesso negado" }, { status: 403 }) };
+  return { sessao: { alunoId, presencial: true, userId: s.userId }, error: null };
 }

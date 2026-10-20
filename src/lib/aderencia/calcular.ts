@@ -28,6 +28,8 @@ export type SessaoAderencia = {
   iniciado_em: string;
   status: "em_andamento" | "concluida" | "abandonada";
   modo?: "normal" | "reduzido" | "extra" | null;
+  /** "treinador" = aula presencial registrada pelo personal. */
+  origem?: string | null;
   series_planejadas: number;
   series_concluidas: number;
   treino_id?: string | null;

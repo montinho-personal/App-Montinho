@@ -24,6 +24,7 @@ import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
 import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
 import { conviteSerieExtra, type Deficit } from "@/lib/treino/serie-extra";
+import { CABECALHO_ALUNO } from "@/lib/auth/cabecalho";
 import type { OpcaoTroca, TrocasDoExercicio } from "@/lib/treino/troca";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { RitmoTreino } from "@/components/aluno/RitmoTreino";
@@ -50,6 +51,9 @@ import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 
+/** Modo aula presencial: o personal registra o treino do aluno pelo painel. */
+export type Presencial = { alunoId: string; nomeAluno: string; voltarHref: string };
+
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null; /** Trocado hoje pelo aluno. */ trocado?: boolean };
 
 type Props = {
@@ -60,6 +64,8 @@ type Props = {
   ultimas: Record<string, UltimaExecucao | null>;
   /** Séries que ficaram para trás nos últimos dias (convite da série extra). */
   perdidas?: Record<string, Deficit>;
+  /** Aula presencial (painel do personal). */
+  presencial?: Presencial | null;
   /** Opções de troca por exercício do plano (regras do personal/catálogo). */
   trocas?: Record<string, TrocasDoExercicio>;
   /** Última execução de cada opção de troca (para vir preenchido). */
@@ -124,7 +130,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -160,6 +166,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   }, [agoraServidor]);
   const [checkinPre, setCheckinPre] = useState<(typeof CHECKIN_OPCOES)[number]["v"] | null>(null);
   const [checkinNota, setCheckinNota] = useState("");
+  // Aula presencial: toda chamada leva o aluno da aula (validado no servidor).
+  const alunoAula = presencial?.alunoId ?? null;
+  const cab = useMemo((): Record<string, string> => { const h: Record<string, string> = {}; if (alunoAula) h[CABECALHO_ALUNO] = alunoAula; return h; }, [alunoAula]);
+  const voltarHref = presencial ? presencial.voltarHref : "/aluno/treinar";
   // Meu treino possível hoje: tempo disponível (min) escolhido antes de começar.
   const [tempoDisp, setTempoDisp] = useState<number | null>(null);
   const [tempoOutro, setTempoOutro] = useState("");
@@ -271,11 +281,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     try {
       let res: Response;
       if (op.tipo === "serie") {
-        res = await fetch(`/api/sessoes/${op.sessionId}/series`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...op.payload, client_key: op.clientKey }) });
+        res = await fetch(`/api/sessoes/${op.sessionId}/series`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ ...op.payload, client_key: op.clientKey }) });
       } else if (op.tipo === "exercicio") {
-        res = await fetch(`/api/sessoes/${op.sessionId}/exercicios/${op.payload.session_exercise_id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(op.payload.patch) });
+        res = await fetch(`/api/sessoes/${op.sessionId}/exercicios/${op.payload.session_exercise_id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(op.payload.patch) });
       } else {
-        res = await fetch(`/api/sessoes/${op.sessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(op.payload) });
+        res = await fetch(`/api/sessoes/${op.sessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(op.payload) });
       }
       if (res.ok) return { ok: true as const };
       const body = await res.json().catch(() => ({}));
@@ -284,7 +294,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     } catch {
       return { ok: false as const, erro: "sem conexão" };
     }
-  }, []);
+  }, [cab]);
 
   const sincronizar = useCallback(async () => {
     if (!sessao || !storage || drenando.current) return;
@@ -324,7 +334,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     setIniciando(true);
     try {
       const chave = `sess:${treino.id}:${new Date().toISOString().slice(0, 10)}:${gerarClientKey("s").slice(2, 10)}`;
-      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null, tempo_disponivel_min: extra ? extra.tempoDisponivelMin : possivel && possivel.status !== "inviavel" && possivel.status !== "nao_autorizado" ? tempoDisp : null, descanso_reduzido: !extra && !!possivel?.descansoReduzido && possivel.status !== "inviavel", extra_id: extra?.id ?? null, recuperacao: extra?.recuperacao ?? null }) });
+      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null, tempo_disponivel_min: extra ? extra.tempoDisponivelMin : possivel && possivel.status !== "inviavel" && possivel.status !== "nao_autorizado" ? tempoDisp : null, descanso_reduzido: !extra && !!possivel?.descansoReduzido && possivel.status !== "inviavel", extra_id: extra?.id ?? null, recuperacao: extra?.recuperacao ?? null }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Não foi possível iniciar");
       setSessao(data as SessaoCompleta);
@@ -410,7 +420,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   async function trocarExercicio(se: SessaoCompleta["exercicios"][number], bibliotecaId: string | null) {
     if (!sessao) return;
     setTrocando(true);
-    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ biblioteca_id: bibliotecaId, original: { nome: se.substituido_de?.nome ?? exercicios.find((e) => e.id === se.exercicio_id)?.nome ?? se.nome, biblioteca_id: se.substituido_de ? se.substituido_de.biblioteca_id : (exercicios.find((e) => e.id === se.exercicio_id)?.biblioteca_id ?? null) } }) }).catch(() => null);
+    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ biblioteca_id: bibliotecaId, original: { nome: se.substituido_de?.nome ?? exercicios.find((e) => e.id === se.exercicio_id)?.nome ?? se.nome, biblioteca_id: se.substituido_de ? se.substituido_de.biblioteca_id : (exercicios.find((e) => e.id === se.exercicio_id)?.biblioteca_id ?? null) } }) }).catch(() => null);
     setTrocando(false);
     const corpo = res ? await res.json().catch(() => ({})) : {};
     if (!res?.ok) {
@@ -497,7 +507,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
   async function pedirAdaptacao(ex: ExercicioView, seId: string, motivo: "nao_consegui" | "desconforto" | "sem_equipamento", descricao: string) {
     try {
-      const res = await fetch("/api/adaptacoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: sessao?.id ?? null, session_exercise_id: seId, exercicio_id: ex.id, exercicio_nome: ex.nome, motivo, descricao: descricao || null }) });
+      if (presencial) {
+        // Na aula o personal já está vendo: só registra, sem abrir pedido de ajuste.
+        marcarExercicio(seId, "nao_consegui");
+        setAdaptacaoAberta(null);
+        toast.success("Marcado como não feito hoje.");
+        return;
+      }
+      const res = await fetch("/api/adaptacoes", { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ session_id: sessao?.id ?? null, session_exercise_id: seId, exercicio_id: ex.id, exercicio_nome: ex.nome, motivo, descricao: descricao || null }) });
       if (!res.ok) throw new Error();
       marcarExercicio(seId, "nao_consegui");
       toast.success(`Pedido enviado. O ${BRAND.name} vai revisar este exercício.`);
@@ -521,7 +538,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       return;
     }
     limparRascunho(storage, sessao.id);
-    const res = await fetch(`/api/sessoes/${sessao.id}`);
+    const res = await fetch(`/api/sessoes/${sessao.id}`, { headers: cab });
     const data = (await res.json().catch(() => null)) as SessaoCompleta | null;
     setConcluida(data ?? { ...sessao, status });
     setFinalizando(false);
@@ -598,6 +615,25 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       duracaoMin: concluida.duracao_seg ? Math.max(1, Math.round(concluida.duracao_seg / 60)) : null,
       data: dataLocal(concluida.finalizado_em ?? concluida.iniciado_em),
     };
+    if (presencial) {
+      return (
+        <div className="space-y-4">
+          <Card className="border-success/40">
+            <CardBody className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-success">Aula registrada</p>
+              <h1 className="text-xl font-bold">{base.nomeTreino}</h1>
+              <p className="text-sm text-fg-muted">
+                {presencial.nomeAluno} · {base.series} de {base.seriesPlanejadas} séries{base.duracaoMin ? ` · ${base.duracaoMin} min` : ""}
+              </p>
+              <p className="text-xs text-fg-muted">Já está no histórico, no volume da semana e na evolução. As conquistas aparecem quando {presencial.nomeAluno} abrir o app.</p>
+            </CardBody>
+          </Card>
+          <Link href={presencial.voltarHref} className="touch flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
+            Voltar para {presencial.nomeAluno}
+          </Link>
+        </div>
+      );
+    }
     return (
       <TelaChalala base={base} nome={nomeAluno}>
           <Card>
@@ -610,7 +646,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     type="button"
                     onClick={async () => {
                       setFeedback(f);
-                      await fetch(`/api/sessoes/${concluida.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: concluida.status === "abandonada" ? "abandonada" : "concluida", feedback_percepcao: f }) }).catch(() => undefined);
+                      await fetch(`/api/sessoes/${concluida.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ status: concluida.status === "abandonada" ? "abandonada" : "concluida", feedback_percepcao: f }) }).catch(() => undefined);
                     }}
                     aria-pressed={feedback === f}
                     className={`touch rounded-lg border px-2 py-2 text-sm font-semibold ${feedback === f ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}
@@ -634,7 +670,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
   async function pedirAjusteTempo() {
     if (!possivel) return;
-    const res = await fetch("/api/adaptacoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ motivo: "sem_tempo", exercicio_nome: treino.nome, descricao: `Tenho ${possivel.tempoDisponivelMin} min hoje para o treino ${treino.letra} (estimado em ${Math.round(possivel.originalSeg / 60)} min). Pode sugerir uma versão?` }) }).catch(() => null);
+    const res = await fetch("/api/adaptacoes", { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ motivo: "sem_tempo", exercicio_nome: treino.nome, descricao: `Tenho ${possivel.tempoDisponivelMin} min hoje para o treino ${treino.letra} (estimado em ${Math.round(possivel.originalSeg / 60)} min). Pode sugerir uma versão?` }) }).catch(() => null);
     if (res?.ok) {
       setPedidoTempo(true);
       toast.success(`Pedido enviado. O ${BRAND.name} vai ver e responder.`);
@@ -648,19 +684,20 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const bloqueado = possivel?.status === "inviavel" || possivel?.status === "nao_autorizado";
     return (
       <div className="space-y-5">
-        <Link href="/aluno/treinar" className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
-          ← Treinos
+        <Link href={voltarHref} className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
+          ← {presencial ? presencial.nomeAluno : "Treinos"}
         </Link>
         <Card className="border-accent/40 bg-grain-strong">
           <CardBody className="space-y-3">
+            {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">👥 Aula presencial · registrando para {presencial.nomeAluno}</p> : null}
             <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Treino {treino.letra}</p>
             <h1 className="text-2xl font-bold leading-tight">{treino.nome}</h1>
             <p className="text-sm text-fg-muted">{exercicios.length} exercícios · {exercicios.reduce((n, e) => n + e.series, 0)} séries</p>
             {treino.observacoes ? <p className="text-sm text-fg-muted border-l-2 border-accent/50 pl-3">{treino.observacoes}</p> : null}
             {outraSessao ? (
               <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-                Você tem um treino em andamento ({outraSessao.nome}).{" "}
-                <Link href={`/aluno/treino/${outraSessao.treinoId}?sessao=${outraSessao.id}`} className="text-accent underline">
+                {presencial ? `${presencial.nomeAluno} tem` : "Você tem"} um treino em andamento ({outraSessao.nome}).{" "}
+                <Link href={presencial ? `${presencial.voltarHref}/aula/${outraSessao.treinoId}?sessao=${outraSessao.id}` : `/aluno/treino/${outraSessao.treinoId}?sessao=${outraSessao.id}`} className="text-accent underline">
                   Continuar aquele
                 </Link>{" "}
                 ou comece este agora.
@@ -734,7 +771,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         </div>
                       </div>
                     ) : null}
-                    {bloqueado ? (
+                    {bloqueado && !presencial ? (
                       pedidoTempo ? <p className="text-xs font-semibold text-success">Pedido de ajuste enviado.</p> : (
                         <button type="button" onClick={() => void pedirAjusteTempo()} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
                           Pedir ajuste ao {BRAND.name}
@@ -788,8 +825,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <Link href="/aluno/treinar" className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
-          ← Treinos
+        <Link href={voltarHref} className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
+          ← {presencial ? presencial.nomeAluno : "Treinos"}
         </Link>
         <p className={`text-xs font-semibold ${syncLabel[sync].cor}`} role="status" aria-live="polite">
           {syncLabel[sync].texto}
@@ -825,7 +862,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         onRetomar={retomar}
       />
 
-      <LembretePush compacto />
+      {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">👥 Aula presencial · {presencial.nomeAluno}. Tudo o que você marcar entra no histórico dela(e).</p> : <LembretePush compacto />}
 
       {aviso ? <AvisoEvolucao d={aviso} animar={prefsEvo.animacoes} onFechar={() => setAviso(null)} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
       {leitura ? <LeituraRapida item={leitura} onFechar={() => setLeitura(null)} /> : null}

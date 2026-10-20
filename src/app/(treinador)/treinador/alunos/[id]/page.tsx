@@ -145,7 +145,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             ) : null}
           </div>
           <div className="flex flex-col gap-2 self-start">
-            <Link href={`/treinador/alunos/${id}/treinos`} className="touch inline-flex items-center justify-center rounded-md bg-accent px-4 text-sm font-bold text-bg hover:bg-accent-hover">
+            <Link href={`/treinador/alunos/${id}/aula`} className="touch inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-4 text-sm font-bold text-bg hover:bg-accent-hover">
+              👥 Dar aula agora
+            </Link>
+            <Link href={`/treinador/alunos/${id}/treinos`} className="touch inline-flex items-center justify-center rounded-md border border-accent/60 px-4 text-sm font-bold text-accent">
               Revisar treino
             </Link>
             <AtribuirTreinoButton alunoId={id} templates={templates} />

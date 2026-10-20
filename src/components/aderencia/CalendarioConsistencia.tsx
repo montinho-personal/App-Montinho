@@ -91,7 +91,7 @@ export function CalendarioConsistencia({ dias, sessoes, hoje }: { dias: Record<s
                 return (
                   <li key={id} className="text-xs text-fg-muted">
                     <span className="font-semibold text-fg">{s.letra ? `Treino ${s.letra} · ` : ""}{s.nome_treino ?? "Treino"}</span>
-                    {s.modo === "extra" ? " · extra" : ""} · {s.series_concluidas} de {s.series_planejadas} séries
+                    {s.modo === "extra" ? " · extra" : ""}{s.origem === "treinador" ? " · aula presencial" : ""} · {s.series_concluidas} de {s.series_planejadas} séries
                     {s.duracao_seg ? ` · ${Math.round(s.duracao_seg / 60)} min` : ""}
                     {s.status === "em_andamento" ? " · não finalizado" : s.status === "abandonada" ? " · encerrado antes" : ""}
                   </li>

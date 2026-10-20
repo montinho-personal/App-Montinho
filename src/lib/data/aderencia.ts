@@ -48,7 +48,7 @@ async function carregarBruto(alunoIds: string[] | null): Promise<Bruto> {
     };
   }
   const db = await getDb();
-  let qs = db.from("training_sessions").select("id, aluno_id, iniciado_em, status, modo, series_planejadas, series_concluidas, treino_id, letra, nome_treino, duracao_seg, conta_aderencia").gte("iniciado_em", desde).order("iniciado_em").limit(5000);
+  let qs = db.from("training_sessions").select("id, aluno_id, iniciado_em, status, modo, origem, series_planejadas, series_concluidas, treino_id, letra, nome_treino, duracao_seg, conta_aderencia").gte("iniciado_em", desde).order("iniciado_em").limit(5000);
   let qm = db.from("metas_semanais").select("*").order("vigente_desde");
   let qp = db.from("pausas_aluno").select("*").order("inicio");
   let qv = db.from("programa_versoes").select("aluno_id, created_at, snapshot").order("created_at").limit(2000);

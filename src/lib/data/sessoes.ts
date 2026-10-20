@@ -173,6 +173,8 @@ export type IniciarSessaoInput = {
   tempoDisponivelMin?: number | null;
   /** Opção “descanso 20% menor” (só vale junto com o tempo disponível e a autorização). */
   descansoReduzido?: boolean;
+  /** "treinador" = aula presencial registrada pelo personal. */
+  origem?: "app" | "treinador";
   /** Treino extra liberado que usa este treino (o servidor confere a liberação). */
   extraId?: string | null;
   recuperacao?: Recuperacao | null;
@@ -257,7 +259,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     series_concluidas: 0,
     feedback_percepcao: null,
     feedback_comentario: null,
-    origem: "app",
+    origem: input.origem ?? "app",
     created_at: agora,
     updated_at: agora,
   };

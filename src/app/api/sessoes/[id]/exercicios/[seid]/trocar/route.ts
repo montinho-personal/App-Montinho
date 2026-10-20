@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAlunoApi } from "@/lib/auth/session";
+import { requireAlunoDoTreinoApi } from "@/lib/auth/session";
 import { trocarExercicioSessao } from "@/lib/data/sessoes";
 import { lerJson, trocaExercicioSchema } from "@/lib/validacao/schemas";
 
@@ -8,7 +8,7 @@ type Ctx = { params: Promise<{ id: string; seid: string }> };
 /** POST — o aluno troca o exercício por uma opção liberada (ou volta ao original). */
 export async function POST(request: Request, { params }: Ctx) {
   const { id, seid } = await params;
-  const { sessao, error } = await requireAlunoApi();
+  const { sessao, error } = await requireAlunoDoTreinoApi(request);
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, trocaExercicioSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });

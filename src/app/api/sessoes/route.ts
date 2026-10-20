@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireAlunoApi } from "@/lib/auth/session";
+import { requireAlunoDoTreinoApi } from "@/lib/auth/session";
 import { getSessaoEmAndamento, iniciarSessao, listSessoes } from "@/lib/data/sessoes";
 import { iniciarSessaoSchema, lerJson } from "@/lib/validacao/schemas";
 
 /** GET /api/sessoes?status=em_andamento|concluida&limite=n — sessões do PRÓPRIO aluno. */
 export async function GET(request: Request) {
-  const { sessao, error } = await requireAlunoApi();
+  const { sessao, error } = await requireAlunoDoTreinoApi(request);
   if (error) return error;
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
@@ -16,12 +16,12 @@ export async function GET(request: Request) {
 
 /** POST /api/sessoes — inicia (idempotente por client_key). */
 export async function POST(request: Request) {
-  const { sessao, error } = await requireAlunoApi();
+  const { sessao, error } = await requireAlunoDoTreinoApi(request);
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, iniciarSessaoSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
-    const s = await iniciarSessao(sessao.alunoId, { treinoId: data.treino_id, clientKey: data.client_key, checkinPre: data.checkin_pre ?? null, checkinPreNota: data.checkin_pre_nota ?? null, tempoDisponivelMin: data.tempo_disponivel_min ?? null, descansoReduzido: !!data.descanso_reduzido, extraId: data.extra_id ?? null, recuperacao: data.recuperacao ?? null });
+    const s = await iniciarSessao(sessao.alunoId, { treinoId: data.treino_id, clientKey: data.client_key, checkinPre: data.checkin_pre ?? null, checkinPreNota: data.checkin_pre_nota ?? null, tempoDisponivelMin: data.tempo_disponivel_min ?? null, descansoReduzido: !!data.descanso_reduzido, extraId: sessao.presencial ? null : (data.extra_id ?? null), origem: sessao.presencial ? "treinador" : "app", recuperacao: data.recuperacao ?? null });
     return NextResponse.json(s, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao iniciar sessão";

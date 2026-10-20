@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAlunoApi } from "@/lib/auth/session";
+import { requireAlunoDoTreinoApi } from "@/lib/auth/session";
 import { registrarSerie, removerSerie } from "@/lib/data/sessoes";
 import { lerJson, serieSchema } from "@/lib/validacao/schemas";
 
@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ id: string }> };
 /** POST — registra/atualiza uma série. Mesma client_key → mesma série (sem duplicar). */
 export async function POST(request: Request, { params }: Ctx) {
   const { id } = await params;
-  const { sessao, error } = await requireAlunoApi();
+  const { sessao, error } = await requireAlunoDoTreinoApi(request);
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, serieSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: Ctx) {
 
 export async function DELETE(request: Request, { params }: Ctx) {
   const { id } = await params;
-  const { sessao, error } = await requireAlunoApi();
+  const { sessao, error } = await requireAlunoDoTreinoApi(request);
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, z.object({ client_key: z.string().min(4).max(80) }));
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
