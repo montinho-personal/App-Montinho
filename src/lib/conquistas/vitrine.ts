@@ -136,7 +136,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
 export function proximasMedalhas(ms: Medalha[], limite = 3): Medalha[] {
   const ganhas = ms.filter((m) => m.conquistada).length;
   const pontos = (m: Medalha, i: number) => {
-    const fr = m.alvo ? (m.atual ?? 0) / m.alvo : 0.3;
+    // Medalha sem número (ex.: abrir a evolução) só pesa depois do primeiro treino.
+    const fr = m.alvo ? (m.atual ?? 0) / m.alvo : ganhas > 0 ? 0.3 : 0;
     const momento = i <= ganhas + 3 ? 0.25 : 0;
     return fr + momento;
   };

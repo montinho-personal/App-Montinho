@@ -149,6 +149,9 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               Revisar treino
             </Link>
             <AtribuirTreinoButton alunoId={id} templates={templates} />
+            <Link href={`/treinador/alunos/${id}/jornada`} className="touch inline-flex items-center justify-center rounded-md border border-border px-4 text-sm font-semibold text-fg-muted hover:text-fg">
+              Ver jornada
+            </Link>
             <EditarAlunoButton alunoId={id} inicial={{ nome: aluno.profile?.nome ?? "", telefone: aluno.telefone ?? "", status: aluno.status, data_nascimento: aluno.data_nascimento ?? "", data_inicio: aluno.data_inicio ?? "", acesso_ate: aluno.acesso_ate ?? "", objetivo: aluno.objetivo ?? "" }} />
           </div>
         </CardBody>

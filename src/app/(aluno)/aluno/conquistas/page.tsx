@@ -39,6 +39,13 @@ export default async function ConquistasPage() {
           Evolução →
         </Link>
       </div>
+      <Link href="/aluno/jornada" className="flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-grain-strong px-4 py-3">
+        <span>
+          <span className="block text-[11px] font-bold uppercase tracking-wider text-accent">Minha Jornada</span>
+          <span className="block text-sm font-semibold">Veja suas medalhas no mapa da sua evolução</span>
+        </span>
+        <span aria-hidden className="text-accent">→</span>
+      </Link>
       <ConquistasClient
         nome={(aluno.profile?.nome ?? sessao.nome).split(" ")[0]}
         mensal={mensal}

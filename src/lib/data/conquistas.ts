@@ -14,6 +14,8 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
+import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
+import { ciclos, linhaDoTempo, montarJornada } from "@/lib/conquistas/jornada";
 import { listarHistoricoResumo } from "@/lib/data/historico";
 import { baseCargaDoResumo } from "@/lib/historico/resumo";
 
@@ -247,3 +249,34 @@ export async function listarEventos(desde: string): Promise<EventoChalala[]> {
   return (data ?? []) as EventoChalala[];
 }
 
+
+// ---------------------------------------------------------------------------
+// Minha Jornada (aluno e personal): tudo derivado do motor oficial.
+// ---------------------------------------------------------------------------
+export async function dadosDaJornada(aluno: AlunoBase) {
+  const [{ todas, sessoes, aderencia }, reconhecimentos] = await Promise.all([sincronizarConquistas(aluno), listarReconhecimentos(aluno.id)]);
+  const hoje = dataLocal(new Date());
+  const medalhas = vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje });
+  const jornada = montarJornada({ medalhas, proxima: proximaMedalha(medalhas), conquistas: todas, semanas: aderencia.semanas });
+  const eventos = linhaDoTempo({
+    conquistas: todas,
+    semanas: aderencia.semanas,
+    hoje,
+    reconhecimentos,
+    ciclosAlcancados: ciclos(aderencia.semanas).filter((c) => c.alcancado),
+  });
+  const codigoPorId = new Map(todas.map((c) => [c.id, c.codigo]));
+  const reconhecimentosPorCodigo: Record<string, { mensagem: string; data: string }> = {};
+  for (const r of [...reconhecimentos].reverse()) {
+    const cod = r.conquista_id ? codigoPorId.get(r.conquista_id) : null;
+    if (cod) reconhecimentosPorCodigo[cod] = { mensagem: r.mensagem, data: r.created_at };
+  }
+  const treinos = sessoes.filter((s) => s.conta_aderencia !== false && classificarSessao(s) === "concluida").length;
+  return {
+    jornada,
+    eventos,
+    reconhecimentosPorCodigo,
+    stats: { semanas: aderencia.semanas.filter((w) => !w.pausada).length, treinos, aderencia: aderencia.indices.d28.pct },
+    semTreinos: !sessoes.some((s) => s.conta_aderencia !== false && ["concluida", "parcial"].includes(classificarSessao(s))),
+  };
+}

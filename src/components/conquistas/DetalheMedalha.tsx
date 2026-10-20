@@ -12,7 +12,7 @@ import { BRAND } from "@/config/brand";
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
-export function DetalheMedalha({ m, reconhecimento, onGerarCard, onFechar }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; onFechar?: () => void }) {
+export function DetalheMedalha({ m, reconhecimento, onGerarCard, onFechar, rotuloEntender = "Entenda por que isso é importante", rotuloCard = "Gerar card desta medalha" }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; onFechar?: () => void; rotuloEntender?: string; rotuloCard?: string }) {
   const [aberto, setAberto] = useState(false);
   const t = CONTEUDO[m.codigo];
   const pct = m.alvo ? Math.round(((m.atual ?? 0) / m.alvo) * 100) : null;
@@ -60,10 +60,10 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onFechar }: { m
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <button type="button" onClick={entender} aria-expanded={aberto} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
-          {aberto ? "Fechar explicação" : "Entenda por que isso é importante"}
+          {aberto ? "Fechar explicação" : rotuloEntender}
         </button>
         {m.conquistada && onGerarCard ? (
-          <button type="button" onClick={onGerarCard} className="alvo text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">Gerar card desta medalha</button>
+          <button type="button" onClick={onGerarCard} className="alvo text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">{rotuloCard}</button>
         ) : null}
       </div>
 

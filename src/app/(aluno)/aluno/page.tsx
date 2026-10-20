@@ -138,7 +138,7 @@ export default async function AlunoHomePage() {
       {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
 
       {proximaMed ? (
-        <Link href="/aluno/conquistas" className="block">
+        <Link href="/aluno/jornada" className="block">
           <Card className="transition-colors hover:border-accent/40">
             <CardBody className="flex items-center gap-3 py-3">
               <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} />
@@ -169,6 +169,9 @@ export default async function AlunoHomePage() {
               </Link>
               <Link href="/aluno/conquistas" className="inline-block text-xs text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
                 Minhas conquistas
+              </Link>
+              <Link href="/aluno/jornada" className="inline-block text-xs text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
+                Minha Jornada
               </Link>
             </div>
           </CardBody>

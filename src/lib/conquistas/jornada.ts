@@ -1,0 +1,161 @@
+// ============================================================================
+// Minha Jornada — organização VISUAL das conquistas em capítulos, posição
+// atual do aluno e linha do tempo. Tudo é derivado do motor oficial
+// (vitrine/regras/conquistas gravadas): aqui não se concede nada.
+//
+// • Capítulos são narrativa, não barreira: uma medalha do capítulo 3 pode
+//   sair antes de uma do capítulo 1.
+// • “Você está aqui” = logo depois da MEDALHA mais avançada já conquistada,
+//   de qualquer tipo (constância, acompanhamento, prática…) — não só nº de
+//   treinos. Recordes/retomadas acendem, mas não empurram o marcador; os
+//   ciclos de tempo só contam depois de todas as medalhas possíveis.
+// • Depois do capítulo 4 a trilha continua com ciclos de acompanhamento
+//   (6 meses, 1 ano…) a partir das semanas reais — marcos, não medalhas novas.
+// ============================================================================
+
+import { somarDias, type Semana } from "@/lib/aderencia/calcular";
+import type { CodigoConquista } from "./regras";
+import type { Medalha } from "./vitrine";
+import { CONTEUDO, nomeDaConquista } from "./conteudo";
+
+export type Capitulo = { numero: number; titulo: string; subtitulo: string; cenario: "trilha" | "ponte" | "mirante" | "montanha" | "horizonte" };
+
+export const CAPITULOS: Capitulo[] = [
+  { numero: 1, titulo: "Começando", subtitulo: "O primeiro contato com a rotina.", cenario: "trilha" },
+  { numero: 2, titulo: "Criando consistência", subtitulo: "A repetição dos treinos e as metas da semana.", cenario: "ponte" },
+  { numero: 3, titulo: "Evoluindo", subtitulo: "Desempenho, registros e autoconhecimento.", cenario: "mirante" },
+  { numero: 4, titulo: "Continuando", subtitulo: "Acompanhamento prolongado e retomadas.", cenario: "montanha" },
+  { numero: 5, titulo: "Seguindo em frente", subtitulo: "Ciclos de acompanhamento ao longo do tempo.", cenario: "horizonte" },
+];
+
+/** Em que capítulo cada medalha aparece (só visual). */
+export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "eu_voltei">, number> = {
+  primeiro_treino: 1,
+  criando_raizes: 1,
+  primeira_meta_semanal: 1,
+  treinos_10: 2,
+  primeiro_mes: 2,
+  constancia_vida_real: 2,
+  semanas_consistentes_4: 2,
+  relatorio_mensal: 3,
+  treinos_25: 3,
+  semanas_consistentes_8: 3,
+  acompanhamento_12_semanas: 4,
+  constancia_verdade: 4,
+  treinos_50: 4,
+  recomeco_consistente: 4,
+};
+
+export type NoJornada =
+  | { tipo: "medalha"; id: string; capitulo: number; medalha: Medalha; alcancado: boolean; proxima: boolean }
+  | { tipo: "recorrente"; id: string; capitulo: number; codigo: "recorde" | "eu_voltei"; titulo: string; total: number; ultima: string | null; alcancado: boolean; proxima: false }
+  | { tipo: "ciclo"; id: string; capitulo: number; semanas: number; titulo: string; data: string | null; alcancado: boolean; proxima: boolean };
+
+export type Jornada = {
+  capitulos: Array<Capitulo & { nos: NoJornada[]; alcancados: number; total: number }>;
+  /** Índice (na lista achatada de nós) ANTES do qual fica o “Você está aqui”. */
+  posicao: number;
+  nos: NoJornada[];
+  proxima: Medalha | null;
+};
+
+/** Rótulo do ciclo: 26 semanas = 6 meses, 52 = 1 ano, 78 = 1 ano e meio… */
+export function rotuloCiclo(semanas: number): string {
+  const meses = Math.round((semanas / 52) * 12);
+  if (meses < 12) return `${meses} meses de acompanhamento`;
+  const anos = Math.floor(meses / 12);
+  const resto = meses % 12;
+  return `${anos} ${anos === 1 ? "ano" : "anos"}${resto ? " e meio" : ""} de acompanhamento`;
+}
+
+/**
+ * Ciclos alcançados e o próximo. Conta semanas do calendário desde o início
+ * do acompanhamento; semana em pausa combinada não é semana de acompanhamento.
+ */
+export function ciclos(semanas: Pick<Semana, "inicio" | "pausada">[], passo = 26): Array<{ semanas: number; data: string | null; alcancado: boolean }> {
+  const ativas = semanas.filter((w) => !w.pausada);
+  const out: Array<{ semanas: number; data: string | null; alcancado: boolean }> = [];
+  for (let n = passo; n <= ativas.length; n += passo) out.push({ semanas: n, data: somarDias(ativas[n - 1].inicio, 6), alcancado: true });
+  const prox = (Math.floor(ativas.length / passo) + 1) * passo;
+  out.push({ semanas: prox, data: null, alcancado: false });
+  return out;
+}
+
+export function montarJornada(e: {
+  medalhas: Medalha[];
+  proxima: Medalha | null;
+  conquistas: Array<{ codigo: string; conquistado_em: string }>;
+  semanas: Pick<Semana, "inicio" | "pausada">[];
+}): Jornada {
+  const recorrente = (codigo: "recorde" | "eu_voltei", capitulo: number): NoJornada => {
+    const xs = e.conquistas.filter((c) => c.codigo === codigo).map((c) => c.conquistado_em).sort();
+    return { tipo: "recorrente", id: codigo, capitulo, codigo, titulo: CONTEUDO[codigo].nome, total: xs.length, ultima: xs.at(-1) ?? null, alcancado: xs.length > 0, proxima: false };
+  };
+  const nos: NoJornada[] = [];
+  for (const cap of CAPITULOS) {
+    const doCap = e.medalhas.filter((m) => CAPITULO_DA_MEDALHA[m.codigo as keyof typeof CAPITULO_DA_MEDALHA] === cap.numero);
+    for (const m of doCap) nos.push({ tipo: "medalha", id: m.codigo, capitulo: cap.numero, medalha: m, alcancado: m.conquistada, proxima: e.proxima?.codigo === m.codigo });
+    if (cap.numero === 3) nos.push(recorrente("recorde", 3));
+    if (cap.numero === 4) nos.push(recorrente("eu_voltei", 4));
+    if (cap.numero === 5) {
+      for (const c of ciclos(e.semanas)) nos.push({ tipo: "ciclo", id: `ciclo-${c.semanas}`, capitulo: 5, semanas: c.semanas, titulo: rotuloCiclo(c.semanas), data: c.data, alcancado: c.alcancado, proxima: false });
+    }
+  }
+  let ultimo = -1;
+  nos.forEach((n, i) => {
+    if (n.tipo === "medalha" && n.alcancado) ultimo = i;
+  });
+  const medalhasAbertas = nos.some((n) => n.tipo === "medalha" && !n.alcancado && n.medalha.disponivel);
+  if (!medalhasAbertas) nos.forEach((n, i) => {
+    if (n.tipo === "ciclo" && n.alcancado) ultimo = i;
+  });
+  return {
+    nos,
+    posicao: ultimo + 1,
+    proxima: e.proxima,
+    capitulos: CAPITULOS.map((c) => {
+      const ns = nos.filter((n) => n.capitulo === c.numero);
+      return { ...c, nos: ns, alcancados: ns.filter((n) => n.alcancado).length, total: ns.length };
+    }),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Linha do tempo
+// ---------------------------------------------------------------------------
+export type EventoJornada = {
+  chave: string;
+  data: string;
+  tipo: "medalha" | "recorde" | "retomada" | "meta" | "reconhecimento" | "ciclo";
+  titulo: string;
+  detalhe: string | null;
+  /** Só para mensagens escritas pelo personal. */
+  autor?: "personal";
+  codigo?: string;
+};
+
+export function linhaDoTempo(e: {
+  conquistas: Array<{ id: string; codigo: string; titulo: string; descricao: string | null; conquistado_em: string; dados?: { recordes?: Array<{ exercicio: string }>; diasAfastado?: number } }>;
+  semanas: Pick<Semana, "inicio" | "meta" | "pontos" | "status" | "pausada" | "atual">[];
+  /** AAAA-MM-DD: a semana atual não ganha data no futuro. */
+  hoje: string;
+  reconhecimentos: Array<{ id: string; mensagem: string; created_at: string }>;
+  ciclosAlcancados?: Array<{ semanas: number; data: string | null }>;
+}): EventoJornada[] {
+  const out = new Map<string, EventoJornada>();
+  const add = (ev: EventoJornada) => {
+    if (!out.has(ev.chave)) out.set(ev.chave, ev);
+  };
+  for (const c of e.conquistas) {
+    if (c.codigo === "recorde") add({ chave: `c:${c.id}`, data: c.conquistado_em, tipo: "recorde", titulo: "Novo recorde pessoal", detalhe: c.dados?.recordes?.length ? c.dados.recordes.map((r) => r.exercicio).join(", ") : c.descricao, codigo: c.codigo });
+    else if (c.codigo === "eu_voltei") add({ chave: `c:${c.id}`, data: c.conquistado_em, tipo: "retomada", titulo: "Eu voltei", detalhe: c.dados?.diasAfastado ? `Retomada depois de ${c.dados.diasAfastado} dias.` : CONTEUDO.eu_voltei.mensagem, codigo: c.codigo });
+    else add({ chave: `m:${c.codigo}`, data: c.conquistado_em, tipo: "medalha", titulo: nomeDaConquista(c.codigo, c.titulo), detalhe: CONTEUDO[c.codigo as CodigoConquista]?.mensagem ?? c.descricao, codigo: c.codigo });
+  }
+  for (const w of e.semanas) {
+    if (w.status !== "cumprida" || w.pausada || !w.meta) continue;
+    add({ chave: `meta:${w.inicio}`, data: `${w.atual ? e.hoje : somarDias(w.inicio, 6)}T15:00:00Z`, tipo: "meta", titulo: "Meta da semana cumprida", detalhe: `${w.meta} ${w.meta === 1 ? "treino" : "treinos"} na semana de ${w.inicio.slice(8, 10)}/${w.inicio.slice(5, 7)}.` });
+  }
+  for (const r of e.reconhecimentos) add({ chave: `r:${r.id}`, data: r.created_at, tipo: "reconhecimento", titulo: "Mensagem do Montinho", detalhe: r.mensagem, autor: "personal" });
+  for (const c of e.ciclosAlcancados ?? []) if (c.data) add({ chave: `ciclo:${c.semanas}`, data: `${c.data}T15:00:00Z`, tipo: "ciclo", titulo: rotuloCiclo(c.semanas), detalhe: "Marco de tempo de acompanhamento." });
+  return [...out.values()].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : a.chave < b.chave ? -1 : 1));
+}

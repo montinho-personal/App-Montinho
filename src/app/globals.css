@@ -176,3 +176,13 @@
   min-height: 24px;
   min-width: 24px;
 }
+
+/* Minha Jornada: brilho ao conquistar e entrada do painel (respeitam prefers-reduced-motion via motion-safe). */
+@keyframes jornadaBrilho {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 12px #ba9e50); }
+}
+@keyframes jornadaSobe {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
