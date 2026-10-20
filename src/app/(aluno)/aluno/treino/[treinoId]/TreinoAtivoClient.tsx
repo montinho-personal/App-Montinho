@@ -174,7 +174,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
         // Já vem preenchido com o que o aluno fez da última vez (ele só ajusta, se precisar).
         const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[idx];
         const anterior = exDoPlano ? ultimas[exDoPlano.id] : null;
-        const daUltimaVez = (n: number) => anterior?.series.filter((u) => u.tipo !== "aquecimento").find((u) => u.serie === n) ?? anterior?.series.filter((u) => u.tipo !== "aquecimento").at(-1) ?? null;
+        // Série a série do último treino: 1ª com a 1ª, 2ª com a 2ª… (aquecimentos fora); série a mais repete a última.
+        const validasAntes = anterior?.series.filter((u) => u.tipo !== "aquecimento").sort((a, b) => a.serie - b.serie) ?? [];
+        const daUltimaVez = (n: number) => validasAntes[n - 1] ?? validasAntes.at(-1) ?? null;
         const planejadas = Math.max(1, se.series_planejadas + ((se.prescricao as { series_aquecimento?: number })?.series_aquecimento ?? 0));
         const porSerie = new Map<number, SessionSet>();
         for (const x of se.series) porSerie.set(x.serie, x);
