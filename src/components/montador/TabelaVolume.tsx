@@ -14,6 +14,7 @@ import { REGRAS_TECNICAS, TECNICA_CURTA, type RegraTecnicas } from "@/lib/volume
 import type { Tecnica } from "@/lib/volume/calcular";
 import { AVISO_REFERENCIA, aplicarPrioridades, referenciasPorNivel, type NivelReferencia } from "@/lib/volume/referencias";
 import { Icon } from "@/components/ui/Icon";
+import { lerFaixa, textoFaixa } from "@/lib/volume/faixa";
 
 type Filtro = "todos" | "superiores" | "inferiores";
 type Ordem = "padrao" | "volume" | "prioridade";
@@ -123,11 +124,17 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
     onMetas(aplicarPrioridades(base, prioridades as GrupoMuscular[]));
   }
 
-  function setMeta(g: GrupoMuscular, campo: "min" | "max", v: string) {
-    if (!onMetas) return;
-    const n = Math.max(0, Math.min(80, Number(v) || 0));
-    const atual = metas[g] ?? { min: 0, max: 0 };
-    onMetas({ ...metas, [g]: { ...atual, [campo]: n } });
+  /** Grava a faixa digitada (“8-12” ou “12”); vazio apaga. Devolve false se o texto for inválido. */
+  function setFaixa(g: GrupoMuscular, texto: string): boolean {
+    if (!onMetas) return false;
+    const f = lerFaixa(texto);
+    if (f === null) return false;
+    if (f === "vazio") {
+      const resto = { ...metas };
+      delete resto[g];
+      onMetas(resto);
+    } else onMetas({ ...metas, [g]: f });
+    return true;
   }
 
   function togglePrioridade(g: GrupoMuscular) {
@@ -194,6 +201,15 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
         </p>
       ) : null}
 
+      {onMetas ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setEditandoMetas((v) => !v)} aria-pressed={editandoMetas} className={`alvo rounded-md border px-2.5 py-1.5 text-[11px] font-semibold ${editandoMetas ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted hover:text-fg"}`}>
+            {editandoMetas ? "✓ Concluir metas" : "✎ Editar metas (faixas)"}
+          </button>
+          {editandoMetas ? <span className="text-[11px] text-fg-muted">Digite na coluna Meta: <strong>8-12</strong> (faixa) ou <strong>12</strong> (número único). Apague para tirar a meta. Depois, salve o plano.</span> : null}
+        </div>
+      ) : null}
+
       {linhas.length === 0 ? (
         <p className="py-6 text-center text-xs text-fg-subtle">Digite os exercícios: o volume aparece aqui na hora.</p>
       ) : (
@@ -247,11 +263,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                     </td>
                     <td className="px-1 py-1.5 text-right font-mono">
                       {editandoMetas ? (
-                        <span className="inline-flex items-center gap-0.5">
-                          <input aria-label={`Meta mínima de ${l.label}`} type="number" min={0} max={80} value={metas[l.grupo]?.min ?? ""} onChange={(e) => setMeta(l.grupo, "min", e.target.value)} className="w-9 rounded border border-border bg-bg px-1 text-right text-[11px]" />
-                          –
-                          <input aria-label={`Meta máxima de ${l.label}`} type="number" min={0} max={80} value={metas[l.grupo]?.max ?? ""} onChange={(e) => setMeta(l.grupo, "max", e.target.value)} className="w-9 rounded border border-border bg-bg px-1 text-right text-[11px]" />
-                        </span>
+                        <CampoFaixa key={`${l.grupo}:${textoFaixa(metas[l.grupo])}`} rotulo={l.label} inicial={textoFaixa(metas[l.grupo])} onSalvar={(t) => setFaixa(l.grupo, t)} />
                       ) : l.meta ? (
                         <span className="whitespace-nowrap">{l.meta.max > l.meta.min ? `${l.meta.min}–${l.meta.max}` : l.meta.min}</span>
                       ) : (
@@ -284,7 +296,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
 
       {onMetas ? <div className="flex flex-wrap gap-2 pt-1">
         <button type="button" onClick={() => setEditandoMetas((v) => !v)} className="alvo rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg">
-          {editandoMetas ? "Concluir metas" : "Editar metas"}
+          {editandoMetas ? "✓ Concluir metas" : "✎ Editar metas (faixas)"}
         </button>
         <button type="button" onClick={aplicarReferencia} className="alvo rounded-md border border-border px-2.5 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg" title={AVISO_REFERENCIA}>
           Preencher com faixas de referência
@@ -318,5 +330,38 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
         <li>Metas são do aluno; rótulos neutros (abaixo / na meta / acima / sem meta). {AVISO_REFERENCIA}</li>
       </ul>
     </div>
+  );
+}
+
+/** Campo da meta: aceita “8-12”, “8 a 12” ou “12”; grava ao sair do campo ou com Enter. */
+function CampoFaixa({ rotulo, inicial, onSalvar }: { rotulo: string; inicial: string; onSalvar: (t: string) => boolean }) {
+  const [texto, setTexto] = useState(inicial);
+  const [erro, setErro] = useState(false);
+  function gravar() {
+    if (texto.trim() === inicial) return setErro(false);
+    const ok = onSalvar(texto);
+    setErro(!ok);
+    const f = ok ? lerFaixa(texto) : null;
+    if (f && f !== "vazio") setTexto(textoFaixa(f)); // “8 a 12” → “8-12”
+  }
+  return (
+    <input
+      aria-label={`Meta de ${rotulo} (ex.: 8-12)`}
+      aria-invalid={erro}
+      title={erro ? "Use 8-12 ou 12 (até 80)" : "Faixa da meta: 8-12 ou 12"}
+      inputMode="text"
+      autoComplete="off"
+      placeholder="—"
+      value={texto}
+      onChange={(e) => {
+        setTexto(e.target.value);
+        setErro(false);
+      }}
+      onBlur={gravar}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      className={`h-8 w-14 rounded border bg-bg px-1 text-center font-mono text-[12px] ${erro ? "border-red text-red" : "border-border"}`}
+    />
   );
 }
