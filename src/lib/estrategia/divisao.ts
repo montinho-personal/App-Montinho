@@ -12,7 +12,7 @@ import { GRUPO_LABEL } from "@/lib/grupos";
 import { semAcento, type EstrategiaImportada } from "./ler";
 
 export type DiaModelo = { nome: string; grupos: GrupoMuscular[] };
-export type DiaEstrategia = { letra: string; nome: string; grupos: Array<{ grupo: GrupoMuscular; series: number }> };
+export type DiaEstrategia = { letra: string; nome: string; grupos: Array<{ grupo: GrupoMuscular; series: number; max: number }> };
 
 const PEITO_OMBRO_TRI: GrupoMuscular[] = ["peito", "ombros", "ombro_anterior", "ombro_lateral", "triceps"];
 const COSTAS_BI: GrupoMuscular[] = ["costas", "ombro_posterior", "trapezio", "biceps", "antebraco"];
@@ -49,18 +49,22 @@ export function diasDaEstrategia(e: Pick<EstrategiaImportada, "divisao" | "diasP
     if (!v.grupo || v.series <= 0) continue;
     let idx = modelo.map((m, i) => (m.grupos.includes(v.grupo!) ? i : -1)).filter((i) => i >= 0);
     if (!idx.length) idx = modelo.map((_, i) => i);
-    const base = Math.floor(v.series / idx.length);
-    let sobra = v.series - base * idx.length;
-    for (const i of idx) {
-      const s = base + (sobra > 0 ? 1 : 0);
-      if (sobra > 0) sobra--;
-      if (s > 0) dias[i].grupos.push({ grupo: v.grupo, series: s });
-    }
+    // Mínimo e máximo da faixa repartidos do mesmo jeito (sobra nos primeiros dias).
+    const repartir = (total: number) => {
+      const base = Math.floor(total / idx.length);
+      let sobra = total - base * idx.length;
+      return idx.map(() => base + (sobra-- > 0 ? 1 : 0));
+    };
+    const mins = repartir(v.series);
+    const maxs = repartir(Math.max(v.series, v.max ?? v.series));
+    idx.forEach((i, k) => {
+      if (maxs[k] > 0) dias[i].grupos.push({ grupo: v.grupo!, series: mins[k], max: maxs[k] });
+    });
   }
   return dias;
 }
 
 /** Texto curto do foco do dia (vai nas observações do treino). */
 export function focoDoDia(d: DiaEstrategia): string {
-  return d.grupos.map((g) => `${GRUPO_LABEL[g.grupo]} ${g.series}`).join(" · ");
+  return d.grupos.map((g) => `${GRUPO_LABEL[g.grupo]} ${g.max > g.series ? `${g.series}–${g.max}` : g.series}`).join(" · ");
 }

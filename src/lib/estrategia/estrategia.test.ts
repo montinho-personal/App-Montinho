@@ -62,6 +62,8 @@ describe("dias da semana por músculo", () => {
     expect(modeloDaDivisao("Full body", 3)).toHaveLength(3);
     expect(modeloDaDivisao("ABCDE do Montinho", 5)).toBeNull();
     expect(grupoDoRotulo("Posterior de coxa")).toBe("posteriores");
+    // Nomes sugeridos no Strategy
+    expect(["Peito", "Costas", "Ombros", "Bíceps", "Tríceps", "Quadríceps", "Posterior", "Glúteos", "Panturrilha", "Abdômen"].map(grupoDoRotulo)).toEqual(["peito", "costas", "ombros", "biceps", "triceps", "quadriceps", "posteriores", "gluteo", "panturrilha", "abdomen"]);
   });
 });
 
@@ -85,5 +87,40 @@ describe("fase atual", () => {
     expect(faseAtual(e.fases, "2026-10-07", "2026-11-04")).toMatchObject({ fase: { numero: 2 }, semana: 1 });
     expect(faseAtual(e.fases, "2026-10-07", "2027-01-30")).toMatchObject({ encerrada: true, fase: { numero: 3 } });
     expect(faseAtual(e.fases, "2026-10-07", "2026-10-01")).toBeNull();
+  });
+});
+
+describe("arquivo do Montinho Strategy (.montinho.json) e faixas", () => {
+  const arquivo = {
+    formato: "montinho-strategy",
+    versaoFormato: 1,
+    geradoEm: "2026-10-20T12:00:00Z",
+    estrategia: { ...e, volume: [{ rotulo: "Peitoral", series: 14, max: 18 }, { rotulo: "Dorsais", series: 16, max: null }, { rotulo: "Quadríceps", series: 4, max: 6 }], restricoes: "Dores: tendão", exerciciosEvitar: "Agachamento livre", exerciciosObrigatorios: null },
+  };
+  it("lê o arquivo, liga rótulos aos grupos e mantém a faixa", async () => {
+    const { lerArquivoStrategy } = await import("./ler");
+    const x = lerArquivoStrategy(arquivo)!;
+    expect(x.volume).toEqual([{ rotulo: "Peitoral", grupo: "peito", series: 14, max: 18 }, { rotulo: "Dorsais", grupo: "costas", series: 16, max: null }, { rotulo: "Quadríceps", grupo: "quadriceps", series: 4, max: 6 }]);
+    expect(x.exerciciosEvitar).toBe("Agachamento livre");
+    const { estrategiaSchema } = await import("@/lib/validacao/schemas");
+    expect(estrategiaSchema.safeParse(x).success).toBe(true);
+    expect(lerArquivoStrategy({ formato: "outro" })).toBeNull();
+    expect(lerArquivoStrategy(null)).toBeNull();
+  });
+  it("faixa vira meta mín–máx e é repartida entre os dias", async () => {
+    const { lerArquivoStrategy } = await import("./ler");
+    const x = lerArquivoStrategy(arquivo)!;
+    const p = planoDaEstrategia(x)!;
+    expect(p.programa.metas_volume.peito).toEqual({ min: 14, max: 18 });
+    expect(p.programa.metas_volume.costas).toEqual({ min: 16, max: 16 });
+    const dias = diasDaEstrategia(x);
+    const peito = dias.flatMap((d) => d.grupos.filter((g) => g.grupo === "peito").map((g) => [d.letra, g.series, g.max]));
+    expect(peito).toEqual([["A", 7, 9], ["D", 7, 9]]);
+  });
+  it("PDF com faixa na tabela de volume", () => {
+    const t = TEXTO.replace("Peitoral 16 16%", "Peitoral 14–18 16%").replace("Total 98 séries", "Total 96–100 séries");
+    const x = lerEstrategia(t);
+    expect(x.volume[0]).toEqual({ rotulo: "Peitoral", grupo: "peito", series: 14, max: 18 });
+    expect(x.volumeTotal).toBe(96);
   });
 });

@@ -351,7 +351,7 @@ export const estrategiaSchema = z.object({
   justificativaDivisao: txt(3000),
   adaptacoes: txt(3000),
   intensidade: txt(200),
-  volume: z.array(z.object({ rotulo: z.string().trim().max(60), grupo: z.enum(GRUPOS).nullable(), series: z.number().int().min(0).max(60) })).max(30),
+  volume: z.array(z.object({ rotulo: z.string().trim().max(60), grupo: z.enum(GRUPOS).nullable(), series: z.number().int().min(0).max(60), max: z.number().int().min(0).max(80).nullable().optional() })).max(30),
   volumeTotal: z.number().int().min(0).max(500).nullable(),
   frequencia: txt(200),
   fases: z.array(z.object({ numero: z.number().int().min(1).max(20), nome: z.string().trim().max(80), semanas: z.number().int().min(1).max(52).nullable() })).max(12),
@@ -365,6 +365,9 @@ export const estrategiaSchema = z.object({
   logicaExercicios: listaTxt(600),
   aerobico: txt(400),
   encerramento: txt(3000),
+  restricoes: txt(1000).optional(),
+  exerciciosObrigatorios: txt(1000).optional(),
+  exerciciosEvitar: txt(1000).optional(),
 });
 export const salvarEstrategiaSchema = z.object({
   estrategia: estrategiaSchema,

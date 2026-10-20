@@ -5,7 +5,14 @@
 import { useRef, useState } from "react";
 import type { EstrategiaImportada } from "@/lib/estrategia/ler";
 
-export type Lida = { estrategia: EstrategiaImportada; dias: Array<{ letra: string; nome: string; foco: string }>; arquivo_nome: string };
+function volumeTexto(e: EstrategiaImportada): string {
+  if (!e.volume.length) return e.volumeTotal ? `${e.volumeTotal} séries/semana` : "—";
+  const min = e.volume.reduce((a, v) => a + v.series, 0);
+  const max = e.volume.reduce((a, v) => a + Math.max(v.series, v.max ?? v.series), 0);
+  return `${max > min ? `${min}–${max}` : min} séries/semana`;
+}
+
+export type Lida = { estrategia: EstrategiaImportada; dias: Array<{ letra: string; nome: string; foco: string }>; naoReconhecidos?: string[]; arquivo_nome: string };
 
 export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) => void; lida: Lida | null }) {
   const input = useRef<HTMLInputElement>(null);
@@ -32,13 +39,13 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
   const e = lida?.estrategia;
   return (
     <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
-      <input ref={input} type="file" accept="application/pdf,.pdf" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
+      <input ref={input} type="file" accept="application/pdf,.pdf,application/json,.json" className="sr-only" id="estrategia-pdf" onChange={(ev) => void escolher(ev.target.files?.[0])} />
       {!e ? (
         <>
-          <p className="text-sm font-semibold">Relatório do Montinho Strategy (PDF)</p>
-          <p className="text-xs text-fg-muted">O app lê o relatório e já monta os dias da semana por músculo, as metas de séries, as fases e o acompanhamento.</p>
+          <p className="text-sm font-semibold">Estratégia do Montinho Strategy</p>
+          <p className="text-xs text-fg-muted">Escolha o arquivo “.montinho.json” (botão “Enviar para o app Montinho” no Strategy) ou o PDF do relatório. O app monta os dias da semana por músculo, as metas de séries, as fases e o acompanhamento.</p>
           <label htmlFor="estrategia-pdf" className="touch inline-flex cursor-pointer items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-card">
-            {lendo ? "Lendo o relatório…" : "Escolher PDF"}
+            {lendo ? "Lendo…" : "Escolher arquivo"}
           </label>
         </>
       ) : (
@@ -56,9 +63,12 @@ export function ImportarEstrategia({ onLida, lida }: { onLida: (l: Lida | null) 
             <dt className="text-fg-subtle">Disponibilidade</dt><dd>{e.diasPorSemana ? `${e.diasPorSemana} dias/semana` : "—"}{e.minutosPorTreino ? ` · ${e.minutosPorTreino} min` : ""}</dd>
             <dt className="text-fg-subtle">Divisão</dt><dd>{e.divisao ?? "—"}</dd>
             <dt className="text-fg-subtle">Intensidade</dt><dd>{e.intensidade ?? "—"}</dd>
-            <dt className="text-fg-subtle">Volume</dt><dd>{e.volumeTotal ? `${e.volumeTotal} séries/semana` : "—"}</dd>
+            <dt className="text-fg-subtle">Volume</dt><dd>{volumeTexto(e)}</dd>
             <dt className="text-fg-subtle">Fases</dt><dd>{e.fases.length ? e.fases.map((f) => f.nome).join(" → ") : "—"}</dd>
           </dl>
+          {lida.naoReconhecidos?.length ? (
+            <p className="text-xs text-warning">Grupo(s) sem correspondência no app, fora das metas: {lida.naoReconhecidos.join(", ")}. Ajuste o nome no Strategy (ex.: “Posterior de coxa”) ou monte no montador.</p>
+          ) : null}
           {lida.dias.length ? (
             <div>
               <p className="text-xs font-semibold">Dias da semana por músculo (séries/semana)</p>

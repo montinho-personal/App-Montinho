@@ -23,7 +23,7 @@ export function planoDaEstrategia(e: EstrategiaImportada): SalvarPlanoInput | nu
   const dias = diasDaEstrategia(e);
   if (!dias.length) return null;
   const metas: Partial<Record<GrupoMuscular, { min: number; max: number }>> = {};
-  for (const v of e.volume) if (v.grupo && v.series > 0) metas[v.grupo] = { min: v.series, max: v.series };
+  for (const v of e.volume) if (v.grupo && v.series > 0) metas[v.grupo] = { min: v.series, max: Math.max(v.series, v.max ?? v.series) };
   const letras = dias.map((d) => d.letra as TreinoLetra);
   const obs = [
     e.intensidade && `Intensidade: ${e.intensidade}.`,

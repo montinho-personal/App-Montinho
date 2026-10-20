@@ -8,7 +8,8 @@
 
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 
-export type VolumeGrupo = { rotulo: string; grupo: GrupoMuscular | null; series: number };
+/** Meta semanal do grupo: `series` = mínimo; `max` fecha a faixa (null = número fixo). */
+export type VolumeGrupo = { rotulo: string; grupo: GrupoMuscular | null; series: number; max?: number | null };
 export type Fase = { numero: number; nome: string; semanas: number | null };
 
 export type EstrategiaImportada = {
@@ -41,6 +42,10 @@ export type EstrategiaImportada = {
   logicaExercicios: string[];
   aerobico: string | null;
   encerramento: string | null;
+  /** Só no arquivo do Montinho Strategy (o PDF não traz). */
+  restricoes?: string | null;
+  exerciciosObrigatorios?: string | null;
+  exerciciosEvitar?: string | null;
 };
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -58,7 +63,7 @@ const GRUPOS: Array<[RegExp, GrupoMuscular]> = [
   [/^triceps/, "triceps"],
   [/^antebraco/, "antebraco"],
   [/^quadriceps/, "quadriceps"],
-  [/^(isquiotibiais|posterior(es)? de coxa)/, "posteriores"],
+  [/^(isquiotibiais|posterior(es)? de coxa|posterior(es)?$)/, "posteriores"],
   [/^gluteo/, "gluteo"],
   [/^adutor/, "adutores"],
   [/^abdutor/, "abdutores"],
@@ -123,12 +128,13 @@ export function lerEstrategia(textoBruto: string): EstrategiaImportada {
   const intensidade = limpa(/optei por (.+?)\.\n/.exec(t)?.[1]) ?? rotulo(/Intensidade/);
 
   const volume: VolumeGrupo[] = [];
-  for (const m of t.matchAll(/^([A-Za-zÀ-ú][A-Za-zÀ-ú ]*?) (\d{1,3}) (\d{1,3})%$/gm)) {
+  for (const m of t.matchAll(/^([A-Za-zÀ-ú][A-Za-zÀ-ú ]*?) (\d{1,3})(?:\s*[–-]\s*(\d{1,3}))? (\d{1,3})%$/gm)) {
     const rot = m[1].trim();
     if (/^total/i.test(rot) || volume.some((v) => v.rotulo === rot)) continue;
-    volume.push({ rotulo: rot, grupo: grupoDoRotulo(rot), series: Number(m[2]) });
+    const max = m[3] ? Number(m[3]) : null;
+    volume.push({ rotulo: rot, grupo: grupoDoRotulo(rot), series: Number(m[2]), max: max && max > Number(m[2]) ? max : null });
   }
-  const total = /Total (\d+) séries/.exec(t);
+  const total = /Total (\d+)(?:\s*[–-]\s*\d+)? séries/.exec(t);
 
   const fases: Fase[] = [];
   for (const m of t.matchAll(/Fase (\d+) · ([^(;\n]+?) \((\d+) sem\)/g)) {
@@ -174,4 +180,27 @@ export function lerEstrategia(textoBruto: string): EstrategiaImportada {
 /** Relatório reconhecido? (precisa ao menos da divisão ou do volume e do objetivo). */
 export function estrategiaValida(e: EstrategiaImportada): boolean {
   return !!e.objetivo && (!!e.divisao || e.volume.length > 0);
+}
+
+/**
+ * Arquivo do Montinho Strategy (“Enviar para o app Montinho”): já vem
+ * estruturado — só confere o formato e liga os rótulos aos grupos do app.
+ * Retorna null se não for esse arquivo.
+ */
+export function lerArquivoStrategy(dados: unknown): EstrategiaImportada | null {
+  const d = dados as { formato?: unknown; versaoFormato?: unknown; estrategia?: Record<string, unknown> } | null;
+  if (!d || d.formato !== "montinho-strategy" || d.versaoFormato !== 1 || !d.estrategia || typeof d.estrategia !== "object") return null;
+  const e = d.estrategia as Record<string, unknown>;
+  const vol = Array.isArray(e.volume) ? (e.volume as Array<Record<string, unknown>>) : [];
+  return {
+    ...(e as unknown as EstrategiaImportada),
+    versao: 1,
+    volume: vol
+      .filter((v) => typeof v.rotulo === "string" && Number.isFinite(Number(v.series)))
+      .map((v) => {
+        const series = Math.round(Number(v.series));
+        const max = v.max == null ? null : Math.round(Number(v.max));
+        return { rotulo: String(v.rotulo).trim(), grupo: grupoDoRotulo(String(v.rotulo)), series, max: max != null && max > series ? max : null };
+      }),
+  };
 }

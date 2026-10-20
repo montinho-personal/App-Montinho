@@ -48,6 +48,9 @@ export function EstrategiaPerfilCard({ alunoId, vigente, fase, importadaEm }: { 
             <dt className="text-fg-subtle">Prioridades</dt><dd className="sm:col-span-3">{vigente.prioridades.join(", ") || "—"}</dd>
             <dt className="text-fg-subtle">Acompanhamento</dt><dd className="sm:col-span-3">{vigente.checkinSemanal.join(" · ") || "—"}</dd>
             {vigente.adaptacoes ? (<><dt className="text-fg-subtle">Adaptações</dt><dd className="sm:col-span-3">{vigente.adaptacoes}</dd></>) : null}
+            {vigente.restricoes ? (<><dt className="text-fg-subtle">Restrições</dt><dd className="sm:col-span-3">{vigente.restricoes}</dd></>) : null}
+            {vigente.exerciciosEvitar ? (<><dt className="text-fg-subtle">Evitar</dt><dd className="sm:col-span-3">{vigente.exerciciosEvitar}</dd></>) : null}
+            {vigente.exerciciosObrigatorios ? (<><dt className="text-fg-subtle">Obrigatórios</dt><dd className="sm:col-span-3">{vigente.exerciciosObrigatorios}</dd></>) : null}
           </dl>
         ) : null}
         {vigente && importadaEm ? <p className="text-[11px] text-fg-subtle">Importada em {dataBR(importadaEm.slice(0, 10))}{vigente.data ? ` · relatório de ${dataBR(vigente.data)}` : ""}. A aluna/o aluno vê a estratégia em “Sua estratégia”.</p> : null}
