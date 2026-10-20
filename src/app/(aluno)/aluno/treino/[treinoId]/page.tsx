@@ -11,6 +11,8 @@ import { indicePorNome } from "@/lib/biblioteca/itens";
 import type { VideoProvider } from "@/lib/supabase/types-extended";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 import { agoraServidorMs } from "@/lib/tempo/ritmo";
+import { getConfigEvolucao, historicoParaEvolucao } from "@/lib/data/evolucao";
+import { normalizarTecnica } from "@/lib/evolucao/adaptar";
 
 type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string; extra?: string; rec?: string; tempo?: string }> };
 
@@ -25,12 +27,14 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
   if (!treino || treino.aluno_id !== sessao.alunoId) notFound();
 
-  const [emAndamento, ultimas, biblioteca, plano, extras] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao] = await Promise.all([
     sessaoId ? getSessao(sessao.alunoId, sessaoId) : getSessaoEmAndamento(sessao.alunoId),
     ultimasExecucoes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
     listarBiblioteca(),
     getPlanoAtivo(sessao.alunoId),
     extraId ? listarExtras(sessao.alunoId, true) : Promise.resolve([]),
+    historicoParaEvolucao(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, exercicioId: e.id, bibliotecaId: e.biblioteca_id ?? null, nome: e.nome, tecnica: normalizarTecnica(e.tecnica) }))),
+    getConfigEvolucao(sessao.alunoId),
   ]);
   // Extra: a liberação é conferida de novo no servidor ao começar.
   const extra = extras.find((x) => x.id === extraId && x.treino_id === treino.id) ?? null;
@@ -73,6 +77,8 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
       sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
       nomeAluno={sessao.nome.split(" ")[0]}
       versaoReduzida={{ permitida: !!plano.programa?.permite_versao_reduzida, prioridades: plano.programa?.prioridades ?? [] }}
+      historico={historico}
+      configEvolucao={configEvolucao}
       extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );

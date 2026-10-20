@@ -6,6 +6,17 @@ import { Heatmap, HeatmapLegend } from "@/components/ui/Heatmap";
 import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
 import { CargasEmAltaLista } from "@/components/graficos/CargasEmAltaLista";
 import { Sparkline } from "@/components/graficos/Sparkline";
+import { POR_QUE } from "@/lib/evolucao/motor";
+import type { TipoInvisivel } from "@/lib/relatorios/invisivel";
+
+const POR_QUE_INVISIVEL: Record<TipoInvisivel, string> = {
+  frequencia: POR_QUE.consistencia,
+  regularidade: POR_QUE.consistencia,
+  metas: POR_QUE.consistencia,
+  reps_mesma_carga: POR_QUE.mais_reps,
+  desempenho: POR_QUE.acima_media,
+  retomada: "Interrupções acontecem. Retomar permite reconstruir a rotina, sem culpa e sem cobrança pelo período de ausência.",
+};
 import type { SessaoCompleta } from "@/lib/data/sessoes";
 import type { Programa, ProgramaVersao } from "@/lib/supabase/types-sessoes";
 import type { Evolucao } from "@/lib/supabase/types";
@@ -13,7 +24,7 @@ import type { CheckIn } from "@/lib/supabase/types-extended";
 import { calcularVolumeSemanal, compararProgramadoRealizado, volumeRealizadoPorGrupo, type DiaVolume } from "@/lib/volume/calcular";
 import { calendarioSessoes, melhoresMarcas, type ResumoEvolucao, periodoDias, resumoPeriodo, seriesRealizadasPorGrupo, sessoesNoPeriodo, tonelagem } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
-import { normalizarNome } from "@/lib/grupos";
+import { GRUPO_LABEL, normalizarNome } from "@/lib/grupos";
 import { Acordeao } from "./Acordeao";
 import { dataLocal, somarDias, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
@@ -58,10 +69,12 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   const calendario = calendarioSessoes(sessoes, periodo);
   // Só exercícios com carga/reps registradas (dias importados só com séries ficam de fora).
   const marcas = melhoresMarcas(noPeriodo.length ? noPeriodo : sessoes).filter((m) => m.melhorCarga || m.melhorReps || m.melhorE1rm).slice(0, 12);
-  const exerciciosGrafico = [...marcas.map((m) => ({ chave: m.chave, nome: m.exercicio }))];
+  const grupoDe = new Map<string, string>();
+  for (const x of sessoes) for (const e of x.exercicios) if (e.grupo_muscular) grupoDe.set(normalizarNome(e.nome), GRUPO_LABEL[e.grupo_muscular] ?? e.grupo_muscular);
+  const exerciciosGrafico: Array<{ chave: string; nome: string; grupo?: string | null }> = [...marcas.map((m) => ({ chave: m.chave, nome: m.exercicio, grupo: grupoDe.get(m.chave) ?? null }))];
   for (const r of historicoResumo) {
     const chave = normalizarNome(r.exercicio_nome);
-    if (r.series > 0 && r.carga_max_kg != null && !exerciciosGrafico.some((e) => e.chave === chave)) exerciciosGrafico.push({ chave, nome: r.exercicio_nome });
+    if (r.series > 0 && r.carga_max_kg != null && !exerciciosGrafico.some((e) => e.chave === chave)) exerciciosGrafico.push({ chave, nome: r.exercicio_nome, grupo: grupoDe.get(chave) ?? null });
   }
 
   // Volume programado (plano ativo) × realizado (média semanal no período)
@@ -147,13 +160,13 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
           ) : null}
           {invisivel.length ? (
             <section className="space-y-2" aria-labelledby="invisivel-titulo">
-              <h3 id="invisivel-titulo" className="text-[11px] font-bold uppercase tracking-wider text-accent">Evolução que não aparece no espelho</h3>
+              <h3 id="invisivel-titulo" className="text-[11px] font-bold uppercase tracking-wider text-accent">Evoluções que você não percebeu</h3>
               {invisivel.slice(0, modo === "aluno" ? 2 : 6).map((i) => (
                 <div key={i.tipo} className="rounded-lg border border-border px-3 py-2 text-sm space-y-1">
                   <p className="font-semibold">{i.titulo}</p>
                   <p><span className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Dado · </span>{i.dado}</p>
                   <p className="text-fg-muted"><span className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Interpretação · </span>{i.interpretacao}</p>
-                  <details className="text-[11px] text-fg-subtle"><summary className="cursor-pointer">Como é calculado</summary>{i.criterio}</details>
+                  <details className="text-[11px] text-fg-subtle"><summary className="cursor-pointer font-semibold text-accent">Por que isso é importante?</summary><p className="mt-1 text-fg-muted">{POR_QUE_INVISIVEL[i.tipo]}</p><p className="mt-1">Como é calculado: {i.criterio}</p></details>
                 </div>
               ))}
               {modo === "aluno" && invisivel.length > 2 ? <p className="text-[11px] text-fg-subtle">+{invisivel.length - 2} na análise completa.</p> : null}
@@ -191,7 +204,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
       <h2 id="analise" className="scroll-mt-20 text-xs font-bold uppercase tracking-wider text-fg-muted pt-1">Análise completa</h2>
 
       {modo === "aluno" && invisivel.length > 2 ? (
-        <Acordeao titulo="Evolução que não aparece no espelho" resumo={`${invisivel.length} sinais de progresso nos seus registros`}>
+        <Acordeao titulo="Evoluções que você não percebeu" resumo={`${invisivel.length} sinais de progresso nos seus registros`}>
           <ul className="space-y-2">
             {invisivel.map((i) => (
               <li key={i.tipo} className="text-sm">

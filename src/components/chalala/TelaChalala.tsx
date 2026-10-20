@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatarMin, type DadosCard } from "@/lib/chalala/card";
 import type { ResumoChalala } from "@/lib/data/conquistas";
 import { CONTEUDO, nomeDaConquista } from "@/lib/conquistas/conteudo";
+import { POR_QUE } from "@/lib/evolucao/motor";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
 import { enviarEvento } from "./evento";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
@@ -25,7 +26,7 @@ const dataBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4
 
 export type BaseConclusao = { sessaoId: string; status: "concluida" | "abandonada"; nomeTreino: string | null; series: number; seriesPlanejadas: number; duracaoMin: number | null; data: string };
 
-export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "duracaoMin" | "exercicios" | "series" | "meta" | "pontosSemana" | "metaCumprida" | "recordes" | "retomada" | "conquistas">): DadosCard {
+export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "duracaoMin" | "exercicios" | "series" | "meta" | "pontosSemana" | "metaCumprida" | "recordes" | "retomada" | "conquistas"> & { evolucao?: ResumoChalala["evolucao"] }): DadosCard {
   const outra = r.conquistas.find((c) => c.codigo !== "recorde" && c.codigo !== "eu_voltei" && c.codigo !== "relatorio_mensal");
   return {
     nomeTreino: r.nomeTreino,
@@ -37,7 +38,8 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
     feitosSemana: r.pontosSemana,
     metaCumprida: r.metaCumprida,
     recordes: r.recordes,
-    conquistaTitulo: outra ? nomeDaConquista(outra.codigo, outra.titulo) : null,
+    conquistaTitulo: outra ? nomeDaConquista(outra.codigo, outra.titulo) : r.evolucao && !r.recordes.length ? `Evoluí no ${r.evolucao.exercicio}` : null,
+    conquistaFrase: !outra && r.evolucao && !r.recordes.length ? `${String(r.evolucao.atual.carga).replace(".", ",")} kg × ${r.evolucao.atual.reps}${r.evolucao.anterior ? ` (antes ${String(r.evolucao.anterior.carga).replace(".", ",")} kg × ${r.evolucao.anterior.reps})` : ""}` : null,
     retomada: r.retomada,
   };
 }
@@ -140,6 +142,24 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
           ) : null}
         </CardBody>
       </Card>
+
+      {r?.destaques?.length ? (
+        <Card className="border-accent/40">
+          <CardBody className="space-y-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Destaques de hoje</p>
+            <ul className="space-y-1 text-sm">
+              {r.destaques.map((d) => <li key={d} className="flex gap-2"><span className="text-accent" aria-hidden>✦</span><span>{d}</span></li>)}
+            </ul>
+            {r.evolucao ? (
+              <details className="text-xs text-fg-muted">
+                <summary className="cursor-pointer font-semibold text-accent">Por que isso é importante?</summary>
+                <p className="mt-1">{POR_QUE[r.evolucao.tipo]}</p>
+                <p className="mt-1 text-[11px] text-fg-subtle">Comparação: {r.evolucao.criterio}</p>
+              </details>
+            ) : null}
+          </CardBody>
+        </Card>
+      ) : null}
 
       {conquista ? (
         <Card className="border-accent/40">

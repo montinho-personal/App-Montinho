@@ -26,6 +26,8 @@ import { listarHistoricoResumo } from "@/lib/data/historico";
 import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
 import { SemanasBarras } from "@/components/graficos/SemanasBarras";
 import { CargasEmAltaLista } from "@/components/graficos/CargasEmAltaLista";
+import { vitoriasDoAluno } from "@/lib/data/evolucao";
+import { VITORIA_NEUTRA } from "@/lib/evolucao/vitoria";
 
 export const metadata = { title: "Início" };
 
@@ -48,7 +50,7 @@ export default async function AlunoHomePage() {
     listarHistoricoResumo(alunoId),
   ]);
   if (!aluno) return null;
-  const aderencia = await aderenciaDoAluno(aluno);
+  const [aderencia, { atual: vitoria }] = await Promise.all([aderenciaDoAluno(aluno), vitoriasDoAluno(aluno, 0)]);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()) });
   const proximaMed = proximaMedalha(medalhas);
   const ganhas = medalhas.filter((m) => m.conquistada).length;
@@ -134,6 +136,23 @@ export default async function AlunoHomePage() {
           </CardBody>
         </Card>
       )}
+
+      {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
+      <Link href="/aluno/vitorias" className="block">
+        <Card className={`transition-colors hover:border-accent/40 ${vitoria ? "border-accent/40" : ""}`}>
+          <CardBody className="space-y-1 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua pequena vitória da semana</p>
+            {vitoria ? (
+              <>
+                <p className="font-semibold leading-tight">{vitoria.mensagem}</p>
+                <p className="text-xs font-semibold text-accent">Entenda sua evolução →</p>
+              </>
+            ) : (
+              <p className="text-sm text-fg-muted">{VITORIA_NEUTRA}</p>
+            )}
+          </CardBody>
+        </Card>
+      </Link>
 
       {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
 

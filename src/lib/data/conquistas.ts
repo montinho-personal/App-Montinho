@@ -14,8 +14,11 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
+import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { ciclos, linhaDoTempo, montarJornada } from "@/lib/conquistas/jornada";
+import { descobertasDaSessao, type Descoberta } from "@/lib/evolucao/motor";
+import { execucoesDeSessoes, sessaoParaAvaliar } from "@/lib/evolucao/adaptar";
 import { listarHistoricoResumo } from "@/lib/data/historico";
 import { baseCargaDoResumo } from "@/lib/historico/resumo";
 
@@ -145,13 +148,18 @@ export type ResumoChalala = {
   retomada: boolean;
   mensagem: string;
   modeloSugerido: ModeloCard;
+  /** Melhor evolução confiável da sessão (Evolução Inteligente). */
+  evolucao: Descoberta | null;
+  /** Até 3 destaques: evolução, conquista e meta da semana. */
+  destaques: string[];
 };
 
 export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise<ResumoChalala | null> {
   const s = await getSessao(aluno.id, sessaoId);
   if (!s || s.status === "em_andamento") return null;
-  const { todas, aderencia } = await sincronizarConquistas(aluno);
+  const [{ todas, aderencia }, historicoSessoes] = await Promise.all([sincronizarConquistas(aluno), listSessoes(aluno.id, { limite: 200, status: "todas" })]);
   const sc = paraConquista(s);
+  const evolucao = descobertasDaSessao(sessaoParaAvaliar(s), execucoesDeSessoes(historicoSessoes.filter((x) => x.id !== s.id))).find((d) => d.confianca === "alta") ?? null;
   const semana = aderencia.semanas.find((w) => w.inicio === inicioDaSemana(dataLocal(s.iniciado_em))) ?? null;
   const pontosSemana = semana ? semana.concluidas + 0.5 * semana.parciais : 0;
   const daSessao = todas.filter((c) => c.session_id === s.id);
@@ -178,7 +186,20 @@ export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise
     retomada: daSessao.some((c) => c.codigo === "eu_voltei"),
     mensagem: msg.mensagem,
     modeloSugerido: msg.modeloSugerido,
+    evolucao,
+    destaques: destaquesDaConclusao({ evolucao, conquistas: daSessao, meta: semana?.meta ?? null, pontosSemana, metaCumpridaAgora: msg.metaCumpridaAgora, extra: classificarSessao(sc) === "extra" }),
   };
+}
+
+/** Até 3 destaques na conclusão: melhor evolução, conquista relevante e meta da semana. */
+export function destaquesDaConclusao(e: { evolucao: Descoberta | null; conquistas: Array<{ codigo: string; titulo: string }>; meta: number | null; pontosSemana: number; metaCumpridaAgora: boolean; extra: boolean }): string[] {
+  const out: string[] = [];
+  if (e.evolucao) out.push(e.evolucao.tipo.startsWith("recorde") ? `Nova marca pessoal em ${e.evolucao.exercicio}.` : `Você evoluiu em ${e.evolucao.exercicio}: ${e.evolucao.atual.carga} kg × ${e.evolucao.atual.reps}${e.evolucao.anterior ? ` (antes ${e.evolucao.anterior.carga} kg × ${e.evolucao.anterior.reps})` : ""}.`.replace(/(\d)\.(\d)/g, "$1,$2"));
+  const c = e.conquistas.find((x) => !["recorde", "relatorio_mensal"].includes(x.codigo));
+  if (c) out.push(`Conquista: ${nomeDaConquista(c.codigo, c.titulo)}.`);
+  if (!e.extra && e.meta) out.push(e.metaCumpridaAgora ? "Você completou sua meta semanal." : e.pontosSemana >= e.meta ? "Meta da semana já cumprida — este treino soma à sua jornada." : `Meta da semana: ${String(Math.min(e.pontosSemana, e.meta)).replace(".", ",")} de ${e.meta} treinos.`);
+  if (out.length < 3) out.push("Mais uma sessão registrada na sua jornada.");
+  return out.slice(0, 3);
 }
 
 export async function resumoMensalDoAluno(aluno: AlunoBase): Promise<{ mensal: ResumoMensal; conquistas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {

@@ -628,4 +628,28 @@ begin
   raise notice 'T18 OK: conquistas 3.0 — códigos novos, versão preservada, aluno só marca as próprias como vistas';
 end $$;
 select test_logout();
+-- T19 — 0029: configuração da Evolução Inteligente (personal grava; aluno só lê a própria)
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into evolucao_config (aluno_id, avisos_ativos, max_por_sessao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true, 2);
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from evolucao_config where max_por_sessao = 2;
+  if n <> 1 then raise exception 'T19: aluna A deveria ler a própria configuração'; end if;
+  update evolucao_config set avisos_ativos = false;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T19: aluna alterou a configuração do personal'; end if;
+  begin insert into evolucao_config (aluno_id) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'); exception when others then ok := true; end;
+  if not ok then raise exception 'T19: aluno criou configuração'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from evolucao_config;
+  if n <> 0 then raise exception 'T19: aluno B viu configuração de A'; end if;
+  raise notice 'T19 OK: evolução inteligente — personal configura, aluno só lê a própria';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

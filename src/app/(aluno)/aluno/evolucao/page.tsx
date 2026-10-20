@@ -44,6 +44,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         <Link href="/aluno/conquistas" className="mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
           Minhas conquistas e card dos 30 dias →
         </Link>
+        <Link href="/aluno/vitorias" className="ml-4 mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">Sua evolução da semana →</Link>
         <RegistrarRelatorio />
       </header>
       {aderencia ? (

@@ -6,8 +6,12 @@ import { evolucaoExercicio, type ResumoEvolucao } from "@/lib/relatorios/calcula
 import { dataBR } from "@/lib/format";
 
 /** Seleciona um exercício e mostra sua evolução (carga máxima e e1RM por data) em gráfico simples + tabela. */
-export function EvolucaoExercicioClient({ sessoes, exercicios, resumos = [] }: { sessoes: SessaoCompleta[]; exercicios: Array<{ chave: string; nome: string }>; resumos?: ResumoEvolucao[] }) {
-  const [chave, setChave] = useState(exercicios[0]?.chave ?? "");
+export function EvolucaoExercicioClient({ sessoes, exercicios: todos, resumos = [] }: { sessoes: SessaoCompleta[]; exercicios: Array<{ chave: string; nome: string; grupo?: string | null }>; resumos?: ResumoEvolucao[] }) {
+  const grupos = [...new Set(todos.map((e) => e.grupo).filter((g): g is string => !!g))].sort();
+  const [grupo, setGrupo] = useState("");
+  const exercicios = grupo ? todos.filter((e) => e.grupo === grupo) : todos;
+  const [escolhido, setChave] = useState(todos[0]?.chave ?? "");
+  const chave = exercicios.some((e) => e.chave === escolhido) ? escolhido : (exercicios[0]?.chave ?? "");
   const pontos = useMemo(() => evolucaoExercicio(sessoes, chave, resumos), [sessoes, chave, resumos]);
   const valores = pontos.map((p) => p.cargaMax ?? 0);
   const max = Math.max(1, ...valores);
@@ -28,6 +32,12 @@ export function EvolucaoExercicioClient({ sessoes, exercicios, resumos = [] }: {
       <label className="block text-xs font-semibold text-fg-muted" htmlFor="sel-exercicio">
         Evolução por exercício
       </label>
+      {grupos.length > 1 ? (
+        <select aria-label="Filtrar por grupo muscular" value={grupo} onChange={(e) => setGrupo(e.target.value)} className="h-10 w-full rounded-md border border-border bg-bg px-2 text-sm">
+          <option value="">Todos os grupos musculares</option>
+          {grupos.map((g) => <option key={g} value={g}>{g}</option>)}
+        </select>
+      ) : null}
       <select id="sel-exercicio" value={chave} onChange={(e) => setChave(e.target.value)} className="h-10 w-full rounded-md border border-border bg-bg px-2 text-sm">
         {exercicios.map((e) => (
           <option key={e.chave} value={e.chave}>

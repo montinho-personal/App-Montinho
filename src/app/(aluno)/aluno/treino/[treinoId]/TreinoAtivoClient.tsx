@@ -36,6 +36,11 @@ import { BRAND } from "@/config/brand";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
 import { OPCOES_TEMPO_MIN, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
+import { avaliarSerie, podeAvisar, principal, resumirExercicio, type Descoberta, type ExecucaoAnterior, type SerieReg } from "@/lib/evolucao/motor";
+import { normalizarTecnica } from "@/lib/evolucao/adaptar";
+import type { ConfigEvolucao } from "@/lib/data/evolucao";
+import { AvisoEvolucao } from "@/components/evolucao/AvisoEvolucao";
+import { bipe, usePrefsEvolucao } from "@/components/evolucao/preferencias";
 
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
 
@@ -54,7 +59,13 @@ type Props = {
   versaoReduzida?: { permitida: boolean; prioridades: string[] };
   /** Treino extra liberado que usa este treino (vem de /aluno/extra). */
   extra?: { id: string; titulo: string; recuperacao: string | null; tempoDisponivelMin: number | null } | null;
+  /** Evolução Inteligente: histórico comparável por exercício e regras do personal. */
+  historico?: Record<string, ExecucaoAnterior[]>;
+  configEvolucao?: ConfigEvolucao;
 };
+
+const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
+const identidade = (ex: ExercicioView) => ({ exercicioId: ex.id, bibliotecaId: ex.biblioteca_id ?? null, nome: ex.nome, tecnica: normalizarTecnica(ex.tecnica) });
 
 type SerieLocal = {
   clientKey: string;
@@ -97,9 +108,11 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao }: Props) {
   const router = useRouter();
   const toast = useToast();
+  const [prefsEvo] = usePrefsEvolucao();
+  const [aviso, setAviso] = useState<Descoberta | null>(null);
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
   const [iniciando, setIniciando] = useState(false);
   const [series, setSeries] = useState<Record<string, SerieLocal[]>>({}); // session_exercise_id → séries
@@ -326,7 +339,32 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
       setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim }));
     }
     if (!silencioso && navigator.vibrate) navigator.vibrate(30);
+    if (!silencioso) avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
     void sincronizar();
+  }
+
+  /** Evolução Inteligente: no máximo 1 aviso por exercício e 3 por sessão (limites do personal). */
+  function avisarEvolucao(ex: ExercicioView, serie: SerieReg) {
+    if (!sessao || !prefsEvo.durante || configEvolucao?.avisos_ativos === false) return;
+    const permitidas = configEvolucao?.metricas ?? ["recorde", "mais_carga", "mais_reps", "acima_media"];
+    const ds = avaliarSerie({ ...identidade(ex), serie, dor: sessao.checkin_pre === "desconforto" }, historico[ex.id] ?? []).filter((d) => permitidas.includes(METRICA[d.tipo] as never));
+    const d = principal(ds, { soRecordes: prefsEvo.modo === "recordes" });
+    if (!d) return;
+    const chave = `montinho-evo-avisos:${sessao.id}`;
+    let mostrados: Array<{ exercicio: string }> = [];
+    try {
+      mostrados = JSON.parse(localStorage.getItem(chave) ?? "[]");
+    } catch {
+      mostrados = [];
+    }
+    if (!podeAvisar(mostrados, ex.nome, { porExercicio: configEvolucao?.max_por_exercicio ?? 1, porSessao: configEvolucao?.max_por_sessao ?? 3 })) return;
+    try {
+      localStorage.setItem(chave, JSON.stringify([...mostrados, { exercicio: ex.nome }]));
+    } catch {
+      /* ignora */
+    }
+    setAviso(d);
+    if (prefsEvo.sons) bipe();
   }
 
   function adicionarSerieExtra(seId: string) {
@@ -650,6 +688,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
 
       <LembretePush compacto />
 
+      {aviso ? <AvisoEvolucao d={aviso} animar={prefsEvo.animacoes} onFechar={() => setAviso(null)} /> : null}
+
       {timer ? (
         <div className="sticky top-2 z-30">
           <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => setTimer(null)} onDismiss={() => setTimer(null)} />
@@ -696,6 +736,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                   </span>
                   <Icon name={expandido ? "up" : "down"} className="text-fg-subtle shrink-0" />
                 </button>
+                {completo && prefsEvo.aoConcluir ? <ResumoDoExercicio ex={ex} series={lista} historico={historico[ex.id] ?? []} dor={sessao.checkin_pre === "desconforto"} /> : null}
 
                 {expandido ? (
                   <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
@@ -884,3 +925,19 @@ function AdaptacaoForm({ onEnviar, onCancelar }: { onEnviar: (motivo: "nao_conse
 }
 
 /** Recordes reais da sessão comparados com a última execução conhecida (só carga). */
+
+
+/** Síntese ao concluir o exercício: o que foi feito e a comparação confiável (se houver). */
+function ResumoDoExercicio({ ex, series, historico, dor }: { ex: ExercicioView; series: SerieLocal[]; historico: ExecucaoAnterior[]; dor: boolean }) {
+  const regs: SerieReg[] = series.filter((s) => s.concluida).map((s) => ({ serie: s.serie, tipo: s.tipo, carga: s.carga.trim() === "" ? null : Number(s.carga.replace(",", ".")), reps: s.reps.trim() === "" ? null : Math.round(Number(s.reps.replace(",", "."))) }));
+  const r = resumirExercicio({ ...identidade(ex), dor }, regs, historico);
+  const kg = (n: number) => `${String(n).replace(".", ",")} kg`;
+  return (
+    <div className="mx-4 mb-3 rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-xs">
+      <p className="font-bold uppercase tracking-wider text-success">Exercício concluído</p>
+      <p className="text-fg-muted">Hoje: {r.series} {r.series === 1 ? "série" : "séries"}{r.melhor ? ` · melhor série ${kg(r.melhor.carga)} × ${r.melhor.reps}` : ""}</p>
+      {r.comparacao?.anterior ? <p className="text-fg-muted">Última sessão: {kg(r.comparacao.anterior.carga)} × {r.comparacao.anterior.reps} · hoje: {kg(r.comparacao.atual.carga)} × {r.comparacao.atual.reps}</p> : null}
+      <p className="mt-0.5 font-semibold text-fg">{r.mensagem}</p>
+    </div>
+  );
+}
