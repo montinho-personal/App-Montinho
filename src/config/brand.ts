@@ -40,6 +40,8 @@ export const BRAND = {
     fullLight: "/brand/logo-fundo-claro.svg",
     /** Símbolo (halter "M") — avatar, menu recolhido, ícone. */
     mark: "/brand/mark.svg",
+    /** Texto do logotipo (MONTINHO / PERSONAL TRAINER) recortado do logo oficial — para usar ao lado do símbolo. */
+    wordmark: "/brand/wordmark.svg",
     /** Proporção largura/altura do logotipo completo (viewBox 469×321). */
     ratio: 469 / 321,
   },

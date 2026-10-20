@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { BrandLockup, FioDourado } from "@/components/brand/BrandLockup";
+import { BrandLockup, FioMarca } from "@/components/brand/BrandLockup";
 import { Icon } from "@/components/ui/Icon";
 import { BRAND } from "@/config/brand";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
@@ -27,16 +27,16 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
           </Link>
           <div className="flex items-center gap-2">
             {ig ? (
-              <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram do ${BRAND.name} (@${ig})`} className="grid h-11 w-11 place-items-center rounded-full border border-border text-fg-muted transition-colors hover:border-accent/60 hover:text-accent">
+              <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram do ${BRAND.name} (@${ig})`} className="grid h-11 w-11 place-items-center rounded-full border border-border text-fg-muted transition-colors hover:border-white/40 hover:text-fg">
                 <Icon name="instagram" size={20} />
               </a>
             ) : null}
-            <Link href="/aluno/perfil" aria-label="Meu perfil" className="grid h-11 w-11 place-items-center rounded-full border border-accent/50 bg-accent/10 text-sm font-bold text-accent">
+            <Link href="/aluno/perfil" aria-label="Meu perfil" className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[linear-gradient(180deg,#3a3a3a,#1c1c1c)] text-sm font-bold text-fg">
               {iniciais || "?"}
             </Link>
           </div>
         </div>
-        <FioDourado />
+        <FioMarca />
       </header>
       <main id="conteudo" className="flex-1 pb-28">
         <div className="max-w-md mx-auto px-4 py-5">{children}</div>

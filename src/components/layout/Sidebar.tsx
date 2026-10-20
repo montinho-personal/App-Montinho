@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/Logo";
-import { BrandLockup, FioDourado } from "@/components/brand/BrandLockup";
+import { BrandLockup, FioMarca } from "@/components/brand/BrandLockup";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
 type NavItem = { label: string; href: string; icon: IconName };
@@ -88,11 +88,11 @@ export function Sidebar({ items, usuario }: SidebarProps) {
         <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
           <BrandLockup priority />
         </Link>
-        <button type="button" onClick={() => setMobileOpen(true)} className="touch flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-accent" aria-label="Abrir menu" aria-expanded={mobileOpen}>
+        <button type="button" onClick={() => setMobileOpen(true)} className="touch flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 text-sm font-semibold text-fg" aria-label="Abrir menu" aria-expanded={mobileOpen}>
           <Icon name="menu" size={18} />
           <span aria-hidden>Menu</span>
         </button>
-        <FioDourado />
+        <FioMarca />
       </div>
       <div className="md:hidden h-16" aria-hidden />
       {mobileOpen ? (
@@ -102,7 +102,7 @@ export function Sidebar({ items, usuario }: SidebarProps) {
               <Link href={inicio} onClick={() => setMobileOpen(false)} aria-label="Ir para a visão geral" className="rounded-md">
                 <BrandLockup />
               </Link>
-              <FioDourado />
+              <FioMarca />
               <button type="button" onClick={() => setMobileOpen(false)} className="touch text-fg-muted" aria-label="Fechar menu">
                 <Icon name="x" />
               </button>
@@ -119,7 +119,7 @@ export function Sidebar({ items, usuario }: SidebarProps) {
           <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
             {collapsed ? <Logo variant="mark" height={40} priority /> : <BrandLockup priority />}
           </Link>
-          <FioDourado />
+          <FioMarca />
           <button type="button" onClick={toggle} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} className="grid h-8 w-8 place-items-center rounded-md border border-border text-xs text-fg-muted hover:text-fg shrink-0">
             <span aria-hidden>{collapsed ? "›" : "‹"}</span>
           </button>
