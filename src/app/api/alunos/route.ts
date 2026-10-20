@@ -35,8 +35,10 @@ export async function POST(request: Request) {
   const admin = createSupabaseAdminClient();
   const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(body.email, { data: { nome: body.nome, role: "aluno" } });
   if (inviteErr) {
-    // anti-enumeração: mensagem genérica para e-mails já cadastrados
-    const msg = /already|registered|exists/i.test(inviteErr.message) ? "Não foi possível enviar o convite para este e-mail." : `Convite falhou: ${inviteErr.message}`;
+    // Só o treinador autenticado chega aqui: a mensagem pode ser específica.
+    const msg = /already|registered|exists/i.test(inviteErr.message)
+      ? "Este e-mail já tem uma conta no app (de aluno ou de personal). Use outro e-mail — para testar, dá para usar um apelido do Gmail, ex.: seunome+aluno@gmail.com."
+      : `Convite falhou: ${inviteErr.message}`;
     return NextResponse.json({ error: msg }, { status: 422 });
   }
 
