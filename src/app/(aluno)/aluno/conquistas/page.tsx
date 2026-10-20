@@ -8,6 +8,10 @@ import { ConquistasClient } from "./ConquistasClient";
 import { medalhasEmDestaque, proximasMedalhas, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { mensagemDaJornada } from "@/lib/conquistas/conteudo";
 import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
+import { albumParaAluno } from "@/lib/data/desbloqueia";
+import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
+import { paraVisao } from "@/components/desbloqueia/visao";
+import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
 
 export const metadata = { title: "Conquistas" };
 
@@ -17,6 +21,8 @@ export default async function ConquistasPage() {
   if (!aluno) return null;
   const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
   const hoje = dataLocal(new Date());
+  const album = await albumParaAluno(aluno, conquistas);
+  const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
@@ -46,6 +52,7 @@ export default async function ConquistasPage() {
         </span>
         <span aria-hidden className="text-accent">→</span>
       </Link>
+      <AnuncioDescoberta candidatas={candidatasAnuncio(album.itens).slice(0, 8).map(paraVisao)} explorados={albumResumo.explorados} total={albumResumo.total} origem="conquistas" />
       <ConquistasClient
         nome={(aluno.profile?.nome ?? sessao.nome).split(" ")[0]}
         mensal={mensal}

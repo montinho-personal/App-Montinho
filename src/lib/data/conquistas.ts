@@ -42,7 +42,7 @@ export type ConquistaRow = {
 
 export type Reconhecimento = { id: string; aluno_id: string; conquista_id: string | null; mensagem: string; autor_id: string | null; created_at: string };
 
-export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista"] as const;
+export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada"] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string };
 
@@ -152,6 +152,8 @@ export type ResumoChalala = {
   evolucao: Descoberta | null;
   /** Até 3 destaques: evolução, conquista e meta da semana. */
   destaques: string[];
+  /** Montinho Desbloqueia: explicação ligada ao que aconteceu hoje (anexada pela rota). */
+  descoberta?: { id: string; pergunta: string; chamada: string } | null;
 };
 
 export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise<ResumoChalala | null> {

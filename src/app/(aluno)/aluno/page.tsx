@@ -28,6 +28,10 @@ import { SemanasBarras } from "@/components/graficos/SemanasBarras";
 import { CargasEmAltaLista } from "@/components/graficos/CargasEmAltaLista";
 import { vitoriasDoAluno } from "@/lib/data/evolucao";
 import { VITORIA_NEUTRA } from "@/lib/evolucao/vitoria";
+import { albumParaAluno } from "@/lib/data/desbloqueia";
+import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
+import { paraVisao } from "@/components/desbloqueia/visao";
+import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
 
 export const metadata = { title: "Início" };
 
@@ -50,7 +54,8 @@ export default async function AlunoHomePage() {
     listarHistoricoResumo(alunoId),
   ]);
   if (!aluno) return null;
-  const [aderencia, { atual: vitoria }] = await Promise.all([aderenciaDoAluno(aluno), vitoriasDoAluno(aluno, 0)]);
+  const [aderencia, { atual: vitoria }, album] = await Promise.all([aderenciaDoAluno(aluno), vitoriasDoAluno(aluno, 0), albumParaAluno(aluno, conquistas)]);
+  const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()) });
   const proximaMed = proximaMedalha(medalhas);
   const ganhas = medalhas.filter((m) => m.conquistada).length;
@@ -153,6 +158,8 @@ export default async function AlunoHomePage() {
           </CardBody>
         </Card>
       </Link>
+
+      <AnuncioDescoberta candidatas={candidatasAnuncio(album.itens).slice(0, 8).map(paraVisao)} explorados={albumResumo.explorados} total={albumResumo.total} origem="inicio" />
 
       {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
 

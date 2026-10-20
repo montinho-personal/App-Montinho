@@ -267,10 +267,10 @@ export const encerrarPausaSchema = z.object({ pausa_id: z.string().min(1).max(64
 // Meu Chalalá de hoje — eventos (sem conteúdo privado) e reconhecimento do personal
 export const eventoChalalaSchema = z
   .object({
-    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista"]),
-    modelo: z.string().regex(/^[A-Za-z]{1,20}$/).nullable().optional(),
+    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada"]),
+    modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({
@@ -386,3 +386,40 @@ export const salvarEstrategiaSchema = z.object({
   /** Plano já existente: atualiza só as metas de séries (faixas) dos grupos do relatório. */
   atualizar_metas: z.boolean().default(true),
 });
+
+// Montinho Desbloqueia
+const idConhecimento = z.string().regex(/^[a-z0-9][a-z0-9-]{1,19}$/, "Identificador inválido");
+export const explorarConhecimentoSchema = z
+  .object({ resposta: z.string().max(20).nullable().optional(), origem: z.enum(["conquista", "periodo", "personal", "contexto", "biblioteca"]).nullable().optional() })
+  .strict();
+export const salvarConhecimentoSchema = z.object({ salvo: z.boolean() }).strict();
+export const recomendarConhecimentoSchema = z.object({ aluno_id: z.string().min(1).max(64) }).strict();
+const textoLongo = (max: number) => z.string().trim().max(max);
+export const conteudoConhecimentoSchema = z
+  .object({
+    id: idConhecimento,
+    numero: z.number().int().min(1).max(999),
+    categoria: z.enum(["musculacao", "emagrecimento", "nutricao", "recuperacao", "consistencia"]),
+    titulo: z.string().trim().min(2, "Escreva o título").max(80),
+    pergunta: z.string().trim().min(5, "Escreva a pergunta").max(200),
+    tipo: z.enum(["mito_verdade", "mito_verdade_depende", "multipla"]),
+    alternativas: z.array(z.object({ id: z.string().regex(/^[a-z0-9_]{1,20}$/), texto: z.string().trim().min(1).max(120) })).min(2).max(4),
+    correta: z.string().min(1).max(20),
+    veredito: z.string().trim().min(2).max(40),
+    rapida: z.string().trim().min(10, "Escreva a resposta rápida").max(600),
+    pratica: z.string().trim().min(5, "Escreva a aplicação prática").max(400),
+    detalhada: textoLongo(2500),
+    exemplo: textoLongo(800),
+    fatores: z.array(z.string().trim().min(1).max(80)).max(10),
+    ciencia: textoLongo(2500),
+    limitacoes: textoLongo(800),
+    quandoMuda: textoLongo(800),
+    fontes: z.array(z.string().max(40)).max(10),
+    gatilhos: z.object({ conquistas: z.array(z.string().max(40)).max(16), contexto: z.array(z.enum(["mais_reps", "recorde", "reps_altas", "descanso", "treino_reduzido", "meta_semanal", "sem_aumento_carga"])).max(7) }),
+    essencial: z.boolean().optional(),
+    ordem: z.number().int().min(0).max(10000).optional(),
+  })
+  .refine((c) => c.alternativas.some((a) => a.id === c.correta), { message: "A resposta correta precisa ser uma das alternativas", path: ["correta"] });
+export const salvarConteudoConhecimentoSchema = z.object({ conteudo: conteudoConhecimentoSchema, status: z.enum(["rascunho", "em_revisao", "publicado", "arquivado"]) }).strict();
+export const statusConhecimentoSchema = z.object({ status: z.enum(["rascunho", "em_revisao", "publicado", "arquivado"]) }).strict();
+export const porqueExercicioSchema = z.object({ texto: z.string().trim().max(600, "Use no máximo 600 caracteres") }).strict();

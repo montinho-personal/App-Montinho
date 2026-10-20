@@ -652,4 +652,39 @@ begin
   raise notice 'T19 OK: evolução inteligente — personal configura, aluno só lê a própria';
 end $$;
 select test_logout();
+-- T20 — 0030: Montinho Desbloqueia (conteúdo: personal edita, aluno lê só o publicado; progresso isolado)
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into conhecimento_conteudos (id, dados, status) values ('d01', '{"titulo":"x"}', 'publicado'), ('p-rascunho', '{"titulo":"y"}', 'rascunho');
+insert into conhecimento_versoes (conteudo_id, versao, status, dados) values ('d01', 2, 'publicado', '{}');
+insert into conhecimento_aluno (aluno_id, conteudo_id, origem, disponivel_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd05', 'personal', now());
+insert into exercicio_porque (exercicio_id, aluno_id, texto) select id, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Para fortalecer o quadríceps com segurança.' from exercicios where treino_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' limit 1;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from conhecimento_conteudos;
+  if n <> 1 then raise exception 'T20: aluna deveria ver só o conteúdo publicado (viu %)', n; end if;
+  select count(*) into n from conhecimento_versoes;
+  if n <> 0 then raise exception 'T20: aluna viu histórico editorial'; end if;
+  begin insert into conhecimento_conteudos (id, dados, status) values ('p-invasao', '{}', 'publicado'); exception when others then ok := true; end;
+  if not ok then raise exception 'T20: aluna criou conteúdo'; end if;
+  insert into conhecimento_aluno (aluno_id, conteudo_id, origem, explorado_em, resposta, acertou) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd02', 'conquista', now(), 'verdade', false);
+  select count(*) into n from conhecimento_aluno;
+  if n <> 2 then raise exception 'T20: aluna deveria ver as 2 linhas próprias (viu %)', n; end if;
+  select count(*) into n from exercicio_porque;
+  if n <> 1 then raise exception 'T20: aluna deveria ler o porquê do próprio exercício (viu %)', n; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from conhecimento_aluno;
+  if n <> 0 then raise exception 'T20: aluno B viu progresso de A'; end if;
+  select count(*) into n from exercicio_porque;
+  if n <> 0 then raise exception 'T20: aluno B viu o porquê de A'; end if;
+  begin insert into conhecimento_aluno (aluno_id, conteudo_id) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd09'); exception when others then ok := true; end;
+  if not ok then raise exception 'T20: aluno B gravou progresso em nome de A'; end if;
+  raise notice 'T20 OK: desbloqueia — conteúdo publicado, versões e progresso isolados';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

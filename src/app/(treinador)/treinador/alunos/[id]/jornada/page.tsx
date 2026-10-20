@@ -6,6 +6,9 @@ import { requireTreinadorPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { dadosDaJornada } from "@/lib/data/conquistas";
 import { JornadaClient } from "@/components/jornada/JornadaClient";
+import { albumParaAluno } from "@/lib/data/desbloqueia";
+import { eventosDasDescobertas, progressoAlbum } from "@/lib/desbloqueia/motor";
+import { juntarEventos } from "@/lib/conquistas/jornada";
 
 export const metadata = { title: "Jornada do aluno" };
 
@@ -14,11 +17,13 @@ export default async function JornadaDoAlunoPage({ params }: { params: Promise<{
   const { id } = await params;
   const aluno = await getAluno(id);
   if (!aluno) notFound();
-  const d = await dadosDaJornada(aluno);
+  const [d, album] = await Promise.all([dadosDaJornada(aluno), albumParaAluno(aluno)]);
+  const eventos = juntarEventos(d.eventos, eventosDasDescobertas(album.itens));
+  const stats = { ...d.stats, album: progressoAlbum(album.itens) };
   return (
     <div className="mx-auto max-w-md space-y-3">
       <Link href={`/treinador/alunos/${id}`} className="inline-flex min-h-6 items-center text-sm text-fg-muted hover:text-fg">← {aluno.profile?.nome ?? "Aluno"}</Link>
-      <JornadaClient jornada={d.jornada} eventos={d.eventos} stats={d.stats} nome={(aluno.profile?.nome ?? "Aluno").split(" ")[0]} modo="treinador" alunoId={id} reconhecimentos={d.reconhecimentosPorCodigo} semTreinos={d.semTreinos} />
+      <JornadaClient jornada={d.jornada} eventos={eventos} stats={stats} nome={(aluno.profile?.nome ?? "Aluno").split(" ")[0]} modo="treinador" alunoId={id} reconhecimentos={d.reconhecimentosPorCodigo} semTreinos={d.semTreinos} />
     </div>
   );
 }

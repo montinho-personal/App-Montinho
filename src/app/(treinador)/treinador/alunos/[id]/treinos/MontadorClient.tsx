@@ -14,6 +14,7 @@ import { aplicarDescansoPadrao } from "@/lib/tempo/descanso-padrao";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PorqueExercicio } from "@/components/montador/PorqueExercicio";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
 import { EXTRAS_PADRAO, temExtras } from "@/lib/volume/tecnicas";
@@ -109,6 +110,8 @@ type Props = {
   correcoes: Array<{ nome: string; grupo: GrupoMuscular; secundarios: GrupoMuscular[] }>;
   anamnese: Anamnese | null;
   realizadoSemanal: Partial<Record<GrupoMuscular, number>>;
+  /** Montinho Desbloqueia: “por quê” de cada exercício salvo (aluno vê no treino). */
+  porques?: Record<string, string>;
 };
 
 const DIAS_SEMANA = [
@@ -218,7 +221,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {} }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {} }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -905,6 +908,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             </td>
                             <td className="px-2 py-1.5 align-top">
                               <input value={r.observacoes} onChange={(e) => updRow(t.key, r.key, { observacoes: e.target.value })} placeholder="nota para o aluno" aria-label="Observação para o aluno" className="h-8 w-full rounded border border-border bg-bg px-2 text-[12px]" />
+                              {r.id ? <PorqueExercicio exercicioId={r.id} inicial={porques[r.id] ?? ""} /> : null}
                             </td>
                             <td className="px-1 py-1.5 text-right whitespace-nowrap align-top">
                               <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: det ? configIgual(totalSeries(r.seriesConfig), repsResumo(r.seriesConfig), null) : detalhar(r.seriesConfig) })} className="rounded border border-border px-1.5 py-1 text-[10px] font-semibold text-fg-muted hover:text-accent" title="Séries iguais ou série a série (pirâmide)">{det ? "Iguais" : "Série a série"}</button>

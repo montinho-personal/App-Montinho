@@ -25,7 +25,7 @@ const PASSO = 128;
 const TOPO = 96;
 const xDoNo = (i: number) => (i % 2 === 0 ? 92 : 268);
 
-type Stats = { semanas: number; treinos: number; aderencia: number | null };
+type Stats = { semanas: number; treinos: number; aderencia: number | null; album?: { explorados: number; total: number } };
 
 export function JornadaClient({ jornada, eventos, stats, nome, modo = "aluno", alunoId, reconhecimentos = {}, semTreinos = false }: { jornada: Jornada; eventos: EventoJornada[]; stats: Stats; nome: string; modo?: "aluno" | "treinador"; alunoId?: string; reconhecimentos?: Record<string, { mensagem: string; data: string }>; semTreinos?: boolean }) {
   const [aba, setAba] = useState<"mapa" | "tempo">("mapa");
@@ -100,6 +100,16 @@ export function JornadaClient({ jornada, eventos, stats, nome, modo = "aluno", a
             </div>
           ))}
         </dl>
+        {stats.album ? (
+          modo === "aluno" ? (
+            <Link href="/aluno/descobertas" className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2 text-sm hover:border-accent/40">
+              <span><span aria-hidden>💡 </span>Montinho Desbloqueia: <strong>{stats.album.explorados} de {stats.album.total}</strong> descobertas</span>
+              <span aria-hidden className="text-accent">→</span>
+            </Link>
+          ) : (
+            <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm"><span aria-hidden>💡 </span>Montinho Desbloqueia: <strong>{stats.album.explorados} de {stats.album.total}</strong> descobertas exploradas</p>
+          )
+        ) : null}
         <div role="tablist" aria-label="Visualização da jornada" className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1">
           {(["mapa", "tempo"] as const).map((k) => (
             <button key={k} type="button" role="tab" aria-selected={aba === k} onClick={() => setAba(k)} className={`touch rounded-lg text-sm font-semibold ${aba === k ? "bg-accent text-bg" : "text-fg-muted hover:text-fg"}`}>
@@ -289,7 +299,7 @@ function LinhaDoTempo({ eventos }: { eventos: EventoJornada[] }) {
     const k = fmtMes.format(new Date(e.data));
     grupos.set(k, [...(grupos.get(k) ?? []), e]);
   }
-  const ICONE: Record<EventoJornada["tipo"], string> = { medalha: "🏅", recorde: "📈", retomada: "↺", meta: "✓", reconhecimento: "✉", ciclo: "⚑" };
+  const ICONE: Record<EventoJornada["tipo"], string> = { medalha: "🏅", recorde: "📈", retomada: "↺", meta: "✓", reconhecimento: "✉", ciclo: "⚑", descoberta: "💡" };
   return (
     <div className="space-y-4">
       {[...grupos.entries()].map(([mes, evs]) => (

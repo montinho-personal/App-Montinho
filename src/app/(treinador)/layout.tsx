@@ -9,6 +9,7 @@ const NAV = [
   { label: "Central de aderência", href: "/treinador/aderencia", icon: "chart" },
   { label: "Celebrar conquistas", href: "/treinador/conquistas", icon: "star" },
   { label: "Evoluções dos alunos", href: "/treinador/evolucoes", icon: "chart" },
+  { label: "Montinho Desbloqueia", href: "/treinador/conhecimento", icon: "book" },
   { label: "Treinos extras", href: "/treinador/extras", icon: "plus" },
   { label: "Memória de treinos", href: "/treinador/memoria", icon: "sparkles" },
   { label: "Biblioteca", href: "/treinador/biblioteca", icon: "book" },

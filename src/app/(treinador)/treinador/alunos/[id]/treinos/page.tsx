@@ -9,6 +9,7 @@ import { listSessoes } from "@/lib/data/sessoes";
 import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular";
 import { volumeRealizadoPorGrupo } from "@/lib/volume/calcular";
 import { MontadorClient } from "./MontadorClient";
+import { porquesDosExercicios } from "@/lib/data/desbloqueia";
 import { estrategiaVigente } from "@/lib/data/estrategias";
 import { diasDaEstrategia, focoDoDia } from "@/lib/estrategia/divisao";
 import type { Anamnese } from "@/lib/supabase/types-extended";
@@ -32,7 +33,7 @@ export default async function MontadorPage({ params }: PageProps) {
     listarFavoritos(sessao.userId),
     lerTemposTreinador(sessao.userId),
   ]);
-  const [uso, estrategia] = await Promise.all([usoDosExercicios(biblioteca), estrategiaVigente(id)]);
+  const [uso, estrategia, porques] = await Promise.all([usoDosExercicios(biblioteca), estrategiaVigente(id), porquesDosExercicios(plano.treinos.flatMap((t) => t.exercicios.map((e) => e.id)))]);
   const focoEstrategia = estrategia ? Object.fromEntries(diasDaEstrategia(estrategia.dados).map((d) => [d.letra, focoDoDia(d)])) : {};
   if (!aluno) notFound();
 
@@ -57,6 +58,7 @@ export default async function MontadorPage({ params }: PageProps) {
       anamnese={(anamnese as Anamnese | null) ?? null}
       realizadoSemanal={realizadoSemanal}
       focoEstrategia={focoEstrategia}
+      porques={porques}
     />
   );
 }

@@ -126,13 +126,18 @@ export function montarJornada(e: {
 export type EventoJornada = {
   chave: string;
   data: string;
-  tipo: "medalha" | "recorde" | "retomada" | "meta" | "reconhecimento" | "ciclo";
+  tipo: "medalha" | "recorde" | "retomada" | "meta" | "reconhecimento" | "ciclo" | "descoberta";
   titulo: string;
   detalhe: string | null;
   /** Só para mensagens escritas pelo personal. */
   autor?: "personal";
   codigo?: string;
 };
+
+/** Junta eventos de outras fontes (ex.: descobertas) mantendo a ordem da linha do tempo. */
+export function juntarEventos(a: EventoJornada[], b: EventoJornada[]): EventoJornada[] {
+  return [...a, ...b].sort((x, y) => (x.data < y.data ? 1 : x.data > y.data ? -1 : x.chave < y.chave ? -1 : 1));
+}
 
 export function linhaDoTempo(e: {
   conquistas: Array<{ id: string; codigo: string; titulo: string; descricao: string | null; conquistado_em: string; dados?: { recordes?: Array<{ exercicio: string }>; diasAfastado?: number } }>;

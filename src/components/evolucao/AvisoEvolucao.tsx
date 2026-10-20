@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { POR_QUE, type Descoberta } from "@/lib/evolucao/motor";
 
-export function AvisoEvolucao({ d, animar = true, onFechar }: { d: Descoberta; animar?: boolean; onFechar: () => void }) {
+export function AvisoEvolucao({ d, animar = true, onFechar, sugestao }: { d: Descoberta; animar?: boolean; onFechar: () => void; sugestao?: { chamada: string; onAbrir: () => void } | null }) {
   const [porQue, setPorQue] = useState(false);
   useEffect(() => {
     if (porQue) return; // lendo a explicação: não some
@@ -20,6 +20,11 @@ export function AvisoEvolucao({ d, animar = true, onFechar }: { d: Descoberta; a
           <p className="text-sm leading-snug">{d.mensagem}</p>
           <button type="button" onClick={() => setPorQue((v) => !v)} className="alvo mt-0.5 text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">Por que isso é importante?</button>
           {porQue ? <p className="mt-1 text-xs text-fg-muted">{POR_QUE[d.tipo]}</p> : null}
+          {sugestao ? (
+            <button type="button" onClick={sugestao.onAbrir} className="alvo mt-1 block text-left text-xs font-semibold text-accent underline-offset-2 hover:underline">
+              {sugestao.chamada} →
+            </button>
+          ) : null}
         </div>
         <button type="button" onClick={onFechar} aria-label="Dispensar aviso" className="alvo -mr-1 -mt-1 text-fg-muted hover:text-fg">✕</button>
       </div>

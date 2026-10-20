@@ -41,6 +41,10 @@ import { normalizarTecnica } from "@/lib/evolucao/adaptar";
 import type { ConfigEvolucao } from "@/lib/data/evolucao";
 import { AvisoEvolucao } from "@/components/evolucao/AvisoEvolucao";
 import { bipe, usePrefsEvolucao } from "@/components/evolucao/preferencias";
+import { LeituraRapida, marcarSugestao, sugestoesDaSessao, type ItemRapido } from "@/components/desbloqueia/LeituraRapida";
+import { CHAMADA_CONTEXTO, REGRAS_DESBLOQUEIA, REPS_ALTAS, repsPrescritas, type PacoteTreino } from "@/lib/desbloqueia/motor";
+import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
+import { enviarEvento } from "@/components/chalala/evento";
 
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
 
@@ -62,6 +66,8 @@ type Props = {
   /** Evolução Inteligente: histórico comparável por exercício e regras do personal. */
   historico?: Record<string, ExecucaoAnterior[]>;
   configEvolucao?: ConfigEvolucao;
+  /** Montinho Desbloqueia: sugestões por momento e “por quê” escrito pelo personal. */
+  desbloqueia?: PacoteTreino & { porques: Record<string, string> };
 };
 
 const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
@@ -108,11 +114,14 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
   const [aviso, setAviso] = useState<Descoberta | null>(null);
+  const [sugestaoAviso, setSugestaoAviso] = useState<{ id: string; chamada: string } | null>(null);
+  const [sugestaoDescanso, setSugestaoDescanso] = useState<{ id: string; chamada: string } | null>(null);
+  const [leitura, setLeitura] = useState<ItemRapido | null>(null);
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
   const [iniciando, setIniciando] = useState(false);
   const [series, setSeries] = useState<Record<string, SerieLocal[]>>({}); // session_exercise_id → séries
@@ -339,17 +348,37 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
       setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim }));
     }
     if (!silencioso && navigator.vibrate) navigator.vibrate(30);
-    if (!silencioso) avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
+    if (!silencioso) {
+      const avisou = avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
+      // Descanso: só depois de algumas séries e se nada foi sugerido nesta sessão.
+      const feitas = Object.values(series).flat().filter((x) => x.concluida).length + 1;
+      if (!avisou && descanso && descanso > 0 && feitas >= 3) setSugestaoDescanso(proporSugestao("descanso"));
+    }
     void sincronizar();
   }
 
+  /** Desbloqueia: no máximo 1 sugestão automática por sessão, só do que o aluno ainda não explorou. */
+  function proporSugestao(ctx: ContextoConhecimento): { id: string; chamada: string } | null {
+    const id = desbloqueia?.porContexto[ctx];
+    if (!sessao || !id) return null;
+    const ja = sugestoesDaSessao(sessao.id);
+    if (ja.length >= REGRAS_DESBLOQUEIA.sugestoesPorSessao || ja.includes(id)) return null;
+    marcarSugestao(sessao.id, id);
+    enviarEvento({ tipo: "sugestao_vista", modelo: id, origem: "treino" });
+    return { id, chamada: CHAMADA_CONTEXTO[ctx] };
+  }
+  function abrirLeitura(id: string | null | undefined) {
+    const item = id ? desbloqueia?.itens[id] : null;
+    if (item) setLeitura(item);
+  }
+
   /** Evolução Inteligente: no máximo 1 aviso por exercício e 3 por sessão (limites do personal). */
-  function avisarEvolucao(ex: ExercicioView, serie: SerieReg) {
-    if (!sessao || !prefsEvo.durante || configEvolucao?.avisos_ativos === false) return;
+  function avisarEvolucao(ex: ExercicioView, serie: SerieReg): boolean {
+    if (!sessao || !prefsEvo.durante || configEvolucao?.avisos_ativos === false) return false;
     const permitidas = configEvolucao?.metricas ?? ["recorde", "mais_carga", "mais_reps", "acima_media"];
     const ds = avaliarSerie({ ...identidade(ex), serie, dor: sessao.checkin_pre === "desconforto" }, historico[ex.id] ?? []).filter((d) => permitidas.includes(METRICA[d.tipo] as never));
     const d = principal(ds, { soRecordes: prefsEvo.modo === "recordes" });
-    if (!d) return;
+    if (!d) return false;
     const chave = `montinho-evo-avisos:${sessao.id}`;
     let mostrados: Array<{ exercicio: string }> = [];
     try {
@@ -357,14 +386,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     } catch {
       mostrados = [];
     }
-    if (!podeAvisar(mostrados, ex.nome, { porExercicio: configEvolucao?.max_por_exercicio ?? 1, porSessao: configEvolucao?.max_por_sessao ?? 3 })) return;
+    if (!podeAvisar(mostrados, ex.nome, { porExercicio: configEvolucao?.max_por_exercicio ?? 1, porSessao: configEvolucao?.max_por_sessao ?? 3 })) return false;
     try {
       localStorage.setItem(chave, JSON.stringify([...mostrados, { exercicio: ex.nome }]));
     } catch {
       /* ignora */
     }
     setAviso(d);
+    setSugestaoAviso(d.tipo.startsWith("recorde") ? proporSugestao("recorde") : d.tipo === "mais_reps" ? proporSugestao("mais_reps") : null);
     if (prefsEvo.sons) bipe();
+    return true;
   }
 
   function adicionarSerieExtra(seId: string) {
@@ -688,11 +719,17 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
 
       <LembretePush compacto />
 
-      {aviso ? <AvisoEvolucao d={aviso} animar={prefsEvo.animacoes} onFechar={() => setAviso(null)} /> : null}
+      {aviso ? <AvisoEvolucao d={aviso} animar={prefsEvo.animacoes} onFechar={() => setAviso(null)} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
+      {leitura ? <LeituraRapida item={leitura} onFechar={() => setLeitura(null)} /> : null}
 
       {timer ? (
         <div className="sticky top-2 z-30">
-          <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => setTimer(null)} onDismiss={() => setTimer(null)} />
+          <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => { setTimer(null); setSugestaoDescanso(null); }} onDismiss={() => { setTimer(null); setSugestaoDescanso(null); }} />
+          {sugestaoDescanso ? (
+            <button type="button" onClick={() => { abrirLeitura(sugestaoDescanso.id); setSugestaoDescanso(null); }} className="alvo mt-1 block w-full rounded-lg bg-card/95 px-3 py-1.5 text-left text-xs font-semibold text-accent">
+              {sugestaoDescanso.chamada} →
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -745,6 +782,18 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                       <p className="text-sm text-fg-muted rounded-md bg-accent-soft/60 border border-accent/20 px-3 py-2">
                         <span className="text-accent font-semibold">Nota do {BRAND.name}:</span> {ex.observacoes}
                       </p>
+                    ) : null}
+                    {desbloqueia?.porques[ex.id] ? (
+                      <details className="rounded-md border border-accent/30 bg-accent-soft/40 px-3 py-2 text-sm" onToggle={(e) => (e.currentTarget.open ? enviarEvento({ tipo: "explicacao_aberta", origem: "treino" }) : undefined)}>
+                        <summary className="cursor-pointer font-semibold text-accent">Por que esse exercício está no meu treino?</summary>
+                        <p className="mt-1 text-fg">{desbloqueia.porques[ex.id]}</p>
+                        <p className="mt-0.5 text-[11px] text-fg-subtle">Escrito pelo {BRAND.name} para você.</p>
+                      </details>
+                    ) : null}
+                    {desbloqueia?.repsAltas && (repsPrescritas(ex.reps) ?? 0) >= REPS_ALTAS ? (
+                      <button type="button" onClick={() => abrirLeitura(desbloqueia.repsAltas)} className="alvo text-left text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                        Por que {repsPrescritas(ex.reps)} repetições? →
+                      </button>
                     ) : null}
                     {tecnicaTxt ? <p className="text-xs text-fg-muted">{tecnicaTxt}</p> : null}
                     {ex.unilateral && ex.tecnica !== "unilateral" ? <p className="text-xs text-fg-muted">{TECNICA_LABEL.unilateral}</p> : null}

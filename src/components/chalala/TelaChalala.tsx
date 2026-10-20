@@ -13,6 +13,7 @@ import { formatarMin, type DadosCard } from "@/lib/chalala/card";
 import type { ResumoChalala } from "@/lib/data/conquistas";
 import { CONTEUDO, nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { POR_QUE } from "@/lib/evolucao/motor";
+import { SugestaoConclusao } from "@/components/desbloqueia/SugestaoConclusao";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
 import { enviarEvento } from "./evento";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
@@ -160,6 +161,8 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
           </CardBody>
         </Card>
       ) : null}
+
+      {r?.descoberta ? <SugestaoConclusao sessaoId={base.sessaoId} d={r.descoberta} /> : null}
 
       {conquista ? (
         <Card className="border-accent/40">
