@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
-import { getTreinoComExercicios } from "@/lib/data/programas";
+import { getPlanoAtivo, getTreinoComExercicios } from "@/lib/data/programas";
+import { listarExtras } from "@/lib/data/extras";
 import { getSessao, getSessaoEmAndamento, ultimasExecucoes } from "@/lib/data/sessoes";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
@@ -11,24 +12,28 @@ import type { VideoProvider } from "@/lib/supabase/types-extended";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 import { agoraServidorMs } from "@/lib/tempo/ritmo";
 
-type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string }> };
+type PageProps = { params: Promise<{ treinoId: string }>; searchParams: Promise<{ sessao?: string; extra?: string; rec?: string; tempo?: string }> };
 
 export const metadata = { title: "Treino" };
 
 export default async function TreinoExecucaoPage({ params, searchParams }: PageProps) {
   const sessao = await requireAlunoPage();
   const { treinoId } = await params;
-  const { sessao: sessaoId } = await searchParams;
+  const { sessao: sessaoId, extra: extraId, rec, tempo } = await searchParams;
 
   const treino = await getTreinoComExercicios(treinoId);
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
   if (!treino || treino.aluno_id !== sessao.alunoId) notFound();
 
-  const [emAndamento, ultimas, biblioteca] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras] = await Promise.all([
     sessaoId ? getSessao(sessao.alunoId, sessaoId) : getSessaoEmAndamento(sessao.alunoId),
     ultimasExecucoes(sessao.alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
     listarBiblioteca(),
+    getPlanoAtivo(sessao.alunoId),
+    extraId ? listarExtras(sessao.alunoId, true) : Promise.resolve([]),
   ]);
+  // Extra: a liberação é conferida de novo no servidor ao começar.
+  const extra = extras.find((x) => x.id === extraId && x.treino_id === treino.id) ?? null;
 
   if (!treino.ativo && !emAndamento) {
     return (
@@ -67,6 +72,8 @@ export default async function TreinoExecucaoPage({ params, searchParams }: PageP
       outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino } : null}
       sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
       nomeAluno={sessao.nome.split(" ")[0]}
+      versaoReduzida={{ permitida: !!plano.programa?.permite_versao_reduzida, prioridades: plano.programa?.prioridades ?? [] }}
+      extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );
 }

@@ -13,6 +13,8 @@ export type GrupoOrigem = "biblioteca" | "manual" | "heuristica" | "correcao";
 export type Confianca = "alta" | "media" | "baixa";
 
 /** Exercício prescrito com os metadados da 0009. */
+export type PrioridadeExercicio = "essencial" | "normal" | "adiavel";
+
 export type ExercicioPrescrito = Exercicio & {
   biblioteca_id?: string | null;
   series_config?: unknown;
@@ -33,6 +35,8 @@ export type ExercicioPrescrito = Exercicio & {
   carga_alvo: string | null;
   rir: number | null;
   cadencia: string | null;
+  /** 0020 — treino possível hoje. */
+  prioridade?: PrioridadeExercicio;
   conta_volume: boolean;
   removido_em: string | null;
   updated_at?: string;
@@ -91,6 +95,7 @@ export type SnapshotExercicio = {
   tecnica_series?: number | null;
   descanso_apos_seg?: number | null;
   cadencia?: string | null;
+  prioridade?: PrioridadeExercicio;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;
@@ -139,6 +144,8 @@ export type TrainingSession = {
   modo?: "normal" | "reduzido" | "extra";
   tempo_disponivel_min?: number | null;
   lembrete_enviado_em?: string | null;
+  /** 0020: extra liberado de origem (modo = "extra"). */
+  extra_id?: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -102,8 +102,9 @@ export const inicioDaSemana = (d: string) => somarDias(d, -((diaDaSemana(d) + 6)
 export function classificarSessao(s: SessaoAderencia): ClasseSessao {
   if (s.status === "em_andamento") return "em_andamento";
   const feitas = Math.max(0, s.series_concluidas || 0);
+  // Extra de atividade (cardio, mobilidade…) não tem séries: vale a duração registrada.
+  if (s.modo === "extra") return feitas > 0 || (s.duracao_seg ?? 0) > 0 ? "extra" : "nao_conta";
   if (feitas === 0) return "nao_conta";
-  if (s.modo === "extra") return "extra";
   if (s.status === "abandonada") return "parcial";
   const plan = Math.max(0, s.series_planejadas || 0);
   return plan === 0 || feitas / plan >= FRACAO_CONCLUSAO ? "concluida" : "parcial";

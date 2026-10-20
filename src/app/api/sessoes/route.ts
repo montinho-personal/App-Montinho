@@ -21,10 +21,10 @@ export async function POST(request: Request) {
   const { data, error: vErr } = await lerJson(request, iniciarSessaoSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
-    const s = await iniciarSessao(sessao.alunoId, { treinoId: data.treino_id, clientKey: data.client_key, checkinPre: data.checkin_pre ?? null, checkinPreNota: data.checkin_pre_nota ?? null });
+    const s = await iniciarSessao(sessao.alunoId, { treinoId: data.treino_id, clientKey: data.client_key, checkinPre: data.checkin_pre ?? null, checkinPreNota: data.checkin_pre_nota ?? null, tempoDisponivelMin: data.tempo_disponivel_min ?? null, extraId: data.extra_id ?? null, recuperacao: data.recuperacao ?? null });
     return NextResponse.json(s, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao iniciar sessão";
-    return NextResponse.json({ error: msg }, { status: /não encontrado|não está mais/i.test(msg) ? 404 : 500 });
+    return NextResponse.json({ error: msg }, { status: /não encontrado|não está mais/i.test(msg) ? 404 : /Sem versão possível|não liberado|não usa este treino/i.test(msg) ? 409 : 500 });
   }
 }

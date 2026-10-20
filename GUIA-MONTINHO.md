@@ -96,3 +96,17 @@ Início (próximo treino + “Começar treino”, progresso da semana com denomi
 - No celular, “Compartilhar” abre a lista de apps (Instagram, WhatsApp…). Se o navegador não permitir, a imagem é salva e o app explica como postar.
 - **Aluno → Conquistas**: histórico permanente, critério de cada conquista e o card “Minha evolução em 30 dias”.
 - **Menu → Celebrar conquistas** (você): veja as conquistas recentes, escreva sua mensagem e envie. O aluno vê como “escrita pelo seu personal” e, se ativou notificações, recebe um aviso. Ali também ficam os números de uso dos cards (abertura do compartilhamento ≠ publicação confirmada).
+
+## Meu treino possível hoje
+
+- No **montador**, marque “permitir versão reduzida” no programa e, em **campos avançados**, a prioridade de cada exercício: **essencial** (nunca sai), **normal** ou **pode adiar** (sai primeiro).
+- Antes de começar, o aluno pode dizer quanto tempo tem (20, 30, 45, 60 min ou outro). O app tira exercícios inteiros até caber, sem encurtar descansos nem mudar séries, repetições ou técnicas. Superset sai inteiro.
+- Se não houver versão segura (só os essenciais já passam do tempo, ou sobraria menos de 40% das séries), o app explica e oferece **“Pedir ajuste ao Montinho”** — o pedido chega em Adaptações.
+- A sessão fica registrada como “versão reduzida”, com a lista do que ficou para outro dia.
+
+## Treinos extras
+
+- **Menu → Treinos extras**: escolha o aluno, ligue “Permitir treinos extras” e defina as regras (aprovação manual, máximo por semana, dias, limite de séries extras, intervalo mínimo). Cadastre os extras liberados (caminhada, mobilidade, treino complementar…).
+- O aluno vê “Quero fazer um treino extra” no início **só se você liberou**. Cada opção aparece como *liberado*, *mediante aprovação* ou *não recomendado*, sempre com o motivo (ex.: “bíceps foi treinado há menos de 48 h”).
+- Pedidos chegam na mesma página: **Aprovar para hoje** ou **Hoje não**, com uma resposta opcional. Sua aprovação vale mesmo para o que o app não recomendou (você viu o motivo) — exceto se o aluno relatar dor na hora.
+- Extras ficam separados: não contam na meta semanal nem nas conquistas, mas o volume entra nos relatórios. Se os extras passarem do limite de séries da semana, a página avisa.

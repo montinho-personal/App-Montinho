@@ -32,7 +32,7 @@ import { GRUPO_COR, GRUPO_LABEL, GRUPOS_SELECIONAVEIS, montarLookupBiblioteca, n
 import { calcularVolumeSemanal, frequenciaDoCalendario, type Calendario, type DiaVolume, type Frequencia, type MetaVolume, type Tecnica } from "@/lib/volume/calcular";
 import { configIgual, detalhar, repsResumo, totalSeries, type SerieConfig } from "@/lib/series";
 import type { Anamnese, GrupoMuscular } from "@/lib/supabase/types-extended";
-import type { ExercicioPrescrito, Programa, SnapshotPrograma, TreinoLetra } from "@/lib/supabase/types-sessoes";
+import type { ExercicioPrescrito, PrioridadeExercicio, Programa, SnapshotPrograma, TreinoLetra } from "@/lib/supabase/types-sessoes";
 import { LETRAS_TREINO } from "@/lib/supabase/types-sessoes";
 import type { Treino } from "@/lib/supabase/types";
 
@@ -56,6 +56,7 @@ type Row = {
   descansoApos: string;
   /** Cadência prescrita (ex.: 3-1-2); "" = estimativa por repetição. */
   cadencia: string;
+  prioridade: PrioridadeExercicio;
   bloco: string;
   unilateral: boolean;
   observacoes: string;
@@ -142,7 +143,7 @@ const PRESETS: Array<{ nome: string; letras: TreinoLetra[]; calendario: Calendar
 
 let seq = 0;
 const novaKey = () => `k${Date.now().toString(36)}-${seq++}`;
-const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", descansoApos: "", cadencia: "", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
+const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", descansoApos: "", cadencia: "", prioridade: "normal", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
 const cloneRow = (r: Row): Row => ({ ...r, key: novaKey(), id: null, seriesConfig: JSON.parse(JSON.stringify(r.seriesConfig)) });
 const emptyTreino = (letra: TreinoLetra): TreinoVM => ({ key: novaKey(), id: null, letra, nome: `Treino ${letra}`, ativo: true, observacoes: "", rows: [emptyRow()], tempos: {}, tempoAlvo: "" });
 
@@ -162,6 +163,7 @@ function rowDeExercicio(e: ExercicioPrescrito): Row {
     tecnicaSeries: e.tecnica_series != null ? String(e.tecnica_series) : "",
     descansoApos: e.descanso_apos_seg != null ? String(e.descanso_apos_seg) : "",
     cadencia: e.cadencia ?? "",
+    prioridade: e.prioridade ?? "normal",
     bloco: e.bloco ?? "",
     unilateral: e.unilateral ?? false,
     observacoes: e.observacoes ?? "",
@@ -456,7 +458,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           observacoes: "",
           tempos: e.treinos.find((x) => x.letra === t.letra)?.tempos ?? {},
           tempoAlvo: e.treinos.find((x) => x.letra === t.letra)?.tempoAlvo ?? "",
-          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", descansoApos: x.descanso_apos_seg != null ? String(x.descanso_apos_seg) : "", cadencia: x.cadencia ?? "", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
+          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", descansoApos: x.descanso_apos_seg != null ? String(x.descanso_apos_seg) : "", cadencia: x.cadencia ?? "", prioridade: x.prioridade ?? "normal", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
         }));
       const restantes = somenteLetra ? e.treinos.filter((t) => t.letra !== somenteLetra) : e.treinos.filter((t) => t.id && !novos.some((n) => n.letra === t.letra)).map((t) => ({ ...t, ativo: false }));
       const treinos = [...restantes, ...novos].sort((a, b) => LETRAS_TREINO.indexOf(a.letra) - LETRAS_TREINO.indexOf(b.letra));
@@ -507,6 +509,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             tecnica_series: temExtras(r.tecnica) && r.tecnicaSeries !== "" ? Number(r.tecnicaSeries) : null,
             descanso_apos_seg: r.descansoApos === "" ? null : Math.min(900, Number(r.descansoApos)),
             cadencia: r.cadencia.trim() || null,
+            prioridade: r.prioridade,
             bloco: r.bloco.trim() || null,
             unilateral: r.unilateral,
             carga_alvo: r.cargaAlvo.trim() || null,
@@ -812,6 +815,13 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   <label className="inline-flex items-center gap-1 text-fg-muted">aquec.<input inputMode="numeric" value={r.aquecimento} onChange={(e) => updRow(t.key, r.key, { aquecimento: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} className="w-10 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Séries de aquecimento" /></label>
                                   <label className="inline-flex items-center gap-1 text-fg-muted" title="Descanso depois do último set, antes do próximo exercício. Em branco = padrão do treino.">desc. após<input inputMode="numeric" value={r.descansoApos} placeholder={String(duracoes[t.key]?.efetivos.descansoAposExercicioSeg ?? 120)} onChange={(e) => updRow(t.key, r.key, { descansoApos: e.target.value.replace(/\D/g, "").slice(0, 3) })} className="w-12 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Descanso após o exercício em segundos" />s</label>
                                   <label className="inline-flex items-center gap-1 text-fg-muted" title="Cadência (ex.: 3-1-2 = 3 s descendo, 1 s parado, 2 s subindo). Em branco = estimativa por repetição.">cadência<input value={r.cadencia} placeholder="3-1-2" onChange={(e) => updRow(t.key, r.key, { cadencia: e.target.value.replace(/[^0-9xX\- ]/g, "").slice(0, 12) })} className="w-14 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Cadência" /></label>
+                                  {estado.programa.permite_versao_reduzida ? (
+                                    <select value={r.prioridade} onChange={(e) => updRow(t.key, r.key, { prioridade: e.target.value as PrioridadeExercicio })} className="rounded border border-border bg-bg px-1" aria-label="Prioridade no treino possível hoje" title="Treino possível hoje: essencial nunca sai; “pode adiar” sai primeiro quando falta tempo.">
+                                      <option value="normal">prioridade normal</option>
+                                      <option value="essencial">essencial</option>
+                                      <option value="adiavel">pode adiar</option>
+                                    </select>
+                                  ) : null}
                                   <select value={r.tecnica} onChange={(e) => updRow(t.key, r.key, { tecnica: e.target.value as Tecnica, unilateral: e.target.value === "unilateral" ? true : r.unilateral })} className="rounded border border-border bg-bg px-1" aria-label="Técnica">
                                     {TECNICAS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}
                                   </select>

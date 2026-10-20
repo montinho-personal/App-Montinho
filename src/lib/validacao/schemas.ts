@@ -36,6 +36,7 @@ export const exercicioInputSchema = z.object({
   tecnica_series: inteiroOpcional(0, 20),
   descanso_apos_seg: inteiroOpcional(0, 900),
   cadencia: textoOpcional(12),
+  prioridade: z.enum(["essencial", "normal", "adiavel"]).default("normal"),
   bloco: textoOpcional(20),
   unilateral: z.boolean().default(false),
   carga_alvo: textoOpcional(40),
@@ -97,6 +98,9 @@ export const iniciarSessaoSchema = z.object({
   client_key: z.string().min(8).max(80),
   checkin_pre: z.enum(CHECKIN_PRE).nullable().optional(),
   checkin_pre_nota: textoOpcional(300),
+  tempo_disponivel_min: z.coerce.number().int().min(10).max(240).nullable().optional(),
+  extra_id: z.string().min(1).max(64).nullable().optional(),
+  recuperacao: z.enum(["bem", "cansado", "dor", "prefiro_nao"]).nullable().optional(),
 });
 
 export const serieSchema = z.object({
@@ -274,4 +278,43 @@ export const reconhecimentoSchema = z.object({
   conquista_id: z.string().min(1).max(64).nullable().optional(),
   mensagem: z.string().trim().min(3, "Escreva a mensagem").max(600),
   notificar: z.boolean().optional(),
+});
+
+// Treino extra
+export const MODALIDADES_EXTRA = ["cardio_leve", "cardio_moderado", "tecnica", "mobilidade", "atividade_geral", "complementar", "resistido"] as const;
+const recuperacaoSchema = z.enum(["bem", "cansado", "dor", "prefiro_nao"]).nullable().optional();
+export const configExtraSchema = z.object({
+  habilitado: z.boolean(),
+  requer_aprovacao: z.boolean(),
+  max_por_semana: z.coerce.number().int().min(0).max(7),
+  dias_permitidos: z.array(z.coerce.number().int().min(0).max(6)).max(7),
+  limite_series_semana: z.coerce.number().int().min(0).max(60),
+  intervalo_min_horas: z.coerce.number().int().min(0).max(72),
+  observacao: textoOpcional(300),
+});
+export const extraLiberadoSchema = z.object({
+  id: z.string().min(1).max(64).nullable().optional(),
+  modalidade: z.enum(MODALIDADES_EXTRA),
+  titulo: z.string().trim().min(1).max(80),
+  descricao: textoOpcional(600),
+  duracao_min: z.coerce.number().int().min(5).max(180),
+  treino_id: z.string().min(1).max(64).nullable().optional(),
+  grupos: z.array(z.enum(GRUPOS)).max(10).default([]),
+  series_estimadas: z.coerce.number().int().min(0).max(40).default(0),
+});
+export const extraAtivoSchema = z.object({ id: z.string().min(1).max(64), ativo: z.boolean() });
+export const avaliarExtraSchema = z.object({ recuperacao: recuperacaoSchema, tempo_disponivel_min: z.coerce.number().int().min(5).max(300).nullable().optional() });
+export const solicitarExtraSchema = z.object({
+  extra_id: z.string().min(1).max(64),
+  client_key: z.string().min(8).max(80),
+  recuperacao: recuperacaoSchema,
+  tempo_disponivel_min: z.coerce.number().int().min(5).max(300).nullable().optional(),
+  mensagem: textoOpcional(300),
+});
+export const decidirExtraSchema = z.object({ id: z.string().min(1).max(64), status: z.enum(["aprovada", "recusada"]), resposta: textoOpcional(300) });
+export const registrarAtividadeExtraSchema = z.object({
+  extra_id: z.string().min(1).max(64),
+  client_key: z.string().min(8).max(80),
+  duracao_min: z.coerce.number().int().min(1).max(300),
+  recuperacao: recuperacaoSchema,
 });

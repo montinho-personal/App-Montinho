@@ -116,3 +116,11 @@ describe("aderência semanal", () => {
     expect(inicioDaSemana("2026-10-19")).toBe("2026-10-19");
   });
 });
+
+describe("extra de atividade (sem séries)", () => {
+  it("cardio/mobilidade registrado só com duração aparece como extra e não conta na meta", async () => {
+    const { classificarSessao } = await import("./calcular");
+    expect(classificarSessao({ id: "z", iniciado_em: "2026-10-20T12:00:00Z", status: "concluida", modo: "extra", series_planejadas: 0, series_concluidas: 0, duracao_seg: 1800 })).toBe("extra");
+    expect(classificarSessao({ id: "z", iniciado_em: "2026-10-20T12:00:00Z", status: "concluida", modo: "extra", series_planejadas: 0, series_concluidas: 0, duracao_seg: 0 })).toBe("nao_conta");
+  });
+});

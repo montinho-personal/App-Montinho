@@ -9,7 +9,11 @@ import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { normalizarNome } from "@/lib/grupos";
 import type { SerieTipo, SessionExercise, SessionExerciseStatus, SessionSet, TrainingSession, TreinoLetra } from "@/lib/supabase/types-sessoes";
-import { getTreinoComExercicios } from "./programas";
+import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
+// Ciclo intencional (só chamadas em tempo de execução): extras usa listSessoes.
+import { exigirExtraLiberado } from "./extras";
+import { treinoPossivel, type ResultadoPossivel } from "@/lib/treino/possivel";
+import type { Recuperacao } from "@/lib/treino/extra";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 
@@ -135,7 +139,19 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
 // ---------------------------------------------------------------------------
 // Escrita (aluno)
 // ---------------------------------------------------------------------------
-export async function iniciarSessao(alunoId: string, input: { treinoId: string; clientKey: string; checkinPre?: TrainingSession["checkin_pre"]; checkinPreNota?: string | null }): Promise<SessaoCompleta> {
+export type IniciarSessaoInput = {
+  treinoId: string;
+  clientKey: string;
+  checkinPre?: TrainingSession["checkin_pre"];
+  checkinPreNota?: string | null;
+  /** “Meu treino possível hoje”: o servidor recalcula a versão (não confia no navegador). */
+  tempoDisponivelMin?: number | null;
+  /** Treino extra liberado que usa este treino (o servidor confere a liberação). */
+  extraId?: string | null;
+  recuperacao?: Recuperacao | null;
+};
+
+export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput): Promise<SessaoCompleta> {
   const agora = new Date().toISOString();
   // idempotência: mesma client_key → mesma sessão
   if (isDemoMode()) {
@@ -152,7 +168,27 @@ export async function iniciarSessao(alunoId: string, input: { treinoId: string; 
   if (!treino || treino.aluno_id !== alunoId) throw new Error("Treino não encontrado para este aluno");
   if (!treino.ativo) throw new Error("Este treino não está mais liberado");
 
-  const planejadas = treino.exercicios.reduce((n, e) => n + Math.max(0, e.series - (e.series_aquecimento ?? 0)), 0);
+  // Versão do dia: completa, reduzida (regras do personal) ou extra liberado.
+  let modo: "normal" | "reduzido" | "extra" = "normal";
+  let doDia = treino.exercicios;
+  let reducao: ResultadoPossivel | null = null;
+  let extra: Awaited<ReturnType<typeof exigirExtraLiberado>> | null = null;
+  if (input.extraId) {
+    extra = await exigirExtraLiberado(alunoId, input.extraId, { recuperacao: input.recuperacao ?? null, tempoDisponivelMin: input.tempoDisponivelMin ?? null });
+    if (extra.treino_id !== treino.id) throw new Error("Este treino extra não usa este treino");
+    modo = "extra";
+  } else if (input.tempoDisponivelMin) {
+    const { programa } = await getPlanoAtivo(alunoId);
+    reducao = treinoPossivel({ exercicios: treino.exercicios, tempos: temposDoTreino(treino), tempoDisponivelMin: input.tempoDisponivelMin, permiteReduzida: !!programa?.permite_versao_reduzida, prioridadesMusculares: programa?.prioridades ?? [] });
+    if (reducao.status === "inviavel" || reducao.status === "nao_autorizado") throw new Error(`Sem versão possível para ${input.tempoDisponivelMin} min: ${reducao.explicacao[1] ?? reducao.explicacao[0]}`);
+    if (reducao.status === "reduzido") {
+      modo = "reduzido";
+      const ok = new Set(reducao.incluidos);
+      doDia = treino.exercicios.filter((e) => ok.has(e.id));
+    }
+  }
+
+  const planejadas = doDia.reduce((n, e) => n + Math.max(0, e.series - (e.series_aquecimento ?? 0)), 0);
   const sessao: TrainingSession = {
     id: uid(),
     aluno_id: alunoId,
@@ -165,13 +201,21 @@ export async function iniciarSessao(alunoId: string, input: { treinoId: string; 
     iniciado_em: agora,
     finalizado_em: null,
     duracao_seg: null,
-    snapshot: { treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: temposDoTreino(treino) }, exercicios: treino.exercicios },
+    snapshot: {
+      treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: temposDoTreino(treino) },
+      exercicios: doDia,
+      // Versão realizada ≠ treino original: guarda o que ficou para outro dia.
+      ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg } } : {}),
+      ...(extra ? { extra: { id: extra.id, modalidade: extra.modalidade, titulo: extra.titulo, grupos: extra.grupos, series_estimadas: extra.series_estimadas }, recuperacao: input.recuperacao ?? null } : {}),
+    },
     series_planejadas: planejadas,
-    tempo_estimado_seg: estimarPrescricao(treino.exercicios, temposDoTreino(treino)).totalSeg || null,
+    tempo_estimado_seg: estimarPrescricao(doDia, temposDoTreino(treino)).totalSeg || null,
     pausado_seg: 0,
     checkin_pre: input.checkinPre ?? null,
     checkin_pre_nota: input.checkinPreNota ?? null,
-    modo: "normal",
+    modo,
+    tempo_disponivel_min: input.tempoDisponivelMin ?? null,
+    extra_id: extra?.id ?? null,
     series_concluidas: 0,
     feedback_percepcao: null,
     feedback_comentario: null,
@@ -179,7 +223,7 @@ export async function iniciarSessao(alunoId: string, input: { treinoId: string; 
     created_at: agora,
     updated_at: agora,
   };
-  const exercicios: SessionExercise[] = treino.exercicios.map((e, ordem) => ({
+  const exercicios: SessionExercise[] = doDia.map((e, ordem) => ({
     id: uid(),
     session_id: sessao.id,
     exercicio_id: e.id,

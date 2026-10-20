@@ -29,7 +29,8 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 - ✅ “Celebrar conquistas” (personal): mensagem escrita por ele, aviso push opcional, card de reconhecimento e métricas agregadas de uso do compartilhamento. Página pública `/chalala` sem dados do aluno.
 - 🟡 Registro do aluno ainda não tem tipo “drop/mini-série”: o realizado não recebe bônus de técnica.
 - 🟡 Vídeo demonstrativo: o aluno só vê vídeo marcado como verificado pelo treinador. **Nenhum dos 150 tem vídeo ainda** (pendência de mídia).
-- 🟡 Versão reduzida “hoje tenho só 30 min”: flag `permite_versao_reduzida` existe no programa; a UI do aluno ainda não oferece a versão reduzida.
+- ✅ Meu treino possível hoje: aluno escolhe 20/30/45/60 min ou outro; com a versão reduzida liberada no programa, o app tira exercícios inteiros (primeiro “pode adiar”, depois “normal”; “essencial” nunca), sem encurtar descanso nem mudar técnica; abaixo de 40% das séries ou sem caber → explica e oferece “Pedir ajuste”. O servidor recalcula; a versão realizada fica registrada (modo reduzido + o que ficou para outro dia).
+- ✅ Treino extra: regras por aluno (liberar, aprovação manual, máximo por semana, dias, limite de séries extras, intervalo mínimo), extras liberados por modalidade, classificação liberado / mediante aprovação / não recomendado com motivos, pedidos aprovados ou recusados pelo personal, registro separado (não conta na meta), aviso de volume extra acima do combinado.
 
 ### P2 — Memória, relatórios, painel
 - ✅ Memória de prescrições: snapshot automático desidentificado, dedupe, busca estruturada explicável, texto em PT-BR, feedback/favoritos/justificativa, usar como base / só um dia, página do acervo. Testes (equipamento ausente, restrições, sem dados do aluno, acervo vazio, dedupe).
@@ -48,7 +49,7 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 ## Pendências reais (precisam de você)
 
 1. **Logotipo original**: o app usa o SVG público do site oficial. Se houver arquivo vetorial do designer (com variações de cor), substitua `public/brand/logo.svg`, `logo-fundo-claro.svg` e `mark.svg`.
-2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0019 e o deploy na Vercel já estão feitos.
+2. **Ativação final** (SETUP.md → "Pendências de ativação"): colar a chave `service_role` na Vercel (convite de alunos), liberar `https://app-montinho.vercel.app` em Auth → URL Configuration e criar sua conta. O projeto Supabase, as migrations 0001→0020 e o deploy na Vercel já estão feitos.
 3. **Primeiro treinador**: após criar sua conta, mudar `role` para `treinador` em `profiles`.
 4. **Biblioteca de exercícios**: revisar a lista curada de 150 (foi montada pelo Claude, não veio de uma lista sua), aprovar/rejeitar substituições e cadastrar vídeos verificados. Cardio (esteira, bike) ficou fora por escopo.
 5. **WhatsApp de atendimento**: preencher `BRAND.contact.whatsapp` se quiser o botão “Falar com o Montinho”.

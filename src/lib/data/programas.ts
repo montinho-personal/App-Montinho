@@ -13,6 +13,7 @@ import type { Treino } from "@/lib/supabase/types";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type {
   ExercicioPrescrito,
+  PrioridadeExercicio,
   Programa,
   ProgramaVersao,
   SnapshotPrograma,
@@ -139,6 +140,8 @@ export type ExercicioInput = {
   tecnica_series?: number | null;
   descanso_apos_seg?: number | null;
   cadencia?: string | null;
+  /** Treino possível hoje: essencial nunca sai; adiável sai primeiro. */
+  prioridade?: PrioridadeExercicio;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;
@@ -214,6 +217,7 @@ function montarSnapshot(programa: Programa, treinos: TreinoComExercicios[]): Sna
       tecnica_series: e.tecnica_series ?? null,
       descanso_apos_seg: e.descanso_apos_seg ?? null,
       cadencia: e.cadencia ?? null,
+      prioridade: e.prioridade ?? "normal",
       bloco: e.bloco ?? null,
       unilateral: e.unilateral ?? false,
       carga_alvo: e.carga_alvo ?? null,
@@ -432,6 +436,7 @@ function camposExercicio(e: ExercicioInput, ordem: number) {
     tecnica_series: e.tecnica_series ?? null,
     descanso_apos_seg: e.descanso_apos_seg ?? null,
     cadencia: e.cadencia?.trim() || null,
+    prioridade: e.prioridade ?? "normal",
     bloco: e.bloco,
     unilateral: Boolean(e.unilateral),
     carga_alvo: e.carga_alvo,

@@ -482,4 +482,53 @@ begin
   raise notice 'T13 OK: conquistas sem duplicar, só o personal assina reconhecimento, eventos isolados';
 end $$;
 select test_logout();
+-- ============================================================================
+-- T14 — 0020: treino extra (aluno só pede; personal aprova) e prioridade
+-- ============================================================================
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into config_extra (aluno_id, habilitado, requer_aprovacao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true, true);
+insert into extras_liberados (id, aluno_id, modalidade, titulo, duracao_min) values ('eeeeeeee-0000-0000-0000-00000000000a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cardio_leve', 'Caminhada', 30), ('eeeeeeee-0000-0000-0000-00000000000b', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'mobilidade', 'Mobilidade', 20);
+update exercicios set prioridade = 'essencial' where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+select test_login('22222222-2222-2222-2222-222222222222');
+insert into solicitacoes_extra (aluno_id, extra_id, client_key, data, classificacao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'eeeeeeee-0000-0000-0000-00000000000a', 'pedido-1-abc', current_date, 'aprovacao');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from extras_liberados;
+  if n <> 1 then raise exception 'T14: aluna A deveria ver só o próprio extra (viu %)', n; end if;
+  begin insert into solicitacoes_extra (aluno_id, extra_id, client_key, data, classificacao, status) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'eeeeeeee-0000-0000-0000-00000000000a', 'pedido-2-abc', current_date, 'aprovacao', 'aprovada'); exception when others then ok := true; end;
+  if not ok then raise exception 'T14: aluno se autoaprovou'; end if;
+  ok := false;
+  begin insert into solicitacoes_extra (aluno_id, extra_id, client_key, data, classificacao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'eeeeeeee-0000-0000-0000-00000000000b', 'pedido-3-abc', current_date, 'aprovacao'); exception when others then ok := true; end;
+  if not ok then raise exception 'T14: aluno pediu extra de outro aluno'; end if;
+  ok := false;
+  begin update solicitacoes_extra set status = 'aprovada'; get diagnostics n = row_count; if n = 0 then ok := true; end if; exception when others then ok := true; end;
+  if not ok then raise exception 'T14: aluno aprovou o próprio pedido'; end if;
+  ok := false;
+  begin update config_extra set max_por_semana = 7; get diagnostics n = row_count; if n = 0 then ok := true; end if; exception when others then ok := true; end;
+  if not ok then raise exception 'T14: aluno alterou a configuração de extras'; end if;
+  ok := false;
+  begin insert into solicitacoes_extra (aluno_id, extra_id, client_key, data, classificacao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'eeeeeeee-0000-0000-0000-00000000000a', 'pedido-1-abc', current_date, 'aprovacao'); exception when unique_violation then ok := true; end;
+  if not ok then raise exception 'T14: pedido duplicado pela mesma client_key'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from solicitacoes_extra;
+  if n <> 0 then raise exception 'T14: aluno B viu pedido de A'; end if;
+  select count(*) into n from config_extra;
+  if n <> 0 then raise exception 'T14: aluno B viu configuração de A'; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+update solicitacoes_extra set status = 'aprovada', resposta = 'Pode ir, leve.', decidido_em = now() where client_key = 'pedido-1-abc';
+do $$
+declare ok boolean := false;
+begin
+  if (select status from solicitacoes_extra where client_key = 'pedido-1-abc') <> 'aprovada' then raise exception 'T14: personal não conseguiu aprovar'; end if;
+  begin update exercicios set prioridade = 'urgente' where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'; exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T14: aceitou prioridade inválida'; end if;
+  raise notice 'T14 OK: extras — aluno só pede, personal aprova, isolamento entre alunos, prioridade validada';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

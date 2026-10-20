@@ -34,6 +34,7 @@ import type { ExercicioPrescrito, SessionSet } from "@/lib/supabase/types-sessoe
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
+import { OPCOES_TEMPO_MIN, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
 
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null };
@@ -49,6 +50,10 @@ type Props = {
   sessaoConcluida: SessaoCompleta | null;
   /** Primeiro nome (só aparece no card se o aluno ativar). */
   nomeAluno?: string;
+  /** “Meu treino possível hoje”: regra do personal (programa). */
+  versaoReduzida?: { permitida: boolean; prioridades: string[] };
+  /** Treino extra liberado que usa este treino (vem de /aluno/extra). */
+  extra?: { id: string; titulo: string; recuperacao: string | null; tempoDisponivelMin: number | null } | null;
 };
 
 type SerieLocal = {
@@ -92,7 +97,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "" }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
@@ -121,6 +126,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
   }, [agoraServidor]);
   const [checkinPre, setCheckinPre] = useState<(typeof CHECKIN_OPCOES)[number]["v"] | null>(null);
   const [checkinNota, setCheckinNota] = useState("");
+  // Meu treino possível hoje: tempo disponível (min) escolhido antes de começar.
+  const [tempoDisp, setTempoDisp] = useState<number | null>(null);
+  const [tempoOutro, setTempoOutro] = useState("");
+  const [pedidoTempo, setPedidoTempo] = useState(false);
   const drenando = useRef(false);
   // Rascunho (o que ainda não foi concluído): só é gravado depois de restaurado,
   // para a tela vazia do primeiro render não apagar o que estava guardado.
@@ -269,7 +278,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     setIniciando(true);
     try {
       const chave = `sess:${treino.id}:${new Date().toISOString().slice(0, 10)}:${gerarClientKey("s").slice(2, 10)}`;
-      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null }) });
+      const res = await fetch("/api/sessoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ treino_id: treino.id, client_key: chave, checkin_pre: checkinPre, checkin_pre_nota: checkinPre === "desconforto" && checkinNota.trim() ? checkinNota.trim() : null, tempo_disponivel_min: extra ? extra.tempoDisponivelMin : possivel && possivel.status !== "inviavel" && possivel.status !== "nao_autorizado" ? tempoDisp : null, extra_id: extra?.id ?? null, recuperacao: extra?.recuperacao ?? null }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Não foi possível iniciar");
       setSessao(data as SessaoCompleta);
@@ -467,7 +476,21 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
     );
   }
 
+  const possivel = tempoDisp && !extra ? treinoPossivel({ exercicios, tempos: treino.tempos, tempoDisponivelMin: tempoDisp, permiteReduzida: versaoReduzida.permitida, prioridadesMusculares: versaoReduzida.prioridades }) : null;
+
+  async function pedirAjusteTempo() {
+    if (!possivel) return;
+    const res = await fetch("/api/adaptacoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ motivo: "sem_tempo", exercicio_nome: treino.nome, descricao: `Tenho ${possivel.tempoDisponivelMin} min hoje para o treino ${treino.letra} (estimado em ${Math.round(possivel.originalSeg / 60)} min). Pode sugerir uma versão?` }) }).catch(() => null);
+    if (res?.ok) {
+      setPedidoTempo(true);
+      toast.success(`Pedido enviado. O ${BRAND.name} vai ver e responder.`);
+    } else toast.error("Não foi possível enviar agora. Tente de novo.");
+  }
+
   if (!sessao) {
+    const completoMin = Math.round(estimarPrescricao(exercicios, treino.tempos).totalSeg / 60);
+    const adiadosIds = new Set(possivel?.status === "reduzido" ? possivel.adiados.map((a) => a.id) : []);
+    const bloqueado = possivel?.status === "inviavel" || possivel?.status === "nao_autorizado";
     return (
       <div className="space-y-5">
         <Link href="/aluno/treinar" className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
@@ -506,14 +529,59 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                 <p className="text-xs text-fg-muted">Tudo bem. Faça o que for possível com boa execução; o {BRAND.name} verá como você chegou hoje.</p>
               ) : null}
             </fieldset>
-            <Button variant="primary" size="lg" className="w-full touch" loading={iniciando} onClick={iniciar}>
-              <Icon name="play" /> Começar treino
-            </Button>
+            {extra ? (
+              <div className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm">
+                <p className="font-semibold">Treino extra: {extra.titulo}</p>
+                <p className="text-xs text-fg-muted">Liberado pelas regras do {BRAND.name}. Fica registrado separado e não conta na meta semanal.</p>
+              </div>
+            ) : (
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-semibold">
+                  Quanto tempo você tem hoje? <span className="font-normal text-fg-subtle">(opcional · completo ≈ {completoMin} min)</span>
+                </legend>
+                <div className="flex flex-wrap gap-1.5">
+                  {OPCOES_TEMPO_MIN.map((m) => (
+                    <button key={m} type="button" aria-pressed={tempoDisp === m && !tempoOutro} onClick={() => { setTempoOutro(""); setPedidoTempo(false); setTempoDisp(tempoDisp === m ? null : m); }} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${tempoDisp === m && !tempoOutro ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                      {m} min
+                    </button>
+                  ))}
+                  <label className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-fg-muted">
+                    outro
+                    <input inputMode="numeric" value={tempoOutro} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 3); setTempoOutro(v); setPedidoTempo(false); setTempoDisp(v && Number(v) >= 10 ? Math.min(240, Number(v)) : null); }} className="w-10 bg-transparent text-center font-mono text-fg outline-none" aria-label="Tempo disponível em minutos" placeholder="—" />
+                    min
+                  </label>
+                </div>
+                {possivel ? (
+                  <div role="status" className={`rounded-lg border p-3 text-sm space-y-1 ${bloqueado ? "border-warning/40 bg-warning/10" : possivel.status === "reduzido" ? "border-accent/40 bg-accent/10" : "border-success/30 bg-success/10"}`}>
+                    <p className="font-semibold">{possivel.status === "completo" ? "Cabe no seu tempo" : possivel.status === "reduzido" ? `Versão de hoje: cerca de ${Math.round(possivel.estimadoSeg / 60)} min` : "Sem versão segura para esse tempo"}</p>
+                    {possivel.explicacao.slice(possivel.status === "reduzido" ? 1 : 0).map((t) => (
+                      <p key={t} className="text-xs text-fg-muted">{t}</p>
+                    ))}
+                    {bloqueado ? (
+                      pedidoTempo ? <p className="text-xs font-semibold text-success">Pedido de ajuste enviado.</p> : (
+                        <button type="button" onClick={() => void pedirAjusteTempo()} className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                          Pedir ajuste ao {BRAND.name}
+                        </button>
+                      )
+                    ) : null}
+                  </div>
+                ) : null}
+              </fieldset>
+            )}
+            {bloqueado ? (
+              <Button variant="secondary" size="lg" className="w-full touch" loading={iniciando} onClick={() => { setTempoDisp(null); setTempoOutro(""); void iniciar(); }}>
+                <Icon name="play" /> Fazer o treino completo mesmo assim
+              </Button>
+            ) : (
+              <Button variant="primary" size="lg" className="w-full touch" loading={iniciando} onClick={iniciar}>
+                <Icon name="play" /> {extra ? "Começar treino extra" : possivel?.status === "reduzido" ? `Começar versão de ${Math.round(possivel.estimadoSeg / 60)} min` : "Começar treino"}
+              </Button>
+            )}
           </CardBody>
         </Card>
         <ol className="space-y-2" aria-label="Exercícios deste treino">
           {exercicios.map((e, i) => (
-            <li key={e.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5">
+            <li key={e.id} className={`flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 ${adiadosIds.has(e.id) ? "opacity-50" : ""}`}>
               <span className="w-7 h-7 rounded-full bg-bg border border-border text-xs font-bold flex items-center justify-center text-fg-muted" aria-hidden>
                 {i + 1}
               </span>
@@ -522,6 +590,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, sessaoInicial, 
                 <p className="text-xs text-fg-subtle">
                   {e.series} × {e.reps}
                   {e.descanso_seg ? ` · descanso ${e.descanso_seg}s` : ""}
+                  {adiadosIds.has(e.id) ? " · fica para outro dia" : e.prioridade === "essencial" && possivel?.status === "reduzido" ? " · essencial" : ""}
                 </p>
               </div>
             </li>

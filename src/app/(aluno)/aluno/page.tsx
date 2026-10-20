@@ -13,13 +13,14 @@ import { BRAND } from "@/config/brand";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { listarReconhecimentos } from "@/lib/data/conquistas";
+import { getConfigExtra, listarExtras } from "@/lib/data/extras";
 
 export const metadata = { title: "Início" };
 
 export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
@@ -28,6 +29,8 @@ export default async function AlunoHomePage() {
     getCheckInHoje(alunoId),
     listDieta(alunoId),
     listarReconhecimentos(alunoId, 1),
+    getConfigExtra(alunoId),
+    listarExtras(alunoId, true),
   ]);
   if (!aluno) return null;
   const aderencia = await aderenciaDoAluno(aluno);
@@ -126,6 +129,21 @@ export default async function AlunoHomePage() {
             </div>
           </CardBody>
         </Card>
+      ) : null}
+
+      {/* Treino extra: só aparece se o personal liberou (nunca empurra treino a mais) */}
+      {configExtra?.habilitado && extras.length && !emAndamento ? (
+        <Link href="/aluno/extra" className="block">
+          <Card className="hover:border-accent/40 transition-colors">
+            <CardBody className="flex items-center gap-3 py-3">
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Quero fazer um treino extra</p>
+                <p className="text-xs text-fg-subtle">Está com disposição para treinar mais hoje? Veja se existe uma sessão extra liberada para você.</p>
+              </div>
+              <Icon name="chevron" className="text-fg-subtle" />
+            </CardBody>
+          </Card>
+        </Link>
       ) : null}
 
       {/* Reconhecimento escrito pelo personal (recente) */}
