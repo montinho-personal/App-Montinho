@@ -11,6 +11,10 @@ import { calcularVolumeSemanal, compararProgramadoRealizado, volumeRealizadoPorG
 import { calendarioSessoes, melhoresMarcas, periodoDias, resumoPeriodo, seriesRealizadasPorGrupo, sessoesNoPeriodo, tonelagem } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
 import { Acordeao } from "./Acordeao";
+import { dataLocal, somarDias, type ResultadoAderencia } from "@/lib/aderencia/calcular";
+import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
+import { detalheRelatorio } from "@/lib/relatorios/detalhe";
+import { sessaoParaConquista } from "@/lib/conquistas/mapear";
 import { EvolucaoExercicioClient } from "./EvolucaoExercicioClient";
 import type { TreinoComExercicios } from "@/lib/data/programas";
 
@@ -26,11 +30,22 @@ type Props = {
   versoes: ProgramaVersao[];
   comentarioTreinador?: { texto: string; autor: string; data: string } | null;
   exportarHref?: string | null;
+  /** Aderência (para regularidade) e início do acompanhamento (para comparar períodos completos). */
+  aderencia?: ResultadoAderencia | null;
+  inicioAcompanhamento?: string | null;
+  /** Só para o personal: pedidos de treino extra e decisões. */
+  pedidosExtra?: Array<{ titulo: string; status: string; data: string; resposta: string | null }>;
 };
 
 const PERIODOS = [7, 30, 90] as const;
 
-export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, treinos, evolucao, checkIns, versoes, comentarioTreinador, exportarHref }: Props) {
+export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, treinos, evolucao, checkIns, versoes, comentarioTreinador, exportarHref, aderencia = null, inicioAcompanhamento = null, pedidosExtra }: Props) {
+  const hojeLocal = dataLocal(new Date());
+  const desdeLocal = somarDias(hojeLocal, -(dias - 1));
+  const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje: hojeLocal, inicioAcompanhamento: inicioAcompanhamento ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hojeLocal });
+  const det = detalheRelatorio(sessoes, desdeLocal, hojeLocal);
+  const CHECKIN_ROT: Array<[keyof typeof det.checkin, string]> = [["muito_bem", "Muito bem"], ["normal", "Normal"], ["cansado", "Cansado"], ["desconforto", "Com desconforto"], ["prefiro_nao", "Prefiro não responder"], ["sem_resposta", "Sem resposta"]];
+  const totalCheckin = Object.values(det.checkin).reduce((a, b) => a + b, 0);
   const resumo = resumoPeriodo(sessoes, programa?.frequencia, dias);
   const periodo = periodoDias(dias);
   const noPeriodo = sessoesNoPeriodo(sessoes, periodo);
@@ -107,6 +122,23 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
               ))}
             </ul>
           ) : null}
+          {invisivel.length ? (
+            <section className="space-y-2" aria-labelledby="invisivel-titulo">
+              <h3 id="invisivel-titulo" className="text-[11px] font-bold uppercase tracking-wider text-accent">Evolução que não aparece no espelho</h3>
+              {invisivel.slice(0, modo === "aluno" ? 2 : 6).map((i) => (
+                <div key={i.tipo} className="rounded-lg border border-border px-3 py-2 text-sm space-y-1">
+                  <p className="font-semibold">{i.titulo}</p>
+                  <p><span className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Dado · </span>{i.dado}</p>
+                  <p className="text-fg-muted"><span className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Interpretação · </span>{i.interpretacao}</p>
+                  <details className="text-[11px] text-fg-subtle"><summary className="cursor-pointer">Como é calculado</summary>{i.criterio}</details>
+                </div>
+              ))}
+              {modo === "aluno" && invisivel.length > 2 ? <p className="text-[11px] text-fg-subtle">+{invisivel.length - 2} na análise completa.</p> : null}
+            </section>
+          ) : null}
+          <a href="#analise" className="inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">
+            {modo === "aluno" ? "Ver minha evolução completa ↓" : "Ver análise completa ↓"}
+          </a>
           {comentarioTreinador ? (
             <blockquote className="rounded-lg border-l-2 border-accent bg-accent-soft/50 px-3 py-2 text-sm">
               <p>{comentarioTreinador.texto}</p>
@@ -119,7 +151,90 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
       </Card>
 
       {/* NÍVEL 2 — Detalhes */}
-      <h2 className="text-xs font-bold uppercase tracking-wider text-fg-muted pt-1">Análise completa</h2>
+      <h2 id="analise" className="scroll-mt-20 text-xs font-bold uppercase tracking-wider text-fg-muted pt-1">Análise completa</h2>
+
+      {modo === "aluno" && invisivel.length > 2 ? (
+        <Acordeao titulo="Evolução que não aparece no espelho" resumo={`${invisivel.length} sinais de progresso nos seus registros`}>
+          <ul className="space-y-2">
+            {invisivel.map((i) => (
+              <li key={i.tipo} className="text-sm">
+                <p className="font-semibold">{i.titulo}</p>
+                <p>Dado: {i.dado}</p>
+                <p className="text-fg-muted">Interpretação: {i.interpretacao}</p>
+              </li>
+            ))}
+          </ul>
+        </Acordeao>
+      ) : null}
+
+      <Acordeao titulo="Tempo de treino" resumo={det.tempo ? `média de ${det.tempo.mediaRealMin} min por treino` : "dados insuficientes"}>
+        {det.tempo ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Metrica label="Duração real" valor={`${det.tempo.mediaRealMin} min`} hint={`média de ${det.tempo.sessoes} treinos`} />
+              <Metrica label="Planejado" valor={det.tempo.mediaPlanejadaMin != null ? `${det.tempo.mediaPlanejadaMin} min` : "—"} hint={det.tempo.comparaveis ? `${det.tempo.comparaveis} com estimativa` : "sem estimativa"} />
+              <Metrica label="Dentro do previsto" valor={det.tempo.dentroDoPrevisto != null ? `${det.tempo.dentroDoPrevisto}/${det.tempo.comparaveis}` : "—"} hint="diferença até 15%" />
+              <Metrica label="Descanso típico" valor={det.descansoMedianoSeg != null ? `${Math.floor(det.descansoMedianoSeg / 60)}:${String(det.descansoMedianoSeg % 60).padStart(2, "0")}` : "—"} hint={det.descansoMedianoSeg != null ? `mediana de ${det.intervalosDescanso} intervalos` : "poucos dados"} />
+            </div>
+            <p className="text-[11px] text-fg-subtle">Duração real = início ao fim do treino menos as pausas registradas. Descanso típico só aparece com 10+ intervalos entre séries marcadas na hora; séries anotadas depois não entram. A estimativa é orientativa — o importante é a execução, não o relógio.</p>
+          </div>
+        ) : (
+          <p className="text-sm text-fg-muted">Ainda não há treinos suficientes com início e fim registrados no período (mínimo 2).</p>
+        )}
+      </Acordeao>
+
+      <Acordeao titulo="Séries, extras e versões reduzidas" resumo={`${det.series.feitas}/${det.series.planejadas} séries · ${det.extras.sessoes} extra(s) · ${det.reduzidas.sessoes} reduzida(s)`}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Metrica label="Séries do programa" valor={`${det.series.feitas}/${det.series.planejadas}`} hint="feitas / prescritas" />
+          <Metrica label="Treinos extras" valor={String(det.extras.sessoes)} hint={det.extras.minutos ? `${det.extras.minutos} min no total` : "fora da meta"} />
+          <Metrica label="Séries extras" valor={String(det.extras.series)} hint="entram no volume" />
+          <Metrica label="Versões reduzidas" valor={String(det.reduzidas.sessoes)} hint={det.reduzidas.exerciciosAdiados ? `${det.reduzidas.exerciciosAdiados} exercício(s) adiados` : "por tempo disponível"} />
+        </div>
+        <p className="text-[11px] text-fg-subtle mt-2">Extras ficam fora da meta semanal e da aderência, mas o volume real entra nos relatórios. Versões reduzidas seguem as regras do personal.</p>
+        {modo === "treinador" && pedidosExtra?.length ? (
+          <ul className="mt-2 space-y-1 text-xs">
+            {pedidosExtra.map((p, i) => (
+              <li key={i} className="text-fg-muted">
+                {dataBR(p.data)} · <span className="text-fg">{p.titulo}</span> · {p.status === "aprovada" ? "aprovado" : p.status === "recusada" ? "não aprovado" : "pendente"}{p.resposta ? ` — “${p.resposta}”` : ""}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Acordeao>
+
+      <Acordeao titulo="Disposição antes do treino" resumo={totalCheckin ? `${totalCheckin - det.checkin.sem_resposta} de ${totalCheckin} com resposta` : "sem treinos no período"}>
+        {totalCheckin ? (
+          <ul className="space-y-1.5">
+            {CHECKIN_ROT.filter(([k]) => det.checkin[k] > 0).map(([k, rot]) => (
+              <li key={k} className="flex items-center gap-2 text-sm">
+                <span className="w-40 shrink-0 text-fg-muted">{rot}</span>
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-border" aria-hidden>
+                  <span className={`block h-full rounded-full ${k === "desconforto" ? "bg-warning" : "bg-accent"}`} style={{ width: `${(det.checkin[k] / totalCheckin) * 100}%` }} />
+                </span>
+                <span className="w-8 text-right font-mono">{det.checkin[k]}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-fg-muted">Sem treinos no período.</p>
+        )}
+        <p className="text-[11px] text-fg-subtle mt-2">Resposta opcional antes de começar. Mostra tendências, não diagnóstico; não substitui avaliação profissional.</p>
+      </Acordeao>
+
+      <Acordeao titulo="Interrupções e retomadas" resumo={det.interrupcoes.length ? `${det.interrupcoes.length} no período` : "nenhuma no período"}>
+        {det.interrupcoes.length ? (
+          <ul className="space-y-1 text-sm">
+            {det.interrupcoes.map((x) => (
+              <li key={x.de}>
+                {dataBR(x.de)} → {dataBR(x.ate)}: <span className="text-fg-muted">{x.dias} dias sem treino registrado, com retomada em {dataBR(x.ate)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-fg-muted">Nenhum intervalo de 14 dias ou mais sem treino no período.</p>
+        )}
+        <p className="text-[11px] text-fg-subtle mt-2">Pausas combinadas (férias, lesão) aparecem no calendário de consistência e não contam como falta.</p>
+      </Acordeao>
 
       <Acordeao titulo="Frequência e aderência" resumo={`${calendario.filter((d) => d.status === "feito").length} dias com treino · ${calendario.filter((d) => d.status === "abandonado").length} encerrado(s) sem concluir`}>
         <Heatmap dias={calendario.map((d) => ({ data: d.data, intensidade: d.status === "feito" ? 3 : d.status === "abandonado" ? 1 : 0, tooltip: `${dataBR(d.data)} — ${d.status === "feito" ? `treino ${d.letra ?? ""}${d.duracaoMin ? ` (${d.duracaoMin} min)` : ""}` : d.status === "abandonado" ? "encerrado sem concluir" : "sem treino"}` }))} />

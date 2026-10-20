@@ -4,18 +4,19 @@ import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { linhaCentral } from "@/lib/aderencia/central";
 import { CentralAderenciaClient } from "./CentralAderenciaClient";
+import { lerRegrasAcompanhamento } from "@/lib/data/preferencias";
 
 export const metadata = { title: "Central de aderência" };
 export const dynamic = "force-dynamic";
 
 export default async function CentralAderenciaPage() {
-  await requireTreinadorPage();
+  const sessao = await requireTreinadorPage();
   const alunos = (await listAlunos()).filter((a) => a.status !== "arquivado");
-  const dados = await aderenciaDeTodos(alunos);
+  const [dados, regras] = await Promise.all([aderenciaDeTodos(alunos), lerRegrasAcompanhamento(sessao.userId)]);
   const hoje = dataLocal(new Date());
   const linhas = alunos.map((a) => {
     const d = dados[a.id];
-    return linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas);
+    return linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas, { sessaoAbertaDesde: d.sessaoAbertaDesde, planoAlteradoEm: d.planoAlteradoEm, pausaTipo: d.pausaTipo }, regras);
   });
   return (
     <div className="space-y-5">
@@ -24,7 +25,7 @@ export default async function CentralAderenciaPage() {
         <h1 className="text-2xl font-bold">Central de aderência</h1>
         <p className="text-sm text-fg-muted mt-1">Consistência de cada aluno em relação à própria meta semanal. Os sinais descrevem o que aconteceu (dias sem registro, queda de frequência, retomada) — a decisão de como agir é sua.</p>
       </header>
-      <CentralAderenciaClient linhas={linhas} />
+      <CentralAderenciaClient linhas={linhas} regras={regras} />
     </div>
   );
 }

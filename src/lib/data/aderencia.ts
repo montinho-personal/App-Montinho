@@ -112,15 +112,20 @@ export async function aderenciaDoAluno(aluno: { id: string; data_inicio: string 
 }
 
 /** Todos os alunos (central do personal). */
-export async function aderenciaDeTodos(alunos: Array<{ id: string; data_inicio: string | null; created_at: string }>): Promise<Record<string, ResultadoAderencia & { ultimaSessao: string | null; datas: string[] }>> {
+export type AderenciaCentral = ResultadoAderencia & { ultimaSessao: string | null; datas: string[]; sessaoAbertaDesde: string | null; planoAlteradoEm: string | null; pausaTipo: string | null };
+
+export async function aderenciaDeTodos(alunos: Array<{ id: string; data_inicio: string | null; created_at: string }>): Promise<Record<string, AderenciaCentral>> {
   const b = await carregarBruto(null);
   const hoje = dataLocal(new Date());
-  const out: Record<string, ResultadoAderencia & { ultimaSessao: string | null; datas: string[] }> = {};
+  const out: Record<string, AderenciaCentral> = {};
   for (const a of alunos) {
     const entrada = entradaDoAluno(a.id, a.data_inicio ?? dataLocal(a.created_at), b, hoje);
     const ultima = entrada.sessoes.filter((s) => s.status !== "em_andamento" && (s.series_concluidas ?? 0) > 0).map((s) => s.iniciado_em).sort().at(-1) ?? null;
     const datas = entrada.sessoes.filter((s) => s.status !== "em_andamento" && (s.series_concluidas ?? 0) > 0 && s.modo !== "extra").map((s) => dataLocal(s.iniciado_em));
-    out[a.id] = { ...calcularAderencia(entrada), ultimaSessao: ultima, datas };
+    const aberta = entrada.sessoes.filter((s) => s.status === "em_andamento").map((s) => s.iniciado_em).sort().at(-1) ?? null;
+    const versao = b.versoes.filter((v) => v.aluno_id === a.id).map((v) => v.created_at).sort().at(-1) ?? null;
+    const pausa = b.pausas.find((p) => p.aluno_id === a.id && p.inicio <= hoje && (!p.fim || p.fim >= hoje)) ?? null;
+    out[a.id] = { ...calcularAderencia(entrada), ultimaSessao: ultima, datas, sessaoAbertaDesde: aberta, planoAlteradoEm: versao ? dataLocal(versao) : null, pausaTipo: pausa?.tipo ?? null };
   }
   return out;
 }

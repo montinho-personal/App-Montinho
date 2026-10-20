@@ -28,6 +28,7 @@ import { ComparadorMedidas } from "./ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
+import { listarExtras, listarSolicitacoes } from "@/lib/data/extras";
 import { AcompanhamentoClient } from "./AcompanhamentoClient";
 import type { Anamnese } from "@/lib/supabase/types-extended";
 import type { Evolucao } from "@/lib/supabase/types";
@@ -59,7 +60,8 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
-  const aderencia = await aderenciaDoAluno(aluno);
+  const [aderencia, pedidosExtra, extrasAluno] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id)]);
+  const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
 
   const treinosAtivos = plano.treinos.filter((t) => t.ativo);
@@ -228,7 +230,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             key: "evolucao",
             label: "Evolução",
             content: (
-              <RelatorioEvolucao modo="treinador" dias={dias} basePath={`/treinador/alunos/${id}`} sessoes={sessoes} programa={plano.programa} treinos={plano.treinos} evolucao={evolucao as Evolucao[]} checkIns={checkIns} versoes={versoes} exportarHref={`/api/alunos/${id}/exportar`} />
+              <RelatorioEvolucao modo="treinador" dias={dias} basePath={`/treinador/alunos/${id}`} sessoes={sessoes} programa={plano.programa} treinos={plano.treinos} evolucao={evolucao as Evolucao[]} checkIns={checkIns} versoes={versoes} exportarHref={`/api/alunos/${id}/exportar`} aderencia={aderencia} inicioAcompanhamento={aluno.data_inicio ?? aluno.created_at.slice(0, 10)} pedidosExtra={pedidosExtra.slice(0, 15).map((p) => ({ titulo: tituloExtra[p.extra_id] ?? "Treino extra", status: p.status, data: p.created_at, resposta: p.resposta }))} />
             ),
           },
           {

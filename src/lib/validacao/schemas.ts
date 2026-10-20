@@ -318,3 +318,16 @@ export const registrarAtividadeExtraSchema = z.object({
   duracao_min: z.coerce.number().int().min(1).max(300),
   recuperacao: recuperacaoSchema,
 });
+
+export const regrasAcompanhamentoSchema = z
+  .object({
+    diasSemTreino: z.coerce.number().int().min(3).max(60),
+    quedaPontos: z.coerce.number().int().min(5).max(80),
+    pausaParaRetomada: z.coerce.number().int().min(7).max(90),
+    janelaRetomada: z.coerce.number().int().min(1).max(30),
+    sequenciaReconhecer: z.coerce.number().int().min(2).max(26),
+    horasRegistroAberto: z.coerce.number().int().min(2).max(72),
+    diasPlanoAlterado: z.coerce.number().int().min(3).max(60),
+  })
+  .partial()
+  .strict();

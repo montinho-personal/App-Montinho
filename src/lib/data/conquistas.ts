@@ -11,6 +11,7 @@ import { uid } from "@/lib/mock/store";
 import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes";
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
 import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
+import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 
@@ -42,21 +43,6 @@ function demo(): DemoConquistas {
   return g.__montinhoConquistas;
 }
 
-const paraConquista = (s: SessaoCompleta): SessaoConquista => ({
-  id: s.id,
-  iniciado_em: s.iniciado_em,
-  status: s.status,
-  modo: s.modo ?? "normal",
-  series_planejadas: s.series_planejadas,
-  series_concluidas: s.series_concluidas,
-  treino_id: s.treino_id,
-  letra: s.letra,
-  nome_treino: s.nome_treino,
-  duracao_seg: s.duracao_seg,
-  feedback_percepcao: s.feedback_percepcao,
-  checkin_pre: s.checkin_pre ?? null,
-  exercicios: s.exercicios.map((e) => ({ exercicio_id: e.exercicio_id, nome: e.nome, series: e.series.map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) })),
-});
 
 export async function listarConquistas(alunoId: string | null, opts: { desde?: string; limite?: number } = {}): Promise<ConquistaRow[]> {
   if (isDemoMode()) {

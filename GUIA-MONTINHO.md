@@ -110,3 +110,9 @@ Início (próximo treino + “Começar treino”, progresso da semana com denomi
 - O aluno vê “Quero fazer um treino extra” no início **só se você liberou**. Cada opção aparece como *liberado*, *mediante aprovação* ou *não recomendado*, sempre com o motivo (ex.: “bíceps foi treinado há menos de 48 h”).
 - Pedidos chegam na mesma página: **Aprovar para hoje** ou **Hoje não**, com uma resposta opcional. Sua aprovação vale mesmo para o que o app não recomendou (você viu o motivo) — exceto se o aluno relatar dor na hora.
 - Extras ficam separados: não contam na meta semanal nem nas conquistas, mas o volume entra nos relatórios. Se os extras passarem do limite de séries da semana, a página avisa.
+
+## Relatórios e sugestões de acompanhamento
+
+- **Evolução do aluno** (dele e no perfil, para você): “Evolução que não aparece no espelho” mostra progresso além do corpo, sempre em duas partes — **Dado** (o que foi registrado) e **Interpretação** (o que isso sugere), com o critério usado. Nada é afirmado a partir de um único registro.
+- **Análise completa**: tempo real × planejado, descanso típico (só quando há dados confiáveis), séries prescritas × feitas, extras e versões reduzidas, disposição antes do treino e interrupções/retomadas.
+- **Central de aderência**: cada aluno pode ter sugestões com o “por quê” e um rascunho de mensagem para você editar, copiar ou mandar como reconhecimento. O app diferencia ausência real, pausa combinada, treino aberto sem finalizar (registro) e plano alterado recentemente. Em “Regras dos sinais” você ajusta os limites (ex.: quantos dias sem treino para sinalizar).

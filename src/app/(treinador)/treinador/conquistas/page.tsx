@@ -9,9 +9,9 @@ import { CelebrarClient } from "./CelebrarClient";
 export const metadata = { title: "Celebrar conquistas" };
 export const dynamic = "force-dynamic";
 
-export default async function CelebrarConquistasPage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
+export default async function CelebrarConquistasPage({ searchParams }: { searchParams: Promise<{ dias?: string; aluno?: string; msg?: string }> }) {
   const sessao = await requireTreinadorPage();
-  const { dias: d } = await searchParams;
+  const { dias: d, aluno: alunoParam, msg } = await searchParams;
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
   const desde = new Date(new Date().getTime() - dias * 86_400_000).toISOString();
   const [alunos, conquistas, reconhecimentos, eventos] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde)]);
@@ -27,6 +27,8 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
       <CelebrarClient
         dias={dias}
         autor={sessao.nome.split(" ")[0]}
+        alunoInicial={alunos.some((a) => a.id === alunoParam) ? alunoParam! : ""}
+        mensagemInicial={(msg ?? "").slice(0, 600)}
         alunos={alunos.filter((a) => a.status !== "arquivado").map((a) => ({ id: a.id, nome: nomes[a.id] }))}
         conquistas={conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", titulo: c.titulo, descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id) }))}
         enviados={reconhecimentos.slice(0, 20).map((r) => ({ id: r.id, aluno: nomes[r.aluno_id] ?? "Aluno", mensagem: r.mensagem, data: r.created_at }))}

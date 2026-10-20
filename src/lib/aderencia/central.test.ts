@@ -47,3 +47,37 @@ describe("central de aderência — sinais observáveis", () => {
     expect(ordenarCentral([a, b], "melhora")[0].alunoId).toBe("b");
   });
 });
+
+describe("sugestões de acompanhamento — distinguem o motivo", () => {
+  const r = (datas: string[], pausas: Array<{ inicio: string; fim: string | null }> = []) => calcularAderencia({ inicio: "2026-08-03", hoje, metas, sessoes: datas.map(s), pausas });
+  const lin = (datas: string[], ctx = {}, pausas: Array<{ inicio: string; fim: string | null }> = []) => linhaCentral({ id: "a", nome: "Ana Souza" }, r(datas, pausas), datas.length ? `${[...datas].sort().at(-1)}T13:00:00Z` : null, hoje, datas, ctx);
+
+  it("ausência real: rascunho editável, nunca enviado (só sugestão)", () => {
+    const sug = lin(["2026-09-28", "2026-10-01"]).sugestoes.find((x) => x.tipo === "ausencia")!;
+    expect(sug.acao).toBe("mensagem");
+    expect(sug.rascunho).toMatch(/^Oi, Ana!/);
+    expect(sug.regra).toMatch(/10 dias/);
+  });
+  it("pausa combinada: sem alerta de ausência", () => {
+    const l = lin(["2026-09-28"], { pausaTipo: "ferias" }, [{ inicio: "2026-10-05", fim: null }]);
+    expect(l.sugestoes.map((x) => x.tipo)).toEqual(["pausa"]);
+    expect(l.sugestoes[0].titulo).toMatch(/férias/);
+  });
+  it("treino aberto sem finalizar vira 'verificar registro', não ausência", () => {
+    const l = lin(["2026-09-28", "2026-10-01"], { sessaoAbertaDesde: "2026-10-20T10:00:00Z", agora: new Date("2026-10-21T10:00:00Z") });
+    expect(l.sugestoes.map((x) => x.tipo)).toContain("registro");
+    expect(l.sugestoes.map((x) => x.tipo)).not.toContain("ausencia");
+  });
+  it("plano alterado recentemente é apontado como possível causa", () => {
+    const l = lin(["2026-09-28", "2026-10-01"], { planoAlteradoEm: "2026-10-12" });
+    expect(l.sugestoes[0].tipo).toBe("plano_alterado");
+  });
+  it("regras ajustáveis pelo personal", async () => {
+    const { mesclarRegras } = await import("./central");
+    const regras = mesclarRegras({ diasSemTreino: 30, quedaPontos: -5 as number });
+    expect(regras.diasSemTreino).toBe(30);
+    expect(regras.quedaPontos).toBe(20);
+    const l = linhaCentral({ id: "a", nome: "Ana" }, r(["2026-09-28", "2026-10-01"]), "2026-10-01T13:00:00Z", hoje, ["2026-09-28", "2026-10-01"], {}, regras);
+    expect(l.sinais.map((x) => x.tipo)).not.toContain("sem_treino_recente");
+  });
+});

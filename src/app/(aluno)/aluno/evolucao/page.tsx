@@ -67,6 +67,8 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         versoes={versoes}
         comentarioTreinador={comentario ? { texto: comentario.descricao, autor: comentario.autor?.nome ?? BRAND.name, data: comentario.created_at } : null}
         exportarHref={`/api/alunos/${sessao.alunoId}/exportar`}
+        aderencia={aderencia}
+        inicioAcompanhamento={aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null}
       />
     </div>
   );

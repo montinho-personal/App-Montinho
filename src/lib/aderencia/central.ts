@@ -12,6 +12,16 @@ export type Sinal = {
   natureza: "acompanhar" | "reconhecer" | "info";
 };
 
+/** Sugestão para o PERSONAL (nunca enviada automaticamente; rascunho editável). */
+export type Sugestao = {
+  tipo: "ausencia" | "plano_alterado" | "registro" | "queda" | "retomada" | "sequencia" | "pausa";
+  titulo: string;
+  /** Regra que gerou a sugestão, em linguagem simples. */
+  regra: string;
+  acao: "mensagem" | "reconhecer" | "verificar_registro" | "nenhuma";
+  rascunho: string | null;
+};
+
 export type LinhaCentral = {
   alunoId: string;
   nome: string;
@@ -23,15 +33,43 @@ export type LinhaCentral = {
   diasDesdeUltima: number | null;
   proximaPrevista: string | null;
   sinais: Sinal[];
+  sugestoes: Sugestao[];
 };
 
-export const REGRAS_CENTRAL = {
+export type ContextoCentral = {
+  /** Sessão ainda “em andamento” (ISO de início), se houver. */
+  sessaoAbertaDesde?: string | null;
+  /** Data (AAAA-MM-DD) da última alteração do plano. */
+  planoAlteradoEm?: string | null;
+  /** Tipo da pausa em curso (férias, lesão…). */
+  pausaTipo?: string | null;
+  /** Agora (para horas desde a sessão aberta). */
+  agora?: Date;
+};
+
+export type RegrasCentral = { diasSemTreino: number; quedaPontos: number; pausaParaRetomada: number; janelaRetomada: number; sequenciaReconhecer: number; horasRegistroAberto: number; diasPlanoAlterado: number };
+
+/** Padrões; o personal pode ajustar (preferencias_treinador.regras_acompanhamento). */
+export const REGRAS_CENTRAL: RegrasCentral = {
   diasSemTreino: 10,
   quedaPontos: 20,
   pausaParaRetomada: 14,
   janelaRetomada: 7,
   sequenciaReconhecer: 4,
+  horasRegistroAberto: 12,
+  diasPlanoAlterado: 14,
 };
+
+export function mesclarRegras(r: Partial<RegrasCentral> | null | undefined): RegrasCentral {
+  const out = { ...REGRAS_CENTRAL };
+  for (const k of Object.keys(out) as Array<keyof RegrasCentral>) {
+    const v = Number(r?.[k]);
+    if (Number.isFinite(v) && v > 0) out[k] = Math.round(v);
+  }
+  return out;
+}
+
+const TIPO_PAUSA: Record<string, string> = { ferias: "férias", lesao: "lesão", descanso_prescrito: "descanso prescrito", viagem: "viagem", saude: "saúde", outro: "pausa" };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
 
@@ -40,8 +78,11 @@ export function linhaCentral(
   r: ResultadoAderencia,
   ultimaSessao: string | null,
   hoje: string,
-  datasSessoes: string[]
+  datasSessoes: string[],
+  ctx: ContextoCentral = {},
+  regras: RegrasCentral = REGRAS_CENTRAL
 ): LinhaCentral {
+  const REGRAS_CENTRAL = regras;
   const sinais: Sinal[] = [];
   const semana = r.semanaAtual;
   const desde = ultimaSessao ? dias(dataLocal(ultimaSessao), hoje) : null;
@@ -65,6 +106,32 @@ export function linhaCentral(
   }
   if (r.sequencia.atual >= REGRAS_CENTRAL.sequenciaReconhecer) sinais.push({ tipo: "meta_sequencia", texto: `${r.sequencia.atual} semanas seguidas com a meta cumprida`, natureza: "reconhecer" });
 
+  // Sugestões: distinguem ausência real de pausa, plano alterado e registro esquecido.
+  const primeiro = aluno.nome.split(" ")[0];
+  const sugestoes: Sugestao[] = [];
+  const tipos = new Set(sinais.map((x) => x.tipo));
+  const horasAberta = ctx.sessaoAbertaDesde ? ((ctx.agora ?? new Date()).getTime() - new Date(ctx.sessaoAbertaDesde).getTime()) / 3_600_000 : 0;
+  const diasPlano = ctx.planoAlteradoEm ? dias(ctx.planoAlteradoEm, hoje) : null;
+  const planoRecente = diasPlano !== null && diasPlano >= 0 && diasPlano <= REGRAS_CENTRAL.diasPlanoAlterado;
+  if (emPausa) {
+    sugestoes.push({ tipo: "pausa", titulo: `Em pausa combinada (${TIPO_PAUSA[ctx.pausaTipo ?? "outro"] ?? "pausa"})`, regra: "Durante pausas combinadas o app não gera alerta de ausência.", acao: "nenhuma", rascunho: null });
+  } else {
+    if (horasAberta >= REGRAS_CENTRAL.horasRegistroAberto)
+      sugestoes.push({ tipo: "registro", titulo: `Treino aberto há ${Math.round(horasAberta)} h sem finalizar`, regra: `Sessão iniciada e não concluída há ${REGRAS_CENTRAL.horasRegistroAberto} h ou mais — pode ser só registro esquecido, não ausência.`, acao: "verificar_registro", rascunho: `Oi, ${primeiro}! Vi que um treino ficou aberto no app. Conseguiu terminar? Se sim, é só abrir e tocar em Concluir para ficar registrado.` });
+    if (tipos.has("sem_treino_recente") || tipos.has("queda_frequencia")) {
+      if (planoRecente)
+        sugestoes.push({ tipo: "plano_alterado", titulo: `Plano alterado há ${diasPlano} dia(s)`, regra: `A frequência caiu e o plano mudou nos últimos ${REGRAS_CENTRAL.diasPlanoAlterado} dias; pode haver relação com a mudança.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Como está sendo o treino novo? Se algo ficou difícil de encaixar na rotina, me conta que eu ajusto.` });
+      else if (tipos.has("sem_treino_recente") && horasAberta < REGRAS_CENTRAL.horasRegistroAberto)
+        sugestoes.push({ tipo: "ausencia", titulo: desde === null ? "Ainda sem treino registrado" : `${desde} dias sem registrar treino`, regra: `Sem treino registrado há ${REGRAS_CENTRAL.diasSemTreino} dias ou mais, fora de pausa combinada e sem treino aberto.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Senti sua falta nos treinos. Está tudo bem? Se a rotina apertou, posso adaptar o treino para caber no seu tempo.` });
+      else if (tipos.has("queda_frequencia"))
+        sugestoes.push({ tipo: "queda", titulo: "Frequência abaixo do próprio histórico", regra: `Aderência das últimas 4 semanas ${REGRAS_CENTRAL.quedaPontos}+ pontos abaixo das 4 anteriores. Sessões feitas em outro dia (remanejadas) contam normalmente.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Percebi que as últimas semanas ficaram mais corridas. Quer que a gente ajuste a meta ou o treino para ficar mais viável?` });
+    }
+  }
+  if (tipos.has("retomou"))
+    sugestoes.push({ tipo: "retomada", titulo: "Voltou a treinar", regra: `Treinou nos últimos ${REGRAS_CENTRAL.janelaRetomada} dias depois de ${REGRAS_CENTRAL.pausaParaRetomada}+ dias sem treino.`, acao: "reconhecer", rascunho: `Bom ter você de volta, ${primeiro}! Vamos reorganizar a rotina juntos, no seu ritmo.` });
+  if (tipos.has("meta_sequencia"))
+    sugestoes.push({ tipo: "sequencia", titulo: `${r.sequencia.atual} semanas seguidas com a meta`, regra: `Meta semanal cumprida ${REGRAS_CENTRAL.sequenciaReconhecer}+ semanas seguidas.`, acao: "reconhecer", rascunho: `Parabéns, ${primeiro}! ${r.sequencia.atual} semanas seguidas cumprindo a meta. Essa constância faz toda a diferença.` });
+
   const proxima = Object.values(r.dias)
     .filter((d) => d.data >= hoje && d.data <= somarDias(hoje, 13) && d.tipos.includes("previsto"))
     .map((d) => d.data)
@@ -81,6 +148,7 @@ export function linhaCentral(
     diasDesdeUltima: desde,
     proximaPrevista: proxima,
     sinais,
+    sugestoes,
   };
 }
 

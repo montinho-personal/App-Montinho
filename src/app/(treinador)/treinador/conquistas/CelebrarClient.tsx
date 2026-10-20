@@ -16,13 +16,13 @@ const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", da
 const diaLocal = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(iso));
 const EXEMPLO = "Você está conseguindo manter sua rotina, mesmo com os desafios do dia a dia. Essa constância merece reconhecimento!";
 
-export function CelebrarClient({ dias, autor, alunos, conquistas, enviados, metricas }: { dias: number; autor: string; alunos: Array<{ id: string; nome: string }>; conquistas: Conquista[]; enviados: Array<{ id: string; aluno: string; mensagem: string; data: string }>; metricas: MetricasChalala }) {
+export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial = "", alunos, conquistas, enviados, metricas }: { dias: number; autor: string; alunoInicial?: string; mensagemInicial?: string; alunos: Array<{ id: string; nome: string }>; conquistas: Conquista[]; enviados: Array<{ id: string; aluno: string; mensagem: string; data: string }>; metricas: MetricasChalala }) {
   const router = useRouter();
   const toast = useToast();
   const [filtro, setFiltro] = useState("");
   const [sel, setSel] = useState<Conquista | null>(null);
-  const [alunoLivre, setAlunoLivre] = useState("");
-  const [msg, setMsg] = useState("");
+  const [alunoLivre, setAlunoLivre] = useState(alunoInicial);
+  const [msg, setMsg] = useState(mensagemInicial);
   const [notificar, setNotificar] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [preview, setPreview] = useState(false);
