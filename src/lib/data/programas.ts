@@ -137,6 +137,8 @@ export type ExercicioInput = {
   tecnica: Tecnica;
   tecnica_extras?: number | null;
   tecnica_series?: number | null;
+  descanso_apos_seg?: number | null;
+  cadencia?: string | null;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;
@@ -150,6 +152,8 @@ export type TreinoInput = {
   ativo: boolean;
   observacoes: string | null;
   duracao_estimada_min?: number | null;
+  tempo_alvo_min?: number | null;
+  tempos?: Record<string, number | boolean>;
   exercicios: ExercicioInput[];
 };
 
@@ -207,6 +211,8 @@ function montarSnapshot(programa: Programa, treinos: TreinoComExercicios[]): Sna
       tecnica: e.tecnica ?? "normal",
       tecnica_extras: e.tecnica_extras ?? null,
       tecnica_series: e.tecnica_series ?? null,
+      descanso_apos_seg: e.descanso_apos_seg ?? null,
+      cadencia: e.cadencia ?? null,
       bloco: e.bloco ?? null,
       unilateral: e.unilateral ?? false,
       carga_alvo: e.carga_alvo ?? null,
@@ -335,7 +341,7 @@ export async function salvarPlano(alunoId: string, autorId: string, input: Salva
   const resultado: TreinoComExercicios[] = [];
   for (let ordem = 0; ordem < input.treinos.length; ordem++) {
     const t = input.treinos[ordem];
-    const payload = { aluno_id: alunoId, letra: t.letra, nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, programa_id: programa.id, duracao_estimada_min: t.duracao_estimada_min ?? null };
+    const payload = { aluno_id: alunoId, letra: t.letra, nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, programa_id: programa.id, duracao_estimada_min: t.duracao_estimada_min ?? null, tempo_alvo_min: t.tempo_alvo_min ?? null, tempos: t.tempos ?? {} };
     let treino: Treino & { versao?: number };
     if (t.id) {
       const { data: existente } = await db.from("treinos").select("versao").eq("id", t.id).eq("aluno_id", alunoId).maybeSingle();
@@ -423,6 +429,8 @@ function camposExercicio(e: ExercicioInput, ordem: number) {
     tecnica: e.tecnica ?? "normal",
     tecnica_extras: e.tecnica_extras ?? null,
     tecnica_series: e.tecnica_series ?? null,
+    descanso_apos_seg: e.descanso_apos_seg ?? null,
+    cadencia: e.cadencia?.trim() || null,
     bloco: e.bloco,
     unilateral: Boolean(e.unilateral),
     carga_alvo: e.carga_alvo,

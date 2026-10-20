@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { getAluno, getAnamnese } from "@/lib/db";
 import { listarBiblioteca, listarEquivalencias, listarFavoritos, usoDosExercicios } from "@/lib/data/biblioteca";
+import { lerTemposTreinador } from "@/lib/data/preferencias";
 import { getPlanoAtivo, listTreinosFinalizados } from "@/lib/data/programas";
 import { listCorrecoes } from "@/lib/data/acompanhamento";
 import { listSessoes } from "@/lib/data/sessoes";
@@ -17,7 +18,7 @@ export const metadata = { title: "Montador de treinos" };
 export default async function MontadorPage({ params }: PageProps) {
   const sessao = await requireTreinadorPage();
   const { id } = await params;
-  const [aluno, plano, finalizados, biblioteca, anamnese, correcoes, sessoes, equivalencias, favoritos] = await Promise.all([
+  const [aluno, plano, finalizados, biblioteca, anamnese, correcoes, sessoes, equivalencias, favoritos, temposTreinador] = await Promise.all([
     getAluno(id),
     getPlanoAtivo(id),
     listTreinosFinalizados(id),
@@ -27,6 +28,7 @@ export default async function MontadorPage({ params }: PageProps) {
     listSessoes(id, { limite: 120 }),
     listarEquivalencias(),
     listarFavoritos(sessao.userId),
+    lerTemposTreinador(sessao.userId),
   ]);
   const uso = await usoDosExercicios(biblioteca);
   if (!aluno) notFound();
@@ -37,6 +39,7 @@ export default async function MontadorPage({ params }: PageProps) {
 
   return (
     <MontadorClient
+      temposTreinador={temposTreinador}
       alunoId={id}
       alunoNome={aluno.profile?.nome ?? "Aluno"}
       programa={plano.programa}

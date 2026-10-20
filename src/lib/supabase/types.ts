@@ -46,6 +46,9 @@ export type Treino = {
   versao?: number;
   programa_id?: string | null;
   duracao_estimada_min?: number | null;
+  /** Parâmetros de tempo do treino (descansos, s/rep, transição…); ver src/lib/tempo/estimar.ts. */
+  tempos?: Record<string, unknown> | null;
+  tempo_alvo_min?: number | null;
   created_at: string;
   updated_at: string;
 };

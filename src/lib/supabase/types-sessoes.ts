@@ -26,6 +26,8 @@ export type ExercicioPrescrito = Exercicio & {
   tecnica_extras?: number | null;
   /** Em quantas séries válidas a técnica é aplicada; null = padrão. */
   tecnica_series?: number | null;
+  /** Descanso após o último set (antes do próximo exercício); null = padrão. */
+  descanso_apos_seg?: number | null;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;
@@ -87,6 +89,8 @@ export type SnapshotExercicio = {
   tecnica: Tecnica;
   tecnica_extras?: number | null;
   tecnica_series?: number | null;
+  descanso_apos_seg?: number | null;
+  cadencia?: string | null;
   bloco: string | null;
   unilateral: boolean;
   carga_alvo: string | null;

@@ -17,8 +17,9 @@ export type SerieConfig =
       }>;
     };
 
+/** Descanso null = usar o padrão do treino/treinador (90 s por padrão do app). */
 export function configIgual(series = 3, reps = "10-12", ie: number | null = 8): SerieConfig {
-  return { modo: "iguais", series, reps, ie, descanso_seg: 60 };
+  return { modo: "iguais", series, reps, ie, descanso_seg: null };
 }
 
 export function totalSeries(config: SerieConfig | null | undefined, fallback = 0): number {

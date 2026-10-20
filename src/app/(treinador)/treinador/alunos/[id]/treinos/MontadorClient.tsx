@@ -17,6 +17,8 @@ import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
 import { EXTRAS_PADRAO, temExtras } from "@/lib/volume/tecnicas";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
+import { PainelTempo } from "@/components/montador/PainelTempo";
+import { estimarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
 import { usePreferenciasVolume } from "@/components/montador/usePreferenciasVolume";
 import { CartaoAnamnese } from "@/components/montador/CartaoAnamnese";
 import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
@@ -50,6 +52,10 @@ type Row = {
   tecnicaExtras: string;
   /** Em quantas séries a técnica é aplicada; "" = padrão (última série; myo-reps: todas). */
   tecnicaSeries: string;
+  /** Descanso após o último set (s); "" = padrão do treino/treinador. */
+  descansoApos: string;
+  /** Cadência prescrita (ex.: 3-1-2); "" = estimativa por repetição. */
+  cadencia: string;
   bloco: string;
   unilateral: boolean;
   observacoes: string;
@@ -60,7 +66,7 @@ type Row = {
   grupoOrigemSalvo: ExercicioPrescrito["grupo_origem"];
 };
 
-type TreinoVM = { key: string; id: string | null; letra: TreinoLetra; nome: string; ativo: boolean; observacoes: string; rows: Row[] };
+type TreinoVM = { key: string; id: string | null; letra: TreinoLetra; nome: string; ativo: boolean; observacoes: string; rows: Row[]; tempos: Partial<ParametrosTempo>; tempoAlvo: string };
 
 type ProgramaVM = {
   nome: string;
@@ -83,6 +89,8 @@ type Estado = { programa: ProgramaVM; treinos: TreinoVM[] };
 type BibliotecaItem = { id: string; nome: string; grupo_muscular: GrupoMuscular; grupos_secundarios: GrupoMuscular[]; sinonimos: string[]; equipamento: string[] };
 
 type Props = {
+  /** Padrões de tempo do treinador (nível acima do treino). */
+  temposTreinador: Partial<ParametrosTempo>;
   alunoId: string;
   alunoNome: string;
   programa: Programa | null;
@@ -134,9 +142,9 @@ const PRESETS: Array<{ nome: string; letras: TreinoLetra[]; calendario: Calendar
 
 let seq = 0;
 const novaKey = () => `k${Date.now().toString(36)}-${seq++}`;
-const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
+const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", descansoApos: "", cadencia: "", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
 const cloneRow = (r: Row): Row => ({ ...r, key: novaKey(), id: null, seriesConfig: JSON.parse(JSON.stringify(r.seriesConfig)) });
-const emptyTreino = (letra: TreinoLetra): TreinoVM => ({ key: novaKey(), id: null, letra, nome: `Treino ${letra}`, ativo: true, observacoes: "", rows: [emptyRow()] });
+const emptyTreino = (letra: TreinoLetra): TreinoVM => ({ key: novaKey(), id: null, letra, nome: `Treino ${letra}`, ativo: true, observacoes: "", rows: [emptyRow()], tempos: {}, tempoAlvo: "" });
 
 function rowDeExercicio(e: ExercicioPrescrito): Row {
   const cfg = (e.series_config as SerieConfig | null) ?? configIgual(e.series, e.reps, e.ie);
@@ -152,6 +160,8 @@ function rowDeExercicio(e: ExercicioPrescrito): Row {
     tecnica: e.tecnica ?? "normal",
     tecnicaExtras: e.tecnica_extras != null ? String(e.tecnica_extras) : "",
     tecnicaSeries: e.tecnica_series != null ? String(e.tecnica_series) : "",
+    descansoApos: e.descanso_apos_seg != null ? String(e.descanso_apos_seg) : "",
+    cadencia: e.cadencia ?? "",
     bloco: e.bloco ?? "",
     unilateral: e.unilateral ?? false,
     observacoes: e.observacoes ?? "",
@@ -183,13 +193,33 @@ function programaInicial(p: Programa | null, letras: TreinoLetra[]): ProgramaVM 
 }
 
 // ----------------------------------------------------------------------------
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal }: Props) {
+/** Converte uma linha do montador no formato do cálculo de tempo (aquecimento = primeiras séries). */
+function exercicioTempoDaLinha(r: Row): ExercicioTempo {
+  const cfg = r.seriesConfig;
+  const todas = cfg.modo === "iguais" ? Array.from({ length: Math.max(0, cfg.series) }, () => ({ reps: cfg.reps, descansoSeg: cfg.descanso_seg })) : cfg.series.map((x) => ({ reps: x.reps, descansoSeg: x.descanso_seg }));
+  const aquec = Math.min(r.aquecimento, todas.length);
+  return {
+    id: r.key,
+    nome: r.nome,
+    series: todas.slice(aquec),
+    aquecimento: aquec,
+    cadencia: r.cadencia || null,
+    tecnica: r.tecnica,
+    tecnicaExtras: r.tecnicaExtras === "" ? null : Number(r.tecnicaExtras),
+    tecnicaSeries: r.tecnicaSeries === "" ? null : Number(r.tecnicaSeries),
+    bloco: r.bloco || null,
+    unilateral: r.unilateral,
+    descansoAposSeg: r.descansoApos === "" ? null : Number(r.descansoApos),
+  };
+}
+
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador }: Props) {
   const router = useRouter();
   const toast = useToast();
 
   const [estado, setEstado] = useState<Estado>(() => {
     const treinos = treinosIniciais.length
-      ? treinosIniciais.map((t) => ({ key: novaKey(), id: t.id, letra: t.letra as TreinoLetra, nome: t.nome, ativo: t.ativo, observacoes: t.observacoes ?? "", rows: t.exercicios.length ? t.exercicios.map(rowDeExercicio) : [emptyRow()] }))
+      ? treinosIniciais.map((t) => ({ key: novaKey(), id: t.id, letra: t.letra as TreinoLetra, nome: t.nome, ativo: t.ativo, observacoes: t.observacoes ?? "", rows: t.exercicios.length ? t.exercicios.map(rowDeExercicio) : [emptyRow()], tempos: (t.tempos ?? {}) as Partial<ParametrosTempo>, tempoAlvo: t.tempo_alvo_min != null ? String(t.tempo_alvo_min) : "" }))
       : [emptyTreino("A"), emptyTreino("B"), emptyTreino("C")];
     return { programa: programaInicial(programa, treinos.map((t) => t.letra)), treinos };
   });
@@ -260,6 +290,27 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   );
 
   const volume = useMemo(() => calcularVolumeSemanal(diasVolume, { frequencia, metas: estado.programa.metas_volume, incluirSecundario, agruparOmbros: false, regraTecnicas, ajustarPorRir }), [diasVolume, frequencia, estado.programa.metas_volume, incluirSecundario, regraTecnicas, ajustarPorRir]);
+
+  // Duração estimada de cada treino (recalcula a cada mudança). Precedência:
+  // app → padrão do treinador → treino → exercício → série.
+  const [padraoTempos, setPadraoTempos] = useState<Partial<ParametrosTempo>>(temposTreinador);
+  const duracoes = useMemo(() => {
+    const out: Record<string, { resultado: ResultadoTempo; efetivos: ParametrosTempo }> = {};
+    for (const t of estado.treinos) {
+      const efetivos = mesclarParametros(padraoTempos, t.tempos);
+      out[t.key] = { resultado: estimarDuracao(t.rows.filter((r) => r.nome.trim()).map(exercicioTempoDaLinha), efetivos), efetivos };
+    }
+    return out;
+  }, [estado.treinos, padraoTempos]);
+
+  async function salvarPadraoTempos(t: Partial<ParametrosTempo>) {
+    const { descansoEntreSeriesSeg, descansoAposExercicioSeg, segundosPorRep, transicaoSeg, transicaoDentroDoDescanso, preparacaoInicialSeg, descansoAquecimentoSeg } = t;
+    const corpo = { descansoEntreSeriesSeg, descansoAposExercicioSeg, segundosPorRep, transicaoSeg, transicaoDentroDoDescanso, preparacaoInicialSeg, descansoAquecimentoSeg };
+    const res = await fetch("/api/preferencias/tempos", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
+    if (!res?.ok) return toast.error("Não foi possível salvar seu padrão de tempos.");
+    setPadraoTempos(corpo);
+    toast.success("Padrão de tempos salvo: vale para os treinos sem ajuste próprio.");
+  }
 
   // Perfil ATUAL do aluno para as alternativas (nunca um treino antigo "genérico").
   const contextoAluno = useMemo<ContextoAluno>(
@@ -403,7 +454,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           nome: t.nome,
           ativo: true,
           observacoes: "",
-          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
+          tempos: e.treinos.find((x) => x.letra === t.letra)?.tempos ?? {},
+          tempoAlvo: e.treinos.find((x) => x.letra === t.letra)?.tempoAlvo ?? "",
+          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", descansoApos: x.descanso_apos_seg != null ? String(x.descanso_apos_seg) : "", cadencia: x.cadencia ?? "", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
         }));
       const restantes = somenteLetra ? e.treinos.filter((t) => t.letra !== somenteLetra) : e.treinos.filter((t) => t.id && !novos.some((n) => n.letra === t.letra)).map((t) => ({ ...t, ativo: false }));
       const treinos = [...restantes, ...novos].sort((a, b) => LETRAS_TREINO.indexOf(a.letra) - LETRAS_TREINO.indexOf(b.letra));
@@ -422,6 +475,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       nome: t.nome.trim() || `Treino ${t.letra}`,
       ativo: t.ativo,
       observacoes: t.observacoes.trim() || null,
+      tempos: t.tempos as Record<string, number | boolean>,
+      tempo_alvo_min: Number(t.tempoAlvo) >= 5 ? Number(t.tempoAlvo) : null,
+      duracao_estimada_min: duracoes[t.key]?.resultado.series ? Math.max(5, Math.min(300, Math.round(duracoes[t.key].resultado.totalSeg / 60))) : null,
       exercicios: t.rows
         .filter((r) => r.nome.trim())
         .map((r) => {
@@ -448,6 +504,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             tecnica: r.tecnica,
             tecnica_extras: temExtras(r.tecnica) && r.tecnicaExtras !== "" ? Number(r.tecnicaExtras) : null,
             tecnica_series: temExtras(r.tecnica) && r.tecnicaSeries !== "" ? Number(r.tecnicaSeries) : null,
+            descanso_apos_seg: r.descansoApos === "" ? null : Math.min(900, Number(r.descansoApos)),
+            cadencia: r.cadencia.trim() || null,
             bloco: r.bloco.trim() || null,
             unilateral: r.unilateral,
             carga_alvo: r.cargaAlvo.trim() || null,
@@ -503,7 +561,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     } finally {
       setSaving(false);
     }
-  }, [estado, frequencia, volume, motivo, alunoId, resolver, correcoesMap, biblioteca, toast, router]);
+  }, [estado, frequencia, volume, motivo, alunoId, resolver, correcoesMap, biblioteca, toast, router, duracoes]);
 
   async function finalizarDia(t: TreinoVM) {
     if (!t.id) return;
@@ -670,6 +728,17 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   {t.id ? <button type="button" onClick={() => void finalizarDia(t)} className="h-8 rounded-md border border-border px-2 text-[11px] text-fg-muted hover:text-fg" title="Sai dos treinos ativos (histórico preservado)">Finalizar</button> : null}
                   <button type="button" onClick={() => removerDia(t.key)} className="h-8 rounded-md border border-red/30 px-2 text-[11px] text-red" title={t.id ? "Desativar (histórico preservado)" : "Remover dia"} aria-label={`Remover treino ${t.letra}`}><Icon name="trash" size={14} /></button>
                 </div>
+                {duracoes[t.key] ? (
+                  <PainelTempo
+                    resultado={duracoes[t.key].resultado}
+                    efetivos={duracoes[t.key].efetivos}
+                    doTreino={t.tempos}
+                    tempoAlvo={t.tempoAlvo || estado.programa.duracao_min}
+                    onTreino={(tempos) => updTreino(t.key, { tempos })}
+                    onTempoAlvo={(tempoAlvo) => updTreino(t.key, { tempoAlvo })}
+                    onSalvarPadrao={(tp) => void salvarPadraoTempos(tp)}
+                  />
+                ) : null}
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
@@ -740,6 +809,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               {avancado ? (
                                 <div className="px-2 pb-2 flex flex-wrap gap-2 text-[11px]">
                                   <label className="inline-flex items-center gap-1 text-fg-muted">aquec.<input inputMode="numeric" value={r.aquecimento} onChange={(e) => updRow(t.key, r.key, { aquecimento: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} className="w-10 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Séries de aquecimento" /></label>
+                                  <label className="inline-flex items-center gap-1 text-fg-muted" title="Descanso depois do último set, antes do próximo exercício. Em branco = padrão do treino.">desc. após<input inputMode="numeric" value={r.descansoApos} placeholder={String(duracoes[t.key]?.efetivos.descansoAposExercicioSeg ?? 120)} onChange={(e) => updRow(t.key, r.key, { descansoApos: e.target.value.replace(/\D/g, "").slice(0, 3) })} className="w-12 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Descanso após o exercício em segundos" />s</label>
+                                  <label className="inline-flex items-center gap-1 text-fg-muted" title="Cadência (ex.: 3-1-2 = 3 s descendo, 1 s parado, 2 s subindo). Em branco = estimativa por repetição.">cadência<input value={r.cadencia} placeholder="3-1-2" onChange={(e) => updRow(t.key, r.key, { cadencia: e.target.value.replace(/[^0-9xX\- ]/g, "").slice(0, 12) })} className="w-14 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Cadência" /></label>
                                   <select value={r.tecnica} onChange={(e) => updRow(t.key, r.key, { tecnica: e.target.value as Tecnica, unilateral: e.target.value === "unilateral" ? true : r.unilateral })} className="rounded border border-border bg-bg px-1" aria-label="Técnica">
                                     {TECNICAS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}
                                   </select>
@@ -795,16 +866,16 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                     <div key={s.ordem} className="flex items-center gap-1">
                                       <span className="text-[10px] text-fg-subtle w-3">{si + 1}</span>
                                       <input value={s.reps} onChange={(e) => { const cfg = r.seriesConfig as Extract<SerieConfig, { modo: "detalhado" }>; updRow(t.key, r.key, { seriesConfig: { modo: "detalhado", series: cfg.series.map((x, j) => (j === si ? { ...x, reps: e.target.value } : x)) } }); }} aria-label={`Reps da série ${si + 1}`} className="h-7 w-16 rounded border border-border bg-bg px-1 font-mono text-[11px]" />
-                                      <input value={s.descanso_seg ?? ""} onChange={(e) => { const cfg = r.seriesConfig as Extract<SerieConfig, { modo: "detalhado" }>; updRow(t.key, r.key, { seriesConfig: { modo: "detalhado", series: cfg.series.map((x, j) => (j === si ? { ...x, descanso_seg: e.target.value ? Number(e.target.value) : null } : x)) } }); }} aria-label={`Descanso da série ${si + 1}`} placeholder="s" className="h-7 w-12 rounded border border-border bg-bg px-1 font-mono text-[11px]" />
+                                      <input value={s.descanso_seg ?? ""} onChange={(e) => { const cfg = r.seriesConfig as Extract<SerieConfig, { modo: "detalhado" }>; updRow(t.key, r.key, { seriesConfig: { modo: "detalhado", series: cfg.series.map((x, j) => (j === si ? { ...x, descanso_seg: e.target.value ? Number(e.target.value) : null } : x)) } }); }} aria-label={`Descanso da série ${si + 1}`} placeholder={String(duracoes[t.key]?.efetivos.descansoEntreSeriesSeg ?? 90)} className="h-7 w-12 rounded border border-border bg-bg px-1 font-mono text-[11px]" />
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <input value={repsResumo(r.seriesConfig)} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), reps: e.target.value } })} placeholder="10-12" aria-label="Repetições" className="h-8 w-full rounded border border-border bg-bg px-2 font-mono text-[12px]" />
+                                <input value={repsResumo(r.seriesConfig)} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), reps: e.target.value } })} placeholder="10-12" aria-label="Repetições" className="h-8 w-full min-w-[72px] rounded border border-border bg-bg px-2 font-mono text-[12px]" />
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-center align-top">
-                              {!det ? <input inputMode="numeric" value={(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>).descanso_seg ?? ""} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), descanso_seg: e.target.value ? Number(e.target.value) : null } })} aria-label="Descanso em segundos" className="h-8 w-14 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" /> : <span className="text-[10px] text-fg-subtle">por série</span>}
+                              {!det ? <input inputMode="numeric" value={(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>).descanso_seg ?? ""} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), descanso_seg: e.target.value ? Number(e.target.value) : null } })} aria-label="Descanso entre séries em segundos" placeholder={String(duracoes[t.key]?.efetivos.descansoEntreSeriesSeg ?? 90)} title="Descanso entre séries (s). Em branco = padrão do treino." className="h-8 w-14 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" /> : <span className="text-[10px] text-fg-subtle">por série</span>}
                             </td>
                             <td className="px-2 py-1.5 text-center align-top">
                               <input inputMode="numeric" value={r.rir} onChange={(e) => updRow(t.key, r.key, { rir: e.target.value.replace(/[^0-9]/g, "").slice(0, 2) })} aria-label="RIR alvo" className="h-8 w-10 rounded border border-border bg-bg px-1 text-center font-mono text-[12px] text-accent font-bold" />

@@ -350,4 +350,30 @@ begin
   end if;
   raise notice 'T9 OK: lembrete só para treino parado, 1 vez, só com a chave; aparelhos isolados por usuário';
 end $$;
+-- ============================================================================
+-- T10 — 0016: tempos do treino (padrão do treinador isolado; colunas aditivas)
+-- ============================================================================
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into preferencias_treinador (profile_id, tempos) values ('11111111-1111-1111-1111-111111111111', '{"descansoEntreSeriesSeg": 75}');
+select test_login('44444444-4444-4444-4444-444444444444');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from preferencias_treinador;
+  if n <> 0 then raise exception 'T10: treinador 2 viu o padrão do treinador 1'; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into preferencias_treinador (profile_id, tempos) values ('22222222-2222-2222-2222-222222222222', '{}'); exception when others then ok := true; end;
+  if not ok then raise exception 'T10: aluno gravou preferências de treinador'; end if;
+end $$;
+select test_logout();
+do $$
+begin
+  if exists (select 1 from exercicios where descanso_apos_seg is not null) then raise exception 'T10: prescrições antigas ganharam descanso após'; end if;
+  begin update exercicios set descanso_apos_seg = 5000 where id = (select id from exercicios limit 1); raise exception 'T10: aceitou descanso de 5000 s'; exception when check_violation then null; end;
+  raise notice 'T10 OK: padrão de tempos isolado por treinador, aluno sem escrita, limites validados';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

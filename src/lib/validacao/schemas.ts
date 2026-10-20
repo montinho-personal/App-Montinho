@@ -34,6 +34,8 @@ export const exercicioInputSchema = z.object({
   tecnica: z.enum(TECNICAS).default("normal"),
   tecnica_extras: inteiroOpcional(0, 10),
   tecnica_series: inteiroOpcional(0, 20),
+  descanso_apos_seg: inteiroOpcional(0, 900),
+  cadencia: textoOpcional(12),
   bloco: textoOpcional(20),
   unilateral: z.boolean().default(false),
   carga_alvo: textoOpcional(40),
@@ -47,6 +49,8 @@ export const treinoInputSchema = z.object({
   ativo: z.boolean().default(true),
   observacoes: textoOpcional(500),
   duracao_estimada_min: inteiroOpcional(5, 300),
+  tempo_alvo_min: inteiroOpcional(5, 300),
+  tempos: z.record(z.string(), z.union([z.number().min(0).max(900), z.boolean()])).optional(),
   exercicios: z.array(exercicioInputSchema).max(40),
 });
 
@@ -222,3 +226,17 @@ export const inscricaoPushSchema = z.object({
   endpoint: z.string().url().startsWith("https://").max(1000),
   keys: z.object({ p256dh: z.string().min(10).max(300), auth: z.string().min(8).max(100) }),
 });
+
+// Parâmetros de tempo (padrão do treinador ou de um treino), em segundos.
+export const temposSchema = z
+  .object({
+    descansoEntreSeriesSeg: z.number().int().min(0).max(900),
+    descansoAposExercicioSeg: z.number().int().min(0).max(900),
+    segundosPorRep: z.number().min(0.5).max(15),
+    transicaoSeg: z.number().int().min(0).max(600),
+    transicaoDentroDoDescanso: z.boolean(),
+    preparacaoInicialSeg: z.number().int().min(0).max(1800),
+    descansoAquecimentoSeg: z.number().int().min(0).max(600),
+  })
+  .partial()
+  .strict();
