@@ -103,7 +103,7 @@ const treino = (letra: TreinoInput["letra"], nome: string, exercicios: Exercicio
 
 export const PRESCRICAO: SalvarPlanoInput = {
   programa: {
-    nome: "Upper/Lower 4× — Miss Terraços Tamboré",
+    nome: ROTULO,
     objetivo: "Glúteos e membros inferiores",
     nivel: null,
     split: "Upper/Lower/Upper/Lower",

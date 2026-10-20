@@ -648,7 +648,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       {/* Programa: frequência, calendário, metas */}
       <section className="rounded-xl border border-border bg-card">
         <button type="button" onClick={() => setShowPrograma((v) => !v)} aria-expanded={showPrograma} className="w-full flex items-center justify-between px-4 py-3 text-left">
-          <span className="font-bold text-sm">Programa e semana</span>
+          <span className="font-bold text-sm">Protocolo e semana{estado.programa.nome.trim() && estado.programa.nome !== "Programa atual" ? <span className="font-normal text-accent"> · {estado.programa.nome}</span> : null}</span>
           <span className="text-xs text-fg-subtle">
             {estado.programa.split || "divisão não definida"} · {estado.programa.calendario.modo === "fixa" ? "semana fixa" : "ciclo rotativo"} · {Object.entries(frequencia).filter(([l]) => letrasAtivas.includes(l as TreinoLetra)).map(([l, v]) => `${l}×${v}`).join(" ")}
           </span>
@@ -656,7 +656,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         {showPrograma ? (
           <div className="border-t border-border px-4 py-4 space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <label className="space-y-1"><span className="text-xs text-fg-muted">Nome do programa</span><input value={estado.programa.nome} onChange={(e) => updPrograma({ nome: e.target.value })} className="h-10 w-full rounded-md border border-border bg-bg px-2" /></label>
+              <label className="space-y-1"><span className="text-xs text-fg-muted">Nome do protocolo</span><input value={estado.programa.nome} placeholder="ex.: Miss Terraços Tamboré" maxLength={80} aria-label="Nome do protocolo" onChange={(e) => updPrograma({ nome: e.target.value })} className="h-10 w-full rounded-md border border-border bg-bg px-2" /></label>
               <label className="space-y-1"><span className="text-xs text-fg-muted">Objetivo</span>
                 <select value={estado.programa.objetivo} onChange={(e) => updPrograma({ objetivo: e.target.value })} className="h-10 w-full rounded-md border border-border bg-bg px-2">
                   <option value="">—</option><option value="hipertrofia">Hipertrofia</option><option value="forca">Força</option><option value="emagrecimento">Emagrecimento</option><option value="condicionamento">Condicionamento</option><option value="saude">Saúde geral</option>

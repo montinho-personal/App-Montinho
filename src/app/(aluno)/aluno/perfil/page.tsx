@@ -46,7 +46,7 @@ export default async function PerfilPage() {
         <CardBody className="space-y-2 text-sm">
           {plano.programa ? (
             <>
-              <Row label="Nome" value={plano.programa.nome} />
+              <Row label="Protocolo" value={plano.programa.nome} />
               <Row label="Objetivo" value={plano.programa.objetivo ?? "—"} />
               <Row label="Treinos" value={plano.treinos.filter((t) => t.ativo).map((t) => t.letra).join(" · ") || "—"} />
               <Row label="Sessões por semana" value={String(Math.round(Object.values(plano.programa.frequencia).reduce((a, b) => a + (Number(b) || 0), 0)) || "—")} />

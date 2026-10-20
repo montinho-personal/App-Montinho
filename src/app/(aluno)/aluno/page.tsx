@@ -76,6 +76,7 @@ export default async function AlunoHomePage() {
         <Card className="border-accent/40 bg-grain-strong">
           <CardBody className="space-y-3">
             <p className="text-[11px] uppercase tracking-wider text-accent font-bold">{semana.retomada ? "Seu treino continua aqui" : "Seu próximo treino"}</p>
+            {plano.programa?.nome && plano.programa.nome !== "Programa atual" ? <p className="text-xs text-fg-muted">Protocolo: <span className="font-semibold text-fg">{plano.programa.nome}</span></p> : null}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center shrink-0" aria-hidden>
                 <span className="text-2xl font-black text-bg">{proximo.letra}</span>

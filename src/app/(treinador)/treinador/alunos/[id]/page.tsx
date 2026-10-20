@@ -115,7 +115,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             <p className="text-sm text-fg-muted mt-2">{aluno.objetivo}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
               <Field label="Último treino" value={tempoRelativo(sessoes[0]?.finalizado_em ?? sessoes[0]?.iniciado_em ?? aluno.ultimo_treino_em)} />
-              <Field label="Programa" value={plano.programa ? `${plano.programa.nome} (v${plano.programa.versao})` : "sem programa"} />
+              <Field label="Protocolo" value={plano.programa ? `${plano.programa.nome} (v${plano.programa.versao})` : "sem programa"} />
               <Field label="Início" value={dataBR(aluno.data_inicio)} />
               <Field label="Acesso até" value={dataBR(aluno.acesso_ate)} hint={diasAcesso !== null ? (diasAcesso < 0 ? `vencido há ${Math.abs(diasAcesso)}d` : `${diasAcesso}d restantes`) : undefined} tone={diasAcesso !== null && diasAcesso < 0 ? "red" : diasAcesso !== null && diasAcesso <= 7 ? "gold" : "neutral"} />
             </div>

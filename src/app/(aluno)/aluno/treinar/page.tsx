@@ -22,6 +22,7 @@ export default async function TreinarPage() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-bold">Treinar</h1>
+        {plano.programa?.nome && plano.programa.nome !== "Programa atual" ? <p className="text-sm font-semibold text-accent">{plano.programa.nome}</p> : null}
         <p className="text-sm text-fg-muted mt-1">A semana é flexível: escolha o treino de hoje. O sugerido vem primeiro.</p>
       </header>
 
