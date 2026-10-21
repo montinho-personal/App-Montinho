@@ -841,16 +841,33 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                         const alertas = alertasDoExercicio(r.nome, anamnese);
                         const altoRisco = alertas.some((a) => a.severidade === "alto");
                         const det = r.seriesConfig.modo === "detalhado";
+                        // Bi-set/tri-set etc.: os exercícios do mesmo bloco aparecem juntos numa caixa.
+                        const blocoDe = (x?: Row) => (x && ehTecnicaBloco(x.tecnica) && x.bloco.trim() ? x.bloco.trim() : null);
+                        const bloco = blocoDe(r);
+                        const inicioBloco = !!bloco && blocoDe(t.rows[i - 1]) !== bloco;
+                        const fimBloco = !!bloco && blocoDe(t.rows[i + 1]) !== bloco;
+                        const nosBloco = bloco ? t.rows.filter((x) => blocoDe(x) === bloco).length : 0;
+                        const metodoBloco = bloco ? METODOS.find((m) => m.v === r.tecnica) : null;
                         return (
                           <Fragment key={r.key}>
+                          {inicioBloco ? (
+                            <tr>
+                              <td colSpan={99} className="px-2 pt-3">
+                                <div className="flex flex-wrap items-center gap-2 rounded-t-xl border border-b-0 border-accent/60 bg-accent/15 px-3 py-1.5">
+                                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent">🔗 {metodoBloco?.l ?? "Bloco"}</span>
+                                  <span className="text-[11px] text-fg-muted">{nosBloco} exercícios · bloco {bloco} · sem descanso entre eles</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
                           <tr
                             draggable
                             onDragStart={() => (dragRef.current = { letra: t.letra, key: r.key })}
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => { if (dragRef.current && dragRef.current.letra === t.letra) moverRowPara(t.key, dragRef.current.key, r.key); dragRef.current = null; }}
-                            className={`group border-t border-border align-top hover:bg-card-hover/40 ${alertas.length ? (altoRisco ? "bg-red/[0.06]" : "bg-gold/[0.05]") : ""}`}
+                            className={`group align-top hover:bg-card-hover/40 ${bloco ? `bg-accent/[0.06] ${inicioBloco ? "" : "border-t border-dashed border-accent/30"}` : "border-t border-border"} ${alertas.length ? (altoRisco ? "bg-red/[0.06]" : "bg-gold/[0.05]") : ""}`}
                           >
-                            <td className="px-1 py-1.5 text-center align-middle">
+                            <td className={`px-1 py-1.5 text-center align-middle ${bloco ? "border-l-4 border-accent/70" : ""}`}>
                               <div className="flex flex-col items-center">
                                 <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
                                 <span className="text-[10px] text-fg-subtle font-mono cursor-grab" title="Arraste para reordenar">{i + 1}</span>
@@ -886,7 +903,6 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                     <input type="checkbox" checked={(selecao[t.key] ?? []).includes(r.key)} onChange={() => alternarSelecao(t.key, r.key)} aria-label={`Selecionar exercício ${i + 1}`} className="h-5 w-5 accent-[var(--color-accent)]" />
                                   </label>
                                   <MetodoPicker compacto valor={r.tecnica} onEscolher={(v) => escolherMetodo(t.key, r.key, v)} titulo={`Método — ${r.nome || `exercício ${i + 1}`}`} />
-                                  {ehTecnicaBloco(r.tecnica) && r.bloco ? <span className="text-[10px] font-semibold text-accent">🔗 bloco {r.bloco}{t.rows[i + 1]?.bloco === r.bloco ? " · ligado ao próximo" : ""}</span> : null}
                                 </div>
                               </div>
                               {alertas.length ? (
@@ -984,6 +1000,13 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               <button type="button" onClick={() => removeRow(t.key, r.key)} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded border border-border px-1.5 py-1 text-fg-subtle hover:text-red" title={r.id ? "Remover (o histórico de sessões anteriores é preservado)" : "Remover"} aria-label="Remover exercício"><Icon name="trash" size={12} /></button>
                             </td>
                           </tr>
+                          {fimBloco ? (
+                            <tr>
+                              <td colSpan={99} className="px-2 pb-3">
+                                <div className="rounded-b-xl border border-t-0 border-accent/60 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold text-accent">⏱ Descanso só no fim da rodada (depois do último exercício do bloco)</div>
+                              </td>
+                            </tr>
+                          ) : null}
                           {alternativasDe === r.key ? (
                             <tr>
                               <td />
