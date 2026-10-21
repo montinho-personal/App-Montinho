@@ -47,16 +47,17 @@ Capítulos são narrativa, não bloqueio (regra já existente). O caminho dourad
 - Paleta: grafite `#171B21`, dourado `#BA9E50` (progresso e pontos de interesse), verde floresta `#436657`, azul montanha `#54768A`, terracota `#C18B61`. DM Sans.
 - Estados nunca só por cor: medalha conquistada tem anel dourado + data; aberta tem progresso em arco + “n/alvo”; no caminho semanal cada estado tem símbolo (número, ◐, ○, ⏸, ↺) e cada fase tem ícone.
 
-### Personagens (`src/components/jornada-chalala/Personagens.tsx`, propostas conceituais)
-- **Montinho — o Guia**: silhueta provisória de guia de trilha com o halter “M” no peito, sem rosto. A aparência real só entra com referência aprovada. Aparece na abertura dos capítulos 1 e 5 e no diário.
-- **Pingo — o Explorador**: companheiro redondo com cachecol e lanterna. Aparece na “próxima conquista” e na revelação de medalha.
-- **Tempo — o Guardião do Ritmo**: tartaruga exploradora com mochila e bússola. Aparece nas fases e no capítulo 2.
-- **Vira — o Símbolo do Recomeço**: andorinha estilizada. Aparece no retorno depois de pausa e no capítulo 4.
+### Personagens (`src/components/jornada-chalala/Personagens.tsx`; nomes e papéis aprovados pelo Montinho em 21/10/2026)
+- **Montinho — O Guia**: aparece em momentos especiais, como o Mestre dos Magos, trazendo conselhos, humor e motivação. Silhueta provisória de guia de trilha com o halter “M” no peito, sem rosto; a aparência real só entra com referência aprovada. Abertura dos capítulos 1 e 5 e diário.
+- **Colombo — O Explorador**: curioso, aventureiro e divertido. Representa a descoberta de novos caminhos e celebra as conquistas do aluno. Companheiro redondo com cachecol e lanterna. “Próxima conquista”, revelação de medalha e capítulo 3.
+- **Mestre Oddway — O Guardião do Ritmo**: a tartaruga sábia que ensina sobre paciência, constância e respeito ao próprio tempo. Tartaruga exploradora com mochila e bússola. Fases e capítulo 2.
+- **Fênix — O Símbolo do Recomeço**: representa a capacidade de voltar depois de uma pausa, sem perder a história construída. Ave em azul-montanha com cauda e asas em chamas douradas. Retorno depois de pausa e capítulo 4.
+- No mapa, cada personagem aparece com o **nome em cima do bonequinho** (`PersonagemBotao`); **tocar abre uma explicação curta** (papel, resumo, fala e quando aparece), no mesmo painel inferior das medalhas.
 - Regra: no máximo um personagem por tela; o aluno é o protagonista.
 
 ### Interações
-- Medalha: toque abre o detalhe (mesmo `DetalheMedalha` do app). Revelação com `chalala-revelar` + balão do Pingo (“Olha só! Mais uma conquista pra sua história!”).
-- Retorno: selo “↺ voltei” no caminho semanal + mensagem do Vira (“Que bom te ver por aqui! Seu caminho estava esperando por você.”).
+- Medalha: toque abre o detalhe (mesmo `DetalheMedalha` do app). Revelação com `chalala-revelar` + balão do Colombo (“Olha só! Mais uma conquista pra sua história!”).
+- Retorno: selo “↺ voltei” no caminho semanal + mensagem da Fênix (“Que bom te ver por aqui! Seu caminho estava esperando por você.”).
 - Pausa combinada: ⏸ e trecho pontilhado, sem cor de erro.
 - Ambiente: lanternas, vaga-lumes, nuvens, água e bandeiras com animação discreta; tudo desligado em `prefers-reduced-motion` ou pelo controle “Reduzido”.
 

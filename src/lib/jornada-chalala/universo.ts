@@ -46,9 +46,11 @@ export const FALAS_CHALALA = {
 } as const;
 
 export type PersonagemChalala = {
-  id: "montinho" | "pingo" | "tempo" | "vira";
+  id: "montinho" | "colombo" | "oddway" | "fenix";
   nome: string;
   papel: string;
+  /** Explicação curta (abre ao tocar no personagem). */
+  resumo: string;
   personalidade: string;
   /** Quando aparece (nunca mais de um por tela). */
   quando: string;
@@ -58,44 +60,51 @@ export type PersonagemChalala = {
   fala: string;
 };
 
+/** Nomes e papéis aprovados pelo Montinho em 21/10/2026. */
 export const PERSONAGENS_CHALALA: PersonagemChalala[] = [
   {
     id: "montinho",
     nome: "Montinho",
     papel: "O Guia",
+    resumo: "Aparece em momentos especiais, como o Mestre dos Magos, trazendo conselhos, humor e motivação.",
     personalidade: "Orientação, incentivo, acolhimento e humor. Nunca julga.",
-    quando: "Abertura de capítulo e mensagens escritas pelo próprio personal.",
+    quando: "Abertura de capítulo, mensagens escritas pelo próprio personal e momentos especiais da jornada.",
     arte: "Representação simbólica provisória: silhueta de guia de trilha com o halter “M” da marca no peito, sem rosto definido. A aparência real do Montinho só entra com referência visual aprovada por ele.",
     fala: "Bora treinar? O chalalá não vai acontecer sozinho!",
   },
   {
-    id: "pingo",
-    nome: "Pingo",
+    id: "colombo",
+    nome: "Colombo",
     papel: "O Explorador",
-    personalidade: "Curioso, expressivo e divertido. Celebra cada descoberta.",
-    quando: "Medalha nova, recorde e “Montinho Desbloqueia”.",
-    arte: "Pequeno explorador redondo com cachecol e lanterna dourada; proporção adulta de mascote de aventura (não brinquedo). Olhos grandes e simples, sem boca exagerada.",
+    resumo: "Curioso, aventureiro e divertido. Representa a descoberta de novos caminhos e celebra as conquistas do aluno.",
+    personalidade: "Curioso, aventureiro e divertido. Celebra cada descoberta.",
+    quando: "Próxima conquista, medalha nova, recorde e “Montinho Desbloqueia”.",
+    arte: "Pequeno explorador redondo com gorro, cachecol e lanterna dourada; proporção adulta de mascote de aventura (não brinquedo). Olhos grandes e simples.",
     fala: "Olha só! Mais uma conquista pra sua história!",
   },
   {
-    id: "tempo",
-    nome: "Tempo",
+    id: "oddway",
+    nome: "Mestre Oddway",
     papel: "O Guardião do Ritmo",
-    personalidade: "Paciente. Respeita o ritmo de cada um.",
-    quando: "Semanas consistentes e mensagens sobre continuidade.",
+    resumo: "A tartaruga sábia que ensina sobre paciência, constância e respeito ao próprio tempo.",
+    personalidade: "Paciente e sábio. Respeita o ritmo de cada um.",
+    quando: "Fases do protocolo, semanas consistentes e mensagens sobre continuidade.",
     arte: "Tartaruga exploradora com mochila e bússola; casco com textura discreta em verde-floresta e detalhes em dourado.",
     fala: "Não é sobre correr. É sobre encontrar o seu ritmo.",
   },
   {
-    id: "vira",
-    nome: "Vira",
+    id: "fenix",
+    nome: "Fênix",
     papel: "O Símbolo do Recomeço",
-    personalidade: "Leve. Volta sempre, sem drama.",
-    quando: "Retornos depois de pausas.",
-    arte: "Ave estilizada (andorinha) em azul-montanha com ponta de asa dourada; traço limpo, sem fantasia.",
+    resumo: "Representa a capacidade de voltar depois de uma pausa, sem perder a história construída.",
+    personalidade: "Leve e serena. Volta sempre, sem drama.",
+    quando: "Retornos depois de pausas e na região das Montanhas da Vida Real.",
+    arte: "Ave estilizada em azul-montanha com cauda e pontas das asas em chamas douradas e terracota; traço limpo, sem exagero fantástico.",
     fala: "Que bom te ver por aqui! Seu caminho estava esperando por você.",
   },
 ];
+
+export const personagemPorId = (id: PersonagemChalala["id"]) => PERSONAGENS_CHALALA.find((p) => p.id === id)!;
 
 /** Paleta do universo (complementa a do app; dourado = progresso e pontos de interesse). */
 export const PALETA_CHALALA = {

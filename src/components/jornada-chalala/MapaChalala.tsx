@@ -13,14 +13,14 @@ import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
 import type { Jornada, NoJornada } from "@/lib/conquistas/jornada";
 import { CAPITULOS_CHALALA, FALAS_CHALALA, type CapituloChalala, type PersonagemChalala } from "@/lib/jornada-chalala/universo";
 import { Cenario2D } from "./Cenarios2D";
-import { Personagem } from "./Personagens";
+import { Personagem, PersonagemBotao } from "./Personagens";
 
 const TOPO = 150;
 const PASSO = 128;
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 const xDoNo = (i: number) => (i % 2 === 0 ? 118 : 242);
 /** Quem aparece em cada capítulo (um por tela). */
-const GUIA: Record<number, PersonagemChalala["id"]> = { 1: "montinho", 2: "tempo", 3: "pingo", 4: "vira", 5: "montinho" };
+const GUIA: Record<number, PersonagemChalala["id"]> = { 1: "montinho", 2: "oddway", 3: "colombo", 4: "fenix", 5: "montinho" };
 
 type Props = {
   jornada: Jornada;
@@ -29,10 +29,12 @@ type Props = {
   /** Código do nó que acabou de ser conquistado (simulação): toca a revelação. */
   revelar?: string | null;
   onAbrir: (no: NoJornada) => void;
+  /** Toque num personagem do mapa: abre a explicação curta dele. */
+  onAbrirPersonagem: (id: PersonagemChalala["id"]) => void;
   semTreinos?: boolean;
 };
 
-export function MapaChalala({ jornada, movimento, revelar, onAbrir, semTreinos = false }: Props) {
+export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPersonagem, semTreinos = false }: Props) {
   const raiz = useRef<HTMLDivElement>(null);
   const aqui = useRef<HTMLDivElement>(null);
   const indice = useMemo(() => new Map(jornada.nos.map((n, i) => [n.id, i])), [jornada.nos]);
@@ -69,7 +71,7 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, semTreinos =
     };
   }, [movimento, jornada]);
 
-  // Nó revelado: rola até ele e mostra o Pingo comemorando.
+  // Nó revelado: rola até ele e mostra o Colombo comemorando.
   useEffect(() => {
     if (!revelar) return;
     const alvo = raiz.current?.querySelector<HTMLElement>(`[data-no="${revelar}"]`);
@@ -105,7 +107,7 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, semTreinos =
               <path d={caminho} fill="none" stroke="#e3cd8a" strokeWidth="4" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#chalala-ouro-${cap.numero})`} opacity="0.9" />
             </svg>
 
-            <Abertura cap={cx} alcancados={cap.alcancados} total={cap.total} guia={GUIA[cap.numero] ?? "montinho"} semTreinos={cap.numero === 1 && semTreinos} />
+            <Abertura cap={cx} alcancados={cap.alcancados} total={cap.total} guia={GUIA[cap.numero] ?? "montinho"} semTreinos={cap.numero === 1 && semTreinos} onAbrirPersonagem={onAbrirPersonagem} />
 
             {pts.map((p, i) => (
               <No key={p.n.id} no={p.n} x={p.x} y={p.y} lado={i % 2 === 0 ? "dir" : "esq"} revelado={revelar === p.n.id} onAbrir={() => onAbrir(p.n)} />
@@ -123,10 +125,10 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, semTreinos =
   );
 }
 
-function Abertura({ cap, alcancados, total, guia, semTreinos }: { cap: CapituloChalala; alcancados: number; total: number; guia: PersonagemChalala["id"]; semTreinos: boolean }) {
+function Abertura({ cap, alcancados, total, guia, semTreinos, onAbrirPersonagem }: { cap: CapituloChalala; alcancados: number; total: number; guia: PersonagemChalala["id"]; semTreinos: boolean; onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) {
   return (
     <div className="absolute inset-x-3 top-3 flex items-end gap-2">
-      <div className="shrink-0 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)]"><Personagem id={guia} tamanho={64} /></div>
+      <PersonagemBotao id={guia} tamanho={64} onAbrir={onAbrirPersonagem} />
       <div className="min-w-0 flex-1 rounded-2xl border border-accent/40 bg-[#171B21]/85 px-3.5 py-2.5 backdrop-blur-sm">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">{cap.numero <= 4 ? `Capítulo ${cap.numero}` : "Depois do capítulo 4"} · {cap.lugar}</p>
         <p className="text-base font-black leading-tight">{cap.titulo}</p>
@@ -154,7 +156,7 @@ function No({ no, x, y, lado, revelado, onAbrir }: { no: NoJornada; x: number; y
       {revelado ? (
         <div className="pointer-events-none absolute -top-24 left-1/2 z-20 w-44 -translate-x-1/2 chalala-fala">
           <div className="flex items-end gap-1">
-            <Personagem id="pingo" tamanho={44} />
+            <Personagem id="colombo" tamanho={44} />
             <p className="rounded-2xl rounded-bl-sm border border-accent/60 bg-[#171B21]/95 px-2.5 py-1.5 text-[11px] font-semibold leading-snug">{FALAS_CHALALA.recorde}</p>
           </div>
         </div>

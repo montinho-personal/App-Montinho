@@ -2,11 +2,11 @@
 // Personagens de “A Jornada do Chalalá” — PROPOSTAS CONCEITUAIS em SVG original.
 // Montinho (o Guia) é uma representação simbólica provisória: silhueta de
 // guia de trilha com o halter “M” da marca; a aparência real só entra com
-// referência aprovada. Pingo, Tempo e Vira são companheiros de aventura, com
+// referência aprovada. Colombo, Mestre Oddway e Fênix são companheiros de aventura, com
 // proporção de mascote adulto (nada de brinquedo). Um por tela, no máximo.
 // ============================================================================
 
-import type { PersonagemChalala } from "@/lib/jornada-chalala/universo";
+import { personagemPorId, type PersonagemChalala } from "@/lib/jornada-chalala/universo";
 
 const OURO = "#BA9E50";
 const OURO_CLARO = "#E3CD8A";
@@ -36,7 +36,7 @@ export function Montinho({ tamanho = 96 }: { tamanho?: number }) {
   );
 }
 
-export function Pingo({ tamanho = 80 }: { tamanho?: number }) {
+export function Colombo({ tamanho = 80 }: { tamanho?: number }) {
   return (
     <svg viewBox="0 0 100 100" width={tamanho} height={tamanho} aria-hidden>
       <ellipse cx="50" cy="92" rx="22" ry="4" fill="#000" opacity="0.3" />
@@ -65,7 +65,7 @@ export function Pingo({ tamanho = 80 }: { tamanho?: number }) {
   );
 }
 
-export function Tempo({ tamanho = 80 }: { tamanho?: number }) {
+export function Oddway({ tamanho = 80 }: { tamanho?: number }) {
   return (
     <svg viewBox="0 0 100 100" width={tamanho} height={tamanho} aria-hidden>
       <ellipse cx="50" cy="88" rx="30" ry="4" fill="#000" opacity="0.3" />
@@ -88,25 +88,42 @@ export function Tempo({ tamanho = 80 }: { tamanho?: number }) {
   );
 }
 
-export function Vira({ tamanho = 80 }: { tamanho?: number }) {
+export function Fenix({ tamanho = 80 }: { tamanho?: number }) {
   return (
     <svg viewBox="0 0 100 100" width={tamanho} height={tamanho} aria-hidden>
-      {/* Andorinha estilizada, traço limpo */}
-      <path d="M20 54 Q44 40 62 48 L84 42 L70 54 Q60 62 46 60 Z" fill="#54768A" />
-      <path d="M44 50 Q30 30 12 34 Q34 36 46 52 Z" fill="#3e5a6c" />
-      <path d="M50 52 Q62 28 86 24 Q70 36 58 56 Z" fill="#54768A" />
-      <path d="M62 28 L86 24 L78 32 Z" fill={OURO} />
-      <path d="M46 60 L30 76 L40 64 L34 78 L46 62 Z" fill="#3e5a6c" />
-      <circle cx="68" cy="47" r="2" fill="#171B21" />
-      <path d="M84 42 L92 44 L84 46 Z" fill={OURO_CLARO} />
-      <path d="M70 54 Q66 60 60 58" stroke="#fff" strokeWidth="1" opacity="0.3" fill="none" />
+      {/* Fênix estilizada: corpo azul-montanha com contorno escuro, cauda e asas em chamas douradas */}
+      <path d="M44 66 Q34 80 22 94 Q36 86 46 74 Z" fill="#C18B61" stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M48 68 Q42 86 34 98 Q50 88 54 76 Z" fill={OURO} stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M52 68 Q54 86 50 98 Q60 86 60 76 Z" fill={OURO_CLARO} stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M40 48 Q22 26 6 24 Q30 24 48 46 L52 52 Z" fill="#5E8299" stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M6 24 Q12 14 22 20 Q12 22 10 30 Z" fill={OURO} stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M52 50 Q62 22 92 18 Q72 32 60 56 Z" fill="#5E8299" stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M82 20 L96 10 L92 26 Z" fill={OURO} stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M66 26 L76 16 L76 30 Z" fill="#C18B61" stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M20 58 Q40 42 62 48 L86 44 L72 58 Q60 70 44 68 Z" fill="#5E8299" stroke="#171B21" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M30 58 Q44 50 58 54 Q48 64 36 62 Z" fill="#7FA3B8" />
+      <circle cx="70" cy="50" r="2.6" fill="#171B21" />
+      <circle cx="71" cy="49" r="0.9" fill="#fff" />
+      <path d="M86 44 L96 46 L86 50 Z" fill={OURO_CLARO} stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M62 48 L68 34 L76 44 Z" fill={OURO} stroke="#171B21" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }
 
 export function Personagem({ id, tamanho }: { id: PersonagemChalala["id"]; tamanho?: number }) {
   if (id === "montinho") return <Montinho tamanho={tamanho} />;
-  if (id === "pingo") return <Pingo tamanho={tamanho} />;
-  if (id === "tempo") return <Tempo tamanho={tamanho} />;
-  return <Vira tamanho={tamanho} />;
+  if (id === "colombo") return <Colombo tamanho={tamanho} />;
+  if (id === "oddway") return <Oddway tamanho={tamanho} />;
+  return <Fenix tamanho={tamanho} />;
+}
+
+/** Personagem com o nome em cima; toque abre a explicação curta (mesma ideia das medalhas). */
+export function PersonagemBotao({ id, tamanho = 64, onAbrir, className = "" }: { id: PersonagemChalala["id"]; tamanho?: number; onAbrir: (id: PersonagemChalala["id"]) => void; className?: string }) {
+  const p = personagemPorId(id);
+  return (
+    <button type="button" onClick={() => onAbrir(id)} aria-label={`${p.nome}, ${p.papel.toLowerCase()}: toque para conhecer`} className={`group flex shrink-0 flex-col items-center rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${className}`}>
+      <span className="mb-0.5 whitespace-nowrap rounded-full border border-accent/50 bg-[#171B21]/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-accent shadow-[0_2px_8px_rgba(0,0,0,0.6)]">{p.nome}</span>
+      <span className="drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)] transition-transform group-active:scale-95"><Personagem id={id} tamanho={tamanho} /></span>
+    </button>
+  );
 }

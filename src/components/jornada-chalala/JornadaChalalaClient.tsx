@@ -12,11 +12,11 @@ import { DetalheMedalha } from "@/components/conquistas/DetalheMedalha";
 import { CONTEUDO } from "@/lib/conquistas/conteudo";
 import type { NoJornada } from "@/lib/conquistas/jornada";
 import type { DadosChalala } from "@/lib/jornada-chalala/demo";
-import { CAPITULOS_CHALALA, FALAS_CHALALA, PALETA_CHALALA, PERSONAGENS_CHALALA } from "@/lib/jornada-chalala/universo";
+import { CAPITULOS_CHALALA, FALAS_CHALALA, PALETA_CHALALA, PERSONAGENS_CHALALA, personagemPorId, type PersonagemChalala } from "@/lib/jornada-chalala/universo";
 import { CaminhoChalala } from "./CaminhoChalala";
 import { MapaChalala, useMovimentoPermitido } from "./MapaChalala";
 import { MinhaHistoria } from "./MinhaHistoria";
-import { Personagem } from "./Personagens";
+import { Personagem, PersonagemBotao } from "./Personagens";
 
 type Cenario = "completo" | "retorno";
 type Aba = "mapa" | "historia" | "personagens";
@@ -28,11 +28,12 @@ export function JornadaChalalaClient({ dados }: { dados: Record<Cenario, DadosCh
   const [forcarReduzido, setForcarReduzido] = useState(false);
   const [aberto, setAberto] = useState<NoJornada | null>(null);
   const [revelar, setRevelar] = useState<string | null>(null);
+  const [personagem, setPersonagem] = useState<PersonagemChalala["id"] | null>(null);
   const sistemaPermite = useMovimentoPermitido();
   const movimento = !sistemaPermite || forcarReduzido ? "reduzido" : "auto";
   const d = dados[cenario];
 
-  // Simulação: “revela” de novo a medalha conquistada mais recente (animação + Pingo). Nada é gravado.
+  // Simulação: “revela” de novo a medalha conquistada mais recente (animação + Colombo). Nada é gravado.
   const ultimaMedalha = useMemo(() => {
     const ganhas = d.jornada.nos.filter((n): n is Extract<NoJornada, { tipo: "medalha" }> => n.tipo === "medalha" && n.alcancado && !!n.medalha.data);
     return ganhas.sort((a, b) => (a.medalha.data! < b.medalha.data! ? 1 : -1))[0] ?? null;
@@ -112,7 +113,7 @@ export function JornadaChalalaClient({ dados }: { dados: Record<Cenario, DadosCh
         <>
           {d.jornada.proxima ? (
             <section className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-[#171B21] p-3" aria-label="Próxima conquista">
-              <Personagem id="pingo" tamanho={52} />
+              <PersonagemBotao id="colombo" tamanho={52} onAbrir={setPersonagem} />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Próxima conquista</p>
                 <p className="font-bold leading-tight">{d.jornada.proxima.titulo}</p>
@@ -120,16 +121,23 @@ export function JornadaChalalaClient({ dados }: { dados: Record<Cenario, DadosCh
               </div>
             </section>
           ) : null}
-          {d.jornada.caminho ? <CaminhoChalala caminho={d.jornada.caminho} /> : null}
-          <MapaChalala jornada={d.jornada} movimento={movimento} revelar={revelar} onAbrir={setAberto} />
+          {d.jornada.caminho ? <CaminhoChalala caminho={d.jornada.caminho} onAbrirPersonagem={setPersonagem} /> : null}
+          <MapaChalala jornada={d.jornada} movimento={movimento} revelar={revelar} onAbrir={setAberto} onAbrirPersonagem={setPersonagem} />
           <p className="text-center text-[11px] text-fg-subtle">Os capítulos organizam a história; nenhuma medalha depende de outra. Cada uma sai seguindo o seu plano, sem treinar além do prescrito.</p>
         </>
       ) : aba === "historia" ? (
-        <MinhaHistoria eventos={d.eventos} nome={d.nome} />
+        <MinhaHistoria eventos={d.eventos} nome={d.nome} onAbrirPersonagem={setPersonagem} />
       ) : (
-        <Personagens />
+        <Personagens onAbrirPersonagem={setPersonagem} />
       )}
 
+      {personagem ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={() => setPersonagem(null)}>
+          <div role="dialog" aria-modal="true" aria-label={`Sobre ${personagemPorId(personagem).nome}`} className="w-full max-w-md rounded-t-3xl bg-bg p-4 chalala-fala sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+            <DetalhePersonagem p={personagemPorId(personagem)} onFechar={() => setPersonagem(null)} />
+          </div>
+        </div>
+      ) : null}
       {aberto ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={() => setAberto(null)}>
           <div role="dialog" aria-modal="true" aria-label="Detalhe do marco" className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-bg p-3 chalala-fala sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
@@ -141,6 +149,24 @@ export function JornadaChalalaClient({ dados }: { dados: Record<Cenario, DadosCh
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function DetalhePersonagem({ p, onFechar }: { p: PersonagemChalala; onFechar: () => void }) {
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 drop-shadow-[0_8px_12px_rgba(0,0,0,0.5)]"><Personagem id={p.id} tamanho={88} /></div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">{p.papel}</p>
+          <h2 className="text-2xl font-black leading-tight">{p.nome}</h2>
+          <p className="mt-1 text-fg-muted">{p.resumo}</p>
+        </div>
+        <button type="button" onClick={onFechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border text-fg-muted">✕</button>
+      </div>
+      <p className="rounded-2xl rounded-tl-sm border border-accent/40 bg-accent/10 px-3 py-2 font-semibold">“{p.fala}”</p>
+      <p className="text-xs text-fg-muted"><span className="font-bold text-fg">Quando aparece:</span> {p.quando}</p>
     </div>
   );
 }
@@ -169,7 +195,7 @@ function DetalheMarco({ no, onFechar }: { no: Exclude<NoJornada, { tipo: "medalh
   );
 }
 
-function Personagens() {
+function Personagens({ onAbrirPersonagem }: { onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) {
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-border bg-[#171B21] p-4">
@@ -192,10 +218,11 @@ function Personagens() {
       <p className="text-xs text-fg-muted">Propostas conceituais para aprovação. O aluno continua sendo o protagonista: no máximo um personagem por tela.</p>
       {PERSONAGENS_CHALALA.map((p) => (
         <section key={p.id} className="flex gap-3 rounded-3xl border border-border bg-[#171B21] p-4" aria-label={p.nome}>
-          <div className="shrink-0 drop-shadow-[0_8px_12px_rgba(0,0,0,0.5)]"><Personagem id={p.id} tamanho={88} /></div>
+          <PersonagemBotao id={p.id} tamanho={88} onAbrir={onAbrirPersonagem} />
           <div className="min-w-0 space-y-1 text-xs">
             <p className="text-base font-black leading-tight">{p.nome} <span className="text-sm font-semibold text-accent">· {p.papel}</span></p>
             <p className="rounded-2xl rounded-tl-sm border border-accent/40 bg-accent/10 px-2.5 py-1.5 text-[12px] font-semibold">“{p.fala}”</p>
+            <p className="text-fg">{p.resumo}</p>
             <p><span className="font-bold">Personalidade:</span> {p.personalidade}</p>
             <p><span className="font-bold">Quando aparece:</span> {p.quando}</p>
             <p className="text-fg-muted"><span className="font-bold text-fg">Arte definitiva:</span> {p.arte}</p>

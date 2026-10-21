@@ -8,7 +8,8 @@ import { useState } from "react";
 import type { CaminhoJornada, SemanaCaminho } from "@/lib/conquistas/jornada";
 import { FASES, FASE_INFO, ehFase } from "@/lib/treino/fases";
 import { FALAS_CHALALA } from "@/lib/jornada-chalala/universo";
-import { Personagem } from "./Personagens";
+import { PersonagemBotao } from "./Personagens";
+import type { PersonagemChalala } from "@/lib/jornada-chalala/universo";
 
 const OURO = "#BA9E50";
 const COLS = 7;
@@ -23,7 +24,7 @@ const cor = (w: SemanaCaminho) => (w.fase && ehFase(w.fase) ? FASE_INFO[w.fase].
 const estado = (w: SemanaCaminho) => (w.status === "pausada" ? "pausa" : w.treinos > 0 ? (w.status === "parcial" ? "parcial" : "feita") : w.status === "em_andamento" ? "andamento" : "parada");
 const curta = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
-export function CaminhoChalala({ caminho }: { caminho: CaminhoJornada }) {
+export function CaminhoChalala({ caminho, onAbrirPersonagem }: { caminho: CaminhoJornada; onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) {
   const [tudo, setTudo] = useState(false);
   const primeiro = caminho.semanas.findIndex((w) => w.treinos > 0);
   const todas = primeiro < 0 ? [] : caminho.semanas.slice(primeiro).filter((w) => w.status !== "sem_prescricao" || w.treinos > 0);
@@ -42,7 +43,7 @@ export function CaminhoChalala({ caminho }: { caminho: CaminhoJornada }) {
   return (
     <section className="space-y-3 rounded-3xl border border-border bg-[#171B21] p-3" aria-label="Seu caminho semana a semana">
       <div className="flex items-start gap-2">
-        <Personagem id="tempo" tamanho={56} />
+        <PersonagemBotao id="oddway" tamanho={56} onAbrir={onAbrirPersonagem} />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Fases do seu protocolo</p>
           <p className="text-xs text-fg-muted">{atual ? FASE_INFO[atual].resumo : "As fases aparecem aqui quando o Montinho definir a fase do seu protocolo."}</p>
@@ -121,7 +122,7 @@ export function CaminhoChalala({ caminho }: { caminho: CaminhoJornada }) {
       </ul>
       {caminho.retornos ? (
         <div className="flex items-center gap-2 rounded-2xl border border-accent/30 bg-accent/10 p-2.5">
-          <Personagem id="vira" tamanho={44} />
+          <PersonagemBotao id="fenix" tamanho={44} onAbrir={onAbrirPersonagem} />
           <p className="text-xs"><span className="font-bold">{FALAS_CHALALA.retorno}</span> <span className="text-fg-muted">Você já voltou {caminho.retornos === 1 ? "1 vez" : `${caminho.retornos} vezes`}. Voltar faz parte do caminho.</span></p>
         </div>
       ) : null}

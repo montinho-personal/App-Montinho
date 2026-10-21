@@ -6,14 +6,15 @@
 // são diferenciadas das automáticas. Nada é inventado: data e origem vêm do
 // evento.
 import type { EventoJornada } from "@/lib/conquistas/jornada";
-import { Personagem } from "./Personagens";
+import { PersonagemBotao } from "./Personagens";
+import type { PersonagemChalala } from "@/lib/jornada-chalala/universo";
 
 const fmtDia = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
 const fmtMes = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", month: "long", year: "numeric" });
 const ICONE: Record<EventoJornada["tipo"], string> = { medalha: "🏅", recorde: "📈", retomada: "↺", meta: "✓", reconhecimento: "✉", ciclo: "⚑", descoberta: "💡" };
 const ORIGEM: Record<EventoJornada["tipo"], string> = { medalha: "medalha automática", recorde: "recorde registrado", retomada: "retomada registrada", meta: "meta da semana", reconhecimento: "mensagem do Montinho", ciclo: "marco de acompanhamento", descoberta: "descoberta" };
 
-export function MinhaHistoria({ eventos, nome }: { eventos: EventoJornada[]; nome: string }) {
+export function MinhaHistoria({ eventos, nome, onAbrirPersonagem }: { eventos: EventoJornada[]; nome: string; onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) {
   const porMes = new Map<string, EventoJornada[]>();
   for (const e of eventos) {
     const bruto = fmtMes.format(new Date(e.data));
@@ -24,7 +25,7 @@ export function MinhaHistoria({ eventos, nome }: { eventos: EventoJornada[]; nom
   return (
     <div className="space-y-4" aria-label="Minha História">
       <div className="flex items-end gap-2">
-        <Personagem id="montinho" tamanho={64} />
+        <PersonagemBotao id="montinho" tamanho={64} onAbrir={onAbrirPersonagem} />
         <div className="rounded-2xl rounded-bl-sm border border-accent/40 bg-[#171B21] px-3 py-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">Diário de expedição</p>
           <p className="text-sm font-bold">A história de {nome}, página por página.</p>
