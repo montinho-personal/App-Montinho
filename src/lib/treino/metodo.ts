@@ -20,6 +20,12 @@ function repsPiramide(n: number, decrescente: boolean): string[] {
   return decrescente ? [...base].reverse() : base;
 }
 
+/** Séries “iguais” viram série a série com as repetições da pirâmide. */
+export function seriesEmPiramide(config: SerieConfig, decrescente: boolean): SerieConfig {
+  if (config.modo !== "iguais") return config;
+  return { modo: "detalhado", series: repsPiramide(config.series, decrescente).map((r, i) => ({ ordem: i + 1, reps: r, ie: config.ie, descanso_seg: config.descanso_seg })) };
+}
+
 /** Próximo código livre de bloco no treino (ex.: “A1”, “A2”…). */
 export function proximoBloco<R extends Pick<LinhaMetodo, "bloco">>(rows: R[], letra: string): string {
   const usados = new Set(rows.map((r) => r.bloco.trim()).filter(Boolean));
@@ -42,11 +48,7 @@ export function aplicarMetodo<R extends LinhaMetodo>(rows: R[], indice: number, 
   }
 
   const saiuDeBloco = ehTecnicaBloco(atual.tecnica);
-  let seriesConfig = atual.seriesConfig;
-  if ((metodo === "piramide" || metodo === "piramide_decrescente") && seriesConfig.modo === "iguais") {
-    const reps = repsPiramide(seriesConfig.series, metodo === "piramide_decrescente");
-    seriesConfig = { modo: "detalhado", series: reps.map((r, i) => ({ ordem: i + 1, reps: r, ie: seriesConfig.modo === "iguais" ? seriesConfig.ie : null, descanso_seg: seriesConfig.modo === "iguais" ? seriesConfig.descanso_seg : null })) };
-  }
+  const seriesConfig = metodo === "piramide" || metodo === "piramide_decrescente" ? seriesEmPiramide(atual.seriesConfig, metodo === "piramide_decrescente") : atual.seriesConfig;
   out[indice] = { ...out[indice], tecnica: metodo, bloco: saiuDeBloco ? "" : out[indice].bloco, seriesConfig };
   return out;
 }

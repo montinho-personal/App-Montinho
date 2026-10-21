@@ -20,7 +20,7 @@ import { PorqueExercicio } from "@/components/montador/PorqueExercicio";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
 import { EXTRAS_PADRAO, ehTecnicaBloco, METODOS, temExtras } from "@/lib/volume/tecnicas";
-import { aplicarMetodo, aplicarMetodoEmVarios } from "@/lib/treino/metodo";
+import { aplicarMetodo, aplicarMetodoEmVarios, proximoBloco } from "@/lib/treino/metodo";
 import { MetodoPicker } from "@/components/montador/MetodoPicker";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
@@ -30,6 +30,8 @@ import { CartaoAnamnese } from "@/components/montador/CartaoAnamnese";
 import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
 import { SeletorExercicio } from "@/components/montador/SeletorExercicio";
 import { AlternativasExercicio } from "@/components/montador/AlternativasExercicio";
+import { DitarTreino, type LinhaDitada } from "@/components/montador/DitarTreino";
+import { configDaLinha } from "@/lib/treino/ditado";
 import { indicePorNome, interpretarEquipamentos } from "@/lib/biblioteca/itens";
 import type { ContextoAluno } from "@/lib/biblioteca/substituicao";
 import type { Equivalencia, ItemBiblioteca, Nivel } from "@/lib/biblioteca/tipos";
@@ -438,6 +440,28 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     const m = METODOS.find((x) => x.v === metodo);
     toast.success(`${m?.l ?? "Método"} aplicado a ${keys.length} exercício(s).`);
   };
+  /** Treino ditado por voz (já conferido na prévia): entra no fim ou substitui. */
+  const aplicarDitado = (tk: string, linhas: LinhaDitada[], substituir: boolean) => {
+    commit((e) => ({
+      ...e,
+      treinos: e.treinos.map((t) => {
+        if (t.key !== tk) return t;
+        const rows = substituir ? [] : t.rows.filter((r) => r.nome.trim());
+        const codigos = new Map<number, string>();
+        for (const l of linhas) {
+          let bloco = "";
+          if (l.bloco != null) {
+            if (!codigos.has(l.bloco)) codigos.set(l.bloco, proximoBloco(rows, t.letra));
+            bloco = codigos.get(l.bloco)!;
+          }
+          rows.push({ ...emptyRow(), nome: l.item.nome, bibliotecaId: l.item.id, contaVolume: l.item.contaVolume, seriesConfig: configDaLinha(l), tecnica: l.tecnica, bloco, unilateral: l.tecnica === "unilateral" });
+        }
+        return { ...t, rows: rows.length ? rows : [emptyRow()] };
+      }),
+    }));
+    const t = estado.treinos.find((x) => x.key === tk);
+    toast.success(`${linhas.length} exercício(s) no treino ${t?.letra ?? ""}. Confira e salve (dá para desfazer).`);
+  };
   const addRow = (tk: string, apos?: string) =>
     commit((e) => ({
       ...e,
@@ -815,6 +839,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                     <option value="">copiar de…</option>
                     {estado.treinos.filter((x) => x.key !== t.key).map((x) => <option key={x.key} value={x.key}>{x.letra} · {x.nome}</option>)}
                   </select>
+                  <DitarTreino letra={t.letra} foco={focoEstrategia[t.letra]} itens={itensBiblioteca} favoritos={favoritosSet} uso={usoMap} existentes={t.rows.filter((r) => r.nome.trim()).length} onAplicar={(linhas, substituir) => aplicarDitado(t.key, linhas, substituir)} />
                   <button type="button" onClick={() => duplicarDia(t.key)} className="h-8 rounded-md border border-border px-2 text-[11px] text-fg-muted hover:text-fg" title="Duplicar este dia em uma nova letra">Duplicar dia</button>
                   {t.id ? <button type="button" onClick={() => void finalizarDia(t)} className="h-8 rounded-md border border-border px-2 text-[11px] text-fg-muted hover:text-fg" title="Sai dos treinos ativos (histórico preservado)">Finalizar</button> : null}
                   <button type="button" onClick={() => removerDia(t.key)} className="h-8 rounded-md border border-red/30 px-2 text-[11px] text-red" title={t.id ? "Desativar (histórico preservado)" : "Remover dia"} aria-label={`Remover treino ${t.letra}`}><Icon name="trash" size={14} /></button>
