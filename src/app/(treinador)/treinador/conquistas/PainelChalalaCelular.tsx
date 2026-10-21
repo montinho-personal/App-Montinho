@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import type { ConfigChalala, MetricasPush } from "@/lib/data/notificacoes";
 import type { MetricasChalalaTreino } from "@/lib/chalala/metricas";
 
+const MOMENTO: Record<string, string> = { primeiro_treino: "1º treino", cansado: "dia cansado", tempo_curto: "treino curto", voltou: "volta", ficha_nova: "ficha nova", parcial: "treino parcial" };
 const MOTIVO: Record<string, string> = { expirada: "fora do horário", preferencia: "aluno desligou", treino_revertido: "treino desfeito", limite_pos_treino: "limite semanal", sem_dispositivo: "sem celular ativo" };
 
 export function PainelChalalaCelular({ dias, config, push, treino }: { dias: number; config: ConfigChalala; push: MetricasPush | null; treino: MetricasChalalaTreino }) {
@@ -135,7 +136,13 @@ export function PainelChalalaCelular({ dias, config, push, treino }: { dias: num
           {caixa("Recordes reconhecidos", treino.recordes)}
           {caixa("Evolução nas repetições", treino.repeticoes)}
           {caixa("Avisos de técnica avançada", treino.tecnicas)}
+          {caixa("“É impossível dar errado!”", treino.confianca)}
         </dl>
+        {treino.confianca ? (
+          <p className="text-xs text-fg-muted">
+            “É impossível dar errado!” por momento: {Object.entries(treino.confiancaPorMomento).map(([m, n]) => `${MOMENTO[m] ?? m} (${n})`).join(" · ")}
+          </p>
+        ) : null}
         <p className="text-[11px] text-fg-subtle">Tocar numa notificação não mede motivação, e treinar depois dela não prova que ela foi a causa. Os números servem para acompanhar uso e ajustar a frequência. Nenhum texto do aluno é registrado.</p>
       </CardBody>
     </Card>

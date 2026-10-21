@@ -18,6 +18,8 @@ import { normalizarTecnica } from "@/lib/evolucao/adaptar";
 import { desbloqueiaParaTreino } from "@/lib/data/desbloqueia";
 import { trocasParaExercicios } from "@/lib/data/trocas";
 import { progressoesRecentes } from "@/lib/data/conquistas";
+import { dadosConfianca } from "@/lib/data/confianca";
+import { ehFichaNova } from "@/lib/chalala/confianca";
 
 
 export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null }: {
@@ -34,7 +36,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
   if (!treino || treino.aluno_id !== alunoId) notFound();
 
-  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf] = await Promise.all([
     sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
     ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     listarBiblioteca(),
@@ -46,7 +48,16 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
     seriesPerdidasRecentes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, grupo: e.grupo_muscular ?? null }))),
     trocasParaExercicios(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     presencial ? Promise.resolve([]) : progressoesRecentes(alunoId).catch(() => []),
+    presencial ? Promise.resolve(null) : dadosConfianca(alunoId).catch(() => null),
   ]);
+  const agora = new Date(agoraServidorMs());
+  const confianca = conf
+    ? {
+        concluidas: conf.concluidas,
+        diasDesdeUltimo: conf.ultimaConcluida ? Math.floor((agora.getTime() - new Date(conf.ultimaConcluida).getTime()) / 86_400_000) : null,
+        fichaNova: ehFichaNova({ publicadaEm: conf.publicadaEm, ultimaConcluida: conf.ultimaConcluida, agora }),
+      }
+    : null;
   // Última vez de cada opção de troca (para já vir com peso e repetições).
   const opcoesTroca = [...new Map(Object.values(trocas).flatMap((t) => t.opcoes).map((o) => [o.id, o])).values()];
   const ultimasTroca = opcoesTroca.length ? await ultimasExecucoes(alunoId, opcoesTroca.map((o) => ({ id: o.id, nome: o.nome }))) : {};
@@ -100,6 +111,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       configEvolucao={configEvolucao}
       desbloqueia={desbloqueia ?? undefined}
       progressoesRecentes={progressoes}
+      confianca={confianca}
       extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );

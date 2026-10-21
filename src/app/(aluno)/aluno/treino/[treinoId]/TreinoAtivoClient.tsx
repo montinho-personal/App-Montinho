@@ -52,6 +52,8 @@ import { LeituraRapida, marcarSugestao, sugestoesDaSessao, type ItemRapido } fro
 import { CHAMADA_CONTEXTO, REGRAS_DESBLOQUEIA, REPS_ALTAS, repsPrescritas, type PacoteTreino } from "@/lib/desbloqueia/motor";
 import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
+import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
+import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 
@@ -90,6 +92,8 @@ type Props = {
   desbloqueia?: PacoteTreino & { porques: Record<string, string> };
   /** Exercícios que já receberam o “Essa carga merece um chalalá!” nos últimos 14 dias. */
   progressoesRecentes?: string[];
+  /** “É impossível dar errado!”: histórico do aluno para escolher o momento. */
+  confianca?: { concluidas: number; diasDesdeUltimo: number | null; fichaNova: boolean } | null;
 };
 
 const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
@@ -143,7 +147,7 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [] }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -151,7 +155,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // Ecossistema Chalalá no treino (lib/chalala/treino): frase do aviso, recado de
   // início, incentivo de progressão e técnica avançada. No máx. 2 por treino.
   const [chalalaAviso, setChalalaAviso] = useState<string | null>(null);
-  const [inicioChalala, setInicioChalala] = useState(false);
+  const [inicioChalala, setInicioChalala] = useState<string | null>(null);
+  const [confiancaFim, setConfiancaFim] = useState<string | null>(null);
   const [progressaoChalala, setProgressaoChalala] = useState<Record<string, string>>({});
   const [tecnicaChalala, setTecnicaChalala] = useState<Record<string, number>>({});
   const [sugestaoAviso, setSugestaoAviso] = useState<{ id: string; chamada: string } | null>(null);
@@ -279,9 +284,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     } catch {
       return;
     }
+    // Momento de dúvida (1º treino, volta, ficha nova, cansaço, tempo curto)? A frase da
+    // confiança substitui o “Bora treinar?” — no máx. 1 por dia e 3 por semana.
+    const ctx = confianca ? confiancaAntesDoTreino({ ...confianca, checkin: sessao.checkin_pre, tempoCurto: !!sessao.tempo_disponivel_min }) : null;
+    const usar = ctx && podeMostrarConfianca(lerConfianca(), new Date()) ? ctx : null;
+    if (usar) gravarConfianca();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- recado de uma vez por sessão, guardado no aparelho
-    setInicioChalala(true);
-    enviarEvento({ tipo: "chalala_workout_started", origem: "treino" });
+    setInicioChalala(usar ? FRASES_CONFIANCA[usar] : FRASES.inicio);
+    enviarEvento({ tipo: "chalala_workout_started", origem: "treino", ref: usar ? `confianca_${usar}` : "bora" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessao, presencial]);
 
   // Chalalá: “Essa carga merece um chalalá!” ao abrir o exercício (antes da 1ª série),
@@ -558,6 +569,22 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     toast.success(bibliotecaId ? "Exercício trocado. Séries e repetições continuam as do seu treino." : "Voltou para o exercício do plano.");
   }
 
+  // “É impossível dar errado!”: quando já apareceu neste aparelho (limite por dia/semana).
+  function lerConfianca(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem("montinho-confianca") ?? "[]") as string[];
+    } catch {
+      return [];
+    }
+  }
+  function gravarConfianca() {
+    try {
+      localStorage.setItem("montinho-confianca", JSON.stringify([...lerConfianca(), new Date().toISOString()].slice(-10)));
+    } catch {
+      /* ignora */
+    }
+  }
+
   // Registro local do orquestrador do Chalalá (por sessão).
   function lerChalala(): Registro[] {
     if (!sessao) return [];
@@ -689,7 +716,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const res = await fetch(`/api/sessoes/${sessao.id}`, { headers: cab });
     const data = (await res.json().catch(() => null)) as SessaoCompleta | null;
     setConcluida(data ?? { ...sessao, status });
-    if (status === "concluida") enviarEvento({ tipo: "chalala_workout_completed", origem: "fim_treino" });
+    if (!presencial) {
+      const parcial = status === "abandonada" || (totalPlanejado > 0 && totalFeito / totalPlanejado < FRACAO_CONCLUSAO);
+      const ctx = confiancaNoFim({ parcial, dor: sessao.checkin_pre === "desconforto" });
+      const usar = ctx && podeMostrarConfianca(lerConfianca(), new Date()) ? ctx : null;
+      if (usar) {
+        gravarConfianca();
+        setConfiancaFim(FRASES_CONFIANCA[usar]);
+      }
+      if (status === "concluida" || usar) enviarEvento({ tipo: "chalala_workout_completed", origem: "fim_treino", ...(usar ? { ref: `confianca_${usar}` } : {}) });
+    }
     setFinalizando(false);
     router.refresh();
   }
@@ -770,7 +806,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       return <TelaChalala base={base} nome={presencial.nomeAluno} presencial={{ nomeAluno: presencial.nomeAluno, voltarHref: presencial.voltarHref, cabecalhos: cab }} />;
     }
     return (
-      <TelaChalala base={base} nome={nomeAluno}>
+      <TelaChalala base={base} nome={nomeAluno} confianca={confiancaFim}>
           <Card>
             <CardBody className="space-y-3">
               <p className="font-semibold text-sm">Como foi o treino? (opcional)</p>
@@ -1001,8 +1037,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
       {inicioChalala && !presencial && totalFeito === 0 ? (
         <div role="status" className="flex items-start gap-2 rounded-xl border border-accent/50 bg-accent/10 px-3 py-2.5">
-          <p className="flex-1 text-sm font-bold text-accent">{FRASES.inicio}</p>
-          <button type="button" onClick={() => setInicioChalala(false)} aria-label="Dispensar recado" className="alvo -mr-1 text-fg-muted hover:text-fg">✕</button>
+          <p className="flex-1 text-sm font-bold text-accent">{inicioChalala}</p>
+          <button type="button" onClick={() => setInicioChalala(null)} aria-label="Dispensar recado" className="alvo -mr-1 text-fg-muted hover:text-fg">✕</button>
         </div>
       ) : null}
 

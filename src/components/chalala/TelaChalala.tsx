@@ -49,7 +49,7 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
 
 type AulaPresencial = { nomeAluno: string; voltarHref: string; cabecalhos: Record<string, string> };
 
-export function TelaChalala({ base, nome, presencial = null, children }: { base: BaseConclusao; nome: string; presencial?: AulaPresencial | null; children?: React.ReactNode }) {
+export function TelaChalala({ base, nome, presencial = null, confianca = null, children }: { base: BaseConclusao; nome: string; presencial?: AulaPresencial | null; confianca?: string | null; children?: React.ReactNode }) {
   const [resumo, setResumo] = useState<ResumoChalala | null>(null);
   // Medalhas desta sessão: celebração interativa assim que o resumo chega.
   const [celebrar, setCelebrar] = useState(true);
@@ -113,6 +113,7 @@ export function TelaChalala({ base, nome, presencial = null, children }: { base:
             </span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">{parcial ? "Treino registrado" : "CHALALÁ! TREINO CONCLUÍDO!"}</h1>
+          {parcial && confianca ? <p className="font-bold text-accent">{confianca}</p> : null}
           <p className="text-fg-muted">{parcial ? "Hoje você adaptou a rotina e conseguiu treinar." : resumo?.relatorio?.completo ? "Você fez 100% do treino. Parabéns!" : "Mais um passo na sua evolução."}</p>
         </CardBody>
       </Card>

@@ -282,7 +282,7 @@ export async function progressoesRecentes(alunoId: string): Promise<string[]> {
 export async function listarEventos(desde: string): Promise<EventoChalala[]> {
   if (isDemoMode()) return demo().eventos.filter((e) => e.created_at >= desde);
   const db = await getDb();
-  const { data } = await db.from("eventos_chalala").select("aluno_id, tipo, modelo, formato, origem, created_at").gte("created_at", desde).order("created_at", { ascending: false }).limit(10000);
+  const { data } = await db.from("eventos_chalala").select("aluno_id, tipo, modelo, formato, origem, ref, created_at").gte("created_at", desde).order("created_at", { ascending: false }).limit(10000);
   return (data ?? []) as EventoChalala[];
 }
 

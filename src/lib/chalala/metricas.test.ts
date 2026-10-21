@@ -27,3 +27,11 @@ describe("métricas do Chalalá no treino", () => {
     expect(m).toMatchObject({ recordes: 2, iniciados: 1, progressao: 0 });
   });
 });
+
+describe("métricas do É impossível dar errado", () => {
+  it("conta por momento", () => {
+    const m = agregarChalalaTreino([{ tipo: "chalala_workout_started", ref: "confianca_cansado" }, { tipo: "chalala_workout_started", ref: "bora" }, { tipo: "chalala_workout_completed", ref: "confianca_parcial" }]);
+    expect(m.confianca).toBe(2);
+    expect(m.confiancaPorMomento).toEqual({ cansado: 1, parcial: 1 });
+  });
+});

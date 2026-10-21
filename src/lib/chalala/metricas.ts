@@ -52,9 +52,12 @@ export function agregarEventos(eventos: EventoAgregavel[]): MetricasChalala {
 }
 
 /** Ecossistema Chalalá dentro do treino (contagens; não indicam causa de nada). */
-export type MetricasChalalaTreino = { iniciados: number; concluidos: number; progressao: number; repeticoes: number; recordes: number; tecnicas: number; permissoes: number; revogacoes: number };
+export type MetricasChalalaTreino = { iniciados: number; concluidos: number; progressao: number; repeticoes: number; recordes: number; tecnicas: number; permissoes: number; revogacoes: number; confianca: number; confiancaPorMomento: Record<string, number> };
 
-export function agregarChalalaTreino(eventos: Array<Pick<EventoAgregavel, "tipo">>): MetricasChalalaTreino {
+export function agregarChalalaTreino(eventos: Array<Pick<EventoAgregavel, "tipo"> & { ref?: string | null }>): MetricasChalalaTreino {
+  const conf = eventos.filter((e) => e.ref?.startsWith("confianca_"));
+  const porMomento: Record<string, number> = {};
+  for (const e of conf) porMomento[e.ref!.slice(10)] = (porMomento[e.ref!.slice(10)] ?? 0) + 1;
   const conta = (t: string) => eventos.filter((e) => e.tipo === t).length;
   return {
     iniciados: conta("chalala_workout_started"),
@@ -65,5 +68,7 @@ export function agregarChalalaTreino(eventos: Array<Pick<EventoAgregavel, "tipo"
     tecnicas: conta("chalala_advanced_technique_shown"),
     permissoes: conta("chalala_push_permission_granted"),
     revogacoes: conta("chalala_push_permission_revoked"),
+    confianca: conf.length,
+    confiancaPorMomento: porMomento,
   };
 }
