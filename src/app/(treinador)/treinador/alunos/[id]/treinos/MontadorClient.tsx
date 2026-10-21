@@ -24,7 +24,7 @@ import { aplicarMetodo, aplicarMetodoEmVarios } from "@/lib/treino/metodo";
 import { MetodoPicker } from "@/components/montador/MetodoPicker";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
-import { estimarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
+import { estimarDuracao, formatarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
 import { usePreferenciasVolume } from "@/components/montador/usePreferenciasVolume";
 import { CartaoAnamnese } from "@/components/montador/CartaoAnamnese";
 import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
@@ -311,6 +311,31 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     }
     return out;
   }, [estado.treinos, padraoTempos]);
+
+  // Aviso do novo tempo do treino a cada alteração que muda a duração (séries,
+  // reps, descanso, método…). Espera a digitação parar para não piscar.
+  const temposAnteriores = useRef<Record<string, number> | null>(null);
+  useEffect(() => {
+    const atuais: Record<string, number> = {};
+    for (const t of estado.treinos) atuais[t.key] = Math.round(duracoes[t.key].resultado.totalSeg / 60);
+    const antes = temposAnteriores.current;
+    if (!antes) {
+      temposAnteriores.current = atuais;
+      return;
+    }
+    const id = window.setTimeout(() => {
+      for (const t of estado.treinos) {
+        const de = antes[t.key];
+        const para = atuais[t.key];
+        if (de !== undefined && para !== de && para > 0) {
+          const dif = para - de;
+          toast.push(`⏱ Treino ${t.letra}: ${formatarDuracao(de * 60)} → ${formatarDuracao(para * 60)} (${dif > 0 ? "+" : "−"}${Math.abs(dif)} min)`, "info");
+        }
+      }
+      temposAnteriores.current = atuais;
+    }, 700);
+    return () => window.clearTimeout(id);
+  }, [duracoes, estado.treinos, toast]);
 
   async function salvarPadraoTempos(t: Partial<ParametrosTempo>) {
     const { descansoEntreSeriesSeg, descansoAposExercicioSeg, segundosPorRep, transicaoSeg, transicaoDentroDoDescanso, preparacaoInicialSeg, descansoAquecimentoSeg } = t;
@@ -780,8 +805,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                 ) : null}
 
                 {(selecao[t.key] ?? []).length ? (
-                  <div className="sticky top-16 z-20 mx-2 my-2 flex flex-wrap items-center gap-2 rounded-xl border border-accent/50 bg-card/95 px-3 py-2 shadow-lg backdrop-blur">
-                    <span className="text-xs font-bold text-accent">{(selecao[t.key] ?? []).length} selecionado(s)</span>
+                  <div className="fixed bottom-20 left-3 right-3 z-50 mx-auto flex max-w-xl flex-wrap items-center gap-2 rounded-xl border border-accent/60 bg-card/95 px-3 py-2.5 shadow-2xl backdrop-blur xl:bottom-6">
+                    <span className="text-xs font-bold text-accent">Treino {t.letra} · {(selecao[t.key] ?? []).length} selecionado(s)</span>
                     <MetodoPicker
                       valor={null}
                       rotulo="Aplicar método…"
@@ -828,7 +853,6 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             <td className="px-1 py-1.5 text-center align-middle">
                               <div className="flex flex-col items-center">
                                 <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
-                                <input type="checkbox" checked={(selecao[t.key] ?? []).includes(r.key)} onChange={() => alternarSelecao(t.key, r.key)} aria-label={`Selecionar exercício ${i + 1}`} className="my-0.5 h-4 w-4 accent-[var(--color-accent)]" />
                                 <span className="text-[10px] text-fg-subtle font-mono cursor-grab" title="Arraste para reordenar">{i + 1}</span>
                                 <button type="button" onClick={() => moverRow(t.key, r.key, 1)} disabled={i === t.rows.length - 1} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para baixo"><Icon name="down" size={14} /></button>
                               </div>
@@ -858,6 +882,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   </button>
                                 ) : null}
                                 <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
+                                  <label className="-my-1 -ml-1 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-1.5 py-1 text-[11px] font-semibold text-fg-muted hover:bg-card-hover" title="Selecionar para aplicar um método a vários exercícios">
+                                    <input type="checkbox" checked={(selecao[t.key] ?? []).includes(r.key)} onChange={() => alternarSelecao(t.key, r.key)} aria-label={`Selecionar exercício ${i + 1}`} className="h-5 w-5 accent-[var(--color-accent)]" />
+                                  </label>
                                   <MetodoPicker compacto valor={r.tecnica} onEscolher={(v) => escolherMetodo(t.key, r.key, v)} titulo={`Método — ${r.nome || `exercício ${i + 1}`}`} />
                                   {ehTecnicaBloco(r.tecnica) && r.bloco ? <span className="text-[10px] font-semibold text-accent">🔗 bloco {r.bloco}{t.rows[i + 1]?.bloco === r.bloco ? " · ligado ao próximo" : ""}</span> : null}
                                 </div>
