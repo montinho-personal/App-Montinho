@@ -58,7 +58,7 @@ const UNIDADES: Record<string, number> = {
   duzentos: 200,
 };
 
-function numerosPorExtenso(t: string): string {
+export function numerosPorExtenso(t: string): string {
   // "cento e vinte" / "vinte e cinco" → soma; "um"/"uma" só vira número antes de série/rep/minuto.
   return t.replace(/\b(cento|duzentos|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|zero|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove)((?:\s+e\s+(?:vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove))*)\b/g, (m) =>
     String(m.split(/\s+e\s+/).reduce((s, w) => s + (UNIDADES[w.trim()] ?? 0), 0))

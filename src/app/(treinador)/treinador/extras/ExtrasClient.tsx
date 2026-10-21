@@ -7,6 +7,8 @@ import { useToast } from "@/components/ui/Toast";
 import { MODALIDADES, RECUPERACAO, type Modalidade, type Recuperacao } from "@/lib/treino/extra";
 import { GRUPOS } from "@/lib/validacao/schemas";
 import type { SugestaoExtra } from "@/lib/treino/sugestao-extra";
+import type { ExtraDitado } from "@/lib/treino/ditado-extra";
+import { DitarExtra } from "./DitarExtra";
 
 type Pendente = { id: string; aluno: string; titulo: string; classificacao: string; motivos: string[]; recuperacao: Recuperacao | null; tempo: number | null; data: string };
 type Config = { habilitado: boolean; requer_aprovacao: boolean; max_por_semana: number; dias_permitidos: number[]; limite_series_semana: number; intervalo_min_horas: number; observacao: string | null };
@@ -26,6 +28,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
   const [cfg, setCfg] = useState<Config | null>(detalhe?.config ?? null);
   const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [ditando, setDitando] = useState(false);
 
   async function enviar(url: string, method: string, body: unknown, ok: string) {
     setSalvando(true);
@@ -182,12 +185,37 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
             <CardBody className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <h2 className="font-bold">Extras liberados</h2>
-                {!form ? (
-                  <button type="button" onClick={() => setForm(vazio())} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
-                    + Novo extra
-                  </button>
+                {!form && !ditando ? (
+                  <span className="flex gap-3">
+                    <button type="button" onClick={() => setDitando(true)} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                      🎤 Ditar extra
+                    </button>
+                    <button type="button" onClick={() => setForm(vazio())} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                      + Novo extra
+                    </button>
+                  </span>
                 ) : null}
               </div>
+              {ditando ? (
+                <DitarExtra
+                  treinos={detalhe.treinos}
+                  salvando={salvando}
+                  onFechar={() => setDitando(false)}
+                  onRevisar={(x: ExtraDitado) => {
+                    setDitando(false);
+                    setForm({ id: null, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao, duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas });
+                  }}
+                  onSalvar={async (xs: ExtraDitado[]) => {
+                    let ok = 0;
+                    for (const x of xs) {
+                      const body = { modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao || null, duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas };
+                      if (await enviar(`/api/alunos/${detalhe.alunoId}/extras`, "POST", body, xs.length > 1 ? `Extra “${x.titulo}” salvo.` : "Extra salvo.")) ok++;
+                      else break;
+                    }
+                    if (ok === xs.length) setDitando(false);
+                  }}
+                />
+              ) : null}
               {form ? (
                 <div className="space-y-2 rounded-lg border border-border p-3">
                   <select value={form.modalidade} onChange={(e) => setForm({ ...form, modalidade: e.target.value as Modalidade })} className={`${inp} w-full`} aria-label="Modalidade">
