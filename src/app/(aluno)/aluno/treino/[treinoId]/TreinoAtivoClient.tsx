@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
+import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
 import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
@@ -166,6 +167,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // Conferência ao concluir: mostra o que falta marcar antes de finalizar.
   const [conferindo, setConferindo] = useState(false);
   const conferenciaRef = useRef<HTMLDivElement>(null);
+  // Marcação fora do padrão aguardando confirmação do aluno.
+  const [conferenciaSerie, setConferenciaSerie] = useState<{ seId: string; idx: number; alerta: Alerta } | null>(null);
   // Ritmo: pausas do treino (persistidas no rascunho) e correção do relógio do aparelho.
   const [pausas, setPausas] = useState<{ totalMs: number; desde: number | null }>({ totalMs: 0, desde: null });
   const [offsetMs, setOffsetMs] = useState(0);
@@ -381,15 +384,30 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     requestAnimationFrame(() => document.getElementById(`ex-${seId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
-  function concluirSerie(seId: string, idx: number, ex: ExercicioView, silencioso = false) {
+  function concluirSerie(seId: string, idx: number, ex: ExercicioView, silencioso = false, confirmado = false, correcao?: { carga?: number; reps?: number }) {
     if (!sessao || !storage) return;
-    const s = series[seId][idx];
+    const s0 = series[seId][idx];
+    const s = correcao ? { ...s0, ...(correcao.carga != null ? { carga: String(correcao.carga).replace(".", ",") } : {}), ...(correcao.reps != null ? { reps: String(correcao.reps) } : {}) } : s0;
+    if (correcao) atualizar(seId, idx, { carga: s.carga, reps: s.reps });
     const reps = s.reps.trim() === "" ? null : Number(s.reps.replace(",", "."));
     const carga = s.carga.trim() === "" ? null : Number(s.carga.replace(",", "."));
     if (reps === null && carga === null && ex.tecnica !== "isometria") {
       toast.warn("Informe pelo menos as repetições para concluir a série.");
       return;
     }
+    // Conferência: valor bem fora do padrão do aluno → pergunta antes de gravar.
+    if (!silencioso && !confirmado && s.tipo === "valida") {
+      const hoje = series[seId].filter((x, k) => k !== idx && x.concluida && x.tipo === "valida").map((x) => Number(x.carga.replace(",", ".")));
+      const ult = ex.trocado ? [] : (ultimas[ex.id]?.series ?? []).filter((x) => x.tipo === "valida").map((x) => x.carga_kg ?? 0);
+      const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ex.tecnica === "isometria" || /s$/.test(String(ex.reps).trim()) });
+      if (alerta) {
+        setConferenciaSerie({ seId, idx, alerta });
+        requestAnimationFrame(() => document.getElementById(`confere-${seId}-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+        if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+        return;
+      }
+    }
+    setConferenciaSerie(null);
     const payload = {
       session_exercise_id: seId,
       serie: s.serie,
@@ -1060,6 +1078,24 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                             >
                               <Icon name="check" size={18} />
                             </button>
+                            {conferenciaSerie && conferenciaSerie.seId === se.id && conferenciaSerie.idx === i ? (
+                              <div id={`confere-${se.id}-${i}`} role="alertdialog" aria-label="Confira a marcação" className="col-span-4 space-y-2 rounded-lg border border-warning/60 bg-warning/10 p-3">
+                                <p className="text-sm font-semibold">⚠ {conferenciaSerie.alerta.mensagem}</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {conferenciaSerie.alerta.sugestao ? (
+                                    <button type="button" onClick={() => concluirSerie(se.id, i, ex, false, true, conferenciaSerie.alerta.sugestao ?? undefined)} className="touch rounded-md bg-accent px-3 py-2 text-xs font-bold text-bg">
+                                      {conferenciaSerie.alerta.sugestao.rotulo}
+                                    </button>
+                                  ) : null}
+                                  <button type="button" onClick={() => concluirSerie(se.id, i, ex, false, true)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold">
+                                    Está certo, salvar
+                                  </button>
+                                  <button type="button" onClick={() => setConferenciaSerie(null)} className="touch rounded-md px-3 py-2 text-xs font-semibold text-fg-muted">
+                                    Corrigir
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         );
                       })}
