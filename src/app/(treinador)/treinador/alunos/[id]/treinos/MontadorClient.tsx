@@ -24,6 +24,7 @@ import { aplicarMetodo, aplicarMetodoEmVarios, proximoBloco } from "@/lib/treino
 import { MetodoPicker } from "@/components/montador/MetodoPicker";
 import { ConfigTecnicaPainel } from "@/components/montador/ConfigTecnicaPainel";
 import { ehConfiguravel, type ConfigTecnica } from "@/lib/treino/tecnica-config";
+import { FASES, FASE_INFO, type Fase } from "@/lib/treino/fases";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
 import { estimarDuracao, formatarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
@@ -96,6 +97,8 @@ type ProgramaVM = {
   duracao_min: string;
   permite_versao_reduzida: boolean;
   observacoes: string;
+  /** Fase do protocolo (medalhas de fase); "" = não definida. */
+  fase: Fase | "";
 };
 
 type Estado = { programa: ProgramaVM; treinos: TreinoVM[] };
@@ -213,6 +216,7 @@ function programaInicial(p: Programa | null, letras: TreinoLetra[]): ProgramaVM 
     duracao_min: p?.duracao_min != null ? String(p.duracao_min) : "",
     permite_versao_reduzida: p?.permite_versao_reduzida ?? false,
     observacoes: p?.observacoes ?? "",
+    fase: p?.fase ?? "",
   };
 }
 
@@ -672,6 +676,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         duracao_min: p.duracao_min ? Number(p.duracao_min) : null,
         permite_versao_reduzida: p.permite_versao_reduzida,
         observacoes: p.observacoes.trim() || null,
+        fase: p.fase || null,
       },
       treinos,
       motivo: motivo.trim() || null,
@@ -793,6 +798,20 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             {estado.programa.split || "divisão não definida"} · {estado.programa.calendario.modo === "fixa" ? "semana fixa" : "ciclo rotativo"} · {Object.entries(frequencia).filter(([l]) => letrasAtivas.includes(l as TreinoLetra)).map(([l, v]) => `${l}×${v}`).join(" ")}
           </span>
         </button>
+        {/* Fase do protocolo: sempre visível, um toque para trocar (gera as medalhas de fase). */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5">
+          <span className="text-xs font-semibold text-fg-muted">Fase:</span>
+          {FASES.map((f) => {
+            const sel = estado.programa.fase === f;
+            const cor = FASE_INFO[f].cor;
+            return (
+              <button key={f} type="button" onClick={() => updPrograma({ fase: sel ? "" : f })} aria-pressed={sel} title={FASE_INFO[f].resumo} className="h-8 rounded-full border px-3 text-xs font-bold" style={sel ? { borderColor: cor, background: `${cor}26`, color: cor } : { borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}>
+                {FASE_INFO[f].rotulo}
+              </button>
+            );
+          })}
+          {!estado.programa.fase ? <span className="text-[11px] text-fg-subtle">não definida</span> : null}
+        </div>
         {showPrograma ? (
           <div className="border-t border-border px-4 py-4 space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">

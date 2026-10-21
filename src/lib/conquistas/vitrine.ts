@@ -10,7 +10,7 @@ import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/ade
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
 import type { CodigoConquista, SessaoConquista } from "./regras";
-import { LIMITES_ALEM, MARCOS_TECNICA, TECNICAS_MEDALHA, tecnicasFeitas, type FamiliaTecnica } from "./regras";
+import { LIMITES_ALEM, LIMITES_FASE, MARCOS_TECNICA, TECNICAS_MEDALHA, tecnicasFeitas, type FamiliaTecnica } from "./regras";
 
 export type Medalha = {
   codigo: CodigoConquista;
@@ -62,6 +62,11 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "tecnicas_7", selo: "T7" },
   { codigo: "tecnicas_10", selo: "T10" },
   { codigo: "mestre_tecnicas", selo: "★T" },
+  // Fases do protocolo
+  { codigo: "completou_adaptacao", selo: "F1" },
+  { codigo: "chegou_intensificacao", selo: "F2" },
+  { codigo: "completou_intensificacao", selo: "F2✓" },
+  { codigo: "completou_consolidacao", selo: "F3✓" },
 ];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
@@ -86,6 +91,9 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const extras = daApp.filter((s) => classificarSessao(s) === "extra").length;
   // Técnicas avançadas já feitas (cada uma conta uma vez).
   const feitas = new Set(tecnicasFeitas(e.sessoes).map((t) => t.familia));
+  // Fase atual (a do treino concluído mais recente) e quantos treinos seguidos nela.
+  const comFase = daApp.filter((s) => s.status === "concluida" && s.fase).sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
+  const faseAtual = comFase.reduce<{ fase: string; treinos: number } | null>((acc, s) => (acc && acc.fase === s.fase ? { fase: acc.fase, treinos: acc.treinos + 1 } : { fase: s.fase!, treinos: 1 }), null);
   const seriesExtras = daApp.filter((s) => s.modo !== "extra" && classificarSessao(s) === "concluida").reduce((a, s) => a + Math.max(0, (s.series_concluidas || 0) - (s.series_planejadas || 0)), 0);
 
   const progresso = (c: CodigoConquista): { atual: number | null; alvo: number | null; falta: string | null; disponivel: boolean } => {
@@ -157,6 +165,17 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
           falta: `Faltam ${plural(n - Math.min(feitas.size, n), "técnica avançada diferente", "técnicas avançadas diferentes")}. Elas aparecem quando o Montinho coloca na sua ficha.${c === "mestre_tecnicas" && faltam.length ? ` Ainda não fez: ${faltam.join(", ")}.` : ""}`,
           disponivel: true,
         };
+      }
+      case "chegou_intensificacao":
+        return { atual: null, alvo: null, falta: "Quando o Montinho passar o seu protocolo para a fase de intensificação, conclua o primeiro treino dela.", disponivel: true };
+      case "completou_adaptacao":
+      case "completou_intensificacao":
+      case "completou_consolidacao": {
+        const fase = c.replace("completou_", "");
+        const naFase = faseAtual?.fase === fase ? faseAtual.treinos : 0;
+        return naFase
+          ? { atual: Math.min(naFase, LIMITES_FASE.minTreinos), alvo: LIMITES_FASE.minTreinos, falta: naFase < LIMITES_FASE.minTreinos ? `Faltam ${plural(LIMITES_FASE.minTreinos - naFase, "treino", "treinos")} nesta fase. A medalha sai quando o Montinho passar para a próxima.` : "Treinos da fase feitos! A medalha sai quando o Montinho passar para a próxima fase.", disponivel: true }
+          : { atual: null, alvo: null, falta: "As fases são definidas pelo Montinho no seu protocolo. Conclua pelo menos 4 treinos na fase e a medalha sai quando ela mudar.", disponivel: true };
       }
       case "uma_a_mais":
         return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `Faltam ${plural(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };

@@ -244,6 +244,8 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
   }
 
   const planejadas = doDia.reduce((n, e) => n + Math.max(0, e.series - (e.series_aquecimento ?? 0)), 0);
+  // Fase do protocolo no dia (medalhas de fase); falha ao ler não impede o treino.
+  const fase = (await getPlanoAtivo(alunoId).catch(() => null))?.programa?.fase ?? null;
   const sessao: TrainingSession = {
     id: uid(),
     aluno_id: alunoId,
@@ -258,6 +260,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     duracao_seg: null,
     snapshot: {
       treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos },
+      ...(fase ? { fase } : {}),
       exercicios: doDia,
       // Versão realizada ≠ treino original: guarda o que ficou para outro dia.
       ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg, descanso_reduzido: reducao.descansoReduzido, cortes: reducao.cortes } } : {}),

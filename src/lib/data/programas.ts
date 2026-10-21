@@ -176,6 +176,7 @@ export type ProgramaInput = {
   duracao_min: number | null;
   permite_versao_reduzida: boolean;
   observacoes: string | null;
+  fase?: "adaptacao" | "intensificacao" | "consolidacao" | null;
 };
 
 export type SalvarPlanoInput = {
@@ -240,6 +241,7 @@ function montarSnapshot(programa: Programa, treinos: TreinoComExercicios[]): Sna
       equipamentos: programa.equipamentos,
       duracao_min: programa.duracao_min,
       observacoes: programa.observacoes,
+      fase: programa.fase ?? null,
     },
     treinos: snapTreinos,
   };

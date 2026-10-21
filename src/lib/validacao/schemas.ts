@@ -95,6 +95,7 @@ export const programaInputSchema = z.object({
   duracao_min: inteiroOpcional(10, 240),
   permite_versao_reduzida: z.boolean().default(false),
   observacoes: textoOpcional(1000),
+  fase: z.enum(["adaptacao", "intensificacao", "consolidacao"]).nullable().optional().default(null),
 });
 
 export const salvarPlanoSchema = z.object({

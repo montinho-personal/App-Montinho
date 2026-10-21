@@ -932,4 +932,13 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'tecnicas_3', '1', now(), 'Três técnicas');
   raise notice 'T29 OK: medalhas das técnicas aceitas';
 end $$;
+-- T30 — 0044: fase do protocolo e medalhas de fase
+do $$
+declare ok boolean := false;
+begin
+  ok := position('intensificacao' in (select pg_get_constraintdef(oid) from pg_constraint where conname = 'programas_fase_check')) > 0;
+  if not ok then raise exception 'T30: falta a regra da fase do protocolo'; end if;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'completou_adaptacao', '1', now(), 'Adaptação concluída');
+  raise notice 'T30 OK: fase do protocolo e medalhas de fase';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

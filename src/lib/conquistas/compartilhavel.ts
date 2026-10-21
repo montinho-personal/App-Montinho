@@ -43,6 +43,10 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   tecnicas_5: { frase: "Cinco técnicas. Treino de respeito.", porque: "Executar bem cada técnica é sinal de prática e dedicação." },
   tecnicas_7: { frase: "Sete técnicas. Ficando craque.", porque: "Um repertório amplo deixa o treino sempre interessante." },
   tecnicas_10: { frase: "Dez técnicas. Poucos chegam aqui.", porque: "Experiência com muitas técnicas mostra dedicação ao processo." },
+  chegou_intensificacao: { frase: "Hora de intensificar.", porque: "Chegar na intensificação mostra que a base foi bem construída." },
+  completou_adaptacao: { frase: "Adaptação concluída. Base pronta.", porque: "Preparar o corpo com calma é o que permite evoluir com segurança." },
+  completou_intensificacao: { frase: "Aguentei o tranco.", porque: "Passar pela fase mais puxada, com acompanhamento, é onde muita evolução acontece." },
+  completou_consolidacao: { frase: "Ciclo fechado.", porque: "Consolidar os ganhos prepara o próximo ciclo de evolução." },
   mestre_tecnicas: { frase: "Mestre das técnicas.", porque: "Fazer todas as técnicas avançadas é coisa de quem leva o treino a sério." },
 };
 
@@ -106,6 +110,14 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
       return `${c.codigo.split("_")[1]} técnicas avançadas diferentes`;
     case "mestre_tecnicas":
       return "Todas as técnicas avançadas";
+    case "chegou_intensificacao":
+      return "Primeiro treino na intensificação";
+    case "completou_adaptacao":
+      return "Fase de adaptação concluída";
+    case "completou_intensificacao":
+      return "Fase de intensificação concluída";
+    case "completou_consolidacao":
+      return "Fase de consolidação concluída";
     default:
       return null;
   }

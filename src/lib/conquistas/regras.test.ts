@@ -178,3 +178,20 @@ describe("medalhas das técnicas avançadas", () => {
     expect(codigos(r)).toEqual(expect.arrayContaining(["tecnicas_5", "tecnicas_7", "tecnicas_10", "mestre_tecnicas"]));
   });
 });
+
+describe("medalhas das fases do protocolo", () => {
+  const f = (dia: string, fase: string) => s(dia, { fase });
+  it("chegou na intensificação no 1º treino dela; adaptação completa só com 4 treinos e mudança de fase", () => {
+    const poucos = detectar([f("2026-09-01", "adaptacao"), f("2026-09-03", "adaptacao"), f("2026-09-05", "intensificacao")]);
+    expect(codigos(poucos)).toContain("chegou_intensificacao");
+    expect(codigos(poucos)).not.toContain("completou_adaptacao");
+    const r = detectar([f("2026-09-01", "adaptacao"), f("2026-09-03", "adaptacao"), f("2026-09-05", "adaptacao"), f("2026-09-08", "adaptacao"), f("2026-09-10", "intensificacao")]);
+    expect(r.find((x) => x.codigo === "completou_adaptacao")?.data.slice(0, 10)).toBe("2026-09-10");
+    expect(codigos(r)).not.toContain("completou_intensificacao");
+  });
+  it("consolidação completa quando começa um novo ciclo", () => {
+    const dias = ["01", "03", "05", "08"];
+    const r = detectar([...dias.map((d) => f(`2026-09-${d}`, "consolidacao")), f("2026-09-12", "adaptacao")]);
+    expect(codigos(r)).toContain("completou_consolidacao");
+  });
+});

@@ -18,5 +18,6 @@ export const sessaoParaConquista = (s: SessaoCompleta): SessaoConquista => ({
   checkin_pre: s.checkin_pre ?? null,
   conta_aderencia: s.conta_aderencia !== false,
   origem: s.origem ?? "app",
+  fase: (s.snapshot as { fase?: string | null } | null)?.fase ?? null,
   exercicios: s.exercicios.map((e) => ({ exercicio_id: e.exercicio_id, nome: e.nome, tecnica: (e.prescricao as { tecnica?: string | null } | null)?.tecnica ?? null, series: e.series.map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) })),
 });

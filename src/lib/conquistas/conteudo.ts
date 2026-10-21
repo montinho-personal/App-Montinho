@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -25,6 +25,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   desempenho: "Desempenho",
   alem: "Além do necessário",
   tecnicas: "Técnicas avançadas",
+  fases: "Fases do protocolo",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -389,6 +390,50 @@ const BASE: Record<CodigoConquista, Base> = {
     importancia: "Conhecer todas as técnicas é sinal de muita prática e de confiança no seu treino.",
     explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
     proximoPasso: "Agora é usar cada técnica no momento certo, como o Montinho planejar.",
+    fontes: ["sdt2025"],
+  },
+  chegou_intensificacao: {
+    categoria: "fases",
+    resumo: "Primeiro treino na fase de intensificação.",
+    mensagem: "Hora de intensificar! Chalalá!",
+    comoConquistar: "Quando o Montinho passar o seu protocolo para a fase de intensificação, conclua o primeiro treino dela.",
+    significado: "Seu corpo está pronto para um esforço maior, com acompanhamento.",
+    importancia: "Chegar aqui mostra que a base foi construída com cuidado antes de aumentar a intensidade.",
+    explicacao: "O personal organiza o acompanhamento em fases: adaptação (aprender e preparar o corpo), intensificação (mais esforço) e consolidação (firmar os ganhos). A fase muda quando ele decide, de acordo com a sua evolução.",
+    proximoPasso: "Capriche na execução: na intensificação, cargas e técnicas sobem.",
+    fontes: ["sdt2025"],
+  },
+  completou_adaptacao: {
+    categoria: "fases",
+    resumo: "Fase de adaptação concluída.",
+    mensagem: "Adaptação concluída! A base está pronta.",
+    comoConquistar: "Conclua pelo menos 4 treinos na fase de adaptação; a medalha sai quando o Montinho passar para a próxima fase.",
+    significado: "Você aprendeu os movimentos e preparou o corpo para o que vem.",
+    importancia: "Uma boa adaptação ajuda a treinar com mais segurança e a aproveitar melhor as próximas fases.",
+    explicacao: "O personal organiza o acompanhamento em fases: adaptação (aprender e preparar o corpo), intensificação (mais esforço) e consolidação (firmar os ganhos). A fase muda quando ele decide, de acordo com a sua evolução.",
+    proximoPasso: "Siga a próxima fase do jeito que o Montinho planejou.",
+    fontes: ["sdt2025"],
+  },
+  completou_intensificacao: {
+    categoria: "fases",
+    resumo: "Fase de intensificação concluída.",
+    mensagem: "Intensificação concluída! Você aguentou o tranco.",
+    comoConquistar: "Conclua pelo menos 4 treinos na fase de intensificação; a medalha sai quando o Montinho passar para a próxima fase.",
+    significado: "Você passou pela fase mais puxada do ciclo.",
+    importancia: "Fases de maior esforço, bem acompanhadas, são onde muitos ganhos de força e músculo acontecem.",
+    explicacao: "O personal organiza o acompanhamento em fases: adaptação (aprender e preparar o corpo), intensificação (mais esforço) e consolidação (firmar os ganhos). A fase muda quando ele decide, de acordo com a sua evolução.",
+    proximoPasso: "Agora é firmar o que foi conquistado.",
+    fontes: ["sdt2025"],
+  },
+  completou_consolidacao: {
+    categoria: "fases",
+    resumo: "Fase de consolidação concluída.",
+    mensagem: "Consolidação concluída! Ciclo fechado com chave de ouro.",
+    comoConquistar: "Conclua pelo menos 4 treinos na fase de consolidação; a medalha sai quando o Montinho começar um novo ciclo.",
+    significado: "Você fechou um ciclo inteiro de treino.",
+    importancia: "Consolidar ajuda a manter os ganhos e prepara o próximo ciclo.",
+    explicacao: "O personal organiza o acompanhamento em fases: adaptação (aprender e preparar o corpo), intensificação (mais esforço) e consolidação (firmar os ganhos). A fase muda quando ele decide, de acordo com a sua evolução.",
+    proximoPasso: "Converse com o Montinho sobre os objetivos do próximo ciclo.",
     fontes: ["sdt2025"],
   },
   eu_voltei: {

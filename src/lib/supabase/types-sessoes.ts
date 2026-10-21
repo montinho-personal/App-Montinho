@@ -60,6 +60,8 @@ export type Programa = {
   duracao_min: number | null;
   permite_versao_reduzida: boolean;
   observacoes: string | null;
+  /** 0044 — fase do protocolo. */
+  fase?: "adaptacao" | "intensificacao" | "consolidacao" | null;
   versao: number;
   ativo: boolean;
   created_at: string;
@@ -115,7 +117,7 @@ export type SnapshotTreino = {
 };
 
 export type SnapshotPrograma = {
-  programa: Pick<Programa, "nome" | "objetivo" | "nivel" | "split" | "modo_semana" | "frequencia" | "calendario" | "metas_volume" | "prioridades" | "equipamentos" | "duracao_min" | "observacoes">;
+  programa: Pick<Programa, "nome" | "objetivo" | "nivel" | "split" | "modo_semana" | "frequencia" | "calendario" | "metas_volume" | "prioridades" | "equipamentos" | "duracao_min" | "observacoes" | "fase">;
   treinos: SnapshotTreino[];
 };
 

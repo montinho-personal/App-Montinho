@@ -48,7 +48,12 @@ export type CodigoConquista =
   | "tecnicas_5"
   | "tecnicas_7"
   | "tecnicas_10"
-  | "mestre_tecnicas";
+  | "mestre_tecnicas"
+  // Fases do protocolo (definidas pelo personal)
+  | "chegou_intensificacao"
+  | "completou_adaptacao"
+  | "completou_intensificacao"
+  | "completou_consolidacao";
 
 /** Medalhas “Além do necessário” (0037): gravadas à parte para nunca travar as antigas se o banco ainda não as aceitar. */
 export const CODIGOS_ALEM: CodigoConquista[] = ["fiz_o_necessario", "nunca_deixei_pra_depois", "fui_alem", "milha_extra", "sempre_um_a_mais", "uma_a_mais"];
@@ -86,6 +91,10 @@ export const MARCOS_TECNICA: Array<[CodigoConquista, number]> = [["primeira_tecn
 /** Medalhas das técnicas (0043): gravadas à parte, como as “Além do necessário”. */
 export const CODIGOS_TECNICA: CodigoConquista[] = MARCOS_TECNICA.map(([c]) => c);
 
+/** Medalhas de fase (0044). Fase “completa” = pelo menos N treinos nela e o protocolo passou para outra fase. */
+export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "completou_adaptacao", "completou_intensificacao", "completou_consolidacao"];
+export const LIMITES_FASE = { minTreinos: 4 } as const;
+
 // Títulos e critérios curtos (gravados na conquista). Os textos educativos
 // completos ficam na biblioteca editorial (conteudo.ts).
 export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: string; repete: boolean }> = {
@@ -116,6 +125,10 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   tecnicas_5: { titulo: "Cinco técnicas", criterio: "Já ter feito pelo menos uma série de 5 técnicas avançadas diferentes.", repete: false },
   tecnicas_7: { titulo: "Sete técnicas", criterio: "Já ter feito pelo menos uma série de 7 técnicas avançadas diferentes.", repete: false },
   tecnicas_10: { titulo: "Dez técnicas", criterio: "Já ter feito pelo menos uma série de 10 técnicas avançadas diferentes.", repete: false },
+  chegou_intensificacao: { titulo: "Hora de intensificar", criterio: "Concluir o primeiro treino na fase de intensificação.", repete: false },
+  completou_adaptacao: { titulo: "Adaptação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de adaptação e passar para a próxima fase definida pelo personal.`, repete: false },
+  completou_intensificacao: { titulo: "Intensificação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de intensificação e passar para a próxima fase definida pelo personal.`, repete: false },
+  completou_consolidacao: { titulo: "Consolidação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de consolidação e começar um novo ciclo definido pelo personal.`, repete: false },
   mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
@@ -127,6 +140,35 @@ export const VERSAO_CRITERIO: Record<CodigoConquista, number> = Object.fromEntri
 export const REGRAS_CONQUISTAS = { diasRetomada: 14, registrosParaRecorde: 2, diasPrimeiroMes: 28, treinosPrimeiroMes: 4 };
 
 export type SerieConquista = { tipo: string; carga_kg: number | null; reps: number | null };
+
+const NOME_FASE: Record<string, string> = { adaptacao: "adaptação", intensificacao: "intensificação", consolidacao: "consolidação" };
+
+/** Medalhas de fase, em ordem de tempo (usa os treinos concluídos do app com fase registrada). */
+export function fasesConquistadas(sessoes: SessaoConquista[]): Array<{ codigo: CodigoConquista; data: string; sessaoId: string; texto: string }> {
+  const out: Array<{ codigo: CodigoConquista; data: string; sessaoId: string; texto: string }> = [];
+  const ja = new Set<CodigoConquista>();
+  const ordenadas = [...sessoes].filter((s) => s.conta_aderencia !== false && s.origem !== "importado" && s.status === "concluida" && s.fase).sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
+  let atual: string | null = null;
+  let treinos = 0;
+  for (const s of ordenadas) {
+    const f = s.fase!;
+    if (f === "intensificacao" && !ja.has("chegou_intensificacao")) {
+      ja.add("chegou_intensificacao");
+      out.push({ codigo: "chegou_intensificacao", data: s.iniciado_em, sessaoId: s.id, texto: "Primeiro treino na fase de intensificação." });
+    }
+    if (f !== atual) {
+      const codigo = atual ? (`completou_${atual}` as CodigoConquista) : null;
+      if (codigo && CODIGOS_FASE.includes(codigo) && treinos >= LIMITES_FASE.minTreinos && !ja.has(codigo)) {
+        ja.add(codigo);
+        out.push({ codigo, data: s.iniciado_em, sessaoId: s.id, texto: `Fase de ${NOME_FASE[atual!]} concluída: ${treinos} treinos nela.` });
+      }
+      atual = f;
+      treinos = 0;
+    }
+    treinos++;
+  }
+  return out;
+}
 
 /**
  * Técnicas avançadas já feitas (data da primeira vez de cada uma): conta o
@@ -155,6 +197,8 @@ export type SessaoConquista = SessaoAderencia & {
   exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null }>;
   /** "app" ou "importado" (histórico de outro app). */
   origem?: string | null;
+  /** Fase do protocolo no dia (snapshot da sessão). */
+  fase?: string | null;
 };
 
 export type ItemRecorde = { exercicio: string; tipo: "carga" | "reps"; antes: number; agora: number; carga?: number };
@@ -332,6 +376,9 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
       break;
     }
   }
+
+  // Fases do protocolo: chegou na intensificação; completou cada fase (N treinos nela e depois outra fase).
+  for (const f of fasesConquistadas(e.sessoes)) out.push(nova(f.codigo, "1", f.data, f.sessaoId, f.texto));
 
   // Técnicas avançadas: 1, 2, 3, 4, 5, 7, 10 e todas as técnicas diferentes.
   const tecnicas = tecnicasFeitas(e.sessoes);
