@@ -1,13 +1,13 @@
 "use client";
 
-// Caminho semana a semana da Jornada do Xalalá. Mesmos dados do componente
+// Caminho semana a semana da Jornada do Chalalá. Mesmos dados do componente
 // atual (CaminhoJornada), com um desenho que não depende só de cor: cada
 // estado tem um símbolo (✓ feita, ◐ parcial, ○ sem treino, ⏸ pausa, ↺ volta)
 // e cada fase tem um ícone (⛺ adaptação, 🔥 intensificação, 🏔 consolidação).
 import { useState } from "react";
 import type { CaminhoJornada, SemanaCaminho } from "@/lib/conquistas/jornada";
 import { FASES, FASE_INFO, ehFase } from "@/lib/treino/fases";
-import { FALAS_XALALA } from "@/lib/jornada-xalala/universo";
+import { FALAS_CHALALA } from "@/lib/jornada-chalala/universo";
 import { Personagem } from "./Personagens";
 
 const OURO = "#BA9E50";
@@ -23,7 +23,7 @@ const cor = (w: SemanaCaminho) => (w.fase && ehFase(w.fase) ? FASE_INFO[w.fase].
 const estado = (w: SemanaCaminho) => (w.status === "pausada" ? "pausa" : w.treinos > 0 ? (w.status === "parcial" ? "parcial" : "feita") : w.status === "em_andamento" ? "andamento" : "parada");
 const curta = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
-export function CaminhoXalala({ caminho }: { caminho: CaminhoJornada }) {
+export function CaminhoChalala({ caminho }: { caminho: CaminhoJornada }) {
   const [tudo, setTudo] = useState(false);
   const primeiro = caminho.semanas.findIndex((w) => w.treinos > 0);
   const todas = primeiro < 0 ? [] : caminho.semanas.slice(primeiro).filter((w) => w.status !== "sem_prescricao" || w.treinos > 0);
@@ -122,7 +122,7 @@ export function CaminhoXalala({ caminho }: { caminho: CaminhoJornada }) {
       {caminho.retornos ? (
         <div className="flex items-center gap-2 rounded-2xl border border-accent/30 bg-accent/10 p-2.5">
           <Personagem id="vira" tamanho={44} />
-          <p className="text-xs"><span className="font-bold">{FALAS_XALALA.retorno}</span> <span className="text-fg-muted">Você já voltou {caminho.retornos === 1 ? "1 vez" : `${caminho.retornos} vezes`}. Voltar faz parte do caminho.</span></p>
+          <p className="text-xs"><span className="font-bold">{FALAS_CHALALA.retorno}</span> <span className="text-fg-muted">Você já voltou {caminho.retornos === 1 ? "1 vez" : `${caminho.retornos} vezes`}. Voltar faz parte do caminho.</span></p>
         </div>
       ) : null}
     </section>

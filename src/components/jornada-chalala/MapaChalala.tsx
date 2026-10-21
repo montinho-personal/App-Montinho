@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================================
-// Mapa vertical de “A Jornada do Xalalá”: cinco regiões (cenários 2.5D em
+// Mapa vertical de “A Jornada do Chalalá”: cinco regiões (cenários 2.5D em
 // camadas), trilha sinuosa, medalhas do motor real, “Você está aqui”,
 // personagem-guia por capítulo e detalhes ambientais que acendem com o
 // progresso. O estado de cada medalha vem de `Jornada` (lib/conquistas):
@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
 import type { Jornada, NoJornada } from "@/lib/conquistas/jornada";
-import { CAPITULOS_XALALA, FALAS_XALALA, type CapituloXalala, type PersonagemXalala } from "@/lib/jornada-xalala/universo";
+import { CAPITULOS_CHALALA, FALAS_CHALALA, type CapituloChalala, type PersonagemChalala } from "@/lib/jornada-chalala/universo";
 import { Cenario2D } from "./Cenarios2D";
 import { Personagem } from "./Personagens";
 
@@ -20,7 +20,7 @@ const PASSO = 128;
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 const xDoNo = (i: number) => (i % 2 === 0 ? 118 : 242);
 /** Quem aparece em cada capítulo (um por tela). */
-const GUIA: Record<number, PersonagemXalala["id"]> = { 1: "montinho", 2: "tempo", 3: "pingo", 4: "vira", 5: "montinho" };
+const GUIA: Record<number, PersonagemChalala["id"]> = { 1: "montinho", 2: "tempo", 3: "pingo", 4: "vira", 5: "montinho" };
 
 type Props = {
   jornada: Jornada;
@@ -32,7 +32,7 @@ type Props = {
   semTreinos?: boolean;
 };
 
-export function MapaXalala({ jornada, movimento, revelar, onAbrir, semTreinos = false }: Props) {
+export function MapaChalala({ jornada, movimento, revelar, onAbrir, semTreinos = false }: Props) {
   const raiz = useRef<HTMLDivElement>(null);
   const aqui = useRef<HTMLDivElement>(null);
   const indice = useMemo(() => new Map(jornada.nos.map((n, i) => [n.id, i])), [jornada.nos]);
@@ -79,9 +79,9 @@ export function MapaXalala({ jornada, movimento, revelar, onAbrir, semTreinos = 
   const ultimoCap = Math.max(...jornada.capitulos.map((c) => c.numero));
 
   return (
-    <div ref={raiz} className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-3xl sm:border sm:border-border" aria-label="Mapa de A Jornada do Xalalá">
+    <div ref={raiz} className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-3xl sm:border sm:border-border" aria-label="Mapa de A Jornada do Chalalá">
       {jornada.capitulos.map((cap) => {
-        const cx = CAPITULOS_XALALA.find((c) => c.numero === cap.numero) ?? CAPITULOS_XALALA[0];
+        const cx = CAPITULOS_CHALALA.find((c) => c.numero === cap.numero) ?? CAPITULOS_CHALALA[0];
         const altura = TOPO + cap.nos.length * PASSO + 80;
         const pts = cap.nos.map((n, i) => ({ n, x: xDoNo(i), y: TOPO + i * PASSO + 60 }));
         const caminho = [`M180 0`, ...pts.map((p, i) => { const ant = i ? pts[i - 1] : { x: 180, y: 0 }; const meio = (ant.y + p.y) / 2; return `C${ant.x} ${meio} ${p.x} ${meio} ${p.x} ${p.y}`; }), `C${pts.at(-1)!.x} ${altura - 30} 180 ${altura - 40} 180 ${altura}`].join(" ");
@@ -96,13 +96,13 @@ export function MapaXalala({ jornada, movimento, revelar, onAbrir, semTreinos = 
             {/* Trilha */}
             <svg viewBox={`0 0 360 ${altura}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
               <defs>
-                <clipPath id={`xalala-ouro-${cap.numero}`}><rect x="0" y="0" width="360" height={yOuro} /></clipPath>
+                <clipPath id={`chalala-ouro-${cap.numero}`}><rect x="0" y="0" width="360" height={yOuro} /></clipPath>
               </defs>
               <path d={caminho} fill="none" stroke="#0d1013" strokeWidth="16" strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity="0.55" />
               <path d={caminho} fill="none" stroke="#3b3a36" strokeWidth="11" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
               <path d={caminho} fill="none" stroke="#6b665a" strokeWidth="2" strokeDasharray="3 11" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-              <path d={caminho} fill="none" stroke="#8a7232" strokeWidth="11" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#xalala-ouro-${cap.numero})`} />
-              <path d={caminho} fill="none" stroke="#e3cd8a" strokeWidth="4" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#xalala-ouro-${cap.numero})`} opacity="0.9" />
+              <path d={caminho} fill="none" stroke="#8a7232" strokeWidth="11" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#chalala-ouro-${cap.numero})`} />
+              <path d={caminho} fill="none" stroke="#e3cd8a" strokeWidth="4" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#chalala-ouro-${cap.numero})`} opacity="0.9" />
             </svg>
 
             <Abertura cap={cx} alcancados={cap.alcancados} total={cap.total} guia={GUIA[cap.numero] ?? "montinho"} semTreinos={cap.numero === 1 && semTreinos} />
@@ -123,7 +123,7 @@ export function MapaXalala({ jornada, movimento, revelar, onAbrir, semTreinos = 
   );
 }
 
-function Abertura({ cap, alcancados, total, guia, semTreinos }: { cap: CapituloXalala; alcancados: number; total: number; guia: PersonagemXalala["id"]; semTreinos: boolean }) {
+function Abertura({ cap, alcancados, total, guia, semTreinos }: { cap: CapituloChalala; alcancados: number; total: number; guia: PersonagemChalala["id"]; semTreinos: boolean }) {
   return (
     <div className="absolute inset-x-3 top-3 flex items-end gap-2">
       <div className="shrink-0 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)]"><Personagem id={guia} tamanho={64} /></div>
@@ -152,14 +152,14 @@ function No({ no, x, y, lado, revelado, onAbrir }: { no: NoJornada; x: number; y
   return (
     <div className="absolute" style={{ left: `${(x / 360) * 100}%`, top: y, transform: "translate(-50%, -50%)" }} data-no={no.id}>
       {revelado ? (
-        <div className="pointer-events-none absolute -top-24 left-1/2 z-20 w-44 -translate-x-1/2 xalala-fala">
+        <div className="pointer-events-none absolute -top-24 left-1/2 z-20 w-44 -translate-x-1/2 chalala-fala">
           <div className="flex items-end gap-1">
             <Personagem id="pingo" tamanho={44} />
-            <p className="rounded-2xl rounded-bl-sm border border-accent/60 bg-[#171B21]/95 px-2.5 py-1.5 text-[11px] font-semibold leading-snug">{FALAS_XALALA.recorde}</p>
+            <p className="rounded-2xl rounded-bl-sm border border-accent/60 bg-[#171B21]/95 px-2.5 py-1.5 text-[11px] font-semibold leading-snug">{FALAS_CHALALA.recorde}</p>
           </div>
         </div>
       ) : null}
-      <button type="button" onClick={onAbrir} aria-label={`${titulo}: ${no.alcancado ? "conquistado" : "ainda não"} — ${status}`} className={`relative block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${revelado ? "xalala-revelar" : ""}`}>
+      <button type="button" onClick={onAbrir} aria-label={`${titulo}: ${no.alcancado ? "conquistado" : "ainda não"} — ${status}`} className={`relative block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${revelado ? "chalala-revelar" : ""}`}>
         {no.alcancado ? <span className="absolute inset-0 -m-3 rounded-full bg-accent/30 blur-md" aria-hidden /> : null}
         {no.tipo === "medalha" && no.proxima ? <span className="absolute inset-0 -m-1.5 rounded-full border-2 border-accent/70 motion-safe:animate-pulse" aria-hidden /> : null}
         <span className="block drop-shadow-[0_6px_8px_rgba(0,0,0,0.55)]">

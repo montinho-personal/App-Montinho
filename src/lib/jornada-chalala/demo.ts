@@ -1,5 +1,5 @@
 // ============================================================================
-// Dados FICTÍCIOS do protótipo “A Jornada do Xalalá”.
+// Dados FICTÍCIOS do protótipo “A Jornada do Chalalá”.
 //
 // Nada aqui é inventado na apresentação: as sessões abaixo são fictícias, mas
 // passam pelo MOTOR REAL (aderência → conquistas → vitrine → jornada → caminho
@@ -64,7 +64,7 @@ function sessoesDemo(c: Cenario): SessaoConquista[] {
   });
 }
 
-export type DadosXalala = {
+export type DadosChalala = {
   nome: string;
   hoje: string;
   jornada: Jornada;
@@ -76,7 +76,7 @@ export type DadosXalala = {
 };
 
 /** Monta tudo com o motor real a partir das sessões fictícias. */
-export function dadosXalala(cenario: Cenario): DadosXalala {
+export function dadosChalala(cenario: Cenario): DadosChalala {
   const sessoes = sessoesDemo(cenario);
   const pausas = cenario === "retorno" ? [{ inicio: somar(INICIO, 76), fim: somar(INICIO, 89), tipo: "viagem" }] : [];
   const aderencia = calcularAderencia({ inicio: INICIO, hoje: HOJE_DEMO, metas: [{ desde: INICIO, meta: 3, origem: "personal" }], sessoes, pausas });

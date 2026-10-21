@@ -1,4 +1,4 @@
-# A Jornada do Xalalá — auditoria, direção criativa e protótipo
+# A Jornada do Chalalá — auditoria, direção criativa e protótipo
 
 Estado em 21/10/2026. Protótipo **para aprovação**, isolado da tela usada pelos alunos.
 
@@ -6,8 +6,8 @@ Estado em 21/10/2026. Protótipo **para aprovação**, isolado da tela usada pel
 
 ## Como abrir o protótipo
 
-- Rota: `/prototipo/jornada-xalala`.
-- Só existe com `NEXT_PUBLIC_JORNADA_XALALA_PROTOTIPO=true` (flag em `src/lib/env.ts#FEATURES.jornadaXalalaPrototipo`). Sem a flag, a rota responde 404. Ligada **apenas** no projeto de demonstração (`app-montinho-demo`); em produção fica desligada.
+- Rota: `/prototipo/jornada-chalala`.
+- Só existe com `NEXT_PUBLIC_JORNADA_CHALALA_PROTOTIPO=true` (flag em `src/lib/env.ts#FEATURES.jornadaChalalaPrototipo`). Sem a flag, a rota responde 404. Ligada **apenas** no projeto de demonstração (`app-montinho-demo`); em produção fica desligada.
 - Não precisa de login, não lê banco e não grava nada. A aluna “Joana” e o histórico são fictícios e identificados na tela.
 - Controles da demonstração: cenário (rotina regular / com pausa e retorno), movimento (automático / reduzido = versão estática), “Simular nova medalha”, abas Mapa · Minha História · Personagens.
 
@@ -17,7 +17,7 @@ Estado em 21/10/2026. Protótipo **para aprovação**, isolado da tela usada pel
 |---|---|---|
 | Motor de conquistas (32 medalhas + recorde e “Eu voltei”) | `src/lib/conquistas/regras.ts`, `criterios.ts` | Preservado. O protótipo só consome. |
 | Vitrine (estado, progresso, “o que falta”) | `src/lib/conquistas/vitrine.ts` | Preservado. |
-| Capítulos, posição, ciclos, linha do tempo, caminho semanal | `src/lib/conquistas/jornada.ts` (`CAPITULO_DA_MEDALHA`, `montarJornada`, `linhaDoTempo`, `caminhoDaJornada`) | Preservado. Os cinco capítulos do Xalalá mapeiam 1:1 nos cinco capítulos existentes. |
+| Capítulos, posição, ciclos, linha do tempo, caminho semanal | `src/lib/conquistas/jornada.ts` (`CAPITULO_DA_MEDALHA`, `montarJornada`, `linhaDoTempo`, `caminhoDaJornada`) | Preservado. Os cinco capítulos do Chalalá mapeiam 1:1 nos cinco capítulos existentes. |
 | Fases do protocolo (adaptação, intensificação, consolidação) | `src/lib/treino/fases.ts`, `programas.fase`, `snapshot.fase` | Preservado; o caminho semanal usa a cor e o ícone da fase. |
 | Dados da tela | `src/lib/data/conquistas.ts#dadosDaJornada` | Preservado. A integração definitiva troca só o componente de apresentação. |
 | Tela atual | `src/components/jornada/JornadaClient.tsx`, `Cenario.tsx`, `CaminhoSemanas.tsx` | Intocada. |
@@ -32,22 +32,22 @@ Restrições técnicas encontradas: o `proxy.ts` exige login fora de uma lista d
 ### Universo
 Montanhas, trilhas, florestas, pontes, mirantes e horizontes. Começa num pequeno monte (o “Montinho”) e abre paisagens cada vez mais amplas. Não é vencer a montanha: é descobrir novos caminhos.
 
-### Capítulos (`src/lib/jornada-xalala/universo.ts`)
+### Capítulos (`src/lib/jornada-chalala/universo.ts`)
 1. **Bora começar!** — Bosque dos Primeiros Passos (amanhecer, tenda, fogueira, vaga-lumes).
 2. **Um passo de cada vez** — Ponte da Constância (vale, rio, ponte de madeira com lanternas; a ponte nunca quebra).
 3. **Olha até onde você chegou!** — Mirante das Conquistas (deque elevado, bandeira, nuvens abaixo, o caminho percorrido lá embaixo).
 4. **A vida acontece. A gente continua.** — Montanhas da Vida Real (neve, frente de chuva suave, trilhas alternativas, abrigo de descanso).
-5. **O Xalalá continua!** — Horizonte das Novas Aventuras (sol baixo dourado, caminhos que se abrem, bandeiras; marcos de 6 meses, 1 ano…).
+5. **O Chalalá continua!** — Horizonte das Novas Aventuras (sol baixo dourado, caminhos que se abrem, bandeiras; marcos de 6 meses, 1 ano…).
 
 Capítulos são narrativa, não bloqueio (regra já existente). O caminho dourado segue a posição real do motor (`jornada.posicao`), sem sugerir medalhas não conquistadas.
 
 ### Direção de arte (2.5D)
 - Quatro camadas por região — céu/luz, longe, meio, perto — ancoradas em alturas diferentes e com deslocamento diferente ao rolar (`--p`, calculado por `requestAnimationFrame`). Com movimento reduzido, nada se mexe.
-- Vetores originais (`src/components/jornada-xalala/Cenarios2D.tsx`): montanhas estilizadas com neve, névoa com desfoque, água com reflexos, lanternas que acendem, tenda e fogueira, vegetação sem excesso.
+- Vetores originais (`src/components/jornada-chalala/Cenarios2D.tsx`): montanhas estilizadas com neve, névoa com desfoque, água com reflexos, lanternas que acendem, tenda e fogueira, vegetação sem excesso.
 - Paleta: grafite `#171B21`, dourado `#BA9E50` (progresso e pontos de interesse), verde floresta `#436657`, azul montanha `#54768A`, terracota `#C18B61`. DM Sans.
 - Estados nunca só por cor: medalha conquistada tem anel dourado + data; aberta tem progresso em arco + “n/alvo”; no caminho semanal cada estado tem símbolo (número, ◐, ○, ⏸, ↺) e cada fase tem ícone.
 
-### Personagens (`src/components/jornada-xalala/Personagens.tsx`, propostas conceituais)
+### Personagens (`src/components/jornada-chalala/Personagens.tsx`, propostas conceituais)
 - **Montinho — o Guia**: silhueta provisória de guia de trilha com o halter “M” no peito, sem rosto. A aparência real só entra com referência aprovada. Aparece na abertura dos capítulos 1 e 5 e no diário.
 - **Pingo — o Explorador**: companheiro redondo com cachecol e lanterna. Aparece na “próxima conquista” e na revelação de medalha.
 - **Tempo — o Guardião do Ritmo**: tartaruga exploradora com mochila e bússola. Aparece nas fases e no capítulo 2.
@@ -55,7 +55,7 @@ Capítulos são narrativa, não bloqueio (regra já existente). O caminho dourad
 - Regra: no máximo um personagem por tela; o aluno é o protagonista.
 
 ### Interações
-- Medalha: toque abre o detalhe (mesmo `DetalheMedalha` do app). Revelação com `xalala-revelar` + balão do Pingo (“Olha só! Mais uma conquista pra sua história!”).
+- Medalha: toque abre o detalhe (mesmo `DetalheMedalha` do app). Revelação com `chalala-revelar` + balão do Pingo (“Olha só! Mais uma conquista pra sua história!”).
 - Retorno: selo “↺ voltei” no caminho semanal + mensagem do Vira (“Que bom te ver por aqui! Seu caminho estava esperando por você.”).
 - Pausa combinada: ⏸ e trecho pontilhado, sem cor de erro.
 - Ambiente: lanternas, vaga-lumes, nuvens, água e bandeiras com animação discreta; tudo desligado em `prefers-reduced-motion` ou pelo controle “Reduzido”.
@@ -74,7 +74,7 @@ Mesmas regras editoriais já testadas (sem prazo de hábito, sem culpa, sem prom
 - Performance: SVG inline, sem bibliotecas; animações em CSS; parallax via `transform` com `requestAnimationFrame`.
 
 ## Etapa E/F — Aprovação e integração (só com autorização)
-1. Trocar o componente em `/aluno/jornada` por `JornadaXalalaClient` alimentado por `dadosDaJornada` (mesmos dados), mantendo abas do aluno e “Entendi” da introdução.
+1. Trocar o componente em `/aluno/jornada` por `JornadaChalalaClient` alimentado por `dadosDaJornada` (mesmos dados), mantendo abas do aluno e “Entendi” da introdução.
 2. Mensagens de interação ligadas aos eventos reais (medalha nova = `conquista.vista_em` nulo; retorno = `eu_voltei`).
 3. Página do personal (`/treinador/alunos/[id]/jornada`) recebe a mesma tela em modo treinador.
 4. Remover a flag e a rota de protótipo.

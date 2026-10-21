@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================================
-// Protótipo navegável de “A Jornada do Xalalá” (aprovação). Dados FICTÍCIOS,
+// Protótipo navegável de “A Jornada do Chalalá” (aprovação). Dados FICTÍCIOS,
 // identificados na tela. Controles da demonstração: cenário (rotina regular /
 // com pausa e retorno), movimento (automático / reduzido = versão estática),
 // simular nova medalha e as abas Mapa · Minha História · Personagens.
@@ -11,10 +11,10 @@ import { useEffect, useMemo, useState } from "react";
 import { DetalheMedalha } from "@/components/conquistas/DetalheMedalha";
 import { CONTEUDO } from "@/lib/conquistas/conteudo";
 import type { NoJornada } from "@/lib/conquistas/jornada";
-import type { DadosXalala } from "@/lib/jornada-xalala/demo";
-import { CAPITULOS_XALALA, FALAS_XALALA, PALETA_XALALA, PERSONAGENS_XALALA } from "@/lib/jornada-xalala/universo";
-import { CaminhoXalala } from "./CaminhoXalala";
-import { MapaXalala, useMovimentoPermitido } from "./MapaXalala";
+import type { DadosChalala } from "@/lib/jornada-chalala/demo";
+import { CAPITULOS_CHALALA, FALAS_CHALALA, PALETA_CHALALA, PERSONAGENS_CHALALA } from "@/lib/jornada-chalala/universo";
+import { CaminhoChalala } from "./CaminhoChalala";
+import { MapaChalala, useMovimentoPermitido } from "./MapaChalala";
 import { MinhaHistoria } from "./MinhaHistoria";
 import { Personagem } from "./Personagens";
 
@@ -22,7 +22,7 @@ type Cenario = "completo" | "retorno";
 type Aba = "mapa" | "historia" | "personagens";
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
-export function JornadaXalalaClient({ dados }: { dados: Record<Cenario, DadosXalala> }) {
+export function JornadaChalalaClient({ dados }: { dados: Record<Cenario, DadosChalala> }) {
   const [cenario, setCenario] = useState<Cenario>("completo");
   const [aba, setAba] = useState<Aba>("mapa");
   const [forcarReduzido, setForcarReduzido] = useState(false);
@@ -54,8 +54,8 @@ export function JornadaXalalaClient({ dados }: { dados: Record<Cenario, DadosXal
       <header className="space-y-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent">Montinho Personal Trainer</p>
-          <h1 className="text-3xl font-black leading-none">A Jornada do Xalalá</h1>
-          <p className="mt-1 text-sm italic text-fg-muted">“{FALAS_XALALA.lema}”</p>
+          <h1 className="text-3xl font-black leading-none">A Jornada do Chalalá</h1>
+          <p className="mt-1 text-sm italic text-fg-muted">“{FALAS_CHALALA.lema}”</p>
         </div>
         <dl className="grid grid-cols-3 gap-2 text-center">
           {[
@@ -120,8 +120,8 @@ export function JornadaXalalaClient({ dados }: { dados: Record<Cenario, DadosXal
               </div>
             </section>
           ) : null}
-          {d.jornada.caminho ? <CaminhoXalala caminho={d.jornada.caminho} /> : null}
-          <MapaXalala jornada={d.jornada} movimento={movimento} revelar={revelar} onAbrir={setAberto} />
+          {d.jornada.caminho ? <CaminhoChalala caminho={d.jornada.caminho} /> : null}
+          <MapaChalala jornada={d.jornada} movimento={movimento} revelar={revelar} onAbrir={setAberto} />
           <p className="text-center text-[11px] text-fg-subtle">Os capítulos organizam a história; nenhuma medalha depende de outra. Cada uma sai seguindo o seu plano, sem treinar além do prescrito.</p>
         </>
       ) : aba === "historia" ? (
@@ -132,7 +132,7 @@ export function JornadaXalalaClient({ dados }: { dados: Record<Cenario, DadosXal
 
       {aberto ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={() => setAberto(null)}>
-          <div role="dialog" aria-modal="true" aria-label="Detalhe do marco" className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-bg p-3 xalala-fala sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label="Detalhe do marco" className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-bg p-3 chalala-fala sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
             {aberto.tipo === "medalha" ? (
               <DetalheMedalha m={aberto.medalha} onFechar={() => setAberto(null)} rotuloEntender="Entenda a ciência dessa conquista" rotuloCard="Compartilhar conquista" />
             ) : (
@@ -176,7 +176,7 @@ function Personagens() {
         <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Direção de arte</p>
         <p className="mt-1 text-sm text-fg-muted">Ilustração 2.5D em camadas (céu, longe, meio, perto) com parallax leve ao rolar; montanhas estilizadas, luz suave e dourado só para progresso e pontos de interesse. Tipografia DM Sans.</p>
         <ul className="mt-3 grid grid-cols-5 gap-1.5">
-          {Object.entries(PALETA_XALALA).map(([nome, cor]) => (
+          {Object.entries(PALETA_CHALALA).map(([nome, cor]) => (
             <li key={nome} className="text-center text-[10px] text-fg-muted">
               <span className="block h-9 rounded-xl border border-white/10" style={{ background: cor }} aria-hidden />
               {nome}
@@ -184,13 +184,13 @@ function Personagens() {
           ))}
         </ul>
         <ol className="mt-3 space-y-1 text-xs text-fg-muted">
-          {CAPITULOS_XALALA.map((c) => (
+          {CAPITULOS_CHALALA.map((c) => (
             <li key={c.numero}><span className="font-bold text-fg">{c.numero}. {c.titulo}</span> · {c.lugar} · <span className="italic">{c.sensacao}</span></li>
           ))}
         </ol>
       </section>
       <p className="text-xs text-fg-muted">Propostas conceituais para aprovação. O aluno continua sendo o protagonista: no máximo um personagem por tela.</p>
-      {PERSONAGENS_XALALA.map((p) => (
+      {PERSONAGENS_CHALALA.map((p) => (
         <section key={p.id} className="flex gap-3 rounded-3xl border border-border bg-[#171B21] p-4" aria-label={p.nome}>
           <div className="shrink-0 drop-shadow-[0_8px_12px_rgba(0,0,0,0.5)]"><Personagem id={p.id} tamanho={88} /></div>
           <div className="min-w-0 space-y-1 text-xs">

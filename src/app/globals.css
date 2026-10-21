@@ -214,59 +214,59 @@
 }
 
 /* ---------------------------------------------------------------------------
-   A Jornada do Xalalá (protótipo): animações discretas. Tudo via motion-safe
+   A Jornada do Chalalá (protótipo): animações discretas. Tudo via motion-safe
    ou desligado pelo atributo data-movimento="reduzido" no contêiner.
    --------------------------------------------------------------------------- */
-@keyframes xalala-revelar {
+@keyframes chalala-revelar {
   0% { transform: scale(0.3) rotate(-20deg); opacity: 0; filter: drop-shadow(0 0 0 #ba9e50); }
   60% { transform: scale(1.15) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 18px #ba9e50); }
   100% { transform: scale(1) rotate(0); opacity: 1; filter: drop-shadow(0 0 6px rgba(186, 158, 80, 0.6)); }
 }
-@keyframes xalala-lanterna {
+@keyframes chalala-lanterna {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
-@keyframes xalala-vagalume {
+@keyframes chalala-vagalume {
   0%, 100% { opacity: 0; transform: translate(0, 0); }
   50% { opacity: 0.9; transform: translate(3px, -6px); }
 }
-@keyframes xalala-nuvem {
+@keyframes chalala-nuvem {
   from { transform: translateX(-12px); }
   to { transform: translateX(12px); }
 }
-@keyframes xalala-voar {
+@keyframes chalala-voar {
   0% { transform: translate(-30px, 10px); }
   50% { transform: translate(40px, -14px); }
   100% { transform: translate(110px, -4px); }
 }
-@keyframes xalala-agua {
+@keyframes chalala-agua {
   0%, 100% { opacity: 0.35; transform: translateX(0); }
   50% { opacity: 0.7; transform: translateX(6px); }
 }
-@keyframes xalala-balanco {
+@keyframes chalala-balanco {
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
 }
-@keyframes xalala-fala {
+@keyframes chalala-fala {
   from { transform: translateY(8px) scale(0.96); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
-.xalala-lanterna { animation: xalala-lanterna 2.8s ease-in-out infinite; }
-.xalala-vagalume { animation: xalala-vagalume 4s ease-in-out infinite; }
-.xalala-nuvem { animation: xalala-nuvem 14s ease-in-out infinite alternate; }
-.xalala-voar { animation: xalala-voar 12s ease-in-out infinite alternate; }
-.xalala-agua { animation: xalala-agua 3.5s ease-in-out infinite; }
-.xalala-balanco { animation: xalala-balanco 4s ease-in-out infinite; transform-origin: 50% 100%; }
-.xalala-fala { animation: xalala-fala 260ms ease-out; }
-.xalala-revelar { animation: xalala-revelar 900ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
-[data-movimento="reduzido"] .xalala-lanterna,
-[data-movimento="reduzido"] .xalala-vagalume,
-[data-movimento="reduzido"] .xalala-nuvem,
-[data-movimento="reduzido"] .xalala-voar,
-[data-movimento="reduzido"] .xalala-agua,
-[data-movimento="reduzido"] .xalala-balanco,
-[data-movimento="reduzido"] .xalala-fala,
-[data-movimento="reduzido"] .xalala-revelar { animation: none; }
+.chalala-lanterna { animation: chalala-lanterna 2.8s ease-in-out infinite; }
+.chalala-vagalume { animation: chalala-vagalume 4s ease-in-out infinite; }
+.chalala-nuvem { animation: chalala-nuvem 14s ease-in-out infinite alternate; }
+.chalala-voar { animation: chalala-voar 12s ease-in-out infinite alternate; }
+.chalala-agua { animation: chalala-agua 3.5s ease-in-out infinite; }
+.chalala-balanco { animation: chalala-balanco 4s ease-in-out infinite; transform-origin: 50% 100%; }
+.chalala-fala { animation: chalala-fala 260ms ease-out; }
+.chalala-revelar { animation: chalala-revelar 900ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+[data-movimento="reduzido"] .chalala-lanterna,
+[data-movimento="reduzido"] .chalala-vagalume,
+[data-movimento="reduzido"] .chalala-nuvem,
+[data-movimento="reduzido"] .chalala-voar,
+[data-movimento="reduzido"] .chalala-agua,
+[data-movimento="reduzido"] .chalala-balanco,
+[data-movimento="reduzido"] .chalala-fala,
+[data-movimento="reduzido"] .chalala-revelar { animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  .xalala-lanterna, .xalala-vagalume, .xalala-nuvem, .xalala-voar, .xalala-agua, .xalala-balanco, .xalala-fala, .xalala-revelar { animation: none; }
+  .chalala-lanterna, .chalala-vagalume, .chalala-nuvem, .chalala-voar, .chalala-agua, .chalala-balanco, .chalala-fala, .chalala-revelar { animation: none; }
 }

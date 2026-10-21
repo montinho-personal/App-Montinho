@@ -1,12 +1,12 @@
 // ============================================================================
-// Personagens de “A Jornada do Xalalá” — PROPOSTAS CONCEITUAIS em SVG original.
+// Personagens de “A Jornada do Chalalá” — PROPOSTAS CONCEITUAIS em SVG original.
 // Montinho (o Guia) é uma representação simbólica provisória: silhueta de
 // guia de trilha com o halter “M” da marca; a aparência real só entra com
 // referência aprovada. Pingo, Tempo e Vira são companheiros de aventura, com
 // proporção de mascote adulto (nada de brinquedo). Um por tela, no máximo.
 // ============================================================================
 
-import type { PersonagemXalala } from "@/lib/jornada-xalala/universo";
+import type { PersonagemChalala } from "@/lib/jornada-chalala/universo";
 
 const OURO = "#BA9E50";
 const OURO_CLARO = "#E3CD8A";
@@ -58,8 +58,8 @@ export function Pingo({ tamanho = 80 }: { tamanho?: number }) {
       <g transform="translate(84 58)">
         <line x1="0" y1="0" x2="-8" y2="-6" stroke="#5a4328" strokeWidth="2.5" />
         <rect x="-5" y="-2" width="10" height="12" rx="2" fill="#2a2420" stroke="#5a4a30" strokeWidth="1.2" />
-        <rect x="-3" y="0" width="6" height="8" rx="1" fill={OURO_CLARO} className="xalala-lanterna" />
-        <circle cx="0" cy="4" r="12" fill={OURO} opacity="0.18" className="xalala-lanterna" />
+        <rect x="-3" y="0" width="6" height="8" rx="1" fill={OURO_CLARO} className="chalala-lanterna" />
+        <circle cx="0" cy="4" r="12" fill={OURO} opacity="0.18" className="chalala-lanterna" />
       </g>
     </svg>
   );
@@ -104,7 +104,7 @@ export function Vira({ tamanho = 80 }: { tamanho?: number }) {
   );
 }
 
-export function Personagem({ id, tamanho }: { id: PersonagemXalala["id"]; tamanho?: number }) {
+export function Personagem({ id, tamanho }: { id: PersonagemChalala["id"]; tamanho?: number }) {
   if (id === "montinho") return <Montinho tamanho={tamanho} />;
   if (id === "pingo") return <Pingo tamanho={tamanho} />;
   if (id === "tempo") return <Tempo tamanho={tamanho} />;

@@ -36,8 +36,8 @@ export const FEATURES = {
   iaMemoria: process.env.AI_PROVIDER === "anthropic" && Boolean(process.env.ANTHROPIC_API_KEY),
   /** Estimativa de estímulo secundário ligada por padrão na Tabela de Volume. */
   secundarioPadrao: process.env.NEXT_PUBLIC_VOLUME_SECUNDARIO_PADRAO === "true",
-  /** Protótipo “A Jornada do Xalalá” (rota /prototipo/jornada-xalala, dados fictícios). Desligado por padrão. */
-  jornadaXalalaPrototipo: process.env.NEXT_PUBLIC_JORNADA_XALALA_PROTOTIPO === "true",
+  /** Protótipo “A Jornada do Chalalá” (rota /prototipo/jornada-chalala, dados fictícios). Desligado por padrão. */
+  jornadaChalalaPrototipo: process.env.NEXT_PUBLIC_JORNADA_CHALALA_PROTOTIPO === "true",
 } as const;
 
 /** Nome do cookie que guarda a identidade escolhida no modo demo. */

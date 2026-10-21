@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================================
-// Cenários 2.5D de “A Jornada do Xalalá” (SVG em camadas, decorativo).
+// Cenários 2.5D de “A Jornada do Chalalá” (SVG em camadas, decorativo).
 //
 // Cada região tem 4 camadas: céu/luz → longe → meio → perto. As camadas
 // recebem deslocamentos diferentes pela variável CSS --p (progresso da seção
@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { createContext, useContext } from "react";
-import type { RegiaoXalala } from "@/lib/jornada-xalala/universo";
+import type { RegiaoChalala } from "@/lib/jornada-chalala/universo";
 
 /** Altura real da seção (px no viewBox). A cena foi desenhada em 360×800: o
  *  longe fica ancorado no topo, o meio no centro e o perto no chão. */
@@ -85,12 +85,12 @@ function Montanha({ pontos, cor, neve = false, x = 0, y = 0 }: { pontos: string;
 }
 
 function Nevoa({ y, largura = 360, opacidade = 0.25, cor = "#cfd8dc" }: { y: number; largura?: number; opacidade?: number; cor?: string }) {
-  return <ellipse cx={largura / 2} cy={y} rx={largura * 0.7} ry="16" fill={cor} opacity={opacidade} filter="url(#xalala-borrao)" />;
+  return <ellipse cx={largura / 2} cy={y} rx={largura * 0.7} ry="16" fill={cor} opacity={opacidade} filter="url(#chalala-borrao)" />;
 }
 
 function Nuvem({ x, y, s = 1, cor = "#9fb3c1", opacidade = 0.35 }: { x: number; y: number; s?: number; cor?: string; opacidade?: number }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={opacidade} className="xalala-nuvem">
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={opacidade} className="chalala-nuvem">
       <ellipse cx="0" cy="0" rx="26" ry="9" fill={cor} />
       <ellipse cx="-12" cy="-4" rx="12" ry="8" fill={cor} />
       <ellipse cx="10" cy="-5" rx="14" ry="9" fill={cor} />
@@ -118,8 +118,8 @@ function Lanterna({ x, y, acesa = true, s = 1 }: { x: number; y: number; acesa?:
       <path d="M-8 -14 L0 -22 L8 -14 Z" fill="#5a4a30" />
       {acesa ? (
         <>
-          <rect x="-4" y="-11" width="8" height="10" rx="1" fill={OURO_CLARO} className="xalala-lanterna" />
-          <circle cx="0" cy="-6" r="22" fill={OURO} opacity="0.14" className="xalala-lanterna" />
+          <rect x="-4" y="-11" width="8" height="10" rx="1" fill={OURO_CLARO} className="chalala-lanterna" />
+          <circle cx="0" cy="-6" r="22" fill={OURO} opacity="0.14" className="chalala-lanterna" />
         </>
       ) : (
         <rect x="-4" y="-11" width="8" height="10" rx="1" fill="#1b1b1b" />
@@ -132,7 +132,7 @@ function Bandeira({ x, y, cor = OURO, s = 1 }: { x: number; y: number; cor?: str
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
       <line x1="0" y1="0" x2="0" y2="-34" stroke="#d9d9d9" strokeWidth="2" />
-      <path d="M0 -34 L18 -29 L0 -23 Z" fill={cor} className="xalala-balanco" />
+      <path d="M0 -34 L18 -29 L0 -23 Z" fill={cor} className="chalala-balanco" />
     </g>
   );
 }
@@ -143,9 +143,9 @@ function Tenda({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
       <path d="M-30 20 L0 -22 L30 20 Z" fill="#C18B61" />
       <path d="M0 -22 L30 20 H0 Z" fill="#000" opacity="0.18" />
       <path d="M-9 20 L0 2 L9 20 Z" fill="#3a2a1a" />
-      <path d="M-9 20 L0 2 L3 20 Z" fill={OURO} opacity="0.35" className="xalala-lanterna" />
-      <circle cx="46" cy="18" r="14" fill={OURO} opacity="0.16" className="xalala-lanterna" />
-      <path d="M40 20 L44 10 L48 16 L52 8 L54 20 Z" fill="#e0a052" className="xalala-lanterna" />
+      <path d="M-9 20 L0 2 L3 20 Z" fill={OURO} opacity="0.35" className="chalala-lanterna" />
+      <circle cx="46" cy="18" r="14" fill={OURO} opacity="0.16" className="chalala-lanterna" />
+      <path d="M40 20 L44 10 L48 16 L52 8 L54 20 Z" fill="#e0a052" className="chalala-lanterna" />
       <ellipse cx="46" cy="22" rx="10" ry="3" fill="#2c3238" />
     </g>
   );
@@ -155,7 +155,7 @@ function Vagalumes({ n = 6, semente = 3 }: { n?: number; semente?: number }) {
   return (
     <g>
       {Array.from({ length: n }, (_, i) => (
-        <circle key={i} cx={((i * 83 + semente * 19) % 320) + 20} cy={((i * 61 + semente * 23) % 300) + 300} r="1.8" fill={OURO_CLARO} className="xalala-vagalume" style={{ animationDelay: `${(i * 0.7) % 4}s` }} />
+        <circle key={i} cx={((i * 83 + semente * 19) % 320) + 20} cy={((i * 61 + semente * 23) % 300) + 300} r="1.8" fill={OURO_CLARO} className="chalala-vagalume" style={{ animationDelay: `${(i * 0.7) % 4}s` }} />
       ))}
     </g>
   );
@@ -166,7 +166,7 @@ function Agua({ y, altura = 60, cor = "#2b4656" }: { y: number; altura?: number;
     <g>
       <rect x="0" y={y} width="360" height={altura} fill={cor} />
       {[0, 1, 2, 3].map((i) => (
-        <path key={i} d={`M${20 + i * 90} ${y + 14 + i * 9} q 14 -4 28 0 t 28 0`} fill="none" stroke="#cfe3ee" strokeWidth="1.5" strokeLinecap="round" className="xalala-agua" style={{ animationDelay: `${i * 0.8}s` }} />
+        <path key={i} d={`M${20 + i * 90} ${y + 14 + i * 9} q 14 -4 28 0 t 28 0`} fill="none" stroke="#cfe3ee" strokeWidth="1.5" strokeLinecap="round" className="chalala-agua" style={{ animationDelay: `${i * 0.8}s` }} />
       ))}
     </g>
   );
@@ -365,7 +365,7 @@ function Horizonte() {
   );
 }
 
-const CEU: Record<RegiaoXalala, [string, string]> = {
+const CEU: Record<RegiaoChalala, [string, string]> = {
   bosque: ["#2a2622", "#171B21"],
   ponte: ["#1b2a36", "#171B21"],
   mirante: ["#2c3a46", "#171B21"],
@@ -377,26 +377,26 @@ const CEU: Record<RegiaoXalala, [string, string]> = {
  * Cenário de uma região. `atenuado` = região ainda não alcançada (dessaturada
  * e mais escura, sem apagar a paisagem). Preenche o contêiner (slice).
  */
-export function Cenario2D({ regiao, atenuado = false, altura = 800 }: { regiao: RegiaoXalala; atenuado?: boolean; altura?: number }) {
+export function Cenario2D({ regiao, atenuado = false, altura = 800 }: { regiao: RegiaoChalala; atenuado?: boolean; altura?: number }) {
   const [c1, c2] = CEU[regiao];
   return (
     <svg viewBox={`0 0 360 ${altura}`} preserveAspectRatio="xMidYMid slice" aria-hidden className={`absolute inset-0 h-full w-full transition-[filter,opacity] duration-700 motion-reduce:transition-none ${atenuado ? "opacity-70 [filter:saturate(0.45)_brightness(0.75)]" : ""}`}>
       <defs>
-        <linearGradient id={`xalala-ceu-${regiao}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`chalala-ceu-${regiao}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={c1} />
           <stop offset="0.6" stopColor={c2} />
         </linearGradient>
-        <filter id="xalala-borrao" x="-20%" y="-50%" width="140%" height="200%">
+        <filter id="chalala-borrao" x="-20%" y="-50%" width="140%" height="200%">
           <feGaussianBlur stdDeviation="8" />
         </filter>
-        <linearGradient id="xalala-vinheta" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="chalala-vinheta" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0.92" stopColor="#171B21" stopOpacity="0" />
           <stop offset="1" stopColor="#171B21" stopOpacity="0.9" />
         </linearGradient>
       </defs>
-      <rect width="360" height={altura} fill={`url(#xalala-ceu-${regiao})`} />
+      <rect width="360" height={altura} fill={`url(#chalala-ceu-${regiao})`} />
       <AlturaCtx.Provider value={altura}>{regiao === "bosque" ? <Bosque /> : regiao === "ponte" ? <Ponte /> : regiao === "mirante" ? <Mirante /> : regiao === "montanhas" ? <Montanhas /> : <Horizonte />}</AlturaCtx.Provider>
-      <rect width="360" height={altura} fill="url(#xalala-vinheta)" />
+      <rect width="360" height={altura} fill="url(#chalala-vinheta)" />
     </svg>
   );
 }
