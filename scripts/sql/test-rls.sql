@@ -764,4 +764,139 @@ begin
   raise notice 'T24f OK: treinador ainda ajusta nome';
 end $$;
 select test_logout();
+-- T25 — 0036: Chalalá no celular — preferências, fila, pós-treino, Bom Dia, testes, métricas
+do $$
+begin
+  if not em_silencio('23:00', '22:00', '05:00') or not em_silencio('04:59', '22:00', '05:00') or em_silencio('05:00', '22:00', '05:00') or em_silencio('12:00', '22:00', '05:00') then raise exception 'T25a: silêncio atravessando a meia-noite'; end if;
+  if not em_silencio('13:30', '13:00', '14:00') or em_silencio('14:00', '13:00', '14:00') or em_silencio('10:00', '08:00', '08:00') then raise exception 'T25a: silêncio no mesmo dia'; end if;
+  -- 2026-10-19 é segunda; 2026-10-24 é sábado
+  if not bom_dia_devido('2026-10-19 05:35', '05:30', '22:00', '05:00') then raise exception 'T25b: bom dia na janela'; end if;
+  if bom_dia_devido('2026-10-19 05:25', '05:30', '22:00', '05:00') or bom_dia_devido('2026-10-19 06:16', '05:30', '22:00', '05:00') then raise exception 'T25b: bom dia fora da janela'; end if;
+  if bom_dia_devido('2026-10-24 07:05', '07:00', '22:00', '05:00') then raise exception 'T25b: bom dia no sábado'; end if;
+  if bom_dia_devido('2026-10-19 05:35', '05:30', '22:00', '06:00') then raise exception 'T25b: bom dia dentro do silêncio'; end if;
+  raise notice 'T25a/b OK: silêncio e janela do Bom Dia (dias úteis, 45 min, nunca no silêncio)';
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+select push_registrar('https://push.exemplo.com/aparelho-da-aluna-a-0002', 'p256dh-a2', 'auth-a2', 'teste');
+select push_registrar('https://push.exemplo.com/aparelho-da-aluna-a-0003', 'p256dh-a3', 'auth-a3', 'teste');
+insert into notificacao_preferencias (profile_id, bom_dia, bom_dia_hora) values ('22222222-2222-2222-2222-222222222222', true, '05:30');
+do $$
+declare ok boolean := false; n int; tid uuid;
+begin
+  begin insert into notificacao_preferencias (profile_id) values ('33333333-3333-3333-3333-333333333333'); exception when others then ok := true; end;
+  if not ok then raise exception 'T25c: aluno gravou preferência de outro'; end if;
+  ok := false;
+  begin insert into notificacoes_envios (profile_id, categoria, dedupe, agendada_para, expira_em) values (auth.uid(), 'bom_dia', 'forjado', now(), now()); exception when others then ok := true; end;
+  if not ok then raise exception 'T25c: aluno gravou direto na fila'; end if;
+  update notificacao_config set chalala_ativo = true; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T25c: aluno ligou a chave geral'; end if;
+  ok := false;
+  begin perform * from chalala_notificacoes_devidas('chave-teste'); exception when others then ok := true; end;
+  if not ok then raise exception 'T25c: aluno chamou o agendador'; end if;
+  ok := false;
+  begin perform chalala_metricas_push(now() - interval '30 days'); exception when others then ok := true; end;
+  if not ok then raise exception 'T25c: aluno leu métricas do painel'; end if;
+  tid := notificacao_teste_criar();
+  perform notificacao_teste_resultado(tid, 'Teste', 'Corpo', '/aluno', 2, 0);
+  if (select status from notificacoes_envios where id = tid) <> 'enviada' then raise exception 'T25d: teste não registrado como enviado'; end if;
+  ok := false;
+  begin perform notificacao_teste_criar(); exception when others then ok := true; end;
+  if not ok then raise exception 'T25d: testes sem intervalo mínimo'; end if;
+  raise notice 'T25c/d OK: preferência e fila isoladas, chave geral só do treinador, teste com limite';
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from notificacao_preferencias;
+  if n <> 0 then raise exception 'T25e: aluno B viu preferência da aluna A'; end if;
+  select count(*) into n from notificacoes_envios;
+  if n <> 0 then raise exception 'T25e: aluno B viu notificações da aluna A'; end if;
+  perform notificacao_aberta((select id from notificacoes_envios limit 1));
+  raise notice 'T25e OK: aluno B não vê nada da aluna A';
+end $$;
+select test_logout();
+-- treino concluído agora → pós-treino para daqui a 90 min (só para quem tem aparelho)
+insert into training_sessions (id, aluno_id, treino_id, client_key, letra, nome_treino, iniciado_em, series_planejadas)
+values ('99999999-0000-0000-0000-0000000025a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 't25-a1', 'A', 'Treino A', now() - interval '1 hour', 10),
+       ('99999999-0000-0000-0000-0000000025a2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 't25-a2', 'A', 'Treino A', now() - interval '1 hour', 10),
+       ('99999999-0000-0000-0000-0000000025b1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-ccccccccccc2', 't25-b1', 'A', 'Treino A', now() - interval '1 hour', 10);
+update push_inscricoes set ativo = false where endpoint = 'https://push.exemplo.com/aparelho-do-aluno-b-0001'; -- aluno B sem aparelho ativo
+update training_sessions set status = 'concluida', finalizado_em = now() where id in ('99999999-0000-0000-0000-0000000025a1', '99999999-0000-0000-0000-0000000025b1');
+update training_sessions set status = 'concluida', finalizado_em = now() where id = '99999999-0000-0000-0000-0000000025a1'; -- reprocessar não duplica
+do $$
+declare n int; ag timestamptz;
+begin
+  select count(*), min(agendada_para) into n, ag from notificacoes_envios where categoria = 'pos_treino';
+  if n <> 1 then raise exception 'T25f: esperava 1 pós-treino (aluna A com aparelho), veio %', n; end if;
+  if ag < now() + interval '89 minutes' or ag > now() + interval '91 minutes' then raise exception 'T25f: pós-treino fora dos 90 min'; end if;
+  -- ainda não chegou a hora; e com a chave geral desligada nada sai
+  update notificacoes_envios set agendada_para = now() - interval '1 minute' where categoria = 'pos_treino';
+  raise notice 'T25f OK: pós-treino agendado pelo banco, 1 por treino';
+end $$;
+set role anon;
+do $$
+declare n int;
+begin
+  select count(*) into n from chalala_notificacoes_devidas('chave-teste');
+  if n <> 0 then raise exception 'T25g: saiu notificação com a chave geral desligada'; end if;
+end $$;
+reset role;
+select test_login('11111111-1111-1111-1111-111111111111');
+update notificacao_config set chalala_ativo = true, intervalo_minimo_min = 0;
+select test_logout();
+-- silêncio desligado para o teste não depender da hora em que roda
+update notificacao_preferencias set silencio_inicio = '00:00', silencio_fim = '00:00', bom_dia = false where profile_id = '22222222-2222-2222-2222-222222222222';
+set role anon;
+do $$
+declare n int; ok boolean := false;
+begin
+  begin perform * from chalala_notificacoes_devidas('chave-errada'); exception when others then ok := true; end;
+  if not ok then raise exception 'T25h: chave errada aceita'; end if;
+  select count(*) into n from chalala_notificacoes_devidas('chave-teste');
+  if n <> 2 then raise exception 'T25h: esperava o pós-treino nos 2 aparelhos da aluna A, veio %', n; end if;
+  select count(*) into n from chalala_notificacoes_devidas('chave-teste');
+  if n <> 0 then raise exception 'T25h: pós-treino repetido'; end if;
+end $$;
+reset role;
+select set_config('t25.id', (select id::text from notificacoes_envios where session_id = '99999999-0000-0000-0000-0000000025a1'), false);
+set role anon;
+select chalala_notificacao_resultado('chave-teste', current_setting('t25.id')::uuid, 'Seu corpo também merece um Chalalá!', 'Treino feito!', '/aluno', 2, 0);
+reset role;
+-- segundo treino concluído no mesmo dia: limite de 48 h descarta; treino revertido também
+update training_sessions set status = 'concluida', finalizado_em = now() where id = '99999999-0000-0000-0000-0000000025a2';
+update notificacoes_envios set agendada_para = now() - interval '1 minute' where session_id = '99999999-0000-0000-0000-0000000025a2';
+set role anon;
+do $$ begin perform * from chalala_notificacoes_devidas('chave-teste'); end $$;
+reset role;
+do $$
+declare st text; mt text;
+begin
+  if (select status from notificacoes_envios where session_id = '99999999-0000-0000-0000-0000000025a1') <> 'enviada' then raise exception 'T25i: resultado não gravado'; end if;
+  select status, motivo into st, mt from notificacoes_envios where session_id = '99999999-0000-0000-0000-0000000025a2';
+  if st <> 'descartada' or mt <> 'limite_pos_treino' then raise exception 'T25i: 2º pós-treino em 48 h deveria ser descartado (% / %)', st, mt; end if;
+  raise notice 'T25g/h/i OK: chave geral, 1 envio por aparelho, sem repetição, limite de 48 h';
+end $$;
+-- treino revertido antes da hora: descarta
+update notificacoes_envios set status = 'pendente', motivo = null, agendada_para = now() - interval '1 minute', tentativa_em = null where session_id = '99999999-0000-0000-0000-0000000025a2';
+delete from notificacoes_envios where session_id = '99999999-0000-0000-0000-0000000025a1';
+update training_sessions set status = 'abandonada' where id = '99999999-0000-0000-0000-0000000025a2';
+set role anon;
+do $$ begin perform * from chalala_notificacoes_devidas('chave-teste'); end $$;
+reset role;
+do $$
+begin
+  if (select motivo from notificacoes_envios where session_id = '99999999-0000-0000-0000-0000000025a2') <> 'treino_revertido' then raise exception 'T25j: treino revertido não descartou o pós-treino'; end if;
+  raise notice 'T25j OK: conclusão revertida descarta o pós-treino';
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare r jsonb;
+begin
+  r := chalala_metricas_push(now() - interval '30 days');
+  if (r->>'inscritos')::int < 1 or (r->>'ativo')::boolean is not true then raise exception 'T25k: métricas do painel %', r; end if;
+  raise notice 'T25k OK: métricas agregadas para o treinador';
+end $$;
+update notificacao_config set chalala_ativo = false, intervalo_minimo_min = 60;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

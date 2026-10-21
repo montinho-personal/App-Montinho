@@ -18,3 +18,12 @@ describe("métricas do compartilhamento", () => {
     expect(agregarEventos([]).taxaAbertura).toBeNull();
   });
 });
+
+import { agregarChalalaTreino } from "./metricas";
+
+describe("métricas do Chalalá no treino", () => {
+  it("conta cada tipo de evento", () => {
+    const m = agregarChalalaTreino([{ tipo: "chalala_record_unlocked" }, { tipo: "chalala_record_unlocked" }, { tipo: "chalala_workout_started" }, { tipo: "card_gerado" }]);
+    expect(m).toMatchObject({ recordes: 2, iniciados: 1, progressao: 0 });
+  });
+});

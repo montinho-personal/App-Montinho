@@ -52,6 +52,7 @@ import { LeituraRapida, marcarSugestao, sugestoesDaSessao, type ItemRapido } fro
 import { CHAMADA_CONTEXTO, REGRAS_DESBLOQUEIA, REPS_ALTAS, repsPrescritas, type PacoteTreino } from "@/lib/desbloqueia/motor";
 import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
+import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 
 /** Modo aula presencial: o personal registra o treino do aluno pelo painel. */
@@ -87,6 +88,8 @@ type Props = {
   configEvolucao?: ConfigEvolucao;
   /** Montinho Desbloqueia: sugestões por momento e “por quê” escrito pelo personal. */
   desbloqueia?: PacoteTreino & { porques: Record<string, string> };
+  /** Exercícios que já receberam o “Essa carga merece um chalalá!” nos últimos 14 dias. */
+  progressoesRecentes?: string[];
 };
 
 const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
@@ -140,11 +143,17 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   return ex.reps;
 }
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [] }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
   const [aviso, setAviso] = useState<Descoberta | null>(null);
+  // Ecossistema Chalalá no treino (lib/chalala/treino): frase do aviso, recado de
+  // início, incentivo de progressão e técnica avançada. No máx. 2 por treino.
+  const [chalalaAviso, setChalalaAviso] = useState<string | null>(null);
+  const [inicioChalala, setInicioChalala] = useState(false);
+  const [progressaoChalala, setProgressaoChalala] = useState<Record<string, string>>({});
+  const [tecnicaChalala, setTecnicaChalala] = useState<Record<string, number>>({});
   const [sugestaoAviso, setSugestaoAviso] = useState<{ id: string; chamada: string } | null>(null);
   const [sugestaoDescanso, setSugestaoDescanso] = useState<{ id: string; chamada: string } | null>(null);
   const [leitura, setLeitura] = useState<ItemRapido | null>(null);
@@ -259,6 +268,48 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     },
     [storage, toast, exercicios, ultimas, ultimasTroca]
   );
+
+  // Chalalá: “Bora treinar?” uma vez por sessão (some na primeira série ou no ✕).
+  useEffect(() => {
+    if (!sessao || sessao.status !== "em_andamento" || presencial) return;
+    const k = `montinho-chalala-inicio:${sessao.id}`;
+    try {
+      if (localStorage.getItem(k)) return;
+      localStorage.setItem(k, "1");
+    } catch {
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- recado de uma vez por sessão, guardado no aparelho
+    setInicioChalala(true);
+    enviarEvento({ tipo: "chalala_workout_started", origem: "treino" });
+  }, [sessao, presencial]);
+
+  // Chalalá: “Essa carga merece um chalalá!” ao abrir o exercício (antes da 1ª série),
+  // só com histórico real e sem dor/cansaço, no máx. 1 por treino e 1 a cada 14 dias.
+  useEffect(() => {
+    if (!sessao || sessao.status !== "em_andamento" || presencial || !aberto || progressaoChalala[aberto]) return;
+    const i = sessao.exercicios.findIndex((x) => x.id === aberto);
+    const se = sessao.exercicios[i];
+    const ex = se ? (exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[i]) : undefined;
+    if (!se || !ex || trocaAtiva(se) || (series[aberto] ?? []).some((x) => x.tipo === "valida" && x.concluida)) return;
+    const ref = ex.biblioteca_id || ex.id;
+    if (!podeIntervir(lerChalala(), "progressao", ex.nome)) return;
+    const r = avaliarProgressao({
+      atual: identidade(ex),
+      historico: historico[ex.id] ?? [],
+      repsPrescritas: ex.reps,
+      hoje: dataLocal(new Date()),
+      dorHoje: sessao.checkin_pre === "desconforto" || sessao.checkin_pre === "cansado",
+      bloqueado: configEvolucao?.avisos_ativos === false || !prefsEvo.durante,
+      mostradoRecente: progressoesRecentes.includes(ref),
+    });
+    if (!r.ok) return;
+    registrarChalala({ tipo: "progressao", exercicio: ex.nome });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- decidido uma vez ao abrir o exercício
+    setProgressaoChalala((p) => ({ ...p, [aberto]: textoProgressao(r) }));
+    enviarEvento({ tipo: "chalala_progression_shown", ref, origem: "treino" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, sessao?.id, sessao?.status]);
 
   // Grava o rascunho a cada mudança (digitação, exercício aberto, descanso).
   useEffect(() => {
@@ -445,6 +496,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!silencioso && navigator.vibrate) navigator.vibrate(30);
     if (!silencioso) {
       const avisou = avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
+      // Próxima série é a da técnica avançada prescrita? Recado ANTES dela (nunca junto de outro aviso).
+      if (!avisou) avisarTecnica(seId, idx, ex);
       // Descanso: só depois de algumas séries e se nada foi sugerido nesta sessão.
       const feitas = Object.values(series).flat().filter((x) => x.concluida).length + 1;
       if (!avisou && descanso && descanso > 0 && feitas >= 3) setSugestaoDescanso(proporSugestao("descanso"));
@@ -505,6 +558,36 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     toast.success(bibliotecaId ? "Exercício trocado. Séries e repetições continuam as do seu treino." : "Voltou para o exercício do plano.");
   }
 
+  // Registro local do orquestrador do Chalalá (por sessão).
+  function lerChalala(): Registro[] {
+    if (!sessao) return [];
+    try {
+      return JSON.parse(localStorage.getItem(`montinho-chalala:${sessao.id}`) ?? "[]") as Registro[];
+    } catch {
+      return [];
+    }
+  }
+  function registrarChalala(r: Registro) {
+    if (!sessao) return;
+    try {
+      localStorage.setItem(`montinho-chalala:${sessao.id}`, JSON.stringify([...lerChalala(), r]));
+    } catch {
+      /* ignora */
+    }
+  }
+  function avisarTecnica(seId: string, idx: number, ex: ExercicioView) {
+    const lista = series[seId] ?? [];
+    const validas = lista.filter((x) => x.tipo === "valida").length;
+    const alvo = serieDaTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, validas);
+    const prox = lista[idx + 1];
+    if (!alvo || !prox || prox.tipo !== "valida" || prox.concluida) return;
+    if (lista.slice(0, idx + 2).filter((x) => x.tipo === "valida").length !== alvo) return;
+    if (!podeIntervir(lerChalala(), "tecnica", ex.nome)) return;
+    registrarChalala({ tipo: "tecnica", exercicio: ex.nome });
+    setTecnicaChalala((t) => ({ ...t, [seId]: idx + 1 }));
+    enviarEvento({ tipo: "chalala_advanced_technique_shown", ref: ex.tecnica, origem: "treino" });
+  }
+
   /** Evolução Inteligente: no máximo 1 aviso por exercício e 3 por sessão (limites do personal). */
   function avisarEvolucao(ex: ExercicioView, serie: SerieReg): boolean {
     if (!sessao || !prefsEvo.durante || configEvolucao?.avisos_ativos === false) return false;
@@ -526,6 +609,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       /* ignora */
     }
     setAviso(d);
+    const c = chalalaDaDescoberta(d.tipo);
+    if (c && podeIntervir(lerChalala(), c.tipo, ex.nome)) {
+      registrarChalala({ tipo: c.tipo, exercicio: ex.nome });
+      setChalalaAviso(c.frase);
+      enviarEvento({ tipo: c.tipo === "recorde" ? "chalala_record_unlocked" : "chalala_reps_evolution_shown", origem: "treino" });
+    } else setChalalaAviso(null);
     setSugestaoAviso(d.tipo.startsWith("recorde") ? proporSugestao("recorde") : d.tipo === "mais_reps" ? proporSugestao("mais_reps") : null);
     if (prefsEvo.sons) bipe();
     return true;
@@ -600,6 +689,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const res = await fetch(`/api/sessoes/${sessao.id}`, { headers: cab });
     const data = (await res.json().catch(() => null)) as SessaoCompleta | null;
     setConcluida(data ?? { ...sessao, status });
+    if (status === "concluida") enviarEvento({ tipo: "chalala_workout_completed", origem: "fim_treino" });
     setFinalizando(false);
     router.refresh();
   }
@@ -909,7 +999,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
       {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">👥 Aula presencial · {presencial.nomeAluno}. Tudo o que você marcar entra no histórico dela(e).</p> : <LembretePush compacto />}
 
-      {aviso ? <AvisoEvolucao d={aviso} animar={prefsEvo.animacoes} onFechar={() => setAviso(null)} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
+      {inicioChalala && !presencial && totalFeito === 0 ? (
+        <div role="status" className="flex items-start gap-2 rounded-xl border border-accent/50 bg-accent/10 px-3 py-2.5">
+          <p className="flex-1 text-sm font-bold text-accent">{FRASES.inicio}</p>
+          <button type="button" onClick={() => setInicioChalala(false)} aria-label="Dispensar recado" className="alvo -mr-1 text-fg-muted hover:text-fg">✕</button>
+        </div>
+      ) : null}
+
+      {aviso ? <AvisoEvolucao d={aviso} chalala={chalalaAviso} animar={prefsEvo.animacoes} onFechar={() => { setAviso(null); setChalalaAviso(null); }} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
       {leitura ? <LeituraRapida item={leitura} onFechar={() => setLeitura(null)} /> : null}
       {perguntandoEsforco ? <PerguntaEsforco nome={(() => { const i = sessao.exercicios.findIndex((x) => x.id === perguntandoEsforco); const se = sessao.exercicios[i]; return (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício"; })()} onEscolher={(p) => finalizarExercicio(perguntandoEsforco, p)} onFechar={() => setPerguntandoEsforco(null)} /> : null}
 
@@ -1018,6 +1115,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         Por que {repsPrescritas(ex.reps)} repetições? →
                       </button>
                     ) : null}
+                    {progressaoChalala[se.id] && feitas === 0 ? (
+                      <div className="rounded-md border border-accent/50 bg-accent/10 px-3 py-2">
+                        <p className="text-sm font-bold text-accent">{FRASES.progressao}</p>
+                        <p className="text-xs text-fg-muted">{progressaoChalala[se.id]}</p>
+                      </div>
+                    ) : null}
                     {tecnicaTxt ? <p className="text-xs text-fg-muted">{tecnicaTxt}</p> : null}
                     {ex.unilateral && ex.tecnica !== "unilateral" ? <p className="text-xs text-fg-muted">{TECNICA_LABEL.unilateral}</p> : null}
                     {ex.instrucoes.length ? (
@@ -1051,6 +1154,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         const ref = ultima?.series.find((u) => u.serie === s.serie) ?? ultima?.series.at(-1);
                         return (
                           <div key={s.clientKey} className={`grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center ${s.tipo === "aquecimento" ? "opacity-80" : ""}`}>
+                            {tecnicaChalala[se.id] === i && !s.concluida && fraseDaTecnica(ex.tecnica) ? <p className="col-span-4 rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent">⚡ {fraseDaTecnica(ex.tecnica)}</p> : null}
                             <span className="text-xs font-mono text-fg-muted" title={s.tipo === "aquecimento" ? "Aquecimento (não conta como série válida)" : undefined}>
                               {s.tipo === "aquecimento" ? "A" : s.serie}
                             </span>

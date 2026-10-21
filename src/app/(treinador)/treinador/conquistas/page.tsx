@@ -3,7 +3,9 @@
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { listAlunos } from "@/lib/db";
 import { listarConquistas, listarEventos, listarReconhecimentos } from "@/lib/data/conquistas";
-import { agregarEventos } from "@/lib/chalala/metricas";
+import { agregarChalalaTreino, agregarEventos } from "@/lib/chalala/metricas";
+import { getConfigChalala, metricasPush } from "@/lib/data/notificacoes";
+import { PainelChalalaCelular } from "./PainelChalalaCelular";
 import { CelebrarClient } from "./CelebrarClient";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { nomeDaConquista, CONTEUDO } from "@/lib/conquistas/conteudo";
@@ -26,7 +28,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
   const { dias: d, aluno: alunoParam, msg } = await searchParams;
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
   const desde = new Date(new Date().getTime() - dias * 86_400_000).toISOString();
-  const [alunos, conquistas, reconhecimentos, eventos] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde)]);
+  const [alunos, conquistas, reconhecimentos, eventos, configCelular, push] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null)]);
   const nomes = Object.fromEntries(alunos.map((a) => [a.id, a.profile?.nome ?? "Aluno"]));
   const ativos = alunos.filter((a) => a.status === "ativo");
   const ader = ativos.length ? await aderenciaDeTodos(ativos) : {};
@@ -58,6 +60,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
         enviados={reconhecimentos.slice(0, 20).map((r) => ({ id: r.id, aluno: nomes[r.aluno_id] ?? "Aluno", mensagem: r.mensagem, data: r.created_at }))}
         metricas={agregarEventos(eventos)}
       />
+      <PainelChalalaCelular dias={dias} config={configCelular ?? { chalala_ativo: false, limite_diario: 2, intervalo_minimo_min: 60 }} push={push} treino={agregarChalalaTreino(eventos)} />
     </div>
   );
 }

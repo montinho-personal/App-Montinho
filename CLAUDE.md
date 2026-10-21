@@ -16,7 +16,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 ## Onde fica cada coisa
 - Marca: `src/config/brand.ts` + `public/brand/*` (logo oficial do site; trocar por vetor original quando houver).
 - **Tudo que for compartilhável** (cards, imagens, Stories, WhatsApp) leva o logo oficial completo `public/brand/logo.svg` (M + “MONTINHO / PERSONAL TRAINER” embaixo), bem visível — nunca só o “M” nem texto no lugar do logo.
-- Banco: `supabase/migrations/` (aditivas; novas vão em `0036_…`; a `0034_alternativas_ocultas` ainda não foi aplicada em produção (a `0035` trava `profiles.role` e libera foto de perfil)). Produção: projeto `app-montinho` (ref `bixfqkisvzrpxbiscqdd`), app em <https://app-montinho.vercel.app>. Teste local: `npm run db:test`.
+- Banco: `supabase/migrations/` (aditivas; novas vão em `0037_…`; a `0034_alternativas_ocultas` ainda não foi aplicada em produção; `0035` = trava de `profiles.role` + foto; `0036` = Chalalá no celular). Produção: projeto `app-montinho` (ref `bixfqkisvzrpxbiscqdd`), app em <https://app-montinho.vercel.app>. Teste local: `npm run db:test`.
+- Chalalá no celular (Web Push): regras de envio no banco (`0036`: Bom Dia, pós-treino, silêncio, limites, chave geral `notificacao_config.chalala_ativo`), textos em `src/lib/push/chalala.ts`, envio em `src/app/api/cron/lembretes` (pg_cron a cada 5 min). No treino: `src/lib/chalala/treino.ts` (máx. 2 recados por treino).
 - Documentação: README, SETUP, GUIA-MONTINHO, ARQUITETURA, AUDITORIA-INICIAL, CHECKLIST-TESTES, ROADMAP.
 
 ## Ao editar

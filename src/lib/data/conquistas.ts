@@ -43,9 +43,9 @@ export type ConquistaRow = {
 
 export type Reconhecimento = { id: string; aluno_id: string; conquista_id: string | null; mensagem: string; autor_id: string | null; created_at: string };
 
-export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada"] as const;
+export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada", "chalala_workout_started", "chalala_progression_shown", "chalala_reps_evolution_shown", "chalala_record_unlocked", "chalala_advanced_technique_shown", "chalala_workout_completed", "chalala_push_permission_granted", "chalala_push_permission_revoked"] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
-export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string };
+export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string; ref?: string | null };
 
 type AlunoBase = { id: string; data_inicio: string | null; created_at: string };
 
@@ -256,8 +256,8 @@ export async function inscricoesPushDoAluno(alunoId: string): Promise<Array<{ en
 // ---------------------------------------------------------------------------
 // Métricas do compartilhamento (eventos sem conteúdo privado)
 // ---------------------------------------------------------------------------
-export async function registrarEvento(alunoId: string | null, e: { tipo: TipoEvento; modelo?: string | null; formato?: string | null; origem?: string | null }): Promise<void> {
-  const linha: EventoChalala = { aluno_id: e.tipo === "visita_link" ? null : alunoId, tipo: e.tipo, modelo: e.modelo ?? null, formato: e.formato ?? null, origem: e.origem ?? null, created_at: new Date().toISOString() };
+export async function registrarEvento(alunoId: string | null, e: { tipo: TipoEvento; modelo?: string | null; formato?: string | null; origem?: string | null; ref?: string | null }): Promise<void> {
+  const linha: EventoChalala = { aluno_id: e.tipo === "visita_link" ? null : alunoId, tipo: e.tipo, modelo: e.modelo ?? null, formato: e.formato ?? null, origem: e.origem ?? null, created_at: new Date().toISOString(), ...(e.ref ? { ref: e.ref } : {}) };
   if (linha.tipo !== "visita_link" && !linha.aluno_id) return;
   if (isDemoMode()) {
     demo().eventos.push(linha);
@@ -267,6 +267,16 @@ export async function registrarEvento(alunoId: string | null, e: { tipo: TipoEve
   const { created_at: _c, ...ins } = linha;
   void _c;
   await db.from("eventos_chalala").insert(ins);
+}
+
+/** Exercícios que já receberam o incentivo de progressão nos últimos 14 dias (não repetir). */
+export async function progressoesRecentes(alunoId: string): Promise<string[]> {
+  const desde = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+  if (isDemoMode()) return demo().eventos.filter((e) => e.aluno_id === alunoId && e.tipo === "chalala_progression_shown" && e.created_at >= desde && e.ref).map((e) => e.ref!);
+  const db = await getDb();
+  const { data, error } = await db.from("eventos_chalala").select("ref").eq("aluno_id", alunoId).eq("tipo", "chalala_progression_shown").gte("created_at", desde).limit(200);
+  if (error) return [];
+  return ((data ?? []) as Array<{ ref: string | null }>).map((x) => x.ref).filter((x): x is string => !!x);
 }
 
 export async function listarEventos(desde: string): Promise<EventoChalala[]> {

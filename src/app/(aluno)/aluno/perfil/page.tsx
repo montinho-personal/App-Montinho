@@ -9,19 +9,21 @@ import { listAdaptacoes, listIntervencoes } from "@/lib/data/acompanhamento";
 import { dataBR } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { SairButton } from "./SairButton";
-import { LembretePush } from "@/components/aluno/LembretePush";
+import { NotificacoesChalala } from "@/components/aluno/NotificacoesChalala";
+import { getPreferencias } from "@/lib/data/notificacoes";
 import { appMode } from "@/lib/env";
 
 export const metadata = { title: "Perfil" };
 
 export default async function PerfilPage() {
   const sessao = await requireAlunoPage();
-  const [aluno, plano, adaptacoes, intervencoes, dieta] = await Promise.all([
+  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif] = await Promise.all([
     getAluno(sessao.alunoId),
     getPlanoAtivo(sessao.alunoId),
     listAdaptacoes(sessao.alunoId),
     listIntervencoes(sessao.alunoId, 10),
     listDieta(sessao.alunoId),
+    getPreferencias(sessao.userId),
   ]);
   if (!aluno) return null;
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
@@ -37,7 +39,7 @@ export default async function PerfilPage() {
         </div>
       </header>
 
-      <LembretePush />
+      <NotificacoesChalala inicial={prefsNotif} />
 
       <Card>
         <CardHeader>

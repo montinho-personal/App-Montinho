@@ -42,6 +42,9 @@ A ordem recomendada: **Supabase → GitHub → Vercel**.
    A 0014 permite contar drop set, rest-pause e myo-reps no volume.
    A 0015 cria o lembrete de treino em aberto (notificação push); depois dela, siga
    `scripts/sql/agendar-lembretes.sql` (chave do agendador + chaves VAPID na Vercel).
+   A 0036 (Chalalá no celular) usa o MESMO agendador e as mesmas chaves: depois de
+   aplicá-la, teste no seu celular pelo painel (Celebrar → Chalalá no celular) e só
+   então ligue “Envios” (começa desligado).
    Em produção a 0013 foi aplicada em 4 partes (`0013a`…`0013d`), com o mesmo conteúdo.
 
    > O catálogo vive em `src/lib/biblioteca/catalogo.ts`. Se alguém mudar esse arquivo, a 0013 é

@@ -1,13 +1,12 @@
-// Inscrição do aparelho para notificações (lembrete de treino em aberto).
+// Inscrição do aparelho para notificações (aluno: lembretes e Chalalá; treinador: teste no próprio celular).
 import { NextResponse } from "next/server";
-import { requireAlunoApi } from "@/lib/auth/session";
+import { getSessao } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { inscricaoPushSchema } from "@/lib/validacao/schemas";
 
 export async function POST(req: Request) {
-  const { error } = await requireAlunoApi();
-  if (error) return error;
+  if (!(await getSessao())) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const parsed = inscricaoPushSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Inscrição inválida" }, { status: 400 });
   if (isDemoMode()) return NextResponse.json({ ok: true, demo: true });
@@ -23,8 +22,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { error } = await requireAlunoApi();
-  if (error) return error;
+  if (!(await getSessao())) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   const body = (await req.json().catch(() => null)) as { endpoint?: unknown } | null;
   const endpoint = typeof body?.endpoint === "string" ? body.endpoint : null;
   if (!endpoint) return NextResponse.json({ error: "Endpoint ausente" }, { status: 400 });

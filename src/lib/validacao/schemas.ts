@@ -253,6 +253,30 @@ export const inscricaoPushSchema = z.object({
   keys: z.object({ p256dh: z.string().min(10).max(300), auth: z.string().min(8).max(100) }),
 });
 
+// Chalalá no celular — preferências e configuração geral (migração 0036)
+export const FUSOS = ["America/Sao_Paulo", "America/Bahia", "America/Fortaleza", "America/Recife", "America/Belem", "America/Maceio", "America/Araguaina", "America/Manaus", "America/Cuiaba", "America/Campo_Grande", "America/Porto_Velho", "America/Boa_Vista", "America/Rio_Branco", "America/Noronha", "Europe/Lisbon"] as const;
+const horaHHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido");
+export const preferenciasNotificacaoSchema = z
+  .object({
+    motivacionais: z.boolean(),
+    bom_dia: z.boolean(),
+    bom_dia_hora: horaHHMM.refine((h) => h >= "05:00" && h <= "11:00", "Escolha entre 05:00 e 11:00"),
+    pos_treino: z.boolean(),
+    lembrete_treino: z.boolean(),
+    silencio_inicio: horaHHMM,
+    silencio_fim: horaHHMM,
+    fuso: z.enum(FUSOS),
+  })
+  .strict();
+export const configChalalaSchema = z
+  .object({
+    chalala_ativo: z.boolean(),
+    limite_diario: z.coerce.number().int().min(1).max(6),
+    intervalo_minimo_min: z.coerce.number().int().min(0).max(240),
+  })
+  .strict();
+export const aberturaNotificacaoSchema = z.object({ id: z.string().uuid() }).strict();
+
 // Parâmetros de tempo (padrão do treinador ou de um treino), em segundos.
 export const temposSchema = z
   .object({
@@ -283,7 +307,8 @@ export const encerrarPausaSchema = z.object({ pausa_id: z.string().min(1).max(64
 // Meu Chalalá de hoje — eventos (sem conteúdo privado) e reconhecimento do personal
 export const eventoChalalaSchema = z
   .object({
-    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada"]),
+    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada", "chalala_workout_started", "chalala_progression_shown", "chalala_reps_evolution_shown", "chalala_record_unlocked", "chalala_advanced_technique_shown", "chalala_workout_completed", "chalala_push_permission_granted", "chalala_push_permission_revoked"]),
+    ref: z.string().regex(/^[A-Za-z0-9_:-]{1,80}$/).nullable().optional(),
     modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
     origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto"]).nullable().optional(),

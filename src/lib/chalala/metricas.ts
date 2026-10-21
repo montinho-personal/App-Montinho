@@ -50,3 +50,20 @@ export function agregarEventos(eventos: EventoAgregavel[]): MetricasChalala {
     taxaAbertura: conclusoes ? Math.min(100, Math.round((eventos.filter((e) => e.tipo === "editor_aberto" && e.origem === "conclusao").length / conclusoes) * 100)) : null,
   };
 }
+
+/** Ecossistema Chalalá dentro do treino (contagens; não indicam causa de nada). */
+export type MetricasChalalaTreino = { iniciados: number; concluidos: number; progressao: number; repeticoes: number; recordes: number; tecnicas: number; permissoes: number; revogacoes: number };
+
+export function agregarChalalaTreino(eventos: Array<Pick<EventoAgregavel, "tipo">>): MetricasChalalaTreino {
+  const conta = (t: string) => eventos.filter((e) => e.tipo === t).length;
+  return {
+    iniciados: conta("chalala_workout_started"),
+    concluidos: conta("chalala_workout_completed"),
+    progressao: conta("chalala_progression_shown"),
+    repeticoes: conta("chalala_reps_evolution_shown"),
+    recordes: conta("chalala_record_unlocked"),
+    tecnicas: conta("chalala_advanced_technique_shown"),
+    permissoes: conta("chalala_push_permission_granted"),
+    revogacoes: conta("chalala_push_permission_revoked"),
+  };
+}
