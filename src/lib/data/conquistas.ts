@@ -162,7 +162,7 @@ export type ResumoChalala = {
 export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise<ResumoChalala | null> {
   const s = await getSessao(aluno.id, sessaoId);
   if (!s || s.status === "em_andamento") return null;
-  const [{ todas, aderencia }, historicoSessoes] = await Promise.all([sincronizarConquistas(aluno), listSessoes(aluno.id, { limite: 200, status: "todas" })]);
+  const [{ todas, aderencia }, historicoSessoes, resumoImportado] = await Promise.all([sincronizarConquistas(aluno), listSessoes(aluno.id, { limite: 200, status: "todas" }), listarHistoricoResumo(aluno.id).catch(() => [])]);
   const sc = paraConquista(s);
   const evolucao = descobertasDaSessao(sessaoParaAvaliar(s), execucoesDeSessoes(historicoSessoes.filter((x) => x.id !== s.id))).find((d) => d.confianca === "alta") ?? null;
   const semana = aderencia.semanas.find((w) => w.inicio === inicioDaSemana(dataLocal(s.iniciado_em))) ?? null;
@@ -192,7 +192,7 @@ export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise
     mensagem: msg.mensagem,
     modeloSugerido: msg.modeloSugerido,
     evolucao,
-    relatorio: relatorioDaConclusao(s, historicoSessoes),
+    relatorio: relatorioDaConclusao(s, historicoSessoes, resumoImportado.filter((r) => (r.carga_max_kg ?? 0) > 0).map((r) => ({ nome: r.exercicio_nome, bibliotecaId: r.biblioteca_id, carga: Number(r.carga_max_kg), data: r.data }))),
     destaques: destaquesDaConclusao({ evolucao, conquistas: daSessao, meta: semana?.meta ?? null, pontosSemana, metaCumpridaAgora: msg.metaCumpridaAgora, extra: classificarSessao(sc) === "extra" }),
   };
 }

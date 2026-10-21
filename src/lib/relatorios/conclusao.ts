@@ -66,7 +66,10 @@ const maiorCarga = (e: ExLike) => Math.max(0, ...validas(e).map((x) => x.carga_k
 const pct = (hoje: number, antes: number) => (antes > 0 ? Math.round(((hoje - antes) / antes) * 100) : null);
 const quando = (s: SessaoRelatorio) => s.finalizado_em ?? s.iniciado_em;
 
-export function relatorioDaConclusao(hoje: SessaoRelatorio, historico: SessaoRelatorio[]): RelatorioConclusao {
+/** Cargas máximas do histórico importado (planilha), antes do app. */
+export type BaseImportada = { nome: string; bibliotecaId: string | null; carga: number; data: string };
+
+export function relatorioDaConclusao(hoje: SessaoRelatorio, historico: SessaoRelatorio[], base: BaseImportada[] = []): RelatorioConclusao {
   const antes = historico
     .filter((s) => s.id !== hoje.id && s.status !== "em_andamento" && quando(s) < quando(hoje))
     .sort((a, b) => (quando(a) < quando(b) ? 1 : -1));
@@ -101,7 +104,8 @@ export function relatorioDaConclusao(hoje: SessaoRelatorio, historico: SessaoRel
       else exs.igual++;
     }
     const carga = maiorCarga(e);
-    const antesMax = Math.max(0, ...anteriores.map(maiorCarga));
+    const doImportado = base.filter((b) => b.data < quando(hoje).slice(0, 10) && ((!!e.biblioteca_id && b.bibliotecaId === e.biblioteca_id) || normalizarNome(b.nome) === normalizarNome(e.nome))).map((b) => b.carga);
+    const antesMax = Math.max(0, ...anteriores.map(maiorCarga), ...doImportado);
     const recorde = carga > 0 && antesMax > 0 && carga > antesMax;
     if (recorde) recordesVida.push({ exercicio: e.nome, carga, antes: antesMax });
     if (carga > 0 && (!maiorPeso || carga > maiorPeso.carga)) maiorPeso = { exercicio: e.nome, carga, recordeVida: recorde };

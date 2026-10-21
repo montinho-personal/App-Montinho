@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseCargaDoResumo, diasDeTreinoDoResumo, diasDoResumo, exerciciosDoDia, linhasParaGravar } from "./resumo";
+import { baseCargaDoResumo, diasDeTreinoDoResumo, diasDoResumo, exerciciosDoDia, linhasParaGravar, ultimaCargaDoResumo } from "./resumo";
 import { IMPORTACAO, LINHAS } from "./adriana-nascimento";
 import { importacoesParaAluno } from "./index";
 import { evolucaoExercicio } from "@/lib/relatorios/calcular";
@@ -98,5 +98,18 @@ describe("exercícios do dia importado (volume semanal)", () => {
   it("no gráfico, dia importado sem carga cede lugar ao resumo", () => {
     const sem = { id: "h", status: "concluida", iniciado_em: "2026-10-19T15:00:00Z", finalizado_em: "2026-10-19T15:00:00Z", exercicios: [{ nome: "Cadeira abdutora", grupo_muscular: "gluteo", series: [1, 2, 3, 4].map((n) => ({ serie: n, tipo: "valida", carga_kg: null, reps: null })) }] } as unknown as SessaoCompleta;
     expect(evolucaoExercicio([sem], "Cadeira abdutora", linhasParaGravar(IMPORTACAO)).at(-1)).toMatchObject({ data: "2026-10-19", cargaMax: 110, fonte: "resumo" });
+  });
+});
+
+describe("última carga do resumo importado", () => {
+  it("pega a data mais recente com carga, por nome ou exercício da biblioteca", () => {
+    const rs = [
+      { data: "2026-10-07", nome_normalizado: "cadeira extensora", biblioteca_id: null, carga_max_kg: 30, series: 4, reps_total: 48 },
+      { data: "2026-10-15", nome_normalizado: "cadeira extensora", biblioteca_id: null, carga_max_kg: 35, series: 4, reps_total: 44 },
+      { data: "2026-10-19", nome_normalizado: "outro", biblioteca_id: "b1", carga_max_kg: 50, series: 3, reps_total: null },
+    ];
+    expect(ultimaCargaDoResumo(rs, { nomeNormalizado: "cadeira extensora" })).toEqual({ data: "2026-10-15", carga: 35, series: 4, reps: 11 });
+    expect(ultimaCargaDoResumo(rs, { nomeNormalizado: "x", bibliotecaId: "b1" })?.carga).toBe(50);
+    expect(ultimaCargaDoResumo(rs, { nomeNormalizado: "nada" })).toBeNull();
   });
 });

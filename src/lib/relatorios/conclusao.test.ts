@@ -41,6 +41,12 @@ describe("relatório da conclusão", () => {
     expect(r.maiorPeso?.recordeVida).toBe(false);
   });
 
+  it("recorde considera as cargas do histórico importado (planilha)", () => {
+    const hoje = sessao("h", "2026-10-15", [["Supino", [[45, 10]]]]);
+    expect(relatorioDaConclusao(hoje, [], [{ nome: "supino", bibliotecaId: null, carga: 50, data: "2026-10-10" }]).maiorPeso?.recordeVida).toBe(false);
+    expect(relatorioDaConclusao(hoje, [], [{ nome: "Supino", bibliotecaId: null, carga: 40, data: "2026-10-10" }]).recordesVida).toEqual([{ exercicio: "Supino", carga: 45, antes: 40 }]);
+  });
+
   it("treino parcial mostra a porcentagem feita", () => {
     const r = relatorioDaConclusao({ ...s2, id: "p", status: "concluida", series_concluidas: 3, series_planejadas: 6 }, [s1]);
     expect(r.completo).toBe(false);

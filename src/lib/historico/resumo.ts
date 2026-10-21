@@ -80,6 +80,22 @@ export function baseCargaDoResumo(rs: Array<Pick<HistoricoResumo, "data" | "exer
 }
 
 /**
+ * Carga mais recente do resumo importado para um exercício (por exercício da
+ * biblioteca ou pelo nome). O resumo guarda a carga máxima do dia e o total de
+ * repetições: serve de “última vez” quando a sessão importada não tem cargas.
+ */
+export function ultimaCargaDoResumo(rs: Array<Pick<HistoricoResumo, "data" | "nome_normalizado" | "biblioteca_id" | "carga_max_kg" | "series" | "reps_total">>, alvo: { nomeNormalizado: string; bibliotecaId?: string | null }): { data: string; carga: number; series: number; reps: number | null } | null {
+  let melhor: { data: string; carga: number; series: number; reps: number | null } | null = null;
+  for (const r of rs) {
+    const igual = r.nome_normalizado === alvo.nomeNormalizado || (!!alvo.bibliotecaId && r.biblioteca_id === alvo.bibliotecaId);
+    const carga = Number(r.carga_max_kg ?? 0);
+    if (!igual || carga <= 0 || r.series <= 0) continue;
+    if (!melhor || r.data > melhor.data) melhor = { data: r.data, carga, series: r.series, reps: r.reps_total ? Math.round(r.reps_total / r.series) : null };
+  }
+  return melhor;
+}
+
+/**
  * Dias de treino do resumo como sessões (para aderência, sequência e
  * conquistas). Só dias com a letra do treino identificada. Sem séries
  * detalhadas: só a contagem (séries do resumo × séries prescritas na letra).

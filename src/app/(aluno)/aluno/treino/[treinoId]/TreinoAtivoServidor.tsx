@@ -35,7 +35,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
 
   const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas] = await Promise.all([
     sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
-    ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome }))),
+    ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     listarBiblioteca(),
     getPlanoAtivo(alunoId),
     extraId && !presencial ? listarExtras(alunoId, true) : Promise.resolve([]),

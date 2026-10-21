@@ -8,6 +8,8 @@ import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { normalizarNome } from "@/lib/grupos";
+import { ultimaCargaDoResumo } from "@/lib/historico/resumo";
+import { listarHistoricoResumo } from "./historico";
 import type { SerieTipo, SessionExercise, SessionExerciseStatus, PercepcaoExercicio, SessionSet, TrainingSession, TreinoLetra } from "@/lib/supabase/types-sessoes";
 import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
 // Ciclo intencional (só chamadas em tempo de execução): extras usa listSessoes.
@@ -117,8 +119,8 @@ export type UltimaExecucao = {
  * Última execução de cada exercício (por id OU por nome normalizado, para
  * sobreviver a troca/substituição de exercício no plano). Só sessões concluídas.
  */
-export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: string; nome: string }>): Promise<Record<string, UltimaExecucao | null>> {
-  const sessoes = await listSessoes(alunoId, { limite: 60, status: "concluida" });
+export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: string; nome: string; biblioteca_id?: string | null }>): Promise<Record<string, UltimaExecucao | null>> {
+  const [sessoes, resumo] = await Promise.all([listSessoes(alunoId, { limite: 60, status: "concluida" }), listarHistoricoResumo(alunoId).catch(() => [])]);
   const out: Record<string, UltimaExecucao | null> = {};
   for (const ex of exercicios) {
     const alvo = normalizarNome(ex.nome);
@@ -132,6 +134,18 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
           series: se.series.filter((x) => x.tipo !== "aquecimento").map((x) => ({ serie: x.serie, carga_kg: x.carga_kg, reps: x.reps, rir: x.rir, tipo: x.tipo })),
         };
         break;
+      }
+    }
+    // Histórico importado (planilha): as sessões vêm sem carga, mas o resumo tem
+    // a carga do dia — usa como “última vez” para o aluno ver o peso de referência.
+    const doResumo = ultimaCargaDoResumo(resumo, { nomeNormalizado: alvo, bibliotecaId: ex.biblioteca_id ?? null });
+    if (doResumo) {
+      const semCarga = !achado || achado.series.every((x) => x.carga_kg == null);
+      const maisRecente = !achado || doResumo.data >= achado.data.slice(0, 10);
+      if (semCarga && maisRecente) {
+        achado = achado?.series.length
+          ? { ...achado, series: achado.series.map((x) => ({ ...x, carga_kg: x.carga_kg ?? doResumo.carga })) }
+          : { data: doResumo.data, nomeTreino: null, series: Array.from({ length: doResumo.series }, (_, i) => ({ serie: i + 1, carga_kg: doResumo.carga, reps: doResumo.reps, rir: null, tipo: "valida" as const })) };
       }
     }
     out[ex.id] = achado;
