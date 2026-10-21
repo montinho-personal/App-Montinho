@@ -21,7 +21,8 @@ type Props = {
   contexto: ContextoAluno;
   /** Ids das alternativas ocultas para este aluno neste exercício. */
   ocultas: Set<string>;
-  onOcultar: (alternativaId: string, oculta: boolean) => void;
+  /** Sem esta função, o botão de ocultar não aparece. */
+  onOcultar?: (alternativaId: string, oculta: boolean) => void;
   onTrocar: (item: ItemBiblioteca) => void;
   onFechar: () => void;
 };
@@ -75,7 +76,7 @@ export function AlternativasExercicio({ origem, nomeDigitado, alunoNome, itens, 
                       {s.alertas.length ? <span className="block text-xs text-warning">⚠ {s.alertas.join(" · ")}</span> : null}
                     </span>
                   </button>
-                  <button
+                  {onOcultar ? <button
                     type="button"
                     onClick={() => onOcultar(s.item.id, true)}
                     aria-label={`Ocultar ${s.item.nome} para ${primeiroNome}`}
@@ -83,14 +84,14 @@ export function AlternativasExercicio({ origem, nomeDigitado, alunoNome, itens, 
                     className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-fg-subtle hover:bg-danger/10 hover:text-danger"
                   >
                     <OlhoRiscado />
-                  </button>
+                  </button> : null}
                 </li>
               ))}
             </ul>
           ) : (
             <p className="px-3 py-6 text-center text-sm text-fg-muted">Nenhuma alternativa compatível com o perfil atual do aluno.</p>
           )}
-          {listaOcultas.length ? (
+          {listaOcultas.length && onOcultar ? (
             <div className="mt-3 border-t border-border px-2 pt-2">
               <button type="button" onClick={() => setVerOcultas((v) => !v)} aria-expanded={verOcultas} className="w-full py-2 text-left text-xs font-semibold text-fg-muted hover:text-fg">
                 {listaOcultas.length} oculta(s) para {primeiroNome} {verOcultas ? "▴" : "▾"}

@@ -13,9 +13,15 @@ function demo(): Array<ParOculto & { aluno_id: string }> {
 }
 
 export async function listarAlternativasOcultas(alunoId: string): Promise<ParOculto[]> {
+  return (await lerAlternativasOcultas(alunoId)) ?? [];
+}
+
+/** null = recurso indisponível (migration 0034 ainda não aplicada no banco). */
+export async function lerAlternativasOcultas(alunoId: string): Promise<ParOculto[] | null> {
   if (isDemoMode()) return demo().filter((o) => o.aluno_id === alunoId).map(({ exercicio_id, alternativa_id }) => ({ exercicio_id, alternativa_id }));
   const db = await getDb();
-  const { data } = await db.from("alternativas_ocultas").select("exercicio_id, alternativa_id").eq("aluno_id", alunoId);
+  const { data, error } = await db.from("alternativas_ocultas").select("exercicio_id, alternativa_id").eq("aluno_id", alunoId);
+  if (error) return null;
   return ((data as Pick<AlternativaOculta, "exercicio_id" | "alternativa_id">[] | null) ?? []).map((o) => ({ exercicio_id: o.exercicio_id, alternativa_id: o.alternativa_id }));
 }
 

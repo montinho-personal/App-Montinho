@@ -111,6 +111,8 @@ type Props = {
   equivalencias: Equivalencia[];
   /** Alternativas que o personal ocultou só para este aluno (exercício → alternativa). */
   alternativasOcultas?: Array<{ exercicio_id: string; alternativa_id: string }>;
+  /** false enquanto o banco não tem a tabela de alternativas ocultas. */
+  podeOcultar?: boolean;
   favoritos: string[];
   usoExercicios: Record<string, { vezes: number; alunos: number }>;
   correcoes: Array<{ nome: string; grupo: GrupoMuscular; secundarios: GrupoMuscular[] }>;
@@ -216,7 +218,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {} }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {} }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -1044,7 +1046,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               equivalencias={equivalencias}
                               contexto={contextoAluno}
                               ocultas={ocultasDe(itemDaLinha(r)?.id)}
-                              onOcultar={(altId, oculta) => {
+                              onOcultar={!podeOcultar ? undefined : (altId, oculta) => {
                                 const origemId = itemDaLinha(r)?.id;
                                 if (origemId) void definirOculta(origemId, altId, oculta);
                               }}
