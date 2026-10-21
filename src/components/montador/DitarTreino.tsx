@@ -102,7 +102,9 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
     r.continuous = false;
     r.interimResults = true;
     r.onresult = (ev) => {
-      const falado = juntarFala(Array.from(ev.results).map((x) => x[0]?.transcript ?? ""));
+      const partes = Array.from(ev.results).map((x) => x[0]?.transcript ?? "");
+      // Android: cada resultado já traz a frase inteira até ali — vale o último.
+      const falado = /Android/i.test(navigator.userAgent) ? (partes[partes.length - 1] ?? "").trim() : juntarFala(partes);
       const novo = juntarFala([base, falado]);
       textoRef.current = novo;
       setTexto(novo);

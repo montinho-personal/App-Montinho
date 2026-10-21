@@ -33,6 +33,10 @@ describe("ditar treino", () => {
     expect(nomes("supino reto barra supino reto barra crucifixo máquina")).toEqual(["Supino reto com barra", "Crucifixo na máquina (peck deck)"]);
   });
 
+  it("o mesmo exercício dito em seguida com outras palavras também não duplica", () => {
+    expect(nomes("crucifixo máquina crucifixo na máquina peck deck supino reto barra")).toEqual(["Crucifixo na máquina (peck deck)", "Supino reto com barra"]);
+  });
+
   it("com vírgulas também", () => {
     expect(nomes("Crucifixo máquina, supino inclinado, supino reto barra.")).toHaveLength(3);
   });

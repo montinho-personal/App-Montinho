@@ -247,9 +247,9 @@ export function interpretarDitado(fala: string, itens: ItemBiblioteca[], opcoes:
 
   const novoExercicio = (falado: string, c: Casamento) => {
     const [top, ...resto] = c.opcoes;
-    // Mesmas palavras logo em seguida = eco do microfone, não outro exercício.
+    // O mesmo exercício logo em seguida = eco do microfone, não outro exercício.
     const ultimo = exercicios[exercicios.length - 1];
-    if (!blocoAberto && ultimo && ultimo.bloco == null && ultimo.falado === falado && ultimo.escolhido?.id === top.item.id) return;
+    if (!blocoAberto && ultimo && ultimo.bloco == null && ultimo.escolhido?.id === top.item.id) return;
     const empate = resto.some((o) => o.cob === top.cob);
     const ex: ExercicioDitado = {
       falado,
