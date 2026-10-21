@@ -247,6 +247,16 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [showExemplos, setShowExemplos] = useState(false);
   const [showPrograma, setShowPrograma] = useState(!programa);
   const [alternativasDe, setAlternativasDe] = useState<string | null>(null);
+  // Treinos recolhidos (abre/fecha). Com 2+ treinos, todos começam fechados;
+  // dia novo ou duplicado entra aberto (não está no conjunto).
+  const [fechados, setFechados] = useState<Set<string>>(() => (estado.treinos.length > 1 ? new Set(estado.treinos.map((t) => t.key)) : new Set()));
+  const alternarTreino = (k: string) =>
+    setFechados((cur) => {
+      const n = new Set(cur);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
   const fecharAlternativas = useCallback(() => setAlternativasDe(null), []);
   const [ocultas, setOcultas] = useState(() => new Set(alternativasOcultas.map((o) => `${o.exercicio_id}|${o.alternativa_id}`)));
   const ocultasDe = useCallback((exercicioId: string | undefined) => {
@@ -826,15 +836,38 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 items-start">
         {/* Dias */}
         <div className="space-y-4 min-w-0">
+          {estado.treinos.length > 1 ? (
+            <div className="flex justify-end gap-3 text-xs font-semibold text-fg-muted">
+              <button type="button" onClick={() => setFechados(new Set())} className="hover:text-accent">Abrir todos</button>
+              <button type="button" onClick={() => setFechados(new Set(estado.treinos.map((x) => x.key)))} className="hover:text-accent">Fechar todos</button>
+            </div>
+          ) : null}
           {estado.treinos.map((t) => {
+            const fechado = fechados.has(t.key);
             const totalT = t.rows.reduce((s, r) => s + (r.nome.trim() ? Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento) : 0), 0);
             return (
               <section key={t.key} className={`rounded-xl border bg-card overflow-hidden ${t.ativo ? "border-border" : "border-dashed border-border opacity-70"}`} aria-label={`Treino ${t.letra}`}>
                 {focoEstrategia[t.letra] ? (
                   <p className="border-b border-border bg-bg/40 px-3 py-1.5 text-[11px] text-fg-muted"><span className="font-semibold text-fg">Foco da estratégia:</span> {focoEstrategia[t.letra]}</p>
                 ) : null}
+                {fechado ? (
+                  <button type="button" onClick={() => alternarTreino(t.key)} aria-expanded={false} aria-label={`Abrir treino ${t.letra}`} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-surface">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/30 text-lg font-black text-accent shrink-0" aria-hidden>{t.letra}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">{t.nome || `Treino ${t.letra}`}</span>
+                      <span className="block text-[11px] font-mono text-fg-subtle">
+                        {t.rows.filter((r) => r.nome.trim()).length} exercício(s) · {totalT} séries{duracoes[t.key] ? ` · ${formatarDuracao(duracoes[t.key].resultado.totalSeg)}` : ""}{t.ativo ? "" : " · inativo"}
+                      </span>
+                    </span>
+                    <Icon name="chevron" size={18} className="rotate-90 text-fg-subtle shrink-0" />
+                  </button>
+                ) : null}
+                {fechado ? null : (<>
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 flex-wrap">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/30 text-lg font-black text-accent shrink-0" aria-hidden>{t.letra}</div>
+                  <button type="button" onClick={() => alternarTreino(t.key)} aria-expanded aria-label={`Fechar treino ${t.letra}`} title="Fechar este treino" className="flex h-10 items-center gap-1 rounded-xl bg-accent/10 border border-accent/30 pl-3 pr-1.5 text-lg font-black text-accent shrink-0">
+                    {t.letra}
+                    <Icon name="chevron" size={16} className="-rotate-90" />
+                  </button>
                   <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-h-7 min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />
                   <span className={`text-[11px] font-mono shrink-0 ${t.ativo && !(frequencia[t.letra] ?? 0) ? "text-warning" : "text-fg-subtle"}`} title={t.ativo && !(frequencia[t.letra] ?? 0) ? "Este treino não está na semana/ciclo: não entra no volume semanal" : undefined}>{totalT} séries válidas · ×{frequencia[t.letra] ?? 0}/sem{t.ativo && !(frequencia[t.letra] ?? 0) ? " (fora da semana)" : ""}</span>
                   <label className="inline-flex items-center gap-1 text-[11px] text-fg-muted"><input type="checkbox" checked={t.ativo} onChange={(e) => updTreino(t.key, { ativo: e.target.checked })} /> ativo</label>
@@ -1113,6 +1146,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   <button type="button" onClick={() => addRow(t.key)} className="touch px-3 text-left text-fg-muted hover:text-accent text-[12.5px] font-semibold inline-flex items-center gap-1"><Icon name="plus" size={14} /> Adicionar exercício</button>
                   <input value={t.observacoes} onChange={(e) => updTreino(t.key, { observacoes: e.target.value })} placeholder="Observação do treino (aluno vê)" aria-label={`Observação do treino ${t.letra}`} className="h-9 m-1 w-72 max-w-[50%] rounded border border-border bg-bg px-2 text-[12px]" />
                 </div>
+                </>)}
               </section>
             );
           })}
