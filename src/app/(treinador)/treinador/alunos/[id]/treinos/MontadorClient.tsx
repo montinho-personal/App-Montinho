@@ -109,6 +109,8 @@ type Props = {
   /** Biblioteca completa (busca, alternativas e pesos do volume ponderado). */
   itensBiblioteca: ItemBiblioteca[];
   equivalencias: Equivalencia[];
+  /** Alternativas que o personal ocultou só para este aluno (exercício → alternativa). */
+  alternativasOcultas?: Array<{ exercicio_id: string; alternativa_id: string }>;
   favoritos: string[];
   usoExercicios: Record<string, { vezes: number; alunos: number }>;
   correcoes: Array<{ nome: string; grupo: GrupoMuscular; secundarios: GrupoMuscular[] }>;
@@ -214,7 +216,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {} }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {} }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -240,6 +242,30 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [showExemplos, setShowExemplos] = useState(false);
   const [showPrograma, setShowPrograma] = useState(!programa);
   const [alternativasDe, setAlternativasDe] = useState<string | null>(null);
+  const fecharAlternativas = useCallback(() => setAlternativasDe(null), []);
+  const [ocultas, setOcultas] = useState(() => new Set(alternativasOcultas.map((o) => `${o.exercicio_id}|${o.alternativa_id}`)));
+  const ocultasDe = useCallback((exercicioId: string | undefined) => {
+    const out = new Set<string>();
+    if (!exercicioId) return out;
+    for (const k of ocultas) if (k.startsWith(`${exercicioId}|`)) out.add(k.slice(exercicioId.length + 1));
+    return out;
+  }, [ocultas]);
+  async function definirOculta(exercicioId: string, alternativaId: string, oculta: boolean) {
+    const k = `${exercicioId}|${alternativaId}`;
+    const aplicar = (on: boolean) =>
+      setOcultas((atual) => {
+        const n = new Set(atual);
+        if (on) n.add(k);
+        else n.delete(k);
+        return n;
+      });
+    aplicar(oculta);
+    const res = await fetch(`/api/alunos/${alunoId}/alternativas-ocultas`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exercicio_id: exercicioId, alternativa_id: alternativaId, oculta }) }).catch(() => null);
+    if (!res?.ok) {
+      aplicar(!oculta);
+      toast.error("Não foi possível salvar. Tente de novo.");
+    }
+  }
   // Seleção múltipla de exercícios (por treino) para aplicar um método a vários.
   const [selecao, setSelecao] = useState<Record<string, string[]>>({});
   const alternarSelecao = (tk: string, rk: string) => setSelecao((cur) => ({ ...cur, [tk]: (cur[tk] ?? []).includes(rk) ? (cur[tk] ?? []).filter((k) => k !== rk) : [...(cur[tk] ?? []), rk] }));
@@ -880,6 +906,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   <SeletorExercicio
                                     valor={r.nome}
                                     bibliotecaId={r.bibliotecaId}
+                                    ocultas={ocultasDe(itemDaLinha(r)?.id)}
                                     itens={itensBiblioteca}
                                     favoritos={favoritosSet}
                                     uso={usoMap}
@@ -1009,23 +1036,24 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             </tr>
                           ) : null}
                           {alternativasDe === r.key ? (
-                            <tr>
-                              <td />
-                              <td colSpan={8} className="pt-0">
-                                <AlternativasExercicio
-                                  origem={itemDaLinha(r)}
-                                  nomeDigitado={r.nome}
-                                  itens={itensBiblioteca}
-                                  equivalencias={equivalencias}
-                                  contexto={contextoAluno}
-                                  onTrocar={(item) => {
-                                    updRow(t.key, r.key, { nome: item.nome, bibliotecaId: item.id, grupo: null, secundarios: [], contaVolume: item.contaVolume });
-                                    setAlternativasDe(null);
-                                  }}
-                                  onFechar={() => setAlternativasDe(null)}
-                                />
-                              </td>
-                            </tr>
+                            <AlternativasExercicio
+                              origem={itemDaLinha(r)}
+                              nomeDigitado={r.nome}
+                              alunoNome={alunoNome}
+                              itens={itensBiblioteca}
+                              equivalencias={equivalencias}
+                              contexto={contextoAluno}
+                              ocultas={ocultasDe(itemDaLinha(r)?.id)}
+                              onOcultar={(altId, oculta) => {
+                                const origemId = itemDaLinha(r)?.id;
+                                if (origemId) void definirOculta(origemId, altId, oculta);
+                              }}
+                              onTrocar={(item) => {
+                                updRow(t.key, r.key, { nome: item.nome, bibliotecaId: item.id, grupo: null, secundarios: [], contaVolume: item.contaVolume });
+                                setAlternativasDe(null);
+                              }}
+                              onFechar={fecharAlternativas}
+                            />
                           ) : null}
                           </Fragment>
                         );

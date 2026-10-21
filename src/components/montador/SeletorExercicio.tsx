@@ -15,6 +15,8 @@ type Props = {
   valor: string;
   /** Exercício da biblioteca já ligado à linha (o nome pode ser um sinônimo). */
   bibliotecaId?: string | null;
+  /** Alternativas ocultas para este aluno neste exercício (somem da lista de trocas). */
+  ocultas?: Set<string>;
   itens: ItemBiblioteca[];
   favoritos: Set<string>;
   uso: Map<string, number>;
@@ -26,7 +28,7 @@ type Props = {
   ariaLabel: string;
 };
 
-export function SeletorExercicio({ valor, bibliotecaId, itens, favoritos, uso, onTexto, onEscolher, onEnterLivre, onMover, placeholder, ariaLabel }: Props) {
+export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favoritos, uso, onTexto, onEscolher, onEnterLivre, onMover, placeholder, ariaLabel }: Props) {
   const [aberto, setAberto] = useState(false);
   const [destaque, setDestaque] = useState(0);
   // Ao tocar num exercício já escolhido (sem digitar), a lista mostra trocas do mesmo músculo.
@@ -45,12 +47,12 @@ export function SeletorExercicio({ valor, bibliotecaId, itens, favoritos, uso, o
     if (!aberto) return [];
     if (modoTroca && atual)
       return itens
-        .filter((i) => i.grupo === atual.grupo && i.id !== atual.id)
+        .filter((i) => i.grupo === atual.grupo && i.id !== atual.id && !ocultas?.has(i.id))
         .sort((a, b) => Number(favoritos.has(b.id)) - Number(favoritos.has(a.id)) || (uso.get(b.id) ?? 0) - (uso.get(a.id) ?? 0) || a.nome.localeCompare(b.nome))
         .slice(0, 12)
         .map((item) => ({ item, motivo: "mesmo músculo" as string | undefined }));
     return valor.trim().length >= 2 ? buscarExercicios(itens, valor, {}, { favoritos, uso, limite: 8 }) : [];
-  }, [aberto, modoTroca, atual, valor, itens, favoritos, uso]);
+  }, [aberto, modoTroca, atual, valor, itens, favoritos, uso, ocultas]);
   const mostrar = aberto && resultados.length > 0;
 
   // A lista fica por cima da página (a tabela do montador rola de lado e cortava a lista).

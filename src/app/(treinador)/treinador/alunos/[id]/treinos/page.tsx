@@ -8,6 +8,7 @@ import { listCorrecoes } from "@/lib/data/acompanhamento";
 import { listSessoes } from "@/lib/data/sessoes";
 import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular";
 import { volumeRealizadoPorGrupo } from "@/lib/volume/calcular";
+import { listarAlternativasOcultas } from "@/lib/data/alternativas-ocultas";
 import { MontadorClient } from "./MontadorClient";
 import { porquesDosExercicios } from "@/lib/data/desbloqueia";
 import { estrategiaVigente } from "@/lib/data/estrategias";
@@ -33,7 +34,7 @@ export default async function MontadorPage({ params }: PageProps) {
     listarFavoritos(sessao.userId),
     lerTemposTreinador(sessao.userId),
   ]);
-  const [uso, estrategia, porques] = await Promise.all([usoDosExercicios(biblioteca), estrategiaVigente(id), porquesDosExercicios(plano.treinos.flatMap((t) => t.exercicios.map((e) => e.id)))]);
+  const [uso, estrategia, porques, alternativasOcultas] = await Promise.all([usoDosExercicios(biblioteca), estrategiaVigente(id), porquesDosExercicios(plano.treinos.flatMap((t) => t.exercicios.map((e) => e.id))), listarAlternativasOcultas(id)]);
   const focoEstrategia = estrategia ? Object.fromEntries(diasDaEstrategia(estrategia.dados).map((d) => [d.letra, focoDoDia(d)])) : {};
   if (!aluno) notFound();
 
@@ -52,6 +53,7 @@ export default async function MontadorPage({ params }: PageProps) {
       biblioteca={biblioteca.map((b) => ({ id: b.id, nome: b.nome, grupo_muscular: b.grupo, grupos_secundarios: b.secundarios, sinonimos: b.sinonimos, equipamento: b.equipamento }))}
       itensBiblioteca={biblioteca}
       equivalencias={equivalencias}
+      alternativasOcultas={alternativasOcultas}
       favoritos={favoritos}
       usoExercicios={uso}
       correcoes={[...correcoes.entries()].map(([nome, v]) => ({ nome, grupo: v.grupo, secundarios: v.secundarios }))}

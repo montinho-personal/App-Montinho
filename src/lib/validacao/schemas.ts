@@ -229,6 +229,13 @@ export const equivalenciaSchema = z.object({
   nota: textoOpcional(300),
 }).refine((v) => v.exercicio_id !== v.alternativa_id, { message: "Um exercício não substitui a si mesmo" });
 
+/** Personal oculta (ou volta a mostrar) uma alternativa de troca só para um aluno. */
+export const alternativaOcultaSchema = z.object({
+  exercicio_id: z.string().min(1).max(64),
+  alternativa_id: z.string().min(1).max(64),
+  oculta: z.boolean(),
+}).refine((v) => v.exercicio_id !== v.alternativa_id, { message: "Um exercício não substitui a si mesmo" });
+
 export async function lerJson<T extends z.ZodTypeAny>(request: Request, schema: T): Promise<{ data: z.infer<T>; error: null } | { data: null; error: { status: number; body: { error: string; detalhes?: unknown } } }> {
   const raw = await request.json().catch(() => null);
   if (raw === null || typeof raw !== "object") return { data: null, error: { status: 400, body: { error: "Corpo da requisição inválido" } } };

@@ -272,4 +272,12 @@ export type GrupoCorrecao = {
   grupo_muscular: GrupoMuscular;
   grupos_secundarios: GrupoMuscular[];
 };
+/** 0034 — alternativa que o personal tirou da lista de trocas de um exercício, só para aquele aluno. */
+export type AlternativaOculta = {
+  aluno_id: string;
+  exercicio_id: string;
+  alternativa_id: string;
+  criado_por: string | null;
+  created_at: string;
+};
 export type { HistoricoResumo } from "@/lib/historico/resumo";

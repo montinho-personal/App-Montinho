@@ -714,4 +714,26 @@ begin
   if not ok then raise exception 'T22: técnica inválida aceita'; end if;
   raise notice 'T22 OK: métodos avançados aceitos e técnica inválida barrada';
 end $$;
+-- T23 — 0034: alternativas ocultas — personal grava; aluno só lê as próprias e não escreve
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into alternativas_ocultas (aluno_id, exercicio_id, alternativa_id)
+  select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', a.id, b.id from (select id from exercicios_biblioteca order by id limit 1) a, (select id from exercicios_biblioteca order by id offset 1 limit 1) b;
+insert into alternativas_ocultas (aluno_id, exercicio_id, alternativa_id)
+  select 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', a.id, b.id from (select id from exercicios_biblioteca order by id limit 1) a, (select id from exercicios_biblioteca order by id offset 1 limit 1) b;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from alternativas_ocultas;
+  if n <> 1 then raise exception 'T23a: aluno A deveria ver só a própria (1), viu %', n; end if;
+  begin
+    insert into alternativas_ocultas (aluno_id, exercicio_id, alternativa_id)
+      select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', a.id, b.id from (select id from exercicios_biblioteca order by id offset 2 limit 1) a, (select id from exercicios_biblioteca order by id offset 3 limit 1) b;
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T23b: aluno conseguiu gravar alternativa oculta'; end if;
+  delete from alternativas_ocultas; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T23c: aluno apagou alternativa oculta'; end if;
+  raise notice 'T23 OK: alternativas ocultas por aluno com RLS';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'
