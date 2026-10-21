@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -38,9 +38,17 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   const [notificar, setNotificar] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [preview, setPreview] = useState(false);
+  const cartaoMensagem = useRef<HTMLDivElement>(null);
   const okTipo = TIPOS.find((t) => t.v === tipo)?.ok ?? (() => true);
   const lista = conquistas.filter((c) => (!filtro || c.alunoId === filtro) && okTipo(c));
   const alunoAlvo = sel?.alunoId ?? alunoLivre;
+
+  /** Escolher uma conquista já deixa a mensagem sugerida pronta e leva até o botão de enviar. */
+  function escolher(c: Conquista) {
+    setSel(c);
+    setMsg((atual) => (atual.trim() ? atual : EXEMPLO));
+    requestAnimationFrame(() => cartaoMensagem.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 
   async function enviar() {
     if (!alunoAlvo || msg.trim().length < 3) return toast.error("Escolha o aluno e escreva sua mensagem.");
@@ -56,22 +64,22 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
-      <section className="space-y-3" aria-labelledby="recentes">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <section className="min-w-0 space-y-3" aria-labelledby="recentes">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="recentes" className="text-xs font-bold uppercase tracking-wider text-fg-muted">
             Conquistas recentes
           </h2>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             {[7, 30, 90].map((n) => (
               <Link key={n} href={`/treinador/conquistas?dias=${n}`} aria-current={n === dias ? "page" : undefined} className={`whitespace-nowrap rounded-full border px-2.5 py-1 ${n === dias ? "border-accent text-accent" : "border-border text-fg-muted"}`}>
                 {n} dias
               </Link>
             ))}
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Filtrar por tipo" className="h-8 rounded-md border border-border bg-bg px-2">
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Filtrar por tipo" className="h-8 max-w-full rounded-md border border-border bg-bg px-2">
               {TIPOS.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
             </select>
-            <select value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar por aluno" className="h-8 rounded-md border border-border bg-bg px-2">
+            <select value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar por aluno" className="h-8 max-w-full rounded-md border border-border bg-bg px-2">
               <option value="">Todos os alunos</option>
               {alunos.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -85,7 +93,7 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
           <ul className="space-y-2">
             {lista.map((c) => (
               <li key={c.id}>
-                <button type="button" onClick={() => setSel(c)} aria-pressed={sel?.id === c.id} className={`w-full rounded-xl border p-3 text-left transition-colors ${sel?.id === c.id ? "border-accent bg-accent/10" : "border-border bg-card hover:border-accent/50"}`}>
+                <button type="button" onClick={() => escolher(c)} aria-pressed={sel?.id === c.id} className={`w-full rounded-xl border p-3 text-left transition-colors ${sel?.id === c.id ? "border-accent bg-accent/10" : "border-border bg-card hover:border-accent/50"}`}>
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-semibold">{c.aluno}</span>
                     <span className="text-xs text-fg-subtle">{fmt.format(new Date(c.data))}</span>
@@ -102,9 +110,10 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
         )}
       </section>
 
-      <div className="space-y-5">
-        <Card className="lg:sticky lg:top-4">
+      <div className="min-w-0 space-y-5">
+        <Card className="scroll-mt-20 lg:sticky lg:top-4">
           <CardBody className="space-y-3 text-sm">
+            <div ref={cartaoMensagem} className="scroll-mt-20" />
             <h2 className="font-bold">Sua mensagem</h2>
             {sel ? (
               <p className="text-xs text-fg-muted">
@@ -148,6 +157,7 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
                 {enviando ? "Enviando…" : "Enviar"}
               </button>
             </div>
+            {!alunoAlvo || msg.trim().length < 3 ? <p className="text-[11px] text-fg-subtle">{!alunoAlvo ? "Escolha uma conquista na lista (ou o aluno acima) para liberar os botões." : "Escreva a mensagem (ou use o exemplo) para liberar os botões."}</p> : null}
           </CardBody>
         </Card>
 
