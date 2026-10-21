@@ -79,6 +79,6 @@ Aprovado pelo Montinho em 21/10/2026 (“Aprovado” + “Pode publicar”). O q
 1. `/aluno/jornada` e `/treinador/alunos/[id]/jornada` agora usam `JornadaChalala` (`src/components/jornada-chalala/JornadaChalala.tsx`), alimentado pelos mesmos dados reais de `dadosDaJornada`. Abas: Mapa · Minha História · Personagens. Introdução com “Entendi” no primeiro acesso do aparelho; compartilhar medalha e reconhecimentos do personal mantidos.
 2. Medalha nova (conquistada há até 7 dias) é revelada uma vez por aparelho (Colombo comemora); nada é gravado no banco.
 3. Movimento: segue `prefers-reduced-motion`; o aluno pode também “Reduzir movimento do mapa” (preferência local).
-4. Protótipo removido: rota `/prototipo/jornada-chalala`, bandeira `NEXT_PUBLIC_JORNADA_CHALALA_PROTOTIPO`, dados fictícios e componentes antigos da jornada (`src/components/jornada/`). A variável de ambiente antiga no projeto demo da Vercel ficou sem efeito.
+4. Protótipo removido: rota `/prototipo/jornada-chalala`, bandeira `NEXT_PUBLIC_JORNADA_CHALALA_PROTOTIPO`, dados fictícios e componentes antigos da jornada (`src/components/jornada/`). As variáveis do protótipo foram apagadas do projeto demo da Vercel em 21/10/2026.
 
 Pendências de arte: aparência real do Montinho (hoje silhueta simbólica) e ilustrações definitivas das cinco regiões, se o Montinho quiser um acabamento premium com ilustrador.
