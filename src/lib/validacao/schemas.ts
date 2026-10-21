@@ -23,7 +23,7 @@ export const exercicioInputSchema = z.object({
   ie: inteiroOpcional(0, 10),
   rir: inteiroOpcional(0, 10),
   descanso_seg: inteiroOpcional(0, 1800),
-  observacoes: textoOpcional(500),
+  observacoes: textoOpcional(1500),
   series_config: z.unknown().optional(),
   biblioteca_id: z.string().max(64).nullable().optional(),
   grupo_muscular: z.enum(GRUPOS).nullable().optional().default(null),

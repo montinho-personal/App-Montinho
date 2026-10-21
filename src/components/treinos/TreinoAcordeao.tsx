@@ -75,7 +75,7 @@ export function TreinoAcordeao({ letra, nome, exercicios, vezesSemana, editarHre
                     {e.conta_volume === false ? <span className="text-fg-subtle">não conta no volume</span> : null}
                   </div>
                   {detalhes.length ? <p className="text-[11px] text-fg-muted">{detalhes.join(" · ")}</p> : null}
-                  {e.observacoes ? <p className="text-[11px] text-fg-muted">Nota: {e.observacoes}</p> : null}
+                  {e.observacoes ? <p className="whitespace-pre-line text-[11px] text-fg-muted">Nota: {e.observacoes}</p> : null}
                 </div>
               </li>
             );

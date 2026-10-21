@@ -11,6 +11,8 @@
 // ============================================================================
 
 import { aplicarDescansoPadrao } from "@/lib/tempo/descanso-padrao";
+import { OrientacoesProntas } from "@/components/montador/OrientacoesProntas";
+import { LIMITE_NOTA } from "@/lib/orientacoes";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -907,7 +909,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               <input inputMode="numeric" value={r.rir} onChange={(e) => updRow(t.key, r.key, { rir: e.target.value.replace(/[^0-9]/g, "").slice(0, 2) })} aria-label="RIR alvo" className="h-8 w-10 rounded border border-border bg-bg px-1 text-center font-mono text-[12px] text-accent font-bold" />
                             </td>
                             <td className="px-2 py-1.5 align-top">
-                              <input value={r.observacoes} onChange={(e) => updRow(t.key, r.key, { observacoes: e.target.value })} placeholder="nota para o aluno" aria-label="Observação para o aluno" className="h-8 w-full rounded border border-border bg-bg px-2 text-[12px]" />
+                              <textarea value={r.observacoes} onChange={(e) => updRow(t.key, r.key, { observacoes: e.target.value.slice(0, LIMITE_NOTA) })} placeholder="nota para o aluno" aria-label="Observação para o aluno" rows={Math.min(6, Math.max(1, Math.ceil(r.observacoes.length / 38) + (r.observacoes.match(/\n/g)?.length ?? 0)))} className="min-h-8 w-full min-w-[13rem] resize-y rounded border border-border bg-bg px-2 py-1 text-[12px] leading-snug" />
+                              <OrientacoesProntas nota={r.observacoes} onChange={(observacoes) => updRow(t.key, r.key, { observacoes })} />
                               {r.id ? <PorqueExercicio exercicioId={r.id} inicial={porques[r.id] ?? ""} /> : null}
                             </td>
                             <td className="px-1 py-1.5 text-right whitespace-nowrap align-top">

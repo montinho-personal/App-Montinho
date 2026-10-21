@@ -1,5 +1,7 @@
 "use client";
 
+import { NotaDoPersonal } from "@/components/aluno/NotaDoPersonal";
+
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -133,8 +135,8 @@ export function ExercicioCard({ exercicio, index, ultimo }: ExercicioCardProps) 
         ) : null}
 
         {exercicio.observacoes && expanded ? (
-          <div className="mt-3 text-xs text-fg-muted italic px-3 py-2 bg-card-hover rounded-md">
-            ↳ {exercicio.observacoes}
+          <div className="mt-3">
+            <NotaDoPersonal nota={exercicio.observacoes} />
           </div>
         ) : null}
 

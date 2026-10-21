@@ -28,6 +28,7 @@ import { CABECALHO_ALUNO } from "@/lib/auth/cabecalho";
 import type { OpcaoTroca, TrocasDoExercicio } from "@/lib/treino/troca";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { RitmoTreino } from "@/components/aluno/RitmoTreino";
+import { NotaDoPersonal } from "@/components/aluno/NotaDoPersonal";
 import { estimarPrescricao, descansoAposSerie } from "@/lib/tempo/prescricao";
 import { offsetRelogio } from "@/lib/tempo/ritmo";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
@@ -955,11 +956,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       </div>
                     ) : null}
                     {ex.video ? <BotaoVideoTelaCheia source={ex.video} titulo={ex.nome} /> : null}
-                    {ex.observacoes ? (
-                      <p className="text-sm text-fg-muted rounded-md bg-accent-soft/60 border border-accent/20 px-3 py-2">
-                        <span className="text-accent font-semibold">Nota do {BRAND.name}:</span> {ex.observacoes}
-                      </p>
-                    ) : null}
+                    <NotaDoPersonal nota={ex.observacoes} />
                     {!troca && desbloqueia?.porques[ex.id] ? (
                       <details className="rounded-md border border-accent/30 bg-accent-soft/40 px-3 py-2 text-sm" onToggle={(e) => (e.currentTarget.open ? enviarEvento({ tipo: "explicacao_aberta", origem: "treino" }) : undefined)}>
                         <summary className="cursor-pointer font-semibold text-accent">Por que esse exercício está no meu treino?</summary>
