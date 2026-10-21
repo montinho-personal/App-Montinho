@@ -33,7 +33,7 @@ import { RitmoTreino } from "@/components/aluno/RitmoTreino";
 import { NotaDoPersonal } from "@/components/aluno/NotaDoPersonal";
 import { estimarPrescricao, descansoAposSerie } from "@/lib/tempo/prescricao";
 import { offsetRelogio } from "@/lib/tempo/ritmo";
-import type { ParametrosTempo } from "@/lib/tempo/estimar";
+import { descansoDaRodada, mesclarParametros, type ParametrosTempo } from "@/lib/tempo/estimar";
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
@@ -433,6 +433,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       const r = proximoNoBloco(grupo, seId, contagemSeries(seId));
       irPara = r.proximo !== seId ? r.proximo : null;
       if (!r.fimDaRodada) descanso = null;
+      // Fim da rodada com mais rodadas pela frente: descanso padrão (1min30) do bi-set.
+      else if (r.proximo) descanso = descansoDaRodada(descanso, mesclarParametros(temposSessao));
     }
     if (!silencioso && descanso && descanso > 0) {
       const seg = descanso;

@@ -211,6 +211,14 @@ function aquecimento(acc: Acc, ex: ExercicioTempo, p: ParametrosTempo) {
 const descansoDaSerie = (s: SerieTempo | undefined, p: ParametrosTempo) =>
   s && typeof s.descansoSeg === "number" && Number.isFinite(s.descansoSeg) && s.descansoSeg >= 0 ? s.descansoSeg : p.descansoEntreSeriesSeg;
 
+/**
+ * Descanso entre rodadas de bi-set/tri-set: vale o padrão (1min30) quando o
+ * exercício não tem um descanso próprio acima de 1 min (vazio, 0 ou os 60 s
+ * antigos). Quem quiser mais que 1 min digita o valor no montador.
+ */
+export const descansoDaRodada = (seg: number | null | undefined, p: Pick<ParametrosTempo, "descansoEntreSeriesSeg">): number =>
+  typeof seg === "number" && Number.isFinite(seg) && seg > 60 ? seg : p.descansoEntreSeriesSeg;
+
 function entreExercicios(acc: Acc, ultimo: ExercicioTempo, p: ParametrosTempo) {
   const descanso = typeof ultimo.descansoAposSeg === "number" && ultimo.descansoAposSeg >= 0 ? ultimo.descansoAposSeg : p.descansoAposExercicioSeg;
   acc.desc += descanso;
@@ -253,7 +261,10 @@ export function estimarDuracao(exercicios: ExercicioTempo[], parametros: Partial
         acc.series += 1;
         ultimoNaRodada = ex;
       });
-      if (r < rodadas - 1 && ultimoNaRodada) acc.desc += descansoDaSerie((ultimoNaRodada as ExercicioTempo).series[r], p);
+      if (r < rodadas - 1 && ultimoNaRodada) {
+        const u = (ultimoNaRodada as ExercicioTempo).series[r];
+        acc.desc += g.length > 1 ? descansoDaRodada(u?.descansoSeg, p) : descansoDaSerie(u, p);
+      }
     }
     if (gi < grupos.length - 1) entreExercicios(acc, g[g.length - 1], p);
     const fim = Math.round(acc.exec + acc.desc + acc.trans);

@@ -16,3 +16,20 @@ describe("usar o descanso padrão", () => {
     expect(r[3]).toMatchObject({ descansoApos: "", seriesConfig: { descanso_seg: null } });
   });
 });
+
+import { descansoDaRodada, estimarDuracao, PARAMETROS_TEMPO_PADRAO } from "./estimar";
+
+describe("descanso da rodada do bi-set", () => {
+  it("vazio, 0 e 60 s antigos viram 1min30; valores maiores são mantidos", () => {
+    expect(descansoDaRodada(null, PARAMETROS_TEMPO_PADRAO)).toBe(90);
+    expect(descansoDaRodada(0, PARAMETROS_TEMPO_PADRAO)).toBe(90);
+    expect(descansoDaRodada(60, PARAMETROS_TEMPO_PADRAO)).toBe(90);
+    expect(descansoDaRodada(120, PARAMETROS_TEMPO_PADRAO)).toBe(120);
+  });
+  it("a estimativa de tempo usa 1min30 entre as rodadas", () => {
+    const ex = (id: string, d: number | null) => ({ id, nome: id, series: [{ reps: "10", descansoSeg: d }, { reps: "10", descansoSeg: d }], aquecimento: 0, cadencia: null, tecnica: "biset" as const, tecnicaExtras: null, tecnicaSeries: null, bloco: "A1", unilateral: false, descansoAposSeg: 0 });
+    const com60 = estimarDuracao([ex("a", 0), ex("b", 60)]);
+    const com90 = estimarDuracao([ex("a", 0), ex("b", 90)]);
+    expect(com60.descansoSeg).toBe(com90.descansoSeg);
+  });
+});
