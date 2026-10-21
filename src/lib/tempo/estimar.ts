@@ -17,7 +17,7 @@
 // ============================================================================
 
 import type { Tecnica } from "@/lib/volume/calcular";
-import { EXTRAS_PADRAO, seriesComTecnicaPadrao, temExtras } from "@/lib/volume/tecnicas";
+import { EXTRAS_PADRAO, ehTecnicaBloco, seriesComTecnicaPadrao, temExtras } from "@/lib/volume/tecnicas";
 
 export type ParametrosTempo = {
   descansoEntreSeriesSeg: number;
@@ -170,6 +170,20 @@ function extrasTecnica(acc: Acc, ex: ExercicioTempo, i: number, reps: string, p:
     acc.desc += Math.max(0, p.clusterBlocos - 1) * p.clusterPausaSeg; // pausas internas da série
     return;
   }
+  // Métodos de tempo (sem cadência informada): super slow ≈ 10 s por repetição;
+  // negativo ≈ +3 s de descida por repetição. Com cadência, ela já manda.
+  if ((t === "super_slow" || t === "negativo") && !segundosDaCadencia(ex.cadencia)) {
+    const { n } = repsPrevistas(reps);
+    acc.exec += n * (t === "super_slow" ? Math.max(0, 10 - p.segundosPorRep) : 3);
+    return;
+  }
+  // 3/7: 5 mini-séries de 3, 4, 5, 6 e 7 repetições (25) com 15 s entre elas.
+  if (t === "tres_sete") {
+    const { n } = repsPrevistas(reps);
+    registrar(acc, ex, execucaoSerie(String(Math.max(0, 25 - n)), ex, p));
+    acc.desc += 4 * 15;
+    return;
+  }
   if (!temExtras(t)) return;
   const nSeries = Math.min(total, ex.tecnicaSeries ?? seriesComTecnicaPadrao(t, total));
   if (i < total - nSeries) return; // técnica nas últimas N séries
@@ -203,7 +217,7 @@ function entreExercicios(acc: Acc, ultimo: ExercicioTempo, p: ParametrosTempo) {
   acc.trans += p.transicaoDentroDoDescanso ? Math.max(0, p.transicaoSeg - descanso) : p.transicaoSeg;
 }
 
-const ehBloco = (e: ExercicioTempo) => !!e.bloco?.trim() && (e.tecnica === "superset" || e.tecnica === "biset");
+const ehBloco = (e: ExercicioTempo) => !!e.bloco?.trim() && ehTecnicaBloco(e.tecnica);
 
 /** Agrupa superset/bi-set consecutivos com o mesmo bloco. */
 function agrupar(exs: ExercicioTempo[]): ExercicioTempo[][] {

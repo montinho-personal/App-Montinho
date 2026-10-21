@@ -3,6 +3,7 @@
 import type { SalvarPlanoInput } from "@/lib/data/programas";
 import type { SerieConfig } from "@/lib/series";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
+import { ehTecnicaBloco } from "@/lib/volume/tecnicas";
 
 export type SerieAuditada = { reps: string; descanso: number | null };
 export type ExercicioAuditado = { posicao: number; nome: string; tecnica: string; bloco: string | null; rir: number | null; series: SerieAuditada[] };
@@ -19,7 +20,7 @@ export function auditarPrescricao(p: Pick<SalvarPlanoInput, "treinos">): TreinoA
     let posicao = 0;
     let blocoAnterior: string | null = null;
     const itens: ExercicioAuditado[] = t.exercicios.map((e) => {
-      const bloco = e.tecnica === "biset" || e.tecnica === "superset" ? (e.bloco ?? null) : null;
+      const bloco = ehTecnicaBloco(e.tecnica) ? (e.bloco ?? null) : null;
       if (!bloco || bloco !== blocoAnterior) posicao++;
       blocoAnterior = bloco;
       return { posicao, nome: e.nome, tecnica: e.tecnica, bloco, rir: e.rir ?? null, series: seriesDe(e.series_config as SerieConfig | null, e.reps, e.series, e.descanso_seg) };

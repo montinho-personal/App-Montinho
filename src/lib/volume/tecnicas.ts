@@ -63,7 +63,48 @@ export const TECNICA_CURTA: Record<Tecnica, string> = {
   isometria: "isometria",
   unilateral: "unilateral",
   myo_reps: "myo-reps",
+  piramide_decrescente: "pirâmide decrescente",
+  triset: "tri-set",
+  combinado: "combinado",
+  pre_exaustao: "pré-exaustão",
+  tres_sete: "3/7",
+  super_slow: "super slow",
+  negativo: "negativo",
 };
+
+/**
+ * Métodos que agrupam exercícios seguidos (mesmo “bloco”): feitos em
+ * sequência, sem descanso entre eles; o descanso vem no fim da rodada.
+ * Cada exercício conta as próprias séries no volume.
+ */
+export const TECNICAS_BLOCO: Tecnica[] = ["superset", "biset", "triset", "combinado", "pre_exaustao"];
+export const ehTecnicaBloco = (t: Tecnica | string | null | undefined): boolean => !!t && (TECNICAS_BLOCO as string[]).includes(t);
+/** Quantos exercícios o método liga a partir deste (incluindo ele). */
+export const TAMANHO_BLOCO: Partial<Record<Tecnica, number>> = { superset: 2, biset: 2, triset: 3, combinado: 2, pre_exaustao: 2 };
+
+export type GrupoMetodo = "Básico" | "Progressivos" | "Combinados" | "Intensificadores" | "Tempo/Técnica";
+export type Metodo = { v: Tecnica; l: string; desc: string; grupo: GrupoMetodo };
+
+/** Catálogo de métodos do montador (ordem e grupos como o personal usa). */
+export const METODOS: Metodo[] = [
+  { v: "normal", l: "Tradicional", desc: "Séries e repetições padrão", grupo: "Básico" },
+  { v: "piramide", l: "Pirâmide crescente", desc: "Peso aumenta, reps diminuem", grupo: "Progressivos" },
+  { v: "piramide_decrescente", l: "Pirâmide decrescente", desc: "Peso diminui, reps aumentam", grupo: "Progressivos" },
+  { v: "biset", l: "Bi-set", desc: "2 exercícios sem descanso", grupo: "Combinados" },
+  { v: "triset", l: "Tri-set", desc: "3 exercícios sem descanso", grupo: "Combinados" },
+  { v: "superset", l: "Super-set", desc: "Agonista + antagonista", grupo: "Combinados" },
+  { v: "combinado", l: "Combinado", desc: "2 exercícios combinados", grupo: "Combinados" },
+  { v: "pre_exaustao", l: "Pré-exaustão", desc: "Isolador antes de composto", grupo: "Combinados" },
+  { v: "rest_pause", l: "Rest-pause", desc: "Pausas curtas entre mini-séries", grupo: "Intensificadores" },
+  { v: "dropset", l: "Drop-set", desc: "Redução de carga sem descanso", grupo: "Intensificadores" },
+  { v: "cluster", l: "Cluster", desc: "Mini-séries com pausas intra", grupo: "Intensificadores" },
+  { v: "myo_reps", l: "Myo-reps", desc: "Ativação + mini-séries", grupo: "Intensificadores" },
+  { v: "tres_sete", l: "3/7", desc: "De 3 a 7 reps progressivo", grupo: "Intensificadores" },
+  { v: "super_slow", l: "Super slow", desc: "Cadência ultra lenta", grupo: "Tempo/Técnica" },
+  { v: "negativo", l: "Negativo", desc: "Ênfase na fase excêntrica", grupo: "Tempo/Técnica" },
+  { v: "isometria", l: "Isometria", desc: "Segurar a posição pelo tempo indicado", grupo: "Tempo/Técnica" },
+  { v: "unilateral", l: "Unilateral", desc: "Um lado de cada vez", grupo: "Tempo/Técnica" },
+];
 
 /** Valores assumidos quando o treinador não informa (mostrados como "assumido"). */
 export const EXTRAS_PADRAO: Record<TecnicaComExtras, number> = { dropset: 1, rest_pause: 2, myo_reps: 3 };

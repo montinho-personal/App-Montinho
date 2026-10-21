@@ -23,6 +23,7 @@ import type { ExercicioPrescrito, PrioridadeExercicio } from "@/lib/supabase/typ
 import { mesclarParametros, type ParametrosTempo } from "@/lib/tempo/estimar";
 import type { SerieConfig } from "@/lib/series";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
+import { ehTecnicaBloco } from "@/lib/volume/tecnicas";
 
 export const OPCOES_TEMPO_MIN = [20, 30, 45, 60] as const;
 export const REGRAS_POSSIVEL = {
@@ -120,10 +121,10 @@ function unidades(exs: ExercicioLike[], prioridadesMusculares: string[]): Unidad
   const out: Unidade[] = [];
   const peso: Record<PrioridadeExercicio, number> = { adiavel: 0, normal: 1, essencial: 2 };
   exs.forEach((e, i) => {
-    const bloco = e.bloco?.trim() && (e.tecnica === "superset" || e.tecnica === "biset") ? e.bloco.trim() : null;
+    const bloco = e.bloco?.trim() && ehTecnicaBloco(e.tecnica) ? e.bloco.trim() : null;
     const anterior = out[out.length - 1];
     const prev = exs[i - 1];
-    const mesmoBloco = bloco && prev && prev.bloco?.trim() === bloco && (prev.tecnica === "superset" || prev.tecnica === "biset");
+    const mesmoBloco = bloco && prev && prev.bloco?.trim() === bloco && ehTecnicaBloco(prev.tecnica);
     const p = e.prioridade ?? "normal";
     const prio = !!e.grupo_muscular && prioridadesMusculares.includes(e.grupo_muscular);
     if (mesmoBloco && anterior) {
@@ -202,7 +203,7 @@ export function treinoPossivel(input: {
 
   // 0) Uma série a menos nos músculos menores (do fim para o começo).
   const prioridades = input.prioridadesMusculares ?? [];
-  const emBloco = (e: ExercicioLike) => !!e.bloco?.trim() && (e.tecnica === "superset" || e.tecnica === "biset");
+  const emBloco = (e: ExercicioLike) => !!e.bloco?.trim() && ehTecnicaBloco(e.tecnica);
   const cortaveis = [...exs]
     .reverse()
     .filter((e) => e.prioridade !== "essencial" && !!e.grupo_muscular && GRUPOS_MENORES.includes(e.grupo_muscular) && !prioridades.includes(e.grupo_muscular) && (!e.tecnica || e.tecnica === "normal") && !emBloco(e) && seriesValidas(e) >= 3);

@@ -19,7 +19,8 @@ import { useRouter } from "next/navigation";
 import { PorqueExercicio } from "@/components/montador/PorqueExercicio";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
-import { EXTRAS_PADRAO, temExtras } from "@/lib/volume/tecnicas";
+import { EXTRAS_PADRAO, ehTecnicaBloco, METODOS, temExtras } from "@/lib/volume/tecnicas";
+import { aplicarMetodo } from "@/lib/treino/metodo";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
 import { estimarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
@@ -126,18 +127,8 @@ const DIAS_SEMANA = [
   { dia: 0, label: "Dom" },
 ];
 
-const TECNICAS: Array<{ v: Tecnica; l: string }> = [
-  { v: "normal", l: "Normal" },
-  { v: "superset", l: "Superset" },
-  { v: "biset", l: "Bi-set" },
-  { v: "dropset", l: "Drop set" },
-  { v: "rest_pause", l: "Rest-pause" },
-  { v: "cluster", l: "Cluster" },
-  { v: "piramide", l: "Pirâmide" },
-  { v: "isometria", l: "Isometria" },
-  { v: "myo_reps", l: "Myo-reps" },
-  { v: "unilateral", l: "Unilateral" },
-];
+const TECNICAS: Array<{ v: Tecnica; l: string }> = METODOS.map((m) => ({ v: m.v, l: m.l }));
+const GRUPOS_METODO = [...new Set(METODOS.map((m) => m.grupo))];
 
 const PRESETS: Array<{ nome: string; letras: TreinoLetra[]; calendario: Calendario; split: string }> = [
   { nome: "Full Body 3x", letras: ["A", "B", "C"], calendario: { modo: "fixa", dias: [{ dia: 1, letra: "A" }, { dia: 3, letra: "B" }, { dia: 5, letra: "C" }] }, split: "Full Body" },
@@ -368,6 +359,16 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const updPrograma = (patch: Partial<ProgramaVM>) => commit((e) => ({ ...e, programa: { ...e.programa, ...patch } }));
   const updTreino = (key: string, patch: Partial<TreinoVM>) => commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === key ? { ...t, ...patch } : t)) }));
   const updRow = (tk: string, rk: string, patch: Partial<Row>) => commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === tk ? { ...t, rows: t.rows.map((r) => (r.key === rk ? { ...r, ...patch } : r)) } : t)) }));
+  /** Método do exercício: liga bi-set/tri-set aos próximos e monta a pirâmide (lib/treino/metodo). */
+  const escolherMetodo = (tk: string, rk: string, metodo: Tecnica) =>
+    commit((e) => ({
+      ...e,
+      treinos: e.treinos.map((t) => {
+        if (t.key !== tk) return t;
+        const idx = t.rows.findIndex((r) => r.key === rk);
+        return idx < 0 ? t : { ...t, rows: aplicarMetodo(t.rows, idx, metodo, t.letra).map((r) => ({ ...r, unilateral: r.key === rk && metodo === "unilateral" ? true : r.unilateral })) };
+      }),
+    }));
   const addRow = (tk: string, apos?: string) =>
     commit((e) => ({
       ...e,
@@ -823,6 +824,16 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                     ⇄ alternativas
                                   </button>
                                 ) : null}
+                                <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
+                                  <select value={r.tecnica} onChange={(e) => escolherMetodo(t.key, r.key, e.target.value as Tecnica)} aria-label={`Método do exercício ${i + 1}`} title={METODOS.find((m) => m.v === r.tecnica)?.desc} className={`h-7 rounded border px-1 text-[11px] font-semibold ${r.tecnica === "normal" ? "border-border text-fg-muted" : "border-accent/50 bg-accent/10 text-accent"}`}>
+                                    {GRUPOS_METODO.map((gr) => (
+                                      <optgroup key={gr} label={gr}>
+                                        {METODOS.filter((m) => m.grupo === gr).map((m) => <option key={m.v} value={m.v}>{m.l} — {m.desc}</option>)}
+                                      </optgroup>
+                                    ))}
+                                  </select>
+                                  {ehTecnicaBloco(r.tecnica) && r.bloco ? <span className="text-[10px] font-semibold text-accent">🔗 bloco {r.bloco}{t.rows[i + 1]?.bloco === r.bloco ? " · ligado ao próximo" : ""}</span> : null}
+                                </div>
                               </div>
                               {alertas.length ? (
                                 <p className="px-2 pb-1 text-[11px]" style={{ color: altoRisco ? "var(--color-red)" : "var(--color-gold)" }}>⚠ {alertas.map((a) => `${a.regiao}: ${a.mensagem}`).join(" · ")}</p>
@@ -850,7 +861,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                       série(s)
                                     </span>
                                   ) : null}
-                                  {(r.tecnica === "superset" || r.tecnica === "biset") ? <input value={r.bloco} onChange={(e) => updRow(t.key, r.key, { bloco: e.target.value })} placeholder="bloco (ex.: S1)" className="w-20 rounded border border-border bg-bg px-1" aria-label="Bloco do superset" /> : null}
+                                  {ehTecnicaBloco(r.tecnica) ? <input value={r.bloco} onChange={(e) => updRow(t.key, r.key, { bloco: e.target.value })} placeholder="bloco (ex.: S1)" className="w-20 rounded border border-border bg-bg px-1" aria-label="Bloco do superset" /> : null}
                                   <label className="inline-flex items-center gap-1 text-fg-muted"><input type="checkbox" checked={r.unilateral} onChange={(e) => updRow(t.key, r.key, { unilateral: e.target.checked })} /> unilateral</label>
                                   <input value={r.cargaAlvo} onChange={(e) => updRow(t.key, r.key, { cargaAlvo: e.target.value })} placeholder="carga-alvo" className="w-20 rounded border border-border bg-bg px-1" aria-label="Carga-alvo" />
                                   <label className="inline-flex items-center gap-1 text-fg-muted" title="Desmarque para cardio/mobilidade (não entra no volume)"><input type="checkbox" checked={r.contaVolume} onChange={(e) => updRow(t.key, r.key, { contaVolume: e.target.checked })} /> conta volume</label>

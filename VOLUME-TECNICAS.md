@@ -95,3 +95,12 @@ Força da evidência: ●●● boa · ●● moderada · ● fraca/opinião.
 
 - O registro do aluno ainda não tem "drop" ou "mini-série" como tipo de série. O **realizado** conta as séries válidas registradas, sem bônus de técnica.
 - Fontes lidas em parte por resumo de busca (alguns sites bloquearam a leitura direta). Itens marcados "não verifiquei" não foram atribuídos a ninguém.
+
+## Métodos adicionados em 21/10/2026 (0033)
+
+Contam como **séries normais** (1 série válida por série prescrita, sem bônus):
+pirâmide decrescente, tri-set, combinado, pré-exaustão (cada exercício do bloco
+conta as próprias séries, como no bi-set), 3/7, super slow e negativo. São
+métodos de execução/organização; não há base para somar volume extra. O tempo
+estimado considera: super slow ≈ 10 s por repetição, negativo ≈ +3 s por
+repetição e 3/7 = 25 repetições com 4 pausas de 15 s por série.

@@ -7,7 +7,7 @@ export const GRUPOS = [
   "panturrilha", "abdomen", "core", "lombar", "cardio", "full_body", "pernas", "nao_classificado", "outro",
 ] as const;
 
-export const TECNICAS = ["normal", "superset", "biset", "dropset", "rest_pause", "cluster", "piramide", "isometria", "unilateral", "myo_reps"] as const;
+export const TECNICAS = ["normal", "superset", "biset", "dropset", "rest_pause", "cluster", "piramide", "isometria", "unilateral", "myo_reps", "piramide_decrescente", "triset", "combinado", "pre_exaustao", "tres_sete", "super_slow", "negativo"] as const;
 export const LETRAS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
 const texto = (max: number) => z.string().trim().max(max);

@@ -123,6 +123,13 @@ const TECNICA_LABEL: Record<string, string> = {
   isometria: "Isometria: segure a posição pelo tempo indicado.",
   unilateral: "Unilateral: faça um lado de cada vez. Registre uma série por lado ou o total.",
   myo_reps: "Myo-reps: faça a série até perto da falha, descanse 3–5 respirações e faça mini-séries curtas com a mesma carga.",
+  piramide_decrescente: "Pirâmide decrescente: comece mais pesado e vá tirando peso, com mais repetições a cada série (veja a prescrição de cada uma).",
+  triset: "Tri-set: três exercícios em sequência, sem descanso entre eles. Descanse só no fim da rodada.",
+  combinado: "Combinado: dois exercícios feitos em sequência, sem descanso entre eles.",
+  pre_exaustao: "Pré-exaustão: primeiro o exercício isolado, depois o composto, sem descanso entre eles.",
+  tres_sete: "3/7: faça 3 repetições, descanse 15 s, depois 4, 5, 6 e 7 repetições, sempre com 15 s de pausa e a mesma carga.",
+  super_slow: "Super slow: movimento bem lento, uns 4–5 s subindo e 4–5 s descendo, sem embalo.",
+  negativo: "Negativo: capriche na descida, devagar e controlada (3–4 s); a subida pode ser normal.",
 };
 
 function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {

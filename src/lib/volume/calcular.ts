@@ -34,7 +34,14 @@ export type Tecnica =
   | "piramide"
   | "isometria"
   | "unilateral"
-  | "myo_reps";
+  | "myo_reps"
+  | "piramide_decrescente"
+  | "triset"
+  | "combinado"
+  | "pre_exaustao"
+  | "tres_sete"
+  | "super_slow"
+  | "negativo";
 
 export type ExercicioVolume = {
   id: string;

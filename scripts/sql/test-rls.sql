@@ -704,4 +704,14 @@ begin
   raise notice 'T21 OK: troca de exercício — equivalências só pela função, sem escrita';
 end $$;
 select test_logout();
+-- T22 — 0033: novos métodos aceitos; técnica inventada continua barrada
+do $$
+declare ok boolean := false;
+begin
+  update exercicios set tecnica = 'triset' where id = (select id from exercicios limit 1);
+  update exercicios set tecnica = 'normal' where id = (select id from exercicios limit 1);
+  begin update exercicios set tecnica = 'inventada' where id = (select id from exercicios limit 1); exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T22: técnica inválida aceita'; end if;
+  raise notice 'T22 OK: métodos avançados aceitos e técnica inválida barrada';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'
