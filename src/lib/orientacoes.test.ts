@@ -5,7 +5,8 @@ import { exercicioInputSchema } from "@/lib/validacao/schemas";
 describe("orientações prontas", () => {
   it("5 orientações com os textos do personal", () => {
     expect(ORIENTACOES.map((o) => o.id)).toEqual(["aquecimento", "iso-2-primeiras-5", "iso-todas-5", "iso-todas-10", "falha-todas"]);
-    expect(ORIENTACOES[3].texto).toMatch(/^Em todas as séries, faça as 10 primeiras repetições segurando o peso por 3 segundos/);
+    expect(ORIENTACOES[3].texto).toBe("Em todas as séries, segure 3s no pico de contração muscular nas 10 primeiras repetições. Faça as restantes na cadência normal, com movimento explosivo, sem fazer lento.");
+    expect(ORIENTACOES[0].texto).toBe("Faça 2 séries leves de aquecimento antes de começar.");
   });
 
   it("acrescenta à nota existente sem duplicar e reconhece as que já estão", () => {
@@ -19,7 +20,7 @@ describe("orientações prontas", () => {
 
   it("para o aluno: orientação vira bloco com título; texto livre fica sem título", () => {
     const b = blocosDaNota(adicionarOrientacao("Pé alto na plataforma.", "falha-todas"));
-    expect(b).toEqual([{ titulo: null, texto: "Pé alto na plataforma." }, { titulo: "Todas as séries até a falha", texto: ORIENTACOES[4].texto }]);
+    expect(b).toEqual([{ titulo: null, texto: "Pé alto na plataforma." }, { titulo: "Falha muscular", texto: ORIENTACOES[4].texto }]);
   });
 
   it("cabe na validação do plano mesmo com todas as orientações + nota livre", () => {

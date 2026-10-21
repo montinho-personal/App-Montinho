@@ -12,27 +12,27 @@ export const ORIENTACOES: Orientacao[] = [
   {
     id: "aquecimento",
     titulo: "Aquecimento",
-    texto: "Antes de começar, faça 2 séries de aquecimento com uma carga leve, preparando os músculos e as articulações para as séries principais. Não precisa chegar à falha no aquecimento.",
+    texto: "Faça 2 séries leves de aquecimento antes de começar.",
   },
   {
     id: "iso-2-primeiras-5",
-    titulo: "Isometria nas 2 primeiras séries — 5 repetições",
-    texto: "Nas 2 primeiras séries, faça as 5 primeiras repetições segurando o peso por 3 segundos no ponto de maior contração muscular. Depois, complete as repetições restantes com movimentos rápidos e explosivos na subida, mantendo o controle na descida.",
+    titulo: "Isometria — 2 primeiras séries (5 reps)",
+    texto: "Nas 2 primeiras séries, segure 3s no pico de contração muscular nas 5 primeiras repetições. Faça as restantes na cadência normal, com movimento explosivo, sem fazer lento.",
   },
   {
     id: "iso-todas-5",
-    titulo: "Isometria em todas as séries — 5 repetições",
-    texto: "Em todas as séries, faça as 5 primeiras repetições segurando o peso por 3 segundos no ponto de maior contração muscular. Depois, complete as repetições restantes com movimentos rápidos e explosivos na subida, mantendo o controle na descida.",
+    titulo: "Isometria — Todas as séries (5 reps)",
+    texto: "Em todas as séries, segure 3s no pico de contração muscular nas 5 primeiras repetições. Faça as restantes na cadência normal, com movimento explosivo, sem fazer lento.",
   },
   {
     id: "iso-todas-10",
-    titulo: "Isometria em todas as séries — 10 repetições",
-    texto: "Em todas as séries, faça as 10 primeiras repetições segurando o peso por 3 segundos no ponto de maior contração muscular. Depois, complete as repetições restantes com movimentos rápidos e explosivos na subida, mantendo o controle na descida.",
+    titulo: "Isometria — Todas as séries (10 reps)",
+    texto: "Em todas as séries, segure 3s no pico de contração muscular nas 10 primeiras repetições. Faça as restantes na cadência normal, com movimento explosivo, sem fazer lento.",
   },
   {
     id: "falha-todas",
-    titulo: "Todas as séries até a falha",
-    texto: "Leve todas as séries até a falha muscular, ou seja, até o ponto em que você não consegue completar mais uma repetição com a execução correta. Não vale roubar o movimento só para conseguir mais repetições.",
+    titulo: "Falha muscular",
+    texto: "Leve todas as séries até não conseguir fazer mais uma repetição com boa execução.",
   },
 ];
 
