@@ -322,7 +322,8 @@ export function layoutCard(cfg: ConfigCard, d: DadosCard, medir: Medir): Resulta
   const ops: Op[] = [{ t: "fundo", tipo: cfg.fundo, cor: p.fundo, gradiente: cfg.fundo === "gradiente" ? p.gradiente : null, escurecer: cfg.fundo === "foto" ? Math.max(0, Math.min(0.85, cfg.foto.escurecer)) : 0 }];
 
   const escalaFormato = cfg.formato === "stories" ? 1 : cfg.formato === "feed" ? 0.86 : 0.74;
-  const logoW = Math.round(w * (cfg.formato === "quadrado" ? 0.17 : 0.21));
+  // Logo oficial completo, bem visível em tudo que é compartilhado.
+  const logoW = Math.round(w * (cfg.formato === "quadrado" ? 0.24 : 0.3));
   const logoH = Math.round(logoW / LOGO_RATIO);
   ops.push({ t: "logo", x: Math.round((w - logoW) / 2), y: topo, w: logoW, h: logoH, variante: sobreposta ? "claro" : p.logo });
 

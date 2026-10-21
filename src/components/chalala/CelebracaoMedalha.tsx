@@ -80,6 +80,8 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, onFechar
       ) : null}
 
       <div className="relative w-full max-w-sm text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element -- logo SVG oficial */}
+        <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-4 h-auto w-[150px]" />
         {conquistas.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">Medalha {i + 1} de {conquistas.length}</p> : null}
         {!aberta ? (
           <button type="button" onClick={abrir} className="mx-auto flex flex-col items-center gap-4 rounded-3xl p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" aria-label="Abrir a medalha">

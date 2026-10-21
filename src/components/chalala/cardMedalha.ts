@@ -58,7 +58,7 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
   // Fundo: preto com brilho dourado atrás da medalha.
   ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, W, H);
-  const brilho = ctx.createRadialGradient(W / 2, 700, 40, W / 2, 700, 820);
+  const brilho = ctx.createRadialGradient(W / 2, 735, 40, W / 2, 735, 820);
   brilho.addColorStop(0, "rgba(186,158,80,0.42)");
   brilho.addColorStop(0.45, "rgba(186,158,80,0.12)");
   brilho.addColorStop(1, "rgba(10,10,10,0)");
@@ -71,8 +71,8 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
   for (let k = 0; k < 40; k++) {
     const x = (k * 157) % W;
     const y = 260 + ((k * 263) % 680);
-    if (Math.hypot(x - W / 2, y - 700) < 300) continue;
-    if (y < 470 && Math.abs(x - W / 2) < 230) continue;
+    if (Math.hypot(x - W / 2, y - 735) < 285) continue;
+    if (y < 500 && Math.abs(x - W / 2) < 260) continue;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(((k * 47) % 180) * (Math.PI / 180));
@@ -83,12 +83,13 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
   }
 
   // Marca
-  if (logo) ctx.drawImage(logo, W / 2 - 120, 250, 240, 164);
+  // Logo oficial completo (M + MONTINHO / PERSONAL TRAINER), em destaque.
+  if (logo) ctx.drawImage(logo, W / 2 - 200, 200, 400, 274);
 
   // Medalha
   const cx = W / 2;
-  const cy = 700;
-  const r = 210;
+  const cy = 735;
+  const r = 195;
   ctx.save();
   ctx.shadowColor = "rgba(227,205,138,0.55)";
   ctx.shadowBlur = 90;
@@ -120,7 +121,7 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
   ctx.textBaseline = "alphabetic";
 
   // Textos
-  let y = 1010;
+  let y = 1035;
   y = bloco(ctx, "NOVA MEDALHA", y, { tamanho: 34, peso: 700, cor: OURO, familia, espacamento: 10, maxLinhas: 1 });
   y = bloco(ctx, card.titulo, y + 92, { tamanho: 80, peso: 800, cor: "#ffffff", familia, maxLinhas: 2 });
   if (card.destaque) y = bloco(ctx, card.destaque, y + 68, { tamanho: 40, peso: 700, cor: OURO_CLARO, familia, maxLinhas: 2 });

@@ -25,7 +25,7 @@ function desenharCard(canvas: HTMLCanvasElement, c: ConteudoConhecimento, logo: 
   const lay = layoutDescoberta(c, medidorCanvas(ctx, familia));
   ctx.fillStyle = lay.cor;
   ctx.fillRect(margem, 440, 120, 8);
-  if (logo) ctx.drawImage(logo, margem, 150, 280, 192);
+  if (logo) ctx.drawImage(logo, margem, 120, 420, 287);
   ctx.textBaseline = "alphabetic";
   for (const l of lay.linhas) {
     ctx.font = `${l.peso} ${l.tamanho}px ${familia}`;
