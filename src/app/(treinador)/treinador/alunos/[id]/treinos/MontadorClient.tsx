@@ -38,7 +38,8 @@ import type { Equivalencia, ItemBiblioteca, Nivel } from "@/lib/biblioteca/tipos
 import { alertasDoExercicio, regioesDaAnamnese, regioesLesionadas } from "@/lib/restricoes";
 import { GRUPO_COR, GRUPO_LABEL, GRUPOS_SELECIONAVEIS, montarLookupBiblioteca, normalizarNome, resolverGrupo, type GrupoResolvido } from "@/lib/grupos";
 import { calcularVolumeSemanal, frequenciaDoCalendario, type Calendario, type DiaVolume, type Frequencia, type MetaVolume, type Tecnica } from "@/lib/volume/calcular";
-import { configIgual, detalhar, repsResumo, totalSeries, type SerieConfig } from "@/lib/series";
+import { ajustarNumeroSeries, configIgual, detalhar, repsResumo, totalSeries, type SerieConfig } from "@/lib/series";
+import { converterMedida, ehPorTempo } from "@/lib/treino/medida";
 import type { Anamnese, GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { ExercicioPrescrito, PrioridadeExercicio, Programa, SnapshotPrograma, TreinoLetra } from "@/lib/supabase/types-sessoes";
 import { LETRAS_TREINO } from "@/lib/supabase/types-sessoes";
@@ -429,7 +430,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       treinos: e.treinos.map((t) => {
         if (t.key !== tk) return t;
         const idx = t.rows.findIndex((r) => r.key === rk);
-        return idx < 0 ? t : { ...t, rows: aplicarMetodo(t.rows, idx, metodo, t.letra).map((r) => ({ ...r, unilateral: r.key === rk && metodo === "unilateral" ? true : r.unilateral })) };
+        // Isometria (prancha etc.) é sempre por tempo: a prescrição passa para segundos.
+        const paraTempo = (c: SerieConfig): SerieConfig => (c.modo === "iguais" ? { ...c, reps: converterMedida(c.reps || "30", true) } : { modo: "detalhado", series: c.series.map((x) => ({ ...x, reps: converterMedida(x.reps || "30", true) })) });
+        return idx < 0 ? t : { ...t, rows: aplicarMetodo(t.rows, idx, metodo, t.letra).map((r) => ({ ...r, unilateral: r.key === rk && metodo === "unilateral" ? true : r.unilateral, ...(r.key === rk && metodo === "isometria" ? { seriesConfig: paraTempo(r.seriesConfig) } : {}) })) };
       }),
     }));
   const metodoEmVarios = (tk: string, metodo: Tecnica) => {
@@ -880,7 +883,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                         <th className="text-left font-semibold px-2 py-2 min-w-[200px]">Exercício</th>
                         <th className="text-left font-semibold px-2 py-2 w-40">Grupo</th>
                         <th className="text-center font-semibold px-2 py-2 w-16">Séries</th>
-                        <th className="text-left font-semibold px-2 py-2 w-28">Reps</th>
+                        <th className="text-left font-semibold px-2 py-2 w-28">Reps / tempo</th>
                         <th className="text-center font-semibold px-2 py-2 w-16" title="Descanso (s)">Desc.</th>
                         <th className="text-center font-semibold px-2 py-2 w-14" title="Repetições em reserva">RIR</th>
                         <th className="text-left font-semibold px-2 py-2 min-w-[160px]">Obs. para o aluno</th>
@@ -1020,7 +1023,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               {g.revisar && r.nome.trim() ? <span className="block text-[10px] text-warning mt-0.5">{g.origem === "heuristica" ? "detectado pelo nome — confirme" : "legado: reclassifique"}</span> : null}
                             </td>
                             <td className="px-2 py-1.5 text-center align-top">
-                              <input inputMode="numeric" value={totalSeries(r.seriesConfig)} disabled={det} onChange={(e) => updRow(t.key, r.key, { seriesConfig: configIgual(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)), repsResumo(r.seriesConfig), r.seriesConfig.modo === "iguais" ? r.seriesConfig.ie : null) })} aria-label="Número de séries" className="h-8 w-12 rounded border border-border bg-bg px-1 text-center font-mono text-[12px] disabled:opacity-50" />
+                              <input inputMode="numeric" value={totalSeries(r.seriesConfig)} onChange={(e) => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, parseInt(e.target.value.replace(/\D/g, "").slice(-2)) || 0) })} aria-label="Número de séries" className="h-8 w-12 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" />
+                              <div className="mt-1 flex justify-center gap-1">
+                                <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, Math.max(1, totalSeries(r.seriesConfig) - 1)) })} aria-label="Uma série a menos" className="h-6 w-6 rounded border border-border text-xs text-fg-muted hover:text-fg">−</button>
+                                <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, totalSeries(r.seriesConfig) + 1) })} aria-label="Uma série a mais" className="h-6 w-6 rounded border border-accent/60 text-xs font-bold text-accent">+</button>
+                              </div>
                               {r.aquecimento ? <span className="block text-[10px] text-fg-subtle">−{r.aquecimento} aq.</span> : null}
                             </td>
                             <td className="px-2 py-1.5 align-top">
@@ -1035,8 +1042,22 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   ))}
                                 </div>
                               ) : (
-                                <input value={repsResumo(r.seriesConfig)} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), reps: e.target.value } })} placeholder="10-12" aria-label="Repetições" className="h-8 w-full min-w-[72px] rounded border border-border bg-bg px-2 font-mono text-[12px]" />
+                                <input value={repsResumo(r.seriesConfig)} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), reps: e.target.value } })} placeholder={ehPorTempo({ reps: repsResumo(r.seriesConfig), tecnica: r.tecnica }) ? "30s" : "10-12"} aria-label="Repetições ou tempo" className="h-8 w-full min-w-[72px] rounded border border-border bg-bg px-2 font-mono text-[12px]" />
                               )}
+                              {(() => {
+                                // Por tempo (prancha, isometria) ou por repetições: muda a forma de marcar no app do aluno.
+                                const porTempo = ehPorTempo({ reps: repsResumo(r.seriesConfig), tecnica: r.tecnica });
+                                const converter = (paraTempo: boolean) => {
+                                  const cfg = r.seriesConfig;
+                                  updRow(t.key, r.key, { seriesConfig: cfg.modo === "iguais" ? { ...cfg, reps: converterMedida(cfg.reps || "30", paraTempo) } : { modo: "detalhado", series: cfg.series.map((x) => ({ ...x, reps: converterMedida(x.reps || "30", paraTempo) })) } });
+                                };
+                                return (
+                                  <div className="mt-1 inline-flex overflow-hidden rounded-md border border-border text-[10px] font-semibold" role="group" aria-label="Medida do exercício">
+                                    <button type="button" aria-pressed={!porTempo} disabled={r.tecnica === "isometria"} onClick={() => porTempo && converter(false)} className={`px-2 py-0.5 ${!porTempo ? "bg-accent text-bg" : "text-fg-muted"} disabled:opacity-40`}>Reps</button>
+                                    <button type="button" aria-pressed={porTempo} onClick={() => !porTempo && converter(true)} className={`px-2 py-0.5 ${porTempo ? "bg-accent text-bg" : "text-fg-muted"}`}>⏱ Tempo</button>
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td className="px-2 py-1.5 text-center align-top">
                               {!det ? <input inputMode="numeric" value={(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>).descanso_seg ?? ""} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), descanso_seg: e.target.value ? Number(e.target.value) : null } })} aria-label="Descanso entre séries em segundos" placeholder={String(duracoes[t.key]?.efetivos.descansoEntreSeriesSeg ?? 90)} title="Descanso entre séries (s). Em branco = padrão do treino." className="h-8 w-14 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" /> : <span className="text-[10px] text-fg-subtle">por série</span>}

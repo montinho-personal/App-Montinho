@@ -52,6 +52,8 @@ import { LeituraRapida, marcarSugestao, sugestoesDaSessao, type ItemRapido } fro
 import { CHAMADA_CONTEXTO, REGRAS_DESBLOQUEIA, REPS_ALTAS, repsPrescritas, type PacoteTreino } from "@/lib/desbloqueia/motor";
 import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
+import { ehPorTempo, segundosPrevistos } from "@/lib/treino/medida";
+import { CronometroSerie } from "./CronometroSerie";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
@@ -461,7 +463,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!silencioso && !confirmado && s.tipo === "valida") {
       const hoje = series[seId].filter((x, k) => k !== idx && x.concluida && x.tipo === "valida").map((x) => Number(x.carga.replace(",", ".")));
       const ult = ex.trocado ? [] : (ultimas[ex.id]?.series ?? []).filter((x) => x.tipo === "valida").map((x) => x.carga_kg ?? 0);
-      const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ex.tecnica === "isometria" || /s$/.test(String(ex.reps).trim()) });
+      const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ehPorTempo(ex) });
       if (alerta) {
         setConferenciaSerie({ seId, idx, alerta });
         requestAnimationFrame(() => document.getElementById(`confere-${seId}-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
@@ -1173,7 +1175,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     {ultima ? (
                       <p className="text-xs text-fg-subtle">
                         Última vez ({dataBR(ultima.data)}
-                        {ultima.nomeTreino ? `, ${ultima.nomeTreino}` : ""}): {ultima.series.map((s) => `${s.carga_kg ?? "—"}kg×${s.reps ?? "—"}`).join(" · ")}
+                        {ultima.nomeTreino ? `, ${ultima.nomeTreino}` : ""}): {ultima.series.map((s) => (ehPorTempo(ex) ? `${s.carga_kg ? `${s.carga_kg}kg × ` : ""}${s.reps ?? "—"}s` : `${s.carga_kg ?? "—"}kg×${s.reps ?? "—"}`)).join(" · ")}
                       </p>
                     ) : (
                       <p className="text-xs text-fg-subtle">Primeira vez registrando este exercício.</p>
@@ -1183,7 +1185,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1">
                         <span>#</span>
                         <span>Carga (kg)</span>
-                        <span>Reps</span>
+                        <span>{ehPorTempo(ex) ? "Tempo (s)" : "Reps"}</span>
                         <span className="sr-only">Concluir</span>
                       </div>
                       {lista.map((s, i) => {
@@ -1206,9 +1208,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                             <input
                               type="text"
                               inputMode="numeric"
-                              aria-label={`Repetições da série ${s.serie}`}
+                              aria-label={ehPorTempo(ex) ? `Tempo da série ${s.serie} em segundos` : `Repetições da série ${s.serie}`}
                               value={s.reps}
-                              placeholder={ref?.reps != null ? String(ref.reps) : repsDaSerie(ex, s.serie) || "reps"}
+                              placeholder={ref?.reps != null ? String(ref.reps) : ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps"}
                               onChange={(e) => atualizar(se.id, i, { reps: e.target.value, concluida: false, sincronizada: false })}
                               className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                             />
@@ -1220,6 +1222,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                             >
                               <Icon name="check" size={18} />
                             </button>
+                            {ehPorTempo(ex) && !s.concluida && lista.findIndex((x) => !x.concluida) === i ? (
+                              <CronometroSerie alvoSeg={segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps)} onParar={(seg) => atualizar(se.id, i, { reps: String(seg), concluida: false, sincronizada: false })} />
+                            ) : null}
                             {conferenciaSerie && conferenciaSerie.seId === se.id && conferenciaSerie.idx === i ? (
                               <div id={`confere-${se.id}-${i}`} role="alertdialog" aria-label="Confira a marcação" className="col-span-4 space-y-2 rounded-lg border border-warning/60 bg-warning/10 p-3">
                                 <p className="text-sm font-semibold">⚠ {conferenciaSerie.alerta.mensagem}</p>

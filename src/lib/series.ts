@@ -46,3 +46,17 @@ export function detalhar(config: SerieConfig): Extract<SerieConfig, { modo: "det
     })),
   };
 }
+
+/**
+ * Muda o número de séries sem perder o que já foi prescrito: em “iguais” só
+ * troca a quantidade; em “detalhado” (pirâmide) corta do fim ou repete a
+ * última série para as novas.
+ */
+export function ajustarNumeroSeries(config: SerieConfig, n: number): SerieConfig {
+  const alvo = Math.max(0, Math.min(30, Math.round(n) || 0));
+  if (config.modo === "iguais") return { ...config, series: alvo };
+  const base = config.series.at(-1) ?? { ordem: 1, reps: "10", ie: null, descanso_seg: null };
+  const series = config.series.slice(0, alvo);
+  while (series.length < alvo) series.push({ ...base });
+  return { modo: "detalhado", series: series.map((s, i) => ({ ...s, ordem: i + 1 })) };
+}
