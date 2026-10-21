@@ -8,7 +8,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const MINIMO = 8;
 
-export function DefinirSenhaClient({ destino }: { destino: string }) {
+export function DefinirSenhaClient({ destino, primeiro = false }: { destino: string; primeiro?: boolean }) {
   const [senha, setSenha] = useState("");
   const [confirma, setConfirma] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,8 +36,8 @@ export function DefinirSenhaClient({ destino }: { destino: string }) {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Definir senha</CardTitle>
-        <p className="text-sm text-fg-muted mt-1">Com uma senha você entra sem precisar do link por e-mail.</p>
+        <CardTitle>{primeiro ? "Bem-vindo ao Montinho! Crie sua senha" : "Definir senha"}</CardTitle>
+        <p className="text-sm text-fg-muted mt-1">{primeiro ? "É só uma vez: depois você entra no app com o seu e-mail e esta senha." : "Com uma senha você entra sem precisar do link por e-mail."}</p>
       </CardHeader>
       <CardBody>
         {ok ? (

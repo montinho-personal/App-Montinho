@@ -7,10 +7,10 @@ describe("mensagem de acesso do aluno", () => {
     expect(m).toContain("Oi, Aline!");
     expect(m).toContain("https://app-montinho.vercel.app/login");
     expect(m).toContain("aline@exemplo.com");
-    expect(m).toContain("receber link no e-mail");
-    expect(m).toContain("esqueci a senha");
+    expect(m).toContain("Primeiro acesso? Criar minha senha");
     expect(m.toLowerCase()).not.toContain("senha:");
     expect(m).toContain("Android (Chrome)");
+    expect(m.indexOf("Primeiro acesso")).toBeLessThan(m.indexOf("Instale o app"));
     expect(m).toContain("Instalar app");
     expect(m.indexOf("Android")).toBeLessThan(m.indexOf("iPhone"));
     expect(m).toContain("iPhone (Safari)");

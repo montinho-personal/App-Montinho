@@ -14,7 +14,25 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(erroInicial === "link" ? MSG_LINK : null);
-  const [sent, setSent] = useState<"link" | "senha" | false>(false);
+  const [sent, setSent] = useState<"link" | "senha" | "primeiro" | false>(false);
+
+  // Link do convite (padrão do Supabase) chega com a sessão no fragmento
+  // (#access_token=…): entra e vai direto criar a senha.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash.includes("access_token=")) return;
+    const p = new URLSearchParams(window.location.hash.slice(1));
+    const access_token = p.get("access_token");
+    const refresh_token = p.get("refresh_token");
+    if (!access_token || !refresh_token) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    void createSupabaseBrowserClient()
+      .auth.setSession({ access_token, refresh_token })
+      .then(({ error }) => {
+        if (error) return setError(MSG_LINK);
+        const tipo = p.get("type");
+        window.location.href = tipo === "invite" || tipo === "recovery" || tipo === "signup" ? "/conta/senha?primeiro=1" : next || "/";
+      });
+  }, [next]);
 
   // O Supabase devolve erros de link no fragmento (#error=...), invisível ao servidor.
   useEffect(() => {
@@ -63,7 +81,7 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
     }
   }
 
-  async function handleEsqueciSenha() {
+  async function handleEsqueciSenha(primeiro = false) {
     if (!email) {
       setError("Digite seu e-mail primeiro.");
       return;
@@ -75,7 +93,7 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
       const redirect = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/conta/senha")}`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirect });
       if (error) throw error;
-      setSent("senha");
+      setSent(primeiro ? "primeiro" : "senha");
     } catch {
       setError("Não foi possível enviar o e-mail agora. Tente de novo em instantes.");
     } finally {
@@ -93,9 +111,9 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
         {sent ? (
           <div className="text-center py-6" role="status">
             <div className="text-accent text-4xl mb-3" aria-hidden>✉</div>
-            <p className="font-semibold">{sent === "senha" ? "E-mail enviado!" : "Link enviado!"}</p>
+            <p className="font-semibold">{sent === "link" ? "Link enviado!" : "E-mail enviado!"}</p>
             <p className="text-sm text-fg-muted mt-2">
-              Confira o e-mail <span className="text-fg">{email}</span> e toque no link {sent === "senha" ? "para definir uma nova senha" : "para entrar"}.
+              Confira o e-mail <span className="text-fg">{email}</span> e toque no link {sent === "primeiro" ? "para criar a sua senha" : sent === "senha" ? "para definir uma nova senha" : "para entrar"}.
             </p>
             <p className="text-xs text-fg-subtle mt-3">Abra o link neste mesmo aparelho e navegador, uma vez só. Cada link vale por 1 hora; se não chegar, veja a caixa de spam.</p>
           </div>
@@ -114,7 +132,7 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
                   receber link no e-mail
                 </button>
                 {" · "}
-                <button type="button" onClick={handleEsqueciSenha} className="alvo text-accent underline-offset-2 hover:underline">
+                <button type="button" onClick={() => void handleEsqueciSenha()} className="alvo text-accent underline-offset-2 hover:underline">
                   esqueci a senha
                 </button>
               </FieldHint>
@@ -127,6 +145,10 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
             <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
               Entrar
             </Button>
+            <button type="button" onClick={() => void handleEsqueciSenha(true)} disabled={loading} className="touch w-full rounded-xl border border-accent/60 px-4 py-3 text-sm font-bold text-accent hover:bg-accent/10 disabled:opacity-60">
+              Primeiro acesso? Criar minha senha
+            </button>
+            <p className="text-center text-[11px] text-fg-subtle">Digite o e-mail que o Montinho cadastrou e toque acima: chega um e-mail para você criar a senha.</p>
           </form>
         )}
       </CardBody>

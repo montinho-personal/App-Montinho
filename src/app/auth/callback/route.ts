@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
     if (tokenHash && type && TIPOS.includes(type)) {
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
       if (error) return erro("link", `verify:${error.name}`);
-      return NextResponse.redirect(new URL(type === "recovery" ? "/conta/senha" : next, url.origin));
+      // Convite (1º acesso) ou recuperação: direto para criar a senha.
+      return NextResponse.redirect(new URL(type === "invite" || type === "signup" ? "/conta/senha?primeiro=1" : type === "recovery" ? "/conta/senha" : next, url.origin));
     }
   } catch (e) {
     return erro("link", `excecao:${e instanceof Error ? e.name : "desconhecida"}`);

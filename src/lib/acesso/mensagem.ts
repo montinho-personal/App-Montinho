@@ -1,10 +1,9 @@
 // Mensagem de acesso para o aluno (WhatsApp/copiar). PURO, testado.
 // Leva só o endereço e o e-mail cadastrado — nada de senha ou link secreto.
-// Por aparelho:
-//  • Android: o app instalado e o Chrome compartilham o login → link no e-mail.
-//  • iPhone: o app da Tela de Início NÃO compartilha o login com o Safari e o
-//    link do e-mail abre no Safari → cria a senha pelo Safari e entra no ícone
-//    com e-mail e senha.
+// Mesmo caminho para Android e iPhone: o aluno cria a PRÓPRIA senha no
+// navegador (“Primeiro acesso? Criar minha senha”), instala o app e entra pelo
+// ícone com e-mail e senha (no iPhone o app da Tela de Início não recebe o
+// link do e-mail, por isso a senha).
 
 export function mensagemAcesso(e: { nome: string; email: string; urlApp: string }): string {
   const primeiro = e.nome.trim().split(/\s+/)[0] || "";
@@ -13,19 +12,16 @@ export function mensagemAcesso(e: { nome: string; email: string; urlApp: string 
     `Oi${primeiro ? `, ${primeiro}` : ""}! Seu acesso ao app do Montinho Personal Trainer está pronto 💪`,
     `Seu e-mail de acesso: ${e.email}`,
     "",
-    "🤖 *Android (Chrome)*",
-    `1. Abra ${login} no Chrome`,
-    "2. Toque nos 3 pontinhos (⋮), no canto de cima, e em “Instalar app” ou “Adicionar à tela inicial”",
-    "3. Abra o Montinho pelo ícone novo, digite o seu e-mail e toque em “receber link no e-mail”",
-    "4. Abra o link que chegar no seu e-mail (confira o spam) — pronto, você entra",
+    "🔑 *Primeiro acesso (só uma vez)*",
+    `1. Abra ${login} (Android: pelo Chrome · iPhone: pelo Safari)`,
+    "2. Digite o seu e-mail e toque em “Primeiro acesso? Criar minha senha”",
+    "3. Abra o e-mail que chegar, no MESMO celular (confira o spam), e crie a sua senha",
     "",
-    "🍎 *iPhone (Safari)*",
-    `1. Abra ${login} no Safari (precisa ser o Safari)`,
-    "2. Digite o seu e-mail, toque em “esqueci a senha”, abra o link que chegar no e-mail e crie a sua senha",
-    "3. No Safari, toque em Compartilhar (quadrado com a setinha para cima) → “Adicionar à Tela de Início” → “Adicionar”",
-    "4. Abra o Montinho pelo ícone novo e entre com o seu e-mail e a senha que você criou",
+    "📲 *Instale o app no celular*",
+    "🤖 Android (Chrome): toque nos 3 pontinhos (⋮) → “Instalar app” ou “Adicionar à tela inicial”",
+    "🍎 iPhone (Safari): toque em Compartilhar (quadrado com a setinha) → “Adicionar à Tela de Início” → “Adicionar”",
     "",
-    "Depois, use sempre pelo ícone. No Perfil dá para ativar as notificações do Montinho.",
+    "Depois é só abrir o ícone do Montinho e entrar com o seu e-mail e a sua senha. No Perfil dá para ativar as notificações.",
     "",
     "É impossível dar errado!",
   ].join("\n");
