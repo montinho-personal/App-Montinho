@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { METODOS } from "@/lib/volume/tecnicas";
 import { GRUPO_COR } from "@/lib/grupos";
-import { configDaLinha, interpretarDitado, metodoFinal, resumoSeries, type LinhaDitada } from "@/lib/treino/ditado";
+import { configDaLinha, interpretarDitado, juntarFala, metodoFinal, resumoSeries, type LinhaDitada } from "@/lib/treino/ditado";
 import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 
 export type { LinhaDitada };
@@ -102,12 +102,10 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
     r.continuous = false;
     r.interimResults = true;
     r.onresult = (ev) => {
-      const falado = Array.from(ev.results)
-        .map((x) => x[0]?.transcript ?? "")
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      setTexto(`${base} ${falado}`.trim());
+      const falado = juntarFala(Array.from(ev.results).map((x) => x[0]?.transcript ?? ""));
+      const novo = juntarFala([base, falado]);
+      textoRef.current = novo;
+      setTexto(novo);
     };
     r.onerror = (ev) => {
       if (ev.error === "aborted") return;

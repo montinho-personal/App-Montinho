@@ -247,6 +247,9 @@ export function interpretarDitado(fala: string, itens: ItemBiblioteca[], opcoes:
 
   const novoExercicio = (falado: string, c: Casamento) => {
     const [top, ...resto] = c.opcoes;
+    // Mesmas palavras logo em seguida = eco do microfone, não outro exercício.
+    const ultimo = exercicios[exercicios.length - 1];
+    if (!blocoAberto && ultimo && ultimo.bloco == null && ultimo.falado === falado && ultimo.escolhido?.id === top.item.id) return;
     const empate = resto.some((o) => o.cob === top.cob);
     const ex: ExercicioDitado = {
       falado,
@@ -375,4 +378,41 @@ export function resumoSeries(cfg: SerieConfig): string {
   if (cfg.modo === "iguais") return `${cfg.series}× ${cfg.reps}${cfg.descanso_seg ? ` · desc. ${cfg.descanso_seg}s` : ""}`;
   const d = cfg.series[0]?.descanso_seg;
   return `${cfg.series.length}× ${cfg.series.map((x) => x.reps).join("-")}${d ? ` · desc. ${d}s` : ""}`;
+}
+
+// ---------------------------------------------------------------------------
+// Juntar o que o microfone entrega. No Chrome do Android a mesma frase chega
+// várias vezes enquanto cresce ("supino", "supino reto", "supino reto barra")
+// e, ao religar, às vezes repete a última frase. No computador chegam pedaços
+// que se completam ("supino reto", "com barra"). Esta junção serve aos dois.
+// ---------------------------------------------------------------------------
+const chave = (w: string) => sem(w).replace(/[^a-z0-9]/g, "");
+
+function comecaCom(todo: string[], inicio: string[]): boolean {
+  return inicio.length <= todo.length && inicio.every((w, i) => chave(w) === chave(todo[i]));
+}
+
+function contemTrecho(todo: string[], trecho: string[]): boolean {
+  for (let i = 0; i + trecho.length <= todo.length; i++) if (trecho.every((w, j) => chave(w) === chave(todo[i + j]))) return true;
+  return false;
+}
+
+/** Emenda b depois de a sem repetir a parte em comum (fim de a = começo de b). */
+function emendar(a: string[], b: string[]): string[] {
+  for (let k = Math.min(a.length, b.length); k > 0; k--) {
+    if (a.slice(a.length - k).every((w, i) => chave(w) === chave(b[i]))) return [...a, ...b.slice(k)];
+  }
+  return [...a, ...b];
+}
+
+export function juntarFala(partes: string[]): string {
+  let acc: string[] = [];
+  for (const p of partes) {
+    const w = (p ?? "").trim().split(/\s+/).filter(Boolean);
+    if (!w.length) continue;
+    if (comecaCom(w, acc)) acc = w; // a frase cresceu
+    else if (comecaCom(acc, w) || (w.length >= 2 && contemTrecho(acc, w))) continue; // repetida
+    else acc = emendar(acc, w);
+  }
+  return acc.join(" ");
 }

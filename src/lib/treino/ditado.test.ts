@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CATALOGO } from "@/lib/biblioteca/catalogo";
 import { itemDoCatalogo } from "@/lib/biblioteca/itens";
-import { interpretarDitado, metodoFinal } from "./ditado";
+import { interpretarDitado, juntarFala, metodoFinal } from "./ditado";
 
 const itens = CATALOGO.map((e) => itemDoCatalogo(e));
 const nomes = (fala: string) => interpretarDitado(fala, itens).exercicios.map((e) => e.escolhido?.nome);
@@ -27,6 +27,10 @@ describe("ditar treino", () => {
     expect(metodoFinal(d.exercicios[0], d.metodoGeral)).toEqual({ tecnica: "piramide", piramide: "crescente" });
     expect(metodoFinal(d.exercicios[4], d.metodoGeral)).toEqual({ tecnica: "biset", piramide: "crescente" });
     expect(d.naoEntendido).toEqual([]);
+  });
+
+  it("eco do microfone (mesmas palavras em seguida) não duplica o exercício", () => {
+    expect(nomes("supino reto barra supino reto barra crucifixo máquina")).toEqual(["Supino reto com barra", "Crucifixo na máquina (peck deck)"]);
   });
 
   it("com vírgulas também", () => {
@@ -67,5 +71,20 @@ describe("ditar treino", () => {
     const d = interpretarDitado("treino A de peito: supino reto barra, blablablu", itens);
     expect(d.exercicios.map((e) => e.escolhido?.nome)).toEqual(["Supino reto com barra"]);
     expect(d.naoEntendido).toEqual(["blablablu"]);
+  });
+});
+
+describe("juntar o que o microfone entrega", () => {
+  it("Android: a frase chega várias vezes enquanto cresce — fica uma só", () => {
+    expect(juntarFala(["supino", "supino reto", "supino reto barra"])).toBe("supino reto barra");
+  });
+  it("computador: pedaços que se completam", () => {
+    expect(juntarFala(["supino reto", "com barra"])).toBe("supino reto com barra");
+  });
+  it("ao religar, a última frase repetida não duplica", () => {
+    expect(juntarFala(["crucifixo máquina supino inclinado", "supino inclinado", "Supino inclinado supino reto barra"])).toBe("crucifixo máquina supino inclinado supino reto barra");
+  });
+  it("frases diferentes seguidas continuam todas", () => {
+    expect(juntarFala(["crucifixo máquina", "supino inclinado", "elevação lateral"])).toBe("crucifixo máquina supino inclinado elevação lateral");
   });
 });
