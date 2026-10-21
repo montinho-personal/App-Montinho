@@ -831,7 +831,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${timer ? "pb-24" : ""}`}>
       <div className="flex items-center justify-between gap-3">
         <Link href={voltarHref} className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
           ← {presencial ? presencial.nomeAluno : "Treinos"}
@@ -877,7 +877,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       {perguntandoEsforco ? <PerguntaEsforco nome={(() => { const i = sessao.exercicios.findIndex((x) => x.id === perguntandoEsforco); const se = sessao.exercicios[i]; return (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício"; })()} onEscolher={(p) => finalizarExercicio(perguntandoEsforco, p)} onFechar={() => setPerguntandoEsforco(null)} /> : null}
 
       {timer ? (
-        <div className="sticky top-2 z-30">
+        // Flutua na parte de baixo da tela (perto do polegar), acima do menu do
+        // aluno: dá para ver e ajustar o descanso sem rolar a página para cima.
+        <div className={`fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl ${presencial ? "bottom-3" : "bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4"}`}>
           <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => { setTimer(null); setSugestaoDescanso(null); }} onDismiss={() => { setTimer(null); setSugestaoDescanso(null); }} />
           {sugestaoDescanso ? (
             <button type="button" onClick={() => { abrirLeitura(sugestaoDescanso.id); setSugestaoDescanso(null); }} className="alvo mt-1 block w-full rounded-lg bg-card/95 px-3 py-1.5 text-left text-xs font-semibold text-accent">
