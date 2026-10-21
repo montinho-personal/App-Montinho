@@ -1,20 +1,31 @@
 // Mensagem de acesso para o aluno (WhatsApp/copiar). PURO, testado.
-// O aluno pede o link de entrada no PRÓPRIO celular (funciona no mesmo
-// navegador), então a mensagem leva só o endereço e o e-mail cadastrado —
-// nada de senha ou link secreto.
+// Leva só o endereço e o e-mail cadastrado — nada de senha ou link secreto.
+// Por aparelho:
+//  • Android: o app instalado e o Chrome compartilham o login → link no e-mail.
+//  • iPhone: o app da Tela de Início NÃO compartilha o login com o Safari e o
+//    link do e-mail abre no Safari → cria a senha pelo Safari e entra no ícone
+//    com e-mail e senha.
 
 export function mensagemAcesso(e: { nome: string; email: string; urlApp: string }): string {
   const primeiro = e.nome.trim().split(/\s+/)[0] || "";
   const login = `${e.urlApp.replace(/\/+$/, "")}/login`;
   return [
     `Oi${primeiro ? `, ${primeiro}` : ""}! Seu acesso ao app do Montinho Personal Trainer está pronto 💪`,
+    `Seu e-mail de acesso: ${e.email}`,
     "",
-    `1. Abra: ${login}`,
-    `2. Digite o seu e-mail: ${e.email}`,
-    "3. Toque em “receber link no e-mail” (ou entre com a sua senha, se já criou uma)",
-    "4. Abra o link que chegar no seu e-mail, no MESMO celular (confira o spam)",
+    "🤖 *Android (Chrome)*",
+    `1. Abra ${login} no Chrome`,
+    "2. Toque nos 3 pontinhos (⋮), no canto de cima, e em “Instalar app” ou “Adicionar à tela inicial”",
+    "3. Abra o Montinho pelo ícone novo, digite o seu e-mail e toque em “receber link no e-mail”",
+    "4. Abra o link que chegar no seu e-mail (confira o spam) — pronto, você entra",
     "",
-    "Dica: no celular, adicione o app à Tela de Início para usar como aplicativo.",
+    "🍎 *iPhone (Safari)*",
+    `1. Abra ${login} no Safari (precisa ser o Safari)`,
+    "2. Digite o seu e-mail, toque em “esqueci a senha”, abra o link que chegar no e-mail e crie a sua senha",
+    "3. No Safari, toque em Compartilhar (quadrado com a setinha para cima) → “Adicionar à Tela de Início” → “Adicionar”",
+    "4. Abra o Montinho pelo ícone novo e entre com o seu e-mail e a senha que você criou",
+    "",
+    "Depois, use sempre pelo ícone. No Perfil dá para ativar as notificações do Montinho.",
     "",
     "É impossível dar errado!",
   ].join("\n");
