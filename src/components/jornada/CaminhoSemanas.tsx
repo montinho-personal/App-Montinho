@@ -11,9 +11,9 @@ import { FASES, FASE_INFO, ehFase } from "@/lib/treino/fases";
 const OURO = "#ba9e50";
 const COLS = 7;
 const DX = 48;
-const DY = 74;
+const DY = 92;
 const X0 = 36;
-const Y0 = 44;
+const Y0 = 66;
 const MAX_SEMANAS = 28;
 
 const corDaSemana = (w: SemanaCaminho) => (w.fase && ehFase(w.fase) ? FASE_INFO[w.fase].cor : OURO);
@@ -88,10 +88,11 @@ export function CaminhoSemanas({ caminho }: { caminho: CaminhoJornada }) {
                 {pausa ? <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fill="#9a9a9a">⏸</text> : t ? <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="700" fill="#111">{p.w.treinos}</text> : null}
                 {p.w.retorno ? (
                   <g>
-                    <rect x={p.x - 24} y={p.y - 36} width={48} height={16} rx={8} fill={OURO} />
-                    <text x={p.x} y={p.y - 24.5} textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#111">↺ voltei</text>
+                    <rect x={p.x - 24} y={p.y - (p.w.novaFase ? 62 : 36)} width={48} height={16} rx={8} fill={OURO} />
+                    <text x={p.x} y={p.y - (p.w.novaFase ? 50.5 : 24.5)} textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#111">↺ voltei</text>
                   </g>
-                ) : p.w.novaFase && ehFase(p.w.novaFase) ? (
+                ) : null}
+                {p.w.novaFase && ehFase(p.w.novaFase) ? (
                   <g>
                     <line x1={p.x} y1={p.y - 12} x2={p.x} y2={p.y - 30} stroke={FASE_INFO[p.w.novaFase].cor} strokeWidth={1.5} />
                     <path d={`M${p.x} ${p.y - 30} L${p.x + 14} ${p.y - 26} L${p.x} ${p.y - 22} Z`} fill={FASE_INFO[p.w.novaFase].cor} />
