@@ -50,3 +50,34 @@ export function aplicarMetodo<R extends LinhaMetodo>(rows: R[], indice: number, 
   out[indice] = { ...out[indice], tecnica: metodo, bloco: saiuDeBloco ? "" : out[indice].bloco, seriesConfig };
   return out;
 }
+
+/**
+ * Aplica o método a vários exercícios selecionados de uma vez.
+ *  • Método de bloco: junta os selecionados em sequência (a partir do primeiro,
+ *    mantendo a ordem entre eles) e liga todos no mesmo bloco novo.
+ *  • Outros métodos: aplica a cada selecionado (pirâmide vira série a série etc.).
+ */
+export function aplicarMetodoEmVarios<R extends LinhaMetodo & { key: string }>(rows: R[], keys: string[], metodo: Tecnica, letra: string): R[] {
+  const sel = new Set(keys);
+  if (!rows.some((r) => sel.has(r.key))) return rows;
+  if (!ehTecnicaBloco(metodo)) {
+    let out = rows;
+    for (const k of keys) {
+      const i = out.findIndex((r) => r.key === k);
+      if (i >= 0) out = aplicarMetodo(out, i, metodo, letra);
+    }
+    return out;
+  }
+  const primeiro = rows.findIndex((r) => sel.has(r.key));
+  const escolhidos = rows.filter((r) => sel.has(r.key));
+  const resto = rows.filter((r) => !sel.has(r.key));
+  const codigo = proximoBloco(rows, letra);
+  const ligados = escolhidos.map((r) => ({ ...r, tecnica: metodo, bloco: codigo }));
+  const antes = resto.slice(0, rows.slice(0, primeiro).filter((r) => !sel.has(r.key)).length);
+  const depois = resto.slice(antes.length);
+  const out = [...antes, ...ligados, ...depois];
+  // Quem estava num bloco que perdeu integrantes volta a ser tradicional se ficou sozinho.
+  const contagem = new Map<string, number>();
+  for (const r of out) if (ehTecnicaBloco(r.tecnica) && r.bloco.trim()) contagem.set(r.bloco.trim(), (contagem.get(r.bloco.trim()) ?? 0) + 1);
+  return out.map((r) => (ehTecnicaBloco(r.tecnica) && r.bloco.trim() && contagem.get(r.bloco.trim()) === 1 ? { ...r, tecnica: "normal" as Tecnica, bloco: "" } : r));
+}

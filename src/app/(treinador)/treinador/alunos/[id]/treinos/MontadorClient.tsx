@@ -20,7 +20,8 @@ import { PorqueExercicio } from "@/components/montador/PorqueExercicio";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
 import { EXTRAS_PADRAO, ehTecnicaBloco, METODOS, temExtras } from "@/lib/volume/tecnicas";
-import { aplicarMetodo } from "@/lib/treino/metodo";
+import { aplicarMetodo, aplicarMetodoEmVarios } from "@/lib/treino/metodo";
+import { MetodoPicker } from "@/components/montador/MetodoPicker";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
 import { estimarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
@@ -128,7 +129,6 @@ const DIAS_SEMANA = [
 ];
 
 const TECNICAS: Array<{ v: Tecnica; l: string }> = METODOS.map((m) => ({ v: m.v, l: m.l }));
-const GRUPOS_METODO = [...new Set(METODOS.map((m) => m.grupo))];
 
 const PRESETS: Array<{ nome: string; letras: TreinoLetra[]; calendario: Calendario; split: string }> = [
   { nome: "Full Body 3x", letras: ["A", "B", "C"], calendario: { modo: "fixa", dias: [{ dia: 1, letra: "A" }, { dia: 3, letra: "B" }, { dia: 5, letra: "C" }] }, split: "Full Body" },
@@ -240,6 +240,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [showExemplos, setShowExemplos] = useState(false);
   const [showPrograma, setShowPrograma] = useState(!programa);
   const [alternativasDe, setAlternativasDe] = useState<string | null>(null);
+  // Seleção múltipla de exercícios (por treino) para aplicar um método a vários.
+  const [selecao, setSelecao] = useState<Record<string, string[]>>({});
+  const alternarSelecao = (tk: string, rk: string) => setSelecao((cur) => ({ ...cur, [tk]: (cur[tk] ?? []).includes(rk) ? (cur[tk] ?? []).filter((k) => k !== rk) : [...(cur[tk] ?? []), rk] }));
   const dragRef = useRef<{ letra: TreinoLetra; key: string } | null>(null);
 
   // --- lookups ---------------------------------------------------------------
@@ -369,6 +372,14 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         return idx < 0 ? t : { ...t, rows: aplicarMetodo(t.rows, idx, metodo, t.letra).map((r) => ({ ...r, unilateral: r.key === rk && metodo === "unilateral" ? true : r.unilateral })) };
       }),
     }));
+  const metodoEmVarios = (tk: string, metodo: Tecnica) => {
+    const keys = selecao[tk] ?? [];
+    if (!keys.length) return;
+    commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === tk ? { ...t, rows: aplicarMetodoEmVarios(t.rows, keys, metodo, t.letra) } : t)) }));
+    setSelecao((cur) => ({ ...cur, [tk]: [] }));
+    const m = METODOS.find((x) => x.v === metodo);
+    toast.success(`${m?.l ?? "Método"} aplicado a ${keys.length} exercício(s).`);
+  };
   const addRow = (tk: string, apos?: string) =>
     commit((e) => ({
       ...e,
@@ -762,6 +773,21 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   />
                 ) : null}
 
+                {(selecao[t.key] ?? []).length ? (
+                  <div className="sticky top-16 z-20 mx-2 my-2 flex flex-wrap items-center gap-2 rounded-xl border border-accent/50 bg-card/95 px-3 py-2 shadow-lg backdrop-blur">
+                    <span className="text-xs font-bold text-accent">{(selecao[t.key] ?? []).length} selecionado(s)</span>
+                    <MetodoPicker
+                      valor={null}
+                      rotulo="Aplicar método…"
+                      titulo="Aplicar método aos selecionados"
+                      contexto={`${(selecao[t.key] ?? []).length} exercício(s). Bi-set, super-set e combinado usam 2; tri-set usa 3. Eles ficam em sequência no treino.`}
+                      onEscolher={(v) => metodoEmVarios(t.key, v)}
+                    />
+                    <button type="button" onClick={() => setSelecao((cur) => ({ ...cur, [t.key]: [] }))} className="ml-auto text-xs font-semibold text-fg-muted hover:text-fg">
+                      Limpar seleção
+                    </button>
+                  </div>
+                ) : null}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
@@ -796,6 +822,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             <td className="px-1 py-1.5 text-center align-middle">
                               <div className="flex flex-col items-center">
                                 <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
+                                <input type="checkbox" checked={(selecao[t.key] ?? []).includes(r.key)} onChange={() => alternarSelecao(t.key, r.key)} aria-label={`Selecionar exercício ${i + 1}`} className="my-0.5 h-4 w-4 accent-[var(--color-accent)]" />
                                 <span className="text-[10px] text-fg-subtle font-mono cursor-grab" title="Arraste para reordenar">{i + 1}</span>
                                 <button type="button" onClick={() => moverRow(t.key, r.key, 1)} disabled={i === t.rows.length - 1} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para baixo"><Icon name="down" size={14} /></button>
                               </div>
@@ -825,13 +852,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   </button>
                                 ) : null}
                                 <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
-                                  <select value={r.tecnica} onChange={(e) => escolherMetodo(t.key, r.key, e.target.value as Tecnica)} aria-label={`Método do exercício ${i + 1}`} title={METODOS.find((m) => m.v === r.tecnica)?.desc} className={`h-7 rounded border px-1 text-[11px] font-semibold ${r.tecnica === "normal" ? "border-border text-fg-muted" : "border-accent/50 bg-accent/10 text-accent"}`}>
-                                    {GRUPOS_METODO.map((gr) => (
-                                      <optgroup key={gr} label={gr}>
-                                        {METODOS.filter((m) => m.grupo === gr).map((m) => <option key={m.v} value={m.v}>{m.l} — {m.desc}</option>)}
-                                      </optgroup>
-                                    ))}
-                                  </select>
+                                  <MetodoPicker compacto valor={r.tecnica} onEscolher={(v) => escolherMetodo(t.key, r.key, v)} titulo={`Método — ${r.nome || `exercício ${i + 1}`}`} />
                                   {ehTecnicaBloco(r.tecnica) && r.bloco ? <span className="text-[10px] font-semibold text-accent">🔗 bloco {r.bloco}{t.rows[i + 1]?.bloco === r.bloco ? " · ligado ao próximo" : ""}</span> : null}
                                 </div>
                               </div>

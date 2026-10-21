@@ -92,7 +92,14 @@ export async function listCorrecoes(): Promise<Map<string, { grupo: GrupoMuscula
 }
 
 export async function salvarCorrecoes(autorId: string, itens: Array<{ nome: string; grupo: GrupoMuscular; secundarios?: GrupoMuscular[] }>): Promise<number> {
-  const validos = itens.map((i) => ({ nome_normalizado: normalizarNome(i.nome), grupo_muscular: i.grupo, grupos_secundarios: i.secundarios ?? [] })).filter((i) => i.nome_normalizado);
+  // Um mesmo exercício pode aparecer em vários treinos: grava cada nome uma vez
+  // (a última ocorrência vale), senão o banco recusa o upsert repetido.
+  const porNome = new Map<string, { nome_normalizado: string; grupo_muscular: GrupoMuscular; grupos_secundarios: GrupoMuscular[] }>();
+  for (const i of itens) {
+    const nome_normalizado = normalizarNome(i.nome);
+    if (nome_normalizado) porNome.set(nome_normalizado, { nome_normalizado, grupo_muscular: i.grupo, grupos_secundarios: i.secundarios ?? [] });
+  }
+  const validos = [...porNome.values()];
   if (!validos.length) return 0;
   if (isDemoMode()) {
     const st = demoStore();
