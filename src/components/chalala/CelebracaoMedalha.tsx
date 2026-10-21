@@ -25,7 +25,9 @@ function baixar(f: File) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-export function CelebracaoMedalha({ conquistas, nome, animacoes = true, onFechar }: { conquistas: ConquistaRow[]; nome?: string; animacoes?: boolean; onFechar: () => void }) {
+export type ConquistaCelebravel = Pick<ConquistaRow, "codigo" | "titulo" | "descricao" | "conquistado_em" | "dados">;
+
+export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa = false, onFechar }: { conquistas: ConquistaCelebravel[]; nome?: string; animacoes?: boolean; /** Personal vendo como o aluno vê (nada é gravado). */ previa?: boolean; onFechar: () => void }) {
   const [i, setI] = useState(0);
   const [aberta, setAberta] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -82,6 +84,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, onFechar
       <div className="relative w-full max-w-sm text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- logo SVG oficial */}
         <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-4 h-auto w-[150px]" />
+        {previa ? <p className="mb-3 inline-block rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-accent">👁 Pré-visualização · assim o aluno vê</p> : null}
         {conquistas.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">Medalha {i + 1} de {conquistas.length}</p> : null}
         {!aberta ? (
           <button type="button" onClick={abrir} className="mx-auto flex flex-col items-center gap-4 rounded-3xl p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" aria-label="Abrir a medalha">

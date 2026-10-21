@@ -12,7 +12,7 @@ import { BRAND } from "@/config/brand";
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
-export function DetalheMedalha({ m, reconhecimento, onGerarCard, onFechar, rotuloEntender = "Entenda por que isso é importante", rotuloCard = "Gerar card desta medalha" }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; onFechar?: () => void; rotuloEntender?: string; rotuloCard?: string }) {
+export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno, onFechar, rotuloEntender = "Entenda por que isso é importante", rotuloCard = "Gerar card desta medalha", className = "" }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; /** Personal: abre a comemoração (toque para abrir) como o aluno a vê. */ onVerComoAluno?: () => void; onFechar?: () => void; rotuloEntender?: string; rotuloCard?: string; className?: string }) {
   const [aberto, setAberto] = useState(false);
   const t = CONTEUDO[m.codigo];
   const pct = m.alvo ? Math.round(((m.atual ?? 0) / m.alvo) * 100) : null;
@@ -23,7 +23,7 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onFechar, rotul
   }
 
   return (
-    <section className="space-y-3 rounded-xl border border-accent/40 bg-card p-4 text-sm" aria-label={`Medalha ${t.nome}`}>
+    <section className={`space-y-3 rounded-xl border border-accent/40 bg-card p-4 text-sm ${className}`} aria-label={`Medalha ${t.nome}`}>
       <div className="flex items-start gap-3">
         <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} tamanho={64} />
         <div className="min-w-0 flex-1">
@@ -56,6 +56,12 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onFechar, rotul
           <p>“{reconhecimento.mensagem}”</p>
           <footer className="mt-1 text-[11px] text-fg-subtle">Escrita pelo {BRAND.name} · {fmtData.format(new Date(reconhecimento.data))}</footer>
         </blockquote>
+      ) : null}
+
+      {m.conquistada && onVerComoAluno ? (
+        <button type="button" onClick={onVerComoAluno} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-bg">
+          ▶ Ver como o aluno vê (com a animação)
+        </button>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

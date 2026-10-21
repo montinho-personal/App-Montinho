@@ -2,13 +2,16 @@
 
 // Grade de medalhas (destaque ou coleção completa) + detalhe educativo e
 // card de compartilhamento. Só medalhas conquistadas geram card.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { MedalhaIcone } from "./MedalhaIcone";
 import { DetalheMedalha } from "./DetalheMedalha";
 import { CONTEUDO } from "@/lib/conquistas/conteudo";
 import type { Medalha } from "@/lib/conquistas/vitrine";
 import type { DadosCard, ModeloId } from "@/lib/chalala/card";
+import { CelebracaoMedalha } from "@/components/chalala/CelebracaoMedalha";
+import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 
 const EditorCard = dynamic(() => import("@/components/chalala/EditorCard"), { ssr: false });
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -19,9 +22,33 @@ export function cardDaMedalha(m: Medalha): { dados: DadosCard; modelo: ModeloId 
   return { dados: { data: m.data ? diaLocal(m.data) : null, conquistaTitulo: CONTEUDO[m.codigo].nome, medalhaSelo: m.selo, conquistaFrase: CONTEUDO[m.codigo].mensagem }, modelo: "C" };
 }
 
-export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial = null }: { medalhas: Medalha[]; nome: string; reconhecimentos?: Record<string, { mensagem: string; data: string }>; inicial?: string | null }) {
+/** Detalhe numa janela que sobe de baixo: aparece na hora, sem precisar rolar a lista de medalhas. */
+function JanelaDetalhe({ onFechar, children }: { onFechar: () => void; children: React.ReactNode }) {
+  useFecharComVoltar(true, onFechar);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onFechar]);
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center">
+      <button type="button" aria-label="Fechar" onClick={onFechar} className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
+      <div className="relative max-h-[88vh] w-full overflow-y-auto overscroll-contain rounded-t-2xl sm:max-w-md sm:rounded-2xl">{children}</div>
+    </div>,
+    document.body
+  );
+}
+
+export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial = null, comPrevia = false }: { medalhas: Medalha[]; nome: string; reconhecimentos?: Record<string, { mensagem: string; data: string }>; inicial?: string | null; /** Personal: botão para ver a comemoração como o aluno vê. */ comPrevia?: boolean }) {
   const [aberta, setAberta] = useState<string | null>(inicial);
   const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId } | null>(null);
+  const [previa, setPrevia] = useState<Medalha | null>(null);
   const sel = medalhas.find((m) => m.codigo === aberta) ?? null;
 
   return (
@@ -38,7 +65,12 @@ export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial 
           </li>
         ))}
       </ul>
-      {sel ? <DetalheMedalha key={sel.codigo} m={sel} reconhecimento={reconhecimentos[sel.codigo] ?? null} onFechar={() => setAberta(null)} onGerarCard={sel.conquistada ? () => setEditor(cardDaMedalha(sel)) : undefined} /> : null}
+      {sel && !previa ? (
+        <JanelaDetalhe onFechar={() => setAberta(null)}>
+          <DetalheMedalha key={sel.codigo} m={sel} reconhecimento={reconhecimentos[sel.codigo] ?? null} className="rounded-b-none sm:rounded-b-xl" onFechar={() => setAberta(null)} onGerarCard={sel.conquistada ? () => setEditor(cardDaMedalha(sel)) : undefined} onVerComoAluno={comPrevia && sel.conquistada ? () => setPrevia(sel) : undefined} />
+        </JanelaDetalhe>
+      ) : null}
+      {previa ? <CelebracaoMedalha previa conquistas={[{ codigo: previa.codigo, titulo: previa.titulo, descricao: null, conquistado_em: previa.data ?? new Date().toISOString(), dados: {} }]} nome={nome} onFechar={() => setPrevia(null)} /> : null}
       {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem="historico" onFechar={() => setEditor(null)} /> : null}
     </>
   );

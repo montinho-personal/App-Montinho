@@ -61,8 +61,8 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold">Medalhas</h2>
-        <p className="text-xs text-fg-muted">Toque numa medalha para ver o que ela significa. As douradas já foram conquistadas.</p>
-        <VitrineMedalhas medalhas={medalhas} nome={nome.split(" ")[0]} reconhecimentos={reconhecimentosPorCodigo} />
+        <p className="text-xs text-fg-muted">Toque numa medalha: nas douradas (já conquistadas) dá para ver como o aluno vê, com a animação; nas cinzas aparece o desafio para conquistar.</p>
+        <VitrineMedalhas medalhas={medalhas} nome={nome.split(" ")[0]} reconhecimentos={reconhecimentosPorCodigo} comPrevia />
       </section>
 
       {recordes.length ? (
