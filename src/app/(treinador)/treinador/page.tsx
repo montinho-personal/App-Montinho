@@ -153,7 +153,7 @@ export default async function TreinadorDashboardPage() {
               <ul className="divide-y divide-border">
                 {recentes.map(({ aluno, ultima, r7 }) => (
                   <li key={aluno.id} className="px-5 py-3 flex items-center gap-3">
-                    <Avatar nome={aluno.profile?.nome ?? "?"} size={36} />
+                    <Avatar nome={aluno.profile?.nome ?? "?"} url={aluno.profile?.avatar_url} size={36} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <Link href={`/treinador/alunos/${aluno.id}`} className="block min-h-6 truncate text-sm font-semibold hover:text-accent">

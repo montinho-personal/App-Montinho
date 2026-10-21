@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { BRAND } from "@/config/brand";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { requireAlunoPage } from "@/lib/auth/session";
+import { avatarDoUsuario } from "@/lib/data/perfil";
 
 const TABS = [
   { label: "Início", href: "/aluno", icon: "home" },
@@ -19,6 +20,7 @@ const TABS = [
 export default async function AlunoLayout({ children }: { children: React.ReactNode }) {
   const sessao = await requireAlunoPage();
   const iniciais = (sessao.nome ?? "?").trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
+  const foto = await avatarDoUsuario(sessao.userId).catch(() => null);
   const ig = BRAND.contact.instagram;
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -33,8 +35,13 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
                 <Icon name="instagram" size={20} />
               </a>
             ) : null}
-            <Link href="/aluno/perfil" aria-label="Meu perfil" className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[linear-gradient(180deg,#3a3a3a,#1c1c1c)] text-sm font-bold text-fg">
-              {iniciais || "?"}
+            <Link href="/aluno/perfil" aria-label="Meu perfil" className="grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 bg-[linear-gradient(180deg,#3a3a3a,#1c1c1c)] text-sm font-bold text-fg">
+              {foto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={foto} alt="" className="h-full w-full object-cover" />
+              ) : (
+                iniciais || "?"
+              )}
             </Link>
           </div>
         </div>

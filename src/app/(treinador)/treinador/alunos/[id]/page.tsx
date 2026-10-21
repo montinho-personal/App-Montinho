@@ -117,7 +117,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
 
       <Card className="bg-grain-strong border-accent/20">
         <CardBody className="flex flex-col md:flex-row gap-6">
-          <Avatar nome={aluno.profile?.nome ?? "?"} size={88} className="text-2xl" />
+          <Avatar nome={aluno.profile?.nome ?? "?"} url={aluno.profile?.avatar_url} size={88} className="text-2xl" />
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold">{aluno.profile?.nome}</h1>

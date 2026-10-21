@@ -736,4 +736,32 @@ begin
   raise notice 'T23 OK: alternativas ocultas por aluno com RLS';
 end $$;
 select test_logout();
+-- T24 — 0035: aluno não vira treinador nem troca e-mail; foto/nome continuam livres
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false; r text; n int;
+begin
+  begin update profiles set role = 'treinador' where id = auth.uid(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T24a: aluno alterou o próprio papel'; end if;
+  ok := false;
+  begin update profiles set email = 'x@x.com' where id = auth.uid(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T24b: aluno alterou o próprio e-mail'; end if;
+  update profiles set avatar_url = 'https://exemplo/foto.jpg', nome = 'Aluna A' where id = auth.uid(); get diagnostics n = row_count;
+  if n <> 1 then raise exception 'T24c: aluno não conseguiu salvar a própria foto'; end if;
+  update profiles set avatar_url = 'https://exemplo/x.jpg' where id = '33333333-3333-3333-3333-333333333333'; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T24d: aluno alterou a foto de outro'; end if;
+  select role::text into r from profiles where id = auth.uid();
+  if r <> 'aluno' then raise exception 'T24e: papel mudou para %', r; end if;
+  raise notice 'T24 OK: profiles com colunas travadas (papel/e-mail) e foto própria liberada';
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  update profiles set nome = 'Aluna A' where id = '22222222-2222-2222-2222-222222222222'; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'T24f: treinador não consegue ajustar nome de aluno'; end if;
+  raise notice 'T24f OK: treinador ainda ajusta nome';
+end $$;
+select test_logout();
 \echo 'TODOS OS TESTES PASSARAM'

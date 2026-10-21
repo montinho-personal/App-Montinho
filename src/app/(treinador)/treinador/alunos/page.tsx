@@ -69,7 +69,7 @@ export default async function AlunosListPage({ searchParams }: PageProps) {
                       href={`/treinador/alunos/${a.id}`}
                       className="flex items-center gap-4 px-6 py-4 hover:bg-card-hover transition-colors"
                     >
-                      <Avatar nome={a.profile?.nome ?? "?"} size={44} />
+                      <Avatar nome={a.profile?.nome ?? "?"} url={a.profile?.avatar_url} size={44} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm truncate">{a.profile?.nome}</span>

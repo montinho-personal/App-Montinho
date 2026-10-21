@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Avatar } from "@/components/ui/Avatar";
+import { FotoPerfil } from "./FotoPerfil";
 import { AlunoStatusPill } from "@/components/ui/StatusPill";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno, listDieta } from "@/lib/db";
@@ -29,7 +29,7 @@ export default async function PerfilPage() {
   return (
     <div className="space-y-5">
       <header className="text-center">
-        <Avatar nome={aluno.profile?.nome ?? sessao.nome} size={80} className="mx-auto" />
+        <FotoPerfil nome={aluno.profile?.nome ?? sessao.nome} url={aluno.profile?.avatar_url ?? null} />
         <h1 className="text-xl font-bold mt-3">{aluno.profile?.nome ?? sessao.nome}</h1>
         <p className="text-sm text-fg-subtle">{aluno.profile?.email}</p>
         <div className="mt-2">

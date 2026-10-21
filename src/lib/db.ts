@@ -13,6 +13,7 @@ import { mockAnamnese, mockBiblioteca, mockConhecimento, mockFotos, mockMensagen
 import { demoStore } from "@/lib/mock/store";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
+import { avatarDemo } from "@/lib/data/perfil";
 import type { Aluno, Profile, Treino } from "@/lib/supabase/types";
 import type { ExercicioPrescrito } from "@/lib/supabase/types-sessoes";
 
@@ -20,12 +21,15 @@ export { isDemoMode } from "@/lib/env";
 
 export type AlunoComPerfil = Aluno & { profile?: Profile | null };
 
+/** Demonstração: perfil com a foto que o aluno enviou (guardada em memória). */
+const perfilDemo = (p: Profile | undefined): Profile | null => (p ? { ...p, avatar_url: avatarDemo(p.id) ?? p.avatar_url } : null);
+
 // ============================================================================
 // Alunos
 // ============================================================================
 export async function listAlunos(): Promise<AlunoComPerfil[]> {
   if (isDemoMode()) {
-    return demoStore().alunos.map((a) => ({ ...a, profile: mockProfiles.find((p) => p.id === a.profile_id) ?? null }));
+    return demoStore().alunos.map((a) => ({ ...a, profile: perfilDemo(mockProfiles.find((p) => p.id === a.profile_id)) }));
   }
   const db = await getDb();
   const { data } = await db.from("alunos").select("*, profile:profiles(*)").order("created_at", { ascending: false });
@@ -36,7 +40,7 @@ export async function getAluno(id: string): Promise<AlunoComPerfil | null> {
   if (isDemoMode()) {
     const aluno = demoStore().alunos.find((a) => a.id === id);
     if (!aluno) return null;
-    return { ...aluno, profile: mockProfiles.find((p) => p.id === aluno.profile_id) ?? null };
+    return { ...aluno, profile: perfilDemo(mockProfiles.find((p) => p.id === aluno.profile_id)) };
   }
   const db = await getDb();
   const { data } = await db.from("alunos").select("*, profile:profiles(*)").eq("id", id).maybeSingle();
