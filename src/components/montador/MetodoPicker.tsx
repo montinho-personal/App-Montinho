@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Tecnica } from "@/lib/volume/calcular";
-import { METODOS, TAMANHO_BLOCO, type GrupoMetodo } from "@/lib/volume/tecnicas";
+import { COR_TECNICA, METODOS, TAMANHO_BLOCO, type GrupoMetodo } from "@/lib/volume/tecnicas";
 import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 
 const ICONE: Record<GrupoMetodo, string> = {
@@ -51,6 +51,8 @@ export function MetodoPicker({ valor, onEscolher, titulo = "Método", contexto, 
   }, [busca]);
 
   const destacado = !!atual && atual.v !== "normal";
+  // Cada método tem a sua cor (bater o olho e saber qual é).
+  const cor = atual ? COR_TECNICA[atual.v] : null;
   return (
     <>
       <button
@@ -62,6 +64,7 @@ export function MetodoPicker({ valor, onEscolher, titulo = "Método", contexto, 
         aria-haspopup="dialog"
         title={atual?.desc}
         className={`inline-flex max-w-full items-center gap-1.5 rounded-full border font-semibold transition-colors ${compacto ? "h-7 px-2.5 text-[11px]" : "h-9 px-3 text-xs"} ${destacado ? "border-accent/60 bg-accent/15 text-accent" : "border-border bg-bg text-fg-muted hover:text-fg"}`}
+        style={destacado && cor ? { borderColor: `${cor}99`, background: `${cor}26`, color: cor } : undefined}
       >
         {atual ? <IconeGrupo grupo={atual.grupo} size={compacto ? 13 : 15} /> : null}
         <span className="truncate">{rotulo ?? atual?.l ?? "Escolher método"}</span>
@@ -105,7 +108,7 @@ export function MetodoPicker({ valor, onEscolher, titulo = "Método", contexto, 
                                 }}
                                 className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${sel ? "border-accent/60 bg-accent/10" : "border-transparent hover:bg-card-hover"}`}
                               >
-                                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${sel ? "bg-accent text-bg" : "bg-bg text-fg-muted"}`}>
+                                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${sel ? "bg-accent text-bg" : "bg-bg text-fg-muted"}`} style={COR_TECNICA[m.v] ? (sel ? { background: COR_TECNICA[m.v]!, color: "#111" } : { color: COR_TECNICA[m.v]!, background: `${COR_TECNICA[m.v]}1f` }) : undefined}>
                                   <IconeGrupo grupo={m.grupo} />
                                 </span>
                                 <span className="min-w-0 flex-1">

@@ -116,3 +116,13 @@ describe("estimativa de duração — utilidades", () => {
     expect(formatarDuracao(3900)).toBe("1 h 05 min");
   });
 });
+
+describe("séries de finalização no tempo (0040)", () => {
+  it("rest-pause de finalização acrescenta descanso, reps do total e pausas", () => {
+    const base = { id: "1", series: [{ reps: "10" }, { reps: "10" }], tecnica: "rest_pause" as const };
+    const sem = estimarDuracao([base]).totalSeg;
+    const com = estimarDuracao([{ ...base, tecnicaConfig: { series: 1, repsAlvo: 20, pausaSeg: 15 } }]);
+    expect(com.totalSeg).toBeGreaterThan(sem + 60);
+    expect(com.series).toBe(3);
+  });
+});

@@ -40,6 +40,7 @@ export type SerieInput = {
   desconforto?: number | null;
   observacoes?: string | null;
   concluida_em?: string | null;
+  blocos?: Array<{ carga: number | null; reps: number | null }> | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -288,7 +289,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     nome_normalizado: normalizarNome(e.nome),
     grupo_muscular: e.grupo_muscular,
     series_planejadas: Math.max(0, e.series - (e.series_aquecimento ?? 0)),
-    prescricao: { series: e.series, reps: e.reps, descanso_seg: e.descanso_seg, ie: e.ie, rir: e.rir, series_aquecimento: e.series_aquecimento, tecnica: e.tecnica, unilateral: e.unilateral, observacoes: e.observacoes, series_config: e.series_config ?? null },
+    prescricao: { series: e.series, reps: e.reps, descanso_seg: e.descanso_seg, ie: e.ie, rir: e.rir, series_aquecimento: e.series_aquecimento, tecnica: e.tecnica, tecnica_extras: e.tecnica_extras ?? null, tecnica_series: e.tecnica_series ?? null, tecnica_config: e.tecnica_config ?? null, cadencia: e.cadencia ?? null, unilateral: e.unilateral, observacoes: e.observacoes, series_config: e.series_config ?? null },
     status: "pendente",
     observacao_aluno: null,
     created_at: agora,
@@ -337,6 +338,8 @@ export async function registrarSerie(alunoId: string, sessionId: string, input: 
     desconforto: input.desconforto ?? null,
     observacoes: input.observacoes ?? null,
     concluida_em: input.concluida_em ?? agora,
+    // 0040: pedaços da série em blocos (rest-pause, drop-set…); só vai quando existe.
+    ...(input.blocos?.length ? { blocos: input.blocos } : {}),
   };
 
   if (isDemoMode()) {

@@ -19,9 +19,11 @@ import { useRouter } from "next/navigation";
 import { PorqueExercicio } from "@/components/montador/PorqueExercicio";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
-import { EXTRAS_PADRAO, ehTecnicaBloco, METODOS, temExtras } from "@/lib/volume/tecnicas";
+import { COR_TECNICA, EXTRAS_PADRAO, ehTecnicaBloco, METODOS, temExtras } from "@/lib/volume/tecnicas";
 import { aplicarMetodo, aplicarMetodoEmVarios, proximoBloco } from "@/lib/treino/metodo";
 import { MetodoPicker } from "@/components/montador/MetodoPicker";
+import { ConfigTecnicaPainel } from "@/components/montador/ConfigTecnicaPainel";
+import { ehConfiguravel, type ConfigTecnica } from "@/lib/treino/tecnica-config";
 import { TabelaVolume } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
 import { estimarDuracao, formatarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
@@ -61,6 +63,8 @@ type Row = {
   tecnicaExtras: string;
   /** Em quantas séries a técnica é aplicada; "" = padrão (última série; myo-reps: todas). */
   tecnicaSeries: string;
+  /** 0040 — configuração da técnica (séries de finalização, pausas, drops…); null = antiga/padrão. */
+  tecnicaConfig: ConfigTecnica | null;
   /** Descanso após o último set (s); "" = padrão do treino/treinador. */
   descansoApos: string;
   /** Cadência prescrita (ex.: 3-1-2); "" = estimativa por repetição. */
@@ -149,9 +153,20 @@ const PRESETS: Array<{ nome: string; letras: TreinoLetra[]; calendario: Calendar
 
 let seq = 0;
 const novaKey = () => `k${Date.now().toString(36)}-${seq++}`;
-const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", descansoApos: "", cadencia: "", prioridade: "normal", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
+const emptyRow = (): Row => ({ key: novaKey(), id: null, nome: "", grupo: null, secundarios: [], seriesConfig: configIgual(3, "10-12", null), aquecimento: 0, tecnica: "normal", tecnicaExtras: "", tecnicaSeries: "", tecnicaConfig: null, descansoApos: "", cadencia: "", prioridade: "normal", bloco: "", unilateral: false, observacoes: "", cargaAlvo: "", rir: "", contaVolume: true, bibliotecaId: null, grupoOrigemSalvo: null });
 const cloneRow = (r: Row): Row => ({ ...r, key: novaKey(), id: null, seriesConfig: JSON.parse(JSON.stringify(r.seriesConfig)) });
 const emptyTreino = (letra: TreinoLetra): TreinoVM => ({ key: novaKey(), id: null, letra, nome: `Treino ${letra}`, ativo: true, observacoes: "", rows: [emptyRow()], tempos: {}, tempoAlvo: "" });
+
+/**
+ * Depois de trocar o método: quem passou a usar uma técnica configurável
+ * ganha a configuração sugerida (`{}`); quem saiu dela perde a configuração.
+ */
+function comConfigNova(rows: Row[], keys: string[], metodo: Tecnica | null): Row[] {
+  return rows.map((r) => {
+    if (!ehConfiguravel(r.tecnica)) return r.tecnicaConfig ? { ...r, tecnicaConfig: null } : r;
+    return metodo && keys.includes(r.key) ? { ...r, tecnicaConfig: {} } : r;
+  });
+}
 
 function rowDeExercicio(e: ExercicioPrescrito): Row {
   const cfg = (e.series_config as SerieConfig | null) ?? configIgual(e.series, e.reps, e.ie);
@@ -167,6 +182,7 @@ function rowDeExercicio(e: ExercicioPrescrito): Row {
     tecnica: e.tecnica ?? "normal",
     tecnicaExtras: e.tecnica_extras != null ? String(e.tecnica_extras) : "",
     tecnicaSeries: e.tecnica_series != null ? String(e.tecnica_series) : "",
+    tecnicaConfig: (e.tecnica_config as ConfigTecnica | null) ?? null,
     descansoApos: e.descanso_apos_seg != null ? String(e.descanso_apos_seg) : "",
     cadencia: e.cadencia ?? "",
     prioridade: e.prioridade ?? "normal",
@@ -215,6 +231,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
     tecnica: r.tecnica,
     tecnicaExtras: r.tecnicaExtras === "" ? null : Number(r.tecnicaExtras),
     tecnicaSeries: r.tecnicaSeries === "" ? null : Number(r.tecnicaSeries),
+    tecnicaConfig: r.tecnicaConfig,
     bloco: r.bloco || null,
     unilateral: r.unilateral,
     descansoAposSeg: r.descansoApos === "" ? null : Number(r.descansoApos),
@@ -328,7 +345,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             const item = itemDaLinha(r);
             // Pesos da biblioteca valem quando os secundários não foram alterados à mão.
             const pesos = !r.secundarios.length && item ? item.pesosSecundarios : null;
-            return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : item?.secundarios.length ? item.secundarios : g.secundarios, pesosSecundarios: pesos, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, tecnicaExtras: r.tecnicaExtras === "" ? null : Number(r.tecnicaExtras), tecnicaSeries: r.tecnicaSeries === "" ? null : Number(r.tecnicaSeries), rir: r.rir === "" ? null : Number(r.rir), contaVolume: r.contaVolume };
+            return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : item?.secundarios.length ? item.secundarios : g.secundarios, pesosSecundarios: pesos, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, tecnicaExtras: r.tecnicaExtras === "" ? null : Number(r.tecnicaExtras), tecnicaSeries: r.tecnicaSeries === "" ? null : Number(r.tecnicaSeries), tecnicaConfig: r.tecnicaConfig, rir: r.rir === "" ? null : Number(r.rir), contaVolume: r.contaVolume };
           }),
       })),
     [estado.treinos, resolver, itemDaLinha]
@@ -442,13 +459,14 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         const idx = t.rows.findIndex((r) => r.key === rk);
         // Isometria (prancha etc.) é sempre por tempo: a prescrição passa para segundos.
         const paraTempo = (c: SerieConfig): SerieConfig => (c.modo === "iguais" ? { ...c, reps: converterMedida(c.reps || "30", true) } : { modo: "detalhado", series: c.series.map((x) => ({ ...x, reps: converterMedida(x.reps || "30", true) })) });
-        return idx < 0 ? t : { ...t, rows: aplicarMetodo(t.rows, idx, metodo, t.letra).map((r) => ({ ...r, unilateral: r.key === rk && metodo === "unilateral" ? true : r.unilateral, ...(r.key === rk && metodo === "isometria" ? { seriesConfig: paraTempo(r.seriesConfig) } : {}) })) };
+        const antes = t.rows[idx]?.tecnica;
+        return idx < 0 ? t : { ...t, rows: comConfigNova(aplicarMetodo(t.rows, idx, metodo, t.letra), [rk], antes === metodo ? null : metodo).map((r) => ({ ...r, unilateral: r.key === rk && metodo === "unilateral" ? true : r.unilateral, ...(r.key === rk && metodo === "isometria" ? { seriesConfig: paraTempo(r.seriesConfig) } : {}) })) };
       }),
     }));
   const metodoEmVarios = (tk: string, metodo: Tecnica) => {
     const keys = selecao[tk] ?? [];
     if (!keys.length) return;
-    commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === tk ? { ...t, rows: aplicarMetodoEmVarios(t.rows, keys, metodo, t.letra) } : t)) }));
+    commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === tk ? { ...t, rows: comConfigNova(aplicarMetodoEmVarios(t.rows, keys, metodo, t.letra), keys, metodo) } : t)) }));
     setSelecao((cur) => ({ ...cur, [tk]: [] }));
     const m = METODOS.find((x) => x.v === metodo);
     toast.success(`${m?.l ?? "Método"} aplicado a ${keys.length} exercício(s).`);
@@ -578,7 +596,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           observacoes: "",
           tempos: e.treinos.find((x) => x.letra === t.letra)?.tempos ?? {},
           tempoAlvo: e.treinos.find((x) => x.letra === t.letra)?.tempoAlvo ?? "",
-          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", descansoApos: x.descanso_apos_seg != null ? String(x.descanso_apos_seg) : "", cadencia: x.cadencia ?? "", prioridade: x.prioridade ?? "normal", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
+          rows: t.exercicios.map((x) => ({ ...emptyRow(), nome: x.nome, grupo: x.grupo_muscular, secundarios: x.grupos_secundarios ?? [], seriesConfig: (x.series_config as SerieConfig | null) ?? configIgual(x.series, x.reps, x.ie), aquecimento: x.series_aquecimento ?? 0, tecnica: x.tecnica ?? "normal", tecnicaExtras: x.tecnica_extras != null ? String(x.tecnica_extras) : "", tecnicaSeries: x.tecnica_series != null ? String(x.tecnica_series) : "", tecnicaConfig: (x.tecnica_config as ConfigTecnica | null) ?? null, descansoApos: x.descanso_apos_seg != null ? String(x.descanso_apos_seg) : "", cadencia: x.cadencia ?? "", prioridade: x.prioridade ?? "normal", bloco: x.bloco ?? "", unilateral: x.unilateral ?? false, rir: x.rir != null ? String(x.rir) : "" })),
         }));
       const restantes = somenteLetra ? e.treinos.filter((t) => t.letra !== somenteLetra) : e.treinos.filter((t) => t.id && !novos.some((n) => n.letra === t.letra)).map((t) => ({ ...t, ativo: false }));
       const treinos = [...restantes, ...novos].sort((a, b) => LETRAS_TREINO.indexOf(a.letra) - LETRAS_TREINO.indexOf(b.letra));
@@ -627,6 +645,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             tecnica: r.tecnica,
             tecnica_extras: temExtras(r.tecnica) && r.tecnicaExtras !== "" ? Number(r.tecnicaExtras) : null,
             tecnica_series: temExtras(r.tecnica) && r.tecnicaSeries !== "" ? Number(r.tecnicaSeries) : null,
+            tecnica_config: ehConfiguravel(r.tecnica) ? r.tecnicaConfig : null,
             descanso_apos_seg: r.descansoApos === "" ? null : Math.min(900, Number(r.descansoApos)),
             cadencia: r.cadencia.trim() || null,
             prioridade: r.prioridade,
@@ -833,6 +852,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         ) : null}
       </section>
 
+      {dirty ? (
+        <button type="button" onClick={() => void salvar()} disabled={saving} className="fixed bottom-6 right-6 z-40 hidden rounded-xl bg-accent px-5 py-3 text-sm font-bold text-bg shadow-2xl hover:bg-accent-hover disabled:opacity-50 xl:block">
+          {saving ? "Salvando…" : "Salvar alterações"}
+        </button>
+      ) : null}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 items-start">
         {/* Dias */}
         <div className="space-y-4 min-w-0">
@@ -942,8 +966,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                           {inicioBloco ? (
                             <tr>
                               <td colSpan={99} className="px-2 pt-3">
-                                <div className="flex flex-wrap items-center gap-2 rounded-t-xl border border-b-0 border-accent/60 bg-accent/15 px-3 py-1.5">
-                                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent">🔗 {metodoBloco?.l ?? "Bloco"}</span>
+                                <div className="flex flex-wrap items-center gap-2 rounded-t-xl border border-b-0 px-3 py-1.5" style={{ borderColor: `${COR_TECNICA[r.tecnica] ?? "#d4a84b"}99`, background: `${COR_TECNICA[r.tecnica] ?? "#d4a84b"}26` }}>
+                                  <span className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: COR_TECNICA[r.tecnica] ?? undefined }}>🔗 {metodoBloco?.l ?? "Bloco"}</span>
                                   <span className="text-[11px] text-fg-muted">{nosBloco} exercícios · bloco {bloco} · sem descanso entre eles</span>
                                 </div>
                               </td>
@@ -956,7 +980,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             onDrop={() => { if (dragRef.current && dragRef.current.letra === t.letra) moverRowPara(t.key, dragRef.current.key, r.key); dragRef.current = null; }}
                             className={`group align-top hover:bg-card-hover/40 ${bloco ? `bg-accent/[0.06] ${inicioBloco ? "" : "border-t border-dashed border-accent/30"}` : "border-t border-border"} ${alertas.length ? (altoRisco ? "bg-red/[0.06]" : "bg-gold/[0.05]") : ""}`}
                           >
-                            <td className={`px-1 py-1.5 text-center align-middle ${bloco ? "border-l-4 border-accent/70" : ""}`}>
+                            <td className={`px-1 py-1.5 text-center align-middle ${bloco || COR_TECNICA[r.tecnica] ? "border-l-4" : ""}`} style={COR_TECNICA[r.tecnica] ? { borderLeftColor: COR_TECNICA[r.tecnica]! } : undefined}>
                               <div className="flex flex-col items-center">
                                 <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
                                 <span className="text-[10px] text-fg-subtle font-mono cursor-grab" title="Arraste para reordenar">{i + 1}</span>
@@ -995,6 +1019,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   </label>
                                   <MetodoPicker compacto valor={r.tecnica} onEscolher={(v) => escolherMetodo(t.key, r.key, v)} titulo={`Método — ${r.nome || `exercício ${i + 1}`}`} />
                                 </div>
+                                {ehConfiguravel(r.tecnica) ? (
+                                  <div className="px-2 pb-2">
+                                    <ConfigTecnicaPainel tecnica={r.tecnica} config={r.tecnicaConfig} validas={Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento)} cargaAlvo={r.cargaAlvo} onChange={(c) => updRow(t.key, r.key, { tecnicaConfig: c })} />
+                                  </div>
+                                ) : null}
                               </div>
                               {alertas.length ? (
                                 <p className="px-2 pb-1 text-[11px]" style={{ color: altoRisco ? "var(--color-red)" : "var(--color-gold)" }}>⚠ {alertas.map((a) => `${a.regiao}: ${a.mensagem}`).join(" · ")}</p>
@@ -1014,7 +1043,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                   <select value={r.tecnica} onChange={(e) => updRow(t.key, r.key, { tecnica: e.target.value as Tecnica, unilateral: e.target.value === "unilateral" ? true : r.unilateral })} className="rounded border border-border bg-bg px-1" aria-label="Técnica">
                                     {TECNICAS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}
                                   </select>
-                                  {temExtras(r.tecnica) ? (
+                                  {temExtras(r.tecnica) && !r.tecnicaConfig ? (
                                     <span className="inline-flex items-center gap-1 text-fg-muted" title="Usado no volume semanal. Em branco = valor padrão (mostrado em cinza).">
                                       <input inputMode="numeric" value={r.tecnicaExtras} placeholder={String(EXTRAS_PADRAO[r.tecnica])} onChange={(e) => updRow(t.key, r.key, { tecnicaExtras: e.target.value.replace(/\D/g, "").slice(0, 2) })} className="w-8 rounded border border-border bg-bg px-1 text-center font-mono" aria-label={r.tecnica === "dropset" ? "Drops por série" : "Mini-séries por série"} />
                                       {r.tecnica === "dropset" ? "drop(s)" : "mini(s)"} em
@@ -1174,6 +1203,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         <div className="space-y-4 xl:sticky xl:top-4 self-start">
           <CartaoAnamnese anamnese={anamnese} />
           <TabelaVolume
+            acao={
+              <button type="button" onClick={() => void salvar()} disabled={saving} className={`touch shrink-0 rounded-xl px-4 text-sm font-bold shadow-xl disabled:opacity-50 ${dirty ? "bg-accent text-bg" : "border border-border bg-card text-fg-muted"}`} aria-label="Salvar treino">
+                {saving ? "Salvando…" : dirty ? "Salvar" : "✓ Salvo"}
+              </button>
+            }
             resultado={volume}
             metas={estado.programa.metas_volume}
             prioridades={estado.programa.prioridades}

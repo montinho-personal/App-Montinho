@@ -10,7 +10,7 @@
 //  • "Não consegui" → pedido de adaptação. Finalização com resumo real.
 // ============================================================================
 
-import { descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
+import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
 import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
 import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -37,7 +37,7 @@ import { descansoDaRodada, mesclarParametros, type ParametrosTempo } from "@/lib
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
-import type { ExercicioPrescrito, SessionSet } from "@/lib/supabase/types-sessoes";
+import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
@@ -55,6 +55,8 @@ import { enviarEvento } from "@/components/chalala/evento";
 import { ehPorTempo, segundosPrevistos } from "@/lib/treino/medida";
 import { FRASE_FACIL, LIMITE_FACIL, conviteVaiQueTaFacil } from "@/lib/chalala/facil";
 import { CronometroSerie } from "./CronometroSerie";
+import { SerieEmBlocos, type BlocoDigitado } from "./SerieEmBlocos";
+import { arredondarCarga, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
@@ -105,7 +107,10 @@ const identidade = (ex: ExercicioView) => ({ exercicioId: ex.trocado ? null : ex
 type SerieLocal = {
   clientKey: string;
   serie: number;
-  tipo: "valida" | "aquecimento";
+  /** valida/aquecimento; séries de finalização usam o tipo da técnica (rest_pause, dropset, myo_reps). */
+  tipo: SerieTipo;
+  /** Pedaços digitados de uma série em blocos (rest-pause, drop-set, myo-reps, cluster, 3/7). */
+  blocos?: BlocoDigitado[];
   carga: string;
   reps: string;
   rir: string;
@@ -156,6 +161,25 @@ function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   if (cfg?.modo === "detalhado" && cfg.series?.length) return cfg.series[serie - 1]?.reps ?? ex.reps;
   return ex.reps;
 }
+
+/**
+ * Pedaços planejados desta série quando ela é registrada em blocos (técnica
+ * configurada no montador); null = série comum. Finalização: as séries a mais.
+ * Nas principais: as últimas N séries válidas (cluster e 3/7: todas).
+ */
+function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[]): BlocoPlanejado[] | null {
+  if (!ex.tecnica_config || !registraEmBlocos(ex.tecnica) || s.tipo === "aquecimento") return null;
+  if (s.tipo !== "valida") return blocosPlanejados(ex.tecnica, ex.tecnica_config, prescritoDaSerie(ex, s.serie));
+  const cfg = configEfetiva(ex.tecnica, ex.tecnica_config)!;
+  if (podeFinalizar(ex.tecnica) && cfg.aplicar === "finalizacao") return null;
+  const validas = lista.filter((x) => x.tipo === "valida");
+  const pos = validas.findIndex((x) => x.clientKey === s.clientKey) + 1;
+  const n = podeFinalizar(ex.tecnica) ? Math.max(1, cfg.series) : validas.length;
+  return pos > validas.length - n ? blocosPlanejados(ex.tecnica, ex.tecnica_config, prescritoDaSerie(ex, s.serie)) : null;
+}
+
+const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
+  Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
 export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null }: Props) {
   const router = useRouter();
@@ -241,19 +265,23 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         const validasAntes = anterior?.series.filter((u) => u.tipo !== "aquecimento").sort((a, b) => a.serie - b.serie) ?? [];
         const daUltimaVez = (n: number) => validasAntes[n - 1] ?? validasAntes.at(-1) ?? null;
         const planejadas = Math.max(1, se.series_planejadas + ((se.prescricao as { series_aquecimento?: number })?.series_aquecimento ?? 0));
+        // Séries de finalização (rest-pause/drop-set/myo-reps a mais, configuradas no montador).
+        const nFin = exDoPlano && !se.substituido_de ? seriesDeFinalizacao(exDoPlano.tecnica, exDoPlano.tecnica_config) : 0;
+        const tipoFin = (exDoPlano?.tecnica ?? "valida") as SerieTipo;
         const porSerie = new Map<number, SessionSet>();
         for (const x of se.series) porSerie.set(x.serie, x);
         const lista: SerieLocal[] = [];
         const aquec = (se.prescricao as { series_aquecimento?: number })?.series_aquecimento ?? 0;
-        for (let i = 1; i <= Math.max(planejadas, se.series.length); i++) {
+        for (let i = 1; i <= Math.max(planejadas + nFin, se.series.length); i++) {
           const salvo = porSerie.get(i);
           const keyBase = `set:${se.id}:${i}`;
           const pend = [...pendentesPorKey.values()].find((f) => f.payload.session_exercise_id === se.id && f.payload.serie === i);
-          const p = pend?.payload as { carga_kg?: number | null; reps?: number | null; rir?: number | null; desconforto?: number | null } | undefined;
+          const p = pend?.payload as { carga_kg?: number | null; reps?: number | null; rir?: number | null; desconforto?: number | null; blocos?: SessionSet["blocos"] } | undefined;
           lista.push({
             clientKey: salvo?.client_key ?? pend?.clientKey ?? keyBase,
             serie: i,
-            tipo: i <= aquec ? "aquecimento" : "valida",
+            tipo: salvo ? salvo.tipo : i <= aquec ? "aquecimento" : i > planejadas && i <= planejadas + nFin ? tipoFin : "valida",
+            blocos: blocosDoSalvo(p?.blocos ?? salvo?.blocos),
             carga: p?.carga_kg != null ? String(p.carga_kg) : salvo?.carga_kg != null ? String(salvo.carga_kg) : salvo || i <= aquec || daUltimaVez(i - aquec)?.carga_kg == null ? "" : String(daUltimaVez(i - aquec)!.carga_kg).replace(".", ","),
             reps: p?.reps != null ? String(p.reps) : salvo?.reps != null ? String(salvo.reps) : salvo || i <= aquec || daUltimaVez(i - aquec)?.reps == null ? "" : String(daUltimaVez(i - aquec)!.reps),
             rir: p?.rir != null ? String(p.rir) : salvo?.rir != null ? String(salvo.rir) : "",
@@ -263,7 +291,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           });
         }
         next[se.id] = lista;
-        planejadasRef.current[se.id] = Math.max(planejadas, se.series.length);
+        planejadasRef.current[se.id] = Math.max(planejadas + nFin, se.series.length);
       }
       // Volta de onde parou: valores digitados, séries extras, exercício aberto e descanso.
       const primeiraVez = hidratadaRef.current !== s.id;
@@ -463,14 +491,23 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const s0 = series[seId][idx];
     const s = correcao ? { ...s0, ...(correcao.carga != null ? { carga: String(correcao.carga).replace(".", ",") } : {}), ...(correcao.reps != null ? { reps: String(correcao.reps) } : {}) } : s0;
     if (correcao) atualizar(seId, idx, { carga: s.carga, reps: s.reps });
-    const reps = s.reps.trim() === "" ? null : Number(s.reps.replace(",", "."));
-    const carga = s.carga.trim() === "" ? null : Number(s.carga.replace(",", "."));
+    // Série em blocos: reps = soma dos pedaços; carga = a do 1º pedaço (drop-set guarda cada uma).
+    const planosBlocos = blocosDaSerie(ex, s, series[seId]);
+    const nBloco = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
+    // Drop-set: drop sem carga digitada usa a carga sugerida (a que aparece em cinza).
+    const c0 = nBloco((s.blocos?.[0]?.carga ?? s.carga) || "");
+    const emBlocos = planosBlocos
+      ? (s.blocos ?? [{ carga: s.carga, reps: "" }]).map((b, k) => (ex.tecnica === "dropset" && k > 0 && !b.carga.trim() && b.reps.trim() && c0 != null ? { ...b, carga: String(arredondarCarga(c0 * (planosBlocos[k]?.fracaoCarga ?? 1))) } : b))
+      : null;
+    const blocosPayload = emBlocos ? emBlocos.map((b) => ({ carga: nBloco(b.carga), reps: nBloco(b.reps) != null ? Math.round(nBloco(b.reps)!) : null })).filter((b) => b.reps != null || b.carga != null) : null;
+    const reps = emBlocos ? (blocosPayload!.some((b) => b.reps != null) ? somaBlocos(emBlocos.map((b) => b.reps)) : null) : s.reps.trim() === "" ? null : Number(s.reps.replace(",", "."));
+    const carga = emBlocos ? (blocosPayload![0]?.carga ?? null) : s.carga.trim() === "" ? null : Number(s.carga.replace(",", "."));
     if (reps === null && carga === null && ex.tecnica !== "isometria") {
       toast.warn("Informe pelo menos as repetições para concluir a série.");
       return;
     }
     // Conferência: valor bem fora do padrão do aluno → pergunta antes de gravar.
-    if (!silencioso && !confirmado && s.tipo === "valida") {
+    if (!silencioso && !confirmado && s.tipo === "valida" && !emBlocos) {
       const hoje = series[seId].filter((x, k) => k !== idx && x.concluida && x.tipo === "valida").map((x) => Number(x.carga.replace(",", ".")));
       const ult = ex.trocado ? [] : (ultimas[ex.id]?.series ?? []).filter((x) => x.tipo === "valida").map((x) => x.carga_kg ?? 0);
       const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ehPorTempo(ex) });
@@ -491,15 +528,22 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       rir: s.rir === "" ? null : Number(s.rir),
       desconforto: s.desconforto === "" ? null : Number(s.desconforto),
       concluida_em: new Date().toISOString(),
+      ...(blocosPayload?.length ? { blocos: blocosPayload } : {}),
     };
     enfileirar(storage, sessao.id, { tipo: "serie", sessionId: sessao.id, clientKey: s.clientKey, payload });
-    atualizar(seId, idx, { concluida: true, sincronizada: false });
+    atualizar(seId, idx, { concluida: true, sincronizada: false, ...(emBlocos ? { carga: carga != null ? String(carga).replace(".", ",") : "", reps: reps != null ? String(reps) : "" } : {}) });
     setPendentes((n) => n + 1);
     setSync("pendente");
     const ordem = sessao.exercicios.map((x) => x.id);
     // Descanso da versão do dia (pode ter sido encurtado ao começar).
     const doDia = (sessao.snapshot as { exercicios?: ExercicioPrescrito[] } | null)?.exercicios?.find((x) => x.id === ex.id) ?? ex;
     let descanso = descansoAposSerie(doDia, s.serie, ordem.indexOf(seId) === ordem.length - 1, temposSessao);
+    // Próxima é uma série de finalização: descanso entre séries (ou o configurado entre finalizações).
+    const proxFin = series[seId][idx + 1];
+    if (proxFin && proxFin.tipo !== "valida" && proxFin.tipo !== "aquecimento") {
+      const cfgFin = configEfetiva(ex.tecnica, ex.tecnica_config);
+      descanso = s.tipo === "valida" ? (doDia.descanso_seg ?? mesclarParametros(temposSessao).descansoEntreSeriesSeg) : (cfgFin?.descansoSeg ?? 90);
+    }
     // No bi-set: sem descanso entre os exercícios; vai direto para o próximo da rodada.
     let irPara: string | null = null;
     const grupo = s.tipo === "valida" ? gruposDoTreino(itensDoTreino()).find((g) => g.ids.length > 1 && g.ids.includes(seId)) : undefined;
@@ -616,11 +660,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   }
   function avisarTecnica(seId: string, idx: number, ex: ExercicioView): boolean {
     const lista = series[seId] ?? [];
-    const validas = lista.filter((x) => x.tipo === "valida").length;
-    const alvo = serieDaTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, validas);
     const prox = lista[idx + 1];
-    if (!alvo || !prox || prox.tipo !== "valida" || prox.concluida) return false;
-    if (lista.slice(0, idx + 2).filter((x) => x.tipo === "valida").length !== alvo) return false;
+    if (seriesDeFinalizacao(ex.tecnica, ex.tecnica_config)) {
+      // Finalização: o recado vem antes da 1ª série a mais (rest-pause/drop-set).
+      if (!fraseDaTecnica(ex.tecnica) || !prox || prox.concluida || prox.tipo === "valida" || prox.tipo === "aquecimento" || lista[idx]?.tipo !== "valida") return false;
+    } else {
+      const validas = lista.filter((x) => x.tipo === "valida").length;
+      const alvo = serieDaTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, validas);
+      if (!alvo || !prox || prox.tipo !== "valida" || prox.concluida) return false;
+      if (lista.slice(0, idx + 2).filter((x) => x.tipo === "valida").length !== alvo) return false;
+    }
     if (!podeIntervir(lerChalala(), "tecnica", ex.nome)) return false;
     registrarChalala({ tipo: "tecnica", exercicio: ex.nome });
     setTecnicaChalala((t) => ({ ...t, [seId]: idx + 1 }));
@@ -1123,13 +1172,17 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           const lista = series[se.id] ?? [];
           const feitas = lista.filter((s) => s.tipo === "valida" && s.concluida).length;
           const planejadas = lista.filter((s) => s.tipo === "valida").length;
-          const completo = planejadas > 0 && feitas >= planejadas;
+          // Séries de finalização também precisam ser feitas para o exercício ficar completo.
+          const finPendentes = lista.some((s) => s.tipo !== "valida" && s.tipo !== "aquecimento" && !s.concluida);
+          const completo = planejadas > 0 && feitas >= planejadas && !finPendentes;
           // Séries além do prescrito hoje (feitas com “+ Série extra”).
           const extrasFeitas = Math.max(0, feitas - (se.series_planejadas ?? planejadas));
           const ultima = troca ? (ultimasTroca[troca.id] ?? null) : ultimas[ex.id];
           const expandido = aberto === se.id;
           const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
-          const tecnicaTxt = [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
+          const tecnicaTxt = ex.tecnica_config ? (instrucaoTecnica(ex.tecnica, ex.tecnica_config) ?? "") : [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
+          const corTecnica = COR_TECNICA[ex.tecnica] ?? "#d4a84b";
+          const nomeTecnica = METODOS.find((m) => m.v === ex.tecnica)?.l ?? "";
           const pend = pendencias.find((p) => p.seId === se.id);
           const statusAtual = statusEx[se.id] ?? se.status;
           const podeTrocar = opcoesTroca.length > 0 && statusAtual !== "concluido" && !lista.some((x) => x.tipo !== "aquecimento" && x.concluida);
@@ -1152,6 +1205,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       {descansoDoDia(ex) ? ` · ${descansoDoDia(ex)}s` : ""}
                       {ex.rir != null ? ` · RIR ${ex.rir}` : ex.ie != null ? ` · esforço ${ex.ie}/10` : ""}
                     </span>
+                    {ex.tecnica && ex.tecnica !== "normal" && COR_TECNICA[ex.tecnica] ? (
+                      <span className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: `${corTecnica}26`, color: corTecnica }}>
+                        {nomeTecnica}
+                        {ex.tecnica_config ? ` · ${resumoTecnica(ex.tecnica, ex.tecnica_config)}` : ""}
+                      </span>
+                    ) : null}
                     {statusAtual === "concluido" ? (
                       <span className="block text-[11px] font-semibold text-success mt-0.5">✓ Finalizado{(percepcaoEx[se.id] ?? se.percepcao) ? ` · ${ROTULO_ESFORCO[(percepcaoEx[se.id] ?? se.percepcao)!]}` : ""}</span>
                     ) : statusAtual === "pulado" || statusAtual === "nao_consegui" ? (
@@ -1237,6 +1296,34 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       </div>
                       {lista.map((s, i) => {
                         const ref = ultima?.series.find((u) => u.serie === s.serie) ?? ultima?.series.at(-1);
+                        const planos = blocosDaSerie(ex, s, lista);
+                        if (planos) {
+                          const ehFin = s.tipo !== "valida";
+                          const nFin = lista.slice(0, i + 1).filter((x) => x.tipo !== "valida" && x.tipo !== "aquecimento").length;
+                          const nVal = lista.slice(0, i + 1).filter((x) => x.tipo === "valida").length;
+                          const cfgT = configEfetiva(ex.tecnica, ex.tecnica_config);
+                          return (
+                            <div key={s.clientKey} className="space-y-2">
+                              {tecnicaChalala[se.id] === i && !s.concluida && fraseDaTecnica(ex.tecnica) ? <p className="rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent">⚡ {fraseDaTecnica(ex.tecnica)}</p> : null}
+                              <SerieEmBlocos
+                                rotulo={ehFin ? `F${nFin}` : String(nVal)}
+                                titulo={`${nomeTecnica}${ehFin ? " · finalização" : ""}`}
+                                cor={corTecnica}
+                                planejados={planos}
+                                valores={s.blocos ?? [{ carga: s.carga, reps: "" }]}
+                                cargaRef={ref?.carga_kg != null ? String(ref.carga_kg).replace(".", ",") : null}
+                                cargaPorBloco={ex.tecnica === "dropset"}
+                                livre={ex.tecnica === "rest_pause"}
+                                alvoTotal={ex.tecnica === "rest_pause" ? (cfgT?.repsAlvo ?? null) : null}
+                                concluida={s.concluida}
+                                sincronizada={s.sincronizada}
+                                onChange={(v) => atualizar(se.id, i, { blocos: v, carga: v[0]?.carga ?? "", concluida: false, sincronizada: false })}
+                                onConcluir={() => concluirSerie(se.id, i, ex)}
+                                onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim: new Date().getTime() + seg * 1000 }))}
+                              />
+                            </div>
+                          );
+                        }
                         return (
                           <div key={s.clientKey} className={`grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center ${s.tipo === "aquecimento" ? "opacity-80" : ""}`}>
                             {tecnicaChalala[se.id] === i && !s.concluida && fraseDaTecnica(ex.tecnica) ? <p className="col-span-4 rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent">⚡ {fraseDaTecnica(ex.tecnica)}</p> : null}

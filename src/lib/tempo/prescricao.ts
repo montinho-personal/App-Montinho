@@ -6,7 +6,7 @@ import type { SerieConfig } from "@/lib/series";
 import { estimarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "./estimar";
 
 type PrescricaoLike = Pick<ExercicioPrescrito, "id" | "nome" | "series" | "reps" | "descanso_seg" | "series_aquecimento" | "tecnica" | "bloco" | "unilateral"> &
-  Partial<Pick<ExercicioPrescrito, "series_config" | "tecnica_extras" | "tecnica_series" | "descanso_apos_seg" | "cadencia">>;
+  Partial<Pick<ExercicioPrescrito, "series_config" | "tecnica_extras" | "tecnica_series" | "tecnica_config" | "descanso_apos_seg" | "cadencia">>;
 
 /** Todas as séries (aquecimento primeiro) com reps e descanso próprio (null = padrão). */
 export function seriesDaPrescricao(e: PrescricaoLike): Array<{ reps: string; descansoSeg: number | null }> {
@@ -30,6 +30,7 @@ export function exercicioTempoDaPrescricao(e: PrescricaoLike): ExercicioTempo {
     tecnica: e.tecnica ?? null,
     tecnicaExtras: e.tecnica_extras ?? null,
     tecnicaSeries: e.tecnica_series ?? null,
+    tecnicaConfig: e.tecnica_config ?? null,
     bloco: e.bloco ?? null,
     unilateral: !!e.unilateral,
     descansoAposSeg: e.descanso_apos_seg ?? null,

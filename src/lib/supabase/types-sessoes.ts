@@ -28,6 +28,8 @@ export type ExercicioPrescrito = Exercicio & {
   tecnica_extras?: number | null;
   /** Em quantas séries válidas a técnica é aplicada; null = padrão. */
   tecnica_series?: number | null;
+  /** 0040 — configuração da técnica (src/lib/treino/tecnica-config.ts); null = padrão. */
+  tecnica_config?: unknown;
   /** Descanso após o último set (antes do próximo exercício); null = padrão. */
   descanso_apos_seg?: number | null;
   bloco: string | null;
@@ -93,6 +95,7 @@ export type SnapshotExercicio = {
   tecnica: Tecnica;
   tecnica_extras?: number | null;
   tecnica_series?: number | null;
+  tecnica_config?: unknown;
   descanso_apos_seg?: number | null;
   cadencia?: string | null;
   prioridade?: PrioridadeExercicio;
@@ -177,7 +180,7 @@ export type SessionExercise = {
 
 export type PercepcaoExercicio = "muito_leve" | "moderado" | "pesado" | "muito_pesado";
 
-export type SerieTipo = "valida" | "aquecimento" | "dropset" | "rest_pause" | "cluster" | "isometria";
+export type SerieTipo = "valida" | "aquecimento" | "dropset" | "rest_pause" | "cluster" | "isometria" | "myo_reps" | "tres_sete";
 
 export type SessionSet = {
   id: string;
@@ -191,6 +194,8 @@ export type SessionSet = {
   rir: number | null;
   rpe: number | null;
   tempo_seg: number | null;
+  /** 0040 — pedaços da série em blocos: [{ carga, reps }]. */
+  blocos?: Array<{ carga: number | null; reps: number | null }> | null;
   lado: "direito" | "esquerdo" | "ambos" | null;
   desconforto: number | null;
   observacoes: string | null;

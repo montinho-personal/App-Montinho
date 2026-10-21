@@ -183,3 +183,27 @@ export function descreverTecnica(ex: EntradaTecnica, validas: number): string | 
   const onde = r.seriesComTecnica >= validas && validas > 1 ? "em cada série" : r.seriesComTecnica === 1 ? "na última série" : `nas últimas ${r.seriesComTecnica} séries`;
   return `${qtd} ${onde}`;
 }
+
+/**
+ * Cor de cada método (montador e treino do aluno): bater o olho e saber qual é.
+ * Família parecida = tom parecido; intensificadores com cores fortes e distintas.
+ */
+export const COR_TECNICA: Record<Tecnica, string | null> = {
+  normal: null,
+  piramide: "#38bdf8",
+  piramide_decrescente: "#60a5fa",
+  biset: "#a78bfa",
+  triset: "#c084fc",
+  superset: "#818cf8",
+  combinado: "#a78bfa",
+  pre_exaustao: "#e879f9",
+  rest_pause: "#fb923c",
+  dropset: "#f87171",
+  myo_reps: "#f472b6",
+  cluster: "#2dd4bf",
+  tres_sete: "#a3e635",
+  super_slow: "#22d3ee",
+  negativo: "#06b6d4",
+  isometria: "#facc15",
+  unilateral: "#34d399",
+};

@@ -98,6 +98,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
         tecnica: e.tecnica,
         tecnicaExtras: e.tecnica_extras ?? null,
         tecnicaSeries: e.tecnica_series ?? null,
+        tecnicaConfig: e.tecnica_config ?? null,
         rir: e.rir,
         contaVolume: e.conta_volume,
       };

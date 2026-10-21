@@ -5,7 +5,8 @@
 import Link from "next/link";
 import type { ExercicioPrescrito } from "@/lib/supabase/types-sessoes";
 import { GRUPO_COR, GRUPO_LABEL } from "@/lib/grupos";
-import { descreverTecnica, TECNICA_CURTA } from "@/lib/volume/tecnicas";
+import { COR_TECNICA, descreverTecnica, TECNICA_CURTA } from "@/lib/volume/tecnicas";
+import { resumoTecnica } from "@/lib/treino/tecnica-config";
 import { resumoDoTreino, seriesValidasDe } from "@/lib/treinos/resumo";
 
 type Props = { letra: string; nome: string; exercicios: ExercicioPrescrito[]; vezesSemana: number; editarHref?: string; aberto?: boolean };
@@ -45,7 +46,7 @@ export function TreinoAcordeao({ letra, nome, exercicios, vezesSemana, editarHre
         <ol className="divide-y divide-border">
           {exercicios.map((e, i) => {
             const validas = seriesValidasDe(e);
-            const tec = descreverTecnica({ tecnica: e.tecnica, tecnicaExtras: e.tecnica_extras, tecnicaSeries: e.tecnica_series }, validas);
+            const tec = (e.tecnica_config ? resumoTecnica(e.tecnica, e.tecnica_config) : null) ?? descreverTecnica({ tecnica: e.tecnica, tecnicaExtras: e.tecnica_extras, tecnicaSeries: e.tecnica_series }, validas);
             const tecRotulo = e.tecnica && e.tecnica !== "normal" ? TECNICA_CURTA[e.tecnica] : null;
             const detalhes = [
               e.descanso_seg ? `descanso ${e.descanso_seg}s` : null,
@@ -71,7 +72,7 @@ export function TreinoAcordeao({ letra, nome, exercicios, vezesSemana, editarHre
                         {GRUPO_LABEL[e.grupo_muscular]}
                       </span>
                     ) : null}
-                    {tecRotulo ? <span className="rounded-full bg-accent/10 px-1.5 py-0.5 font-semibold text-accent">{tecRotulo}{tec ? ` (${tec})` : ""}</span> : null}
+                    {tecRotulo ? <span className="rounded-full bg-accent/10 px-1.5 py-0.5 font-semibold text-accent" style={COR_TECNICA[e.tecnica] ? { background: `${COR_TECNICA[e.tecnica]}26`, color: COR_TECNICA[e.tecnica]! } : undefined}>{tecRotulo}{tec ? ` (${tec})` : ""}</span> : null}
                     {e.conta_volume === false ? <span className="text-fg-subtle">não conta no volume</span> : null}
                   </div>
                   {detalhes.length ? <p className="text-[11px] text-fg-muted">{detalhes.join(" · ")}</p> : null}

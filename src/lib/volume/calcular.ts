@@ -23,6 +23,7 @@ import {
   type Confianca,
 } from "@/lib/grupos";
 import { bonusTecnica, EXTRAS_PADRAO, fatorRir, REGRAS_TECNICAS, temExtras, type RegraTecnicas } from "./tecnicas";
+import { camposLegados, seriesDeFinalizacao } from "@/lib/treino/tecnica-config";
 
 export type Tecnica =
   | "normal"
@@ -58,6 +59,8 @@ export type ExercicioVolume = {
   tecnicaExtras?: number | null;
   /** Quantas séries válidas usam a técnica (padrão: última série; myo-reps: todas). */
   tecnicaSeries?: number | null;
+  /** 0040 — configuração da técnica; séries de finalização somam como séries com a técnica. */
+  tecnicaConfig?: unknown;
   /** RIR prescrito (usado só com `ajustarPorRir`). */
   rir?: number | null;
   /** false para cardio/mobilidade/técnica sem equivalência direta. */
@@ -262,7 +265,13 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         continue;
       }
       const base = seriesValidas(ex);
-      const tec = bonusTecnica(ex, base, regra);
+      // Configuração da técnica: drops/minis informados e séries de finalização (a mais).
+      const legado = camposLegados(ex.tecnica, ex.tecnicaConfig, base);
+      const exT = legado ? { ...ex, ...legado } : ex;
+      const tecPrincipais = bonusTecnica(exT, base, regra);
+      const nFin = base > 0 ? seriesDeFinalizacao(ex.tecnica, ex.tecnicaConfig) : 0;
+      const tecFin = nFin ? bonusTecnica({ ...exT, tecnicaSeries: nFin }, nFin, regra) : null;
+      const tec = { ...tecPrincipais, bonus: tecPrincipais.bonus + nFin + (tecFin?.bonus ?? 0) };
       const fator = opcoes.ajustarPorRir ? fatorRir(ex.rir) : 1;
       if (fator < 1 && base > 0) reduziuRir = true;
       if (temExtras(ex.tecnica) && base > 0) {

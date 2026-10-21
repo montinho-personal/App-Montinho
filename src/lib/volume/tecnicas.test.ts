@@ -89,3 +89,19 @@ describe("técnicas avançadas no volume", () => {
     expect(r.linhas.find((l) => l.grupo === "biceps")!.tecnicas).toEqual({});
   });
 });
+
+describe("séries de finalização (0040)", () => {
+  it("rest-pause de finalização soma 1 série + as mini-séries pela regra", () => {
+    const ex = { id: "1", nome: "Tríceps corda", grupo: "triceps" as const, series: 4, tecnica: "rest_pause" as const, tecnicaConfig: { series: 1, repsAlvo: 20 } };
+    expect(total(dia([ex]), { frequencia: { A: 1 }, regraTecnicas: "classica" }).total).toBe(5);
+    expect(total(dia([ex]), { frequencia: { A: 1 } }).total).toBe(6); // 4 + 1 + mini-séries (teto +1)
+  });
+  it("drop-set dentro das séries principais continua como antes", () => {
+    const ex = { id: "1", nome: "Tríceps corda", grupo: "triceps" as const, series: 3, tecnica: "dropset" as const, tecnicaConfig: { aplicar: "principais", series: 1, blocos: 2 } };
+    expect(total(dia([ex]), { frequencia: { A: 1 } }).total).toBe(4);
+  });
+  it("prescrição antiga (sem configuração) não ganha série de finalização", () => {
+    const ex = { id: "1", nome: "Tríceps corda", grupo: "triceps" as const, series: 3, tecnica: "rest_pause" as const, tecnicaConfig: null };
+    expect(total(dia([ex]), { frequencia: { A: 1 }, regraTecnicas: "classica" }).total).toBe(3);
+  });
+});

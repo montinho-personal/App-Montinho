@@ -138,6 +138,7 @@ export type ExercicioInput = {
   tecnica: Tecnica;
   tecnica_extras?: number | null;
   tecnica_series?: number | null;
+  tecnica_config?: unknown;
   descanso_apos_seg?: number | null;
   cadencia?: string | null;
   /** Treino possível hoje: essencial nunca sai; adiável sai primeiro. */
@@ -215,6 +216,7 @@ function montarSnapshot(programa: Programa, treinos: TreinoComExercicios[]): Sna
       tecnica: e.tecnica ?? "normal",
       tecnica_extras: e.tecnica_extras ?? null,
       tecnica_series: e.tecnica_series ?? null,
+      tecnica_config: e.tecnica_config ?? null,
       descanso_apos_seg: e.descanso_apos_seg ?? null,
       cadencia: e.cadencia ?? null,
       prioridade: e.prioridade ?? "normal",
@@ -434,6 +436,7 @@ function camposExercicio(e: ExercicioInput, ordem: number) {
     tecnica: e.tecnica ?? "normal",
     tecnica_extras: e.tecnica_extras ?? null,
     tecnica_series: e.tecnica_series ?? null,
+    tecnica_config: e.tecnica_config ?? null,
     descanso_apos_seg: e.descanso_apos_seg ?? null,
     cadencia: e.cadencia?.trim() || null,
     prioridade: e.prioridade ?? "normal",

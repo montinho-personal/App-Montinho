@@ -16,6 +16,8 @@ export type SerieRascunho = {
   desconforto: string;
   /** Série adicionada pelo aluno (não existe na prescrição). */
   extra?: boolean;
+  /** Pedaços já digitados de uma série em blocos (rest-pause, drop-set…). */
+  blocos?: Array<{ carga: string; reps: string }>;
 };
 
 export type Rascunho = {
@@ -67,15 +69,15 @@ export function limparRascunho(storage: StorageLike, sessaoId: string): void {
   } catch {}
 }
 
-type SerieTela = SerieRascunho & { tipo: "valida" | "aquecimento"; concluida: boolean; sincronizada: boolean };
+type SerieTela = SerieRascunho & { tipo: string; concluida: boolean; sincronizada: boolean };
 
 /** Extrai do estado da tela só o que precisa ser lembrado. */
 export function rascunhoDasSeries(series: Record<string, SerieTela[]>, planejadas: Record<string, number>): Rascunho["series"] {
   const out: Rascunho["series"] = {};
   for (const [seId, lista] of Object.entries(series)) {
     const guardar = lista
-      .filter((s) => !s.concluida && (s.serie > (planejadas[seId] ?? Infinity) || s.carga || s.reps || s.rir || s.desconforto))
-      .map((s) => ({ clientKey: s.clientKey, serie: s.serie, carga: s.carga, reps: s.reps, rir: s.rir, desconforto: s.desconforto, ...(s.serie > (planejadas[seId] ?? Infinity) ? { extra: true } : {}) }));
+      .filter((s) => !s.concluida && (s.serie > (planejadas[seId] ?? Infinity) || s.carga || s.reps || s.rir || s.desconforto || s.blocos?.some((b) => b.carga || b.reps)))
+      .map((s) => ({ clientKey: s.clientKey, serie: s.serie, carga: s.carga, reps: s.reps, rir: s.rir, desconforto: s.desconforto, ...(s.blocos?.some((b) => b.carga || b.reps) ? { blocos: s.blocos } : {}), ...(s.serie > (planejadas[seId] ?? Infinity) ? { extra: true } : {}) }));
     if (guardar.length) out[seId] = guardar;
   }
   return out;
@@ -85,10 +87,10 @@ export function rascunhoDasSeries(series: Record<string, SerieTela[]>, planejada
  * Aplica o rascunho sobre as séries vindas do servidor/fila. Série já
  * concluída nunca é sobrescrita; séries extras voltam ao fim da lista.
  */
-export function aplicarRascunho(series: Record<string, SerieTela[]>, r: Rascunho | null): { series: Record<string, SerieTela[]>; restaurou: boolean } {
+export function aplicarRascunho<T extends SerieTela>(series: Record<string, T[]>, r: Rascunho | null): { series: Record<string, T[]>; restaurou: boolean } {
   if (!r) return { series, restaurou: false };
   let restaurou = false;
-  const out: Record<string, SerieTela[]> = {};
+  const out: Record<string, T[]> = {};
   for (const [seId, lista] of Object.entries(series)) {
     const salvas = r.series[seId] ?? [];
     const nova = lista.map((s) => {
@@ -96,12 +98,12 @@ export function aplicarRascunho(series: Record<string, SerieTela[]>, r: Rascunho
       const d = salvas.find((x) => x.serie === s.serie && !x.extra);
       if (!d) return s;
       restaurou = true;
-      return { ...s, carga: d.carga, reps: d.reps, rir: d.rir, desconforto: d.desconforto };
+      return { ...s, carga: d.carga, reps: d.reps, rir: d.rir, desconforto: d.desconforto, ...(d.blocos ? { blocos: d.blocos } : {}) };
     });
     for (const x of salvas.filter((x) => x.extra).sort((a, b) => a.serie - b.serie)) {
       if (nova.some((s) => s.clientKey === x.clientKey || s.serie === x.serie)) continue;
       restaurou = true;
-      nova.push({ ...x, tipo: "valida", concluida: false, sincronizada: false });
+      nova.push({ ...x, tipo: "valida", concluida: false, sincronizada: false } as T);
     }
     out[seId] = nova;
   }

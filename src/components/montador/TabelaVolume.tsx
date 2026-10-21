@@ -22,6 +22,8 @@ type Filtro = "todos" | "superiores" | "inferiores";
 type Ordem = "padrao" | "volume" | "prioridade";
 
 type Props = {
+  /** Botão extra na barra fixa do celular (ex.: Salvar), sempre à mão. */
+  acao?: React.ReactNode;
   resultado: ResultadoVolume;
   metas: Partial<Record<GrupoMuscular, MetaVolume>>;
   prioridades: string[];
@@ -61,20 +63,23 @@ export function TabelaVolume(props: Props) {
 
       {/* Celular / tablet: barra fixa + painel */}
       <div className="xl:hidden">
-        <button
-          type="button"
-          onClick={() => setAbertoMobile(true)}
-          className="touch fixed bottom-3 left-3 right-3 z-40 flex items-center justify-between rounded-xl border border-accent/40 bg-card px-4 py-3 shadow-xl"
-          aria-haspopup="dialog"
-          aria-expanded={abertoMobile}
-        >
-          <span className="flex items-center gap-2 text-sm font-bold">
-            <Icon name="table" className="text-accent" /> Volume semanal
-          </span>
-          <span className="text-xs text-fg-muted">
-            {numBR(props.resultado.subtotais.total)} séries · {numBR(props.resultado.sessoesSemana)} sessões/sem · toque para ver
-          </span>
-        </button>
+        <div className="fixed bottom-3 left-3 right-3 z-40 flex items-stretch gap-2">
+          <button
+            type="button"
+            onClick={() => setAbertoMobile(true)}
+            className="touch flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-accent/40 bg-card px-3 py-2.5 shadow-xl"
+            aria-haspopup="dialog"
+            aria-expanded={abertoMobile}
+          >
+            <span className="flex shrink-0 items-center gap-2 text-sm font-bold">
+              <Icon name="table" className="text-accent" /> Volume
+            </span>
+            <span className="min-w-0 text-right text-xs text-fg-muted">
+              {numBR(props.resultado.subtotais.total)} séries · {numBR(props.resultado.sessoesSemana)} sessões/sem
+            </span>
+          </button>
+          {props.acao ?? null}
+        </div>
         {abertoMobile ? (
           <div className="fixed inset-0 z-50 flex items-end bg-black/60" role="dialog" aria-modal="true" aria-label="Tabela de volume semanal" onClick={() => setAbertoMobile(false)}>
             <div className="w-full max-h-[85vh] overflow-auto rounded-t-2xl border-t border-border bg-surface" onClick={(e) => e.stopPropagation()}>

@@ -917,4 +917,12 @@ begin
   insert into eventos_chalala (aluno_id, tipo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'chalala_vai_que_ta_facil');
   raise notice 'T27 OK: Vai que tá fácil ligado por padrão e evento aceito';
 end $$;
+-- T28 — 0040: técnicas configuráveis (config no exercício, blocos na série, tipos novos)
+do $$
+begin
+  if not exists (select 1 from information_schema.columns where table_name = 'exercicios' and column_name = 'tecnica_config') then raise exception 'T28: falta exercicios.tecnica_config'; end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'session_sets' and column_name = 'blocos') then raise exception 'T28: falta session_sets.blocos'; end if;
+  if position('myo_reps' in (select pg_get_constraintdef(oid) from pg_constraint where conname = 'session_sets_tipo_check')) = 0 then raise exception 'T28: tipo myo_reps não aceito'; end if;
+  raise notice 'T28 OK: técnicas configuráveis';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

@@ -15,6 +15,22 @@ const textoOpcional = (max: number) => z.string().trim().max(max).nullable().opt
 const inteiro = (min: number, max: number) => z.coerce.number().int().min(min).max(max);
 const inteiroOpcional = (min: number, max: number) => z.coerce.number().int().min(min).max(max).nullable().optional().transform((v) => (v == null || Number.isNaN(v) ? null : v));
 
+/** 0040 — configuração das técnicas avançadas (limites em src/lib/treino/tecnica-config.ts). */
+const cfgNum = (min: number, max: number) => z.number().int().min(min).max(max).nullable().optional();
+export const tecnicaConfigSchema = z.object({
+  aplicar: z.enum(["finalizacao", "principais"]).optional(),
+  series: cfgNum(0, 6),
+  repsAlvo: cfgNum(1, 100),
+  reps: cfgNum(1, 60),
+  blocos: cfgNum(0, 10),
+  repsBloco: cfgNum(1, 20),
+  reducaoPct: cfgNum(5, 50),
+  pausaSeg: cfgNum(0, 120),
+  descansoSeg: cfgNum(0, 600),
+  descidaSeg: cfgNum(1, 15),
+  subidaSeg: cfgNum(1, 15),
+});
+
 export const exercicioInputSchema = z.object({
   id: z.string().max(64).nullable().optional(),
   nome: texto(120).min(1, "Nome do exercício é obrigatório"),
@@ -34,6 +50,7 @@ export const exercicioInputSchema = z.object({
   tecnica: z.enum(TECNICAS).default("normal"),
   tecnica_extras: inteiroOpcional(0, 10),
   tecnica_series: inteiroOpcional(0, 20),
+  tecnica_config: tecnicaConfigSchema.nullable().optional().default(null),
   descanso_apos_seg: inteiroOpcional(0, 900),
   cadencia: textoOpcional(12),
   prioridade: z.enum(["essencial", "normal", "adiavel"]).default("normal"),
@@ -108,7 +125,8 @@ export const serieSchema = z.object({
   session_exercise_id: z.string().min(1).max(64),
   client_key: z.string().min(4).max(80),
   serie: inteiro(1, 50),
-  tipo: z.enum(["valida", "aquecimento", "dropset", "rest_pause", "cluster", "isometria"]).default("valida"),
+  tipo: z.enum(["valida", "aquecimento", "dropset", "rest_pause", "cluster", "isometria", "myo_reps", "tres_sete"]).default("valida"),
+  blocos: z.array(z.object({ carga: z.number().min(0).max(2000).nullable(), reps: z.number().int().min(0).max(500).nullable() })).max(12).nullable().optional(),
   carga_kg: z.coerce.number().min(0).max(1000).nullable().optional(),
   reps: inteiroOpcional(0, 500),
   rir: inteiroOpcional(0, 10),

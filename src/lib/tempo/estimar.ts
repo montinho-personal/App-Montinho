@@ -18,6 +18,7 @@
 
 import type { Tecnica } from "@/lib/volume/calcular";
 import { EXTRAS_PADRAO, ehTecnicaBloco, seriesComTecnicaPadrao, temExtras } from "@/lib/volume/tecnicas";
+import { cadenciaDaConfig, camposLegados, configEfetiva, seriesDeFinalizacao } from "@/lib/treino/tecnica-config";
 
 export type ParametrosTempo = {
   descansoEntreSeriesSeg: number;
@@ -85,6 +86,8 @@ export type ExercicioTempo = {
   tecnica?: Tecnica | null;
   tecnicaExtras?: number | null;
   tecnicaSeries?: number | null;
+  /** 0040 — configuração da técnica (séries de finalização, pausas, drops…). */
+  tecnicaConfig?: unknown;
   bloco?: string | null;
   unilateral?: boolean;
   /** Descanso após o último set (antes do próximo exercício). */
@@ -166,8 +169,9 @@ function registrar(acc: Acc, ex: ExercicioTempo, e: Execucao) {
 function extrasTecnica(acc: Acc, ex: ExercicioTempo, i: number, reps: string, p: ParametrosTempo) {
   const t = ex.tecnica;
   const total = ex.series.length;
+  const cfg = ex.tecnicaConfig ? configEfetiva(t, ex.tecnicaConfig) : null;
   if (t === "cluster") {
-    acc.desc += Math.max(0, p.clusterBlocos - 1) * p.clusterPausaSeg; // pausas internas da série
+    acc.desc += cfg ? Math.max(0, cfg.blocos - 1) * cfg.pausaSeg : Math.max(0, p.clusterBlocos - 1) * p.clusterPausaSeg; // pausas internas da série
     return;
   }
   // Métodos de tempo (sem cadência informada): super slow ≈ 10 s por repetição;
@@ -181,7 +185,7 @@ function extrasTecnica(acc: Acc, ex: ExercicioTempo, i: number, reps: string, p:
   if (t === "tres_sete") {
     const { n } = repsPrevistas(reps);
     registrar(acc, ex, execucaoSerie(String(Math.max(0, 25 - n)), ex, p));
-    acc.desc += 4 * 15;
+    acc.desc += 4 * (cfg?.pausaSeg ?? 15);
     return;
   }
   if (!temExtras(t)) return;
@@ -197,6 +201,45 @@ function extrasTecnica(acc: Acc, ex: ExercicioTempo, i: number, reps: string, p:
       registrar(acc, ex, execucaoSerie(String(p.repsMiniSerie), ex, p));
     }
   }
+}
+
+/**
+ * Séries de finalização (rest-pause, drop-set, myo-reps feitos A MAIS depois
+ * das séries principais): descanso antes, os blocos e as pausas entre eles.
+ */
+function finalizacao(acc: Acc, ex: ExercicioTempo, p: ParametrosTempo) {
+  const n = seriesDeFinalizacao(ex.tecnica, ex.tecnicaConfig);
+  const c = n ? configEfetiva(ex.tecnica, ex.tecnicaConfig) : null;
+  if (!c) return;
+  const ultima = ex.series.at(-1);
+  const repsBase = repsPrevistas(ultima?.reps ?? "10").n;
+  for (let k = 0; k < n; k++) {
+    acc.desc += k === 0 ? descansoDaSerie(ultima, p) : c.descansoSeg;
+    if (ex.tecnica === "rest_pause") {
+      const total = c.repsAlvo ?? repsBase + c.blocos * p.repsMiniSerie;
+      registrar(acc, ex, execucaoSerie(String(total), ex, p));
+      acc.desc += Math.max(1, c.repsAlvo != null ? Math.ceil(total / Math.max(1, repsBase)) : c.blocos) * c.pausaSeg;
+    } else if (ex.tecnica === "dropset") {
+      const reps = c.reps ?? repsBase;
+      registrar(acc, ex, execucaoSerie(String(reps), ex, p));
+      for (let d = 0; d < c.blocos; d++) {
+        registrar(acc, ex, execucaoSerie(String(reps), ex, p, p.fracaoRepsDrop));
+        acc.trans += Math.max(c.pausaSeg, p.trocaDropSeg);
+      }
+    } else {
+      registrar(acc, ex, execucaoSerie(String((c.reps ?? 15) + c.blocos * c.repsBloco), ex, p));
+      acc.desc += c.blocos * c.pausaSeg;
+    }
+    acc.series += 1;
+  }
+}
+
+/** Campos derivados da configuração da técnica (mesma regra do volume). */
+function comConfig(e: ExercicioTempo): ExercicioTempo {
+  if (!e.tecnicaConfig) return e;
+  const leg = camposLegados(e.tecnica, e.tecnicaConfig, e.series.length);
+  const cad = e.cadencia?.trim() ? e.cadencia : cadenciaDaConfig(e.tecnica, e.tecnicaConfig);
+  return { ...e, ...(leg ?? {}), cadencia: cad ?? null };
 }
 
 function aquecimento(acc: Acc, ex: ExercicioTempo, p: ParametrosTempo) {
@@ -240,7 +283,7 @@ function agrupar(exs: ExercicioTempo[]): ExercicioTempo[][] {
 
 export function estimarDuracao(exercicios: ExercicioTempo[], parametros: Partial<ParametrosTempo> | ParametrosTempo = PARAMETROS_TEMPO_PADRAO): ResultadoTempo {
   const p = mesclarParametros(parametros);
-  const validos = exercicios.filter((e) => e.series.length > 0 || (e.aquecimento ?? 0) > 0);
+  const validos = exercicios.filter((e) => e.series.length > 0 || (e.aquecimento ?? 0) > 0).map(comConfig);
   const acc: Acc = { exec: 0, desc: 0, trans: 0, series: 0, estCad: new Set(), estReps: new Set() };
   const marcos: ResultadoTempo["marcos"] = [];
   if (!validos.length) return { totalSeg: 0, execucaoSeg: 0, descansoSeg: 0, transicaoSeg: 0, exercicios: 0, series: 0, estimativas: [], marcos };
@@ -266,6 +309,7 @@ export function estimarDuracao(exercicios: ExercicioTempo[], parametros: Partial
         acc.desc += g.length > 1 ? descansoDaRodada(u?.descansoSeg, p) : descansoDaSerie(u, p);
       }
     }
+    for (const ex of g) finalizacao(acc, ex, p);
     if (gi < grupos.length - 1) entreExercicios(acc, g[g.length - 1], p);
     const fim = Math.round(acc.exec + acc.desc + acc.trans);
     for (const ex of g) marcos.push({ id: ex.id, fimSeg: fim, seriesAteAqui: acc.series });
