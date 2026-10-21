@@ -899,4 +899,14 @@ begin
 end $$;
 update notificacao_config set chalala_ativo = false, intervalo_minimo_min = 60;
 select test_logout();
+-- T26 — 0037: medalhas “Além do necessário” aceitas; código inventado continua barrado
+do $$
+declare ok boolean := false;
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'fiz_o_necessario', '1', now(), 'Fiz o necessário');
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'uma_a_mais', '1', now(), 'Uma a mais');
+  begin insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'inventada', '1', now(), 'x'); exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T26: código de medalha inventado foi aceito'; end if;
+  raise notice 'T26 OK: novas medalhas aceitas, código inválido barrado';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

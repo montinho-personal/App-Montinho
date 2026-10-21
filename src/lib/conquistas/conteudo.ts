@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-20.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -23,6 +23,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   retomada: "Retomada",
   autoconhecimento: "Autoconhecimento",
   desempenho: "Desempenho",
+  alem: "Além do necessário",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -233,6 +234,72 @@ const BASE: Record<CodigoConquista, Base> = {
     importancia: "Essa conquista ajuda a mostrar que a evolução pode aparecer no desempenho, mesmo quando outras mudanças ainda são pouco perceptíveis.",
     explicacao: "Receber retorno sobre o progresso pode fortalecer a percepção de competência. Um recorde isolado, porém, não prova hipertrofia nem substitui a avaliação do treinador.",
     proximoPasso: "Continue respeitando a técnica e o planejamento.",
+    fontes: ["sdt2025"],
+  },
+  fiz_o_necessario: {
+    categoria: "alem",
+    resumo: "Um treino na versão curta, num dia em que faltar seria fácil.",
+    mensagem: "Você tinha tudo pra faltar. Foi lá e fez o que era necessário ser feito!",
+    comoConquistar: "Num dia corrido, use “meu treino possível hoje” (quando o Montinho liberar na sua ficha) e conclua a versão curta.",
+    significado: "Você adaptou o treino ao tempo que tinha, em vez de deixar o dia passar.",
+    importancia: "Nos dias corridos, um treino menor mantém a rotina de pé. Constância também é saber ajustar.",
+    explicacao: "Manter o comportamento mesmo em versão reduzida ajuda a preservar a regularidade da rotina. A versão curta prioriza os exercícios principais da sua ficha.",
+    proximoPasso: "Na próxima semana, tente encaixar os treinos completos sempre que der.",
+    fontes: ["habitos2024"],
+  },
+  nunca_deixei_pra_depois: {
+    categoria: "alem",
+    resumo: "Cinco treinos na versão curta.",
+    mensagem: "Cinco vezes o dia apertou, e cinco vezes você apareceu. Isso é constância de verdade!",
+    comoConquistar: "Conclua 5 treinos na versão curta (“meu treino possível hoje”), quando o Montinho liberar na sua ficha.",
+    significado: "Nos dias difíceis, você escolheu adaptar em vez de faltar, várias vezes.",
+    importancia: "A rotina real tem imprevistos. Saber ajustar o treino é o que mantém a frequência ao longo do tempo.",
+    explicacao: "Rotinas que se adaptam às condições do dia tendem a ser mais fáceis de manter do que planos rígidos de tudo ou nada.",
+    proximoPasso: "Converse com o Montinho se os dias corridos estiverem frequentes: dá para ajustar a ficha.",
+    fontes: ["habitos2024", "sdt2025"],
+  },
+  fui_alem: {
+    categoria: "alem",
+    resumo: "O primeiro treino extra, dentro do combinado com o personal.",
+    mensagem: "Hoje teve um chalalá extra! Você fez mais do que o necessário.",
+    comoConquistar: "Quando o Montinho liberar treinos extras para você, conclua o primeiro.",
+    significado: "Você aproveitou uma oportunidade a mais de se movimentar, dentro das regras combinadas.",
+    importancia: "Atividade extra planejada pode somar movimento à semana sem atrapalhar a recuperação.",
+    explicacao: "O treino extra segue as regras do personal (dias, limites e recuperação). Ele não substitui os treinos da ficha nem conta na meta semanal.",
+    proximoPasso: "Respeite o descanso: o extra soma, mas a ficha principal vem primeiro.",
+    fontes: ["sdt2025"],
+  },
+  milha_extra: {
+    categoria: "alem",
+    resumo: "Cinco treinos extras concluídos.",
+    mensagem: "Cinco treinos extras! Você vive indo além do combinado.",
+    comoConquistar: "Conclua 5 treinos extras liberados pelo Montinho.",
+    significado: "Você somou, várias vezes, movimento além da ficha, dentro das regras.",
+    importancia: "Pequenos acréscimos ao longo das semanas aumentam o tempo total de atividade física.",
+    explicacao: "Os extras respeitam os limites que o personal definiu. Mais não é automaticamente melhor: o equilíbrio com a recuperação é o que sustenta a evolução.",
+    proximoPasso: "Continue usando os extras com equilíbrio, sem pular o descanso.",
+    fontes: ["sdt2025"],
+  },
+  sempre_um_a_mais: {
+    categoria: "alem",
+    resumo: "Quinze treinos extras concluídos.",
+    mensagem: "Quinze treinos extras. Ir além virou parte de quem você é!",
+    comoConquistar: "Conclua 15 treinos extras liberados pelo Montinho.",
+    significado: "Ir além do combinado virou um hábito na sua rotina, com acompanhamento.",
+    importancia: "Somar atividade de forma planejada, sem exagero, ajuda a manter um estilo de vida ativo.",
+    explicacao: "Os extras seguem as regras do personal. O objetivo é somar movimento com equilíbrio, e não acumular cansaço.",
+    proximoPasso: "Converse com o Montinho sobre como os extras estão encaixando na sua semana.",
+    fontes: ["sdt2025"],
+  },
+  uma_a_mais: {
+    categoria: "alem",
+    resumo: "Dez séries além das prescritas.",
+    mensagem: "Dez séries a mais! Quando sobrou gás, você foi lá e fez.",
+    comoConquistar: "Quando terminar um exercício e o app convidar, faça “+ Série extra”. Somando os treinos, chegue a 10 séries a mais.",
+    significado: "Você aproveitou os dias bons para completar um pouco mais do que o previsto.",
+    importancia: "Repor séries que ficaram para trás, nos dias em que você está bem, ajuda a manter o volume planejado da semana.",
+    explicacao: "O convite para a série extra só aparece quando faz sentido (sem desconforto e sem cansaço relatado). O volume continua sendo acompanhado pelo personal.",
+    proximoPasso: "Use a série extra quando estiver bem; nos dias puxados, o planejado já basta.",
     fontes: ["sdt2025"],
   },
   eu_voltei: {

@@ -10,6 +10,7 @@ import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/ade
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
 import type { CodigoConquista, SessaoConquista } from "./regras";
+import { LIMITES_ALEM } from "./regras";
 
 export type Medalha = {
   codigo: CodigoConquista;
@@ -45,6 +46,13 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "constancia_verdade", selo: "8/12" },
   { codigo: "treinos_50", selo: "50" },
   { codigo: "recomeco_consistente", selo: "Volta" },
+  // Além do necessário
+  { codigo: "fiz_o_necessario", selo: "Feito" },
+  { codigo: "fui_alem", selo: "+1" },
+  { codigo: "uma_a_mais", selo: "+10" },
+  { codigo: "nunca_deixei_pra_depois", selo: "5×" },
+  { codigo: "milha_extra", selo: "5+" },
+  { codigo: "sempre_um_a_mais", selo: "15+" },
 ];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
@@ -62,6 +70,12 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const meta = e.aderencia.semanaAtual?.meta ?? null;
   // Mesma conta da regra: semanas com meta, sem pausa e com ao menos um treino.
   const participando = e.aderencia.semanas.filter((w) => w.meta && !w.pausada && w.concluidas + w.parciais > 0).length;
+
+  // Além do necessário: treinos curtos concluídos, extras e séries além das prescritas.
+  const daApp = e.sessoes.filter((s) => s.conta_aderencia !== false && s.status !== "em_andamento");
+  const curtos = daApp.filter((s) => s.modo === "reduzido" && classificarSessao(s) === "concluida").length;
+  const extras = daApp.filter((s) => classificarSessao(s) === "extra").length;
+  const seriesExtras = daApp.filter((s) => s.modo !== "extra" && classificarSessao(s) === "concluida").reduce((a, s) => a + Math.max(0, (s.series_concluidas || 0) - (s.series_planejadas || 0)), 0);
 
   const progresso = (c: CodigoConquista): { atual: number | null; alvo: number | null; falta: string | null; disponivel: boolean } => {
     const treinos = (n: number) => ({ atual: Math.min(concluidas, n), alvo: n, falta: `Faltam ${plural(Math.max(0, n - concluidas), "treino concluído", "treinos concluídos")}, seguindo o seu plano.`, disponivel: true });
@@ -105,6 +119,19 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         const faltaDias = Math.max(0, LIMITES.primeiroMes.diasMinimos - (ev.diasPassados ?? 0));
         return { atual: a.atual, alvo: a.alvo, falta: validas.length ? `${partes.length ? `Falta: ${partes.join(" e ")}.` : "Treinos e semanas já estão certos."}${faltaDias ? ` A medalha sai em ${plural(faltaDias, "dia", "dias")}.` : ""}` : "Comece pelo primeiro treino.", disponivel: true };
       }
+      case "fiz_o_necessario":
+      case "nunca_deixei_pra_depois": {
+        const n = c === "fiz_o_necessario" ? 1 : LIMITES_ALEM.curtos;
+        return curtos ? { atual: Math.min(curtos, n), alvo: n, falta: `Faltam ${plural(n - Math.min(curtos, n), "treino", "treinos")} na versão curta, nos dias corridos.`, disponivel: true } : { atual: null, alvo: null, falta: "Num dia corrido, use “meu treino possível hoje” (quando o Montinho liberar na sua ficha) e conclua a versão curta.", disponivel: false };
+      }
+      case "fui_alem":
+      case "milha_extra":
+      case "sempre_um_a_mais": {
+        const n = c === "fui_alem" ? 1 : c === "milha_extra" ? LIMITES_ALEM.extras : LIMITES_ALEM.extrasMuitos;
+        return extras ? { atual: Math.min(extras, n), alvo: n, falta: `Faltam ${plural(n - Math.min(extras, n), "treino extra", "treinos extras")}, dentro do combinado com o Montinho.`, disponivel: true } : { atual: null, alvo: null, falta: "Quando o Montinho liberar treinos extras para você, eles aparecem em “Treino extra”.", disponivel: false };
+      }
+      case "uma_a_mais":
+        return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `Faltam ${plural(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
       default: return { atual: null, alvo: null, falta: null, disponivel: true };
     }
   };

@@ -130,3 +130,33 @@ describe("histórico importado (não conta para aderência/conquistas)", () => {
   });
 });
 
+
+describe("conquistas — além do necessário", () => {
+  it("treino curto concluído vira “Fiz o necessário”; 5 curtos, “Nunca deixei pra depois”; curto pela metade não conta", () => {
+    expect(codigos(detectar([s("2026-10-20", { modo: "reduzido", series_planejadas: 6, series_concluidas: 2 })]))).not.toContain("fiz_o_necessario");
+    const um = detectar([s("2026-10-20", { modo: "reduzido", series_planejadas: 6, series_concluidas: 6 })]);
+    expect(codigos(um)).toContain("fiz_o_necessario");
+    expect(codigos(um)).not.toContain("nunca_deixei_pra_depois");
+    const cinco = ["2026-09-01", "2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29"].map((d) => s(d, { modo: "reduzido", series_planejadas: 6, series_concluidas: 5 }));
+    expect(codigos(detectar(cinco))).toContain("nunca_deixei_pra_depois");
+  });
+  it("treinos extras: 1, 5 e 15", () => {
+    const extras = (k: number) => Array.from({ length: k }, (_, i) => s(`2026-09-${String(i + 1).padStart(2, "0")}`, { modo: "extra", series_planejadas: 0, series_concluidas: 0, duracao_seg: 1800 }));
+    expect(codigos(detectar(extras(1)))).toEqual(expect.arrayContaining(["fui_alem"]));
+    expect(codigos(detectar(extras(4)))).not.toContain("milha_extra");
+    expect(codigos(detectar(extras(5)))).toContain("milha_extra");
+    expect(codigos(detectar(extras(15)))).toContain("sempre_um_a_mais");
+    // extra não conta como treino da ficha
+    expect(codigos(detectar(extras(5)))).not.toContain("primeiro_treino");
+  });
+  it("séries além das prescritas somam até 10", () => {
+    const com = (d: string, extras: number) => s(d, { series_planejadas: 10, series_concluidas: 10 + extras });
+    expect(codigos(detectar([com("2026-10-01", 4), com("2026-10-03", 5)]))).not.toContain("uma_a_mais");
+    const r = detectar([com("2026-10-01", 4), com("2026-10-03", 5), com("2026-10-06", 1)]);
+    expect(r.find((x) => x.codigo === "uma_a_mais")?.sessaoId).toBe(r.find((x) => x.codigo === "uma_a_mais")?.sessaoId);
+    expect(codigos(r)).toContain("uma_a_mais");
+  });
+  it("histórico importado não gera medalha de além", () => {
+    expect(codigos(detectar([s("2026-10-20", { modo: "reduzido", conta_aderencia: false })]))).not.toContain("fiz_o_necessario");
+  });
+});

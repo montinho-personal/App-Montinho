@@ -30,6 +30,12 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   recomeco_consistente: { frase: "Eu recomecei. E continuei.", porque: "Retomar e manter na semana seguinte mostra a rotina se reorganizando." },
   recorde: { frase: "Mais forte do que da última vez.", porque: "Superar a própria marca é um dos sinais mais claros de progresso no treino." },
   eu_voltei: { frase: "De volta ao jogo.", porque: "Pausas acontecem. Voltar é o que importa na trajetória." },
+  fiz_o_necessario: { frase: "Tinha tudo pra faltar. Fui e fiz.", porque: "Nos dias corridos, aparecer é o que mantém a constância." },
+  nunca_deixei_pra_depois: { frase: "Dia corrido não é desculpa.", porque: "Ajustar o treino ao dia, em vez de faltar, é o que mantém a rotina de pé." },
+  fui_alem: { frase: "Hoje eu fui além.", porque: "Um treino a mais, dentro do combinado, soma movimento à semana." },
+  milha_extra: { frase: "Eu vou além do combinado.", porque: "Pequenos acréscimos, semana após semana, fazem diferença." },
+  sempre_um_a_mais: { frase: "Sempre um a mais.", porque: "Ir além, com equilíbrio e acompanhamento, virou parte da minha rotina." },
+  uma_a_mais: { frase: "Sobrou gás? Uma a mais.", porque: "Aproveitar os dias bons ajuda a completar o volume planejado da semana." },
 };
 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
@@ -69,6 +75,18 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
       return "Primeiro mês de treino";
     case "eu_voltei":
       return d.diasAfastado ? `De volta depois de ${d.diasAfastado} dias` : "De volta aos treinos";
+    case "fiz_o_necessario":
+      return "Treino feito na versão curta, num dia corrido";
+    case "nunca_deixei_pra_depois":
+      return "5 treinos na versão curta";
+    case "fui_alem":
+      return "Primeiro treino extra concluído";
+    case "milha_extra":
+      return "5 treinos extras concluídos";
+    case "sempre_um_a_mais":
+      return "15 treinos extras concluídos";
+    case "uma_a_mais":
+      return "10 séries além das prescritas";
     default:
       return null;
   }

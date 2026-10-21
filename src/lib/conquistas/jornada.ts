@@ -44,6 +44,13 @@ export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "e
   constancia_verdade: 4,
   treinos_50: 4,
   recomeco_consistente: 4,
+  // Além do necessário
+  fiz_o_necessario: 2,
+  fui_alem: 2,
+  uma_a_mais: 3,
+  nunca_deixei_pra_depois: 3,
+  milha_extra: 3,
+  sempre_um_a_mais: 4,
 };
 
 export type NoJornada =

@@ -6,7 +6,8 @@
 // • Só premia comportamento real registrado: treinos concluídos, metas
 //   cumpridas, retomadas, recordes COMPARÁVEIS. Nada por carga absoluta,
 //   comparação com outros alunos, peso perdido ou excesso de treino.
-// • Treino extra não conta para marcos (até existir aprovação do personal);
+// • Treino extra não conta para os marcos da ficha; tem medalhas próprias
+//   (“Além do necessário”), sempre dentro das regras que o personal liberou;
 //   sessão com dor relatada não vira recorde.
 // ============================================================================
 
@@ -31,7 +32,18 @@ export type CodigoConquista =
   | "criando_raizes"
   | "constancia_vida_real"
   | "constancia_verdade"
-  | "recomeco_consistente";
+  | "recomeco_consistente"
+  // Além do necessário (treino curto, treino extra, série extra)
+  | "fiz_o_necessario"
+  | "nunca_deixei_pra_depois"
+  | "fui_alem"
+  | "milha_extra"
+  | "sempre_um_a_mais"
+  | "uma_a_mais";
+
+/** Medalhas “Além do necessário” (0037): gravadas à parte para nunca travar as antigas se o banco ainda não as aceitar. */
+export const CODIGOS_ALEM: CodigoConquista[] = ["fiz_o_necessario", "nunca_deixei_pra_depois", "fui_alem", "milha_extra", "sempre_um_a_mais", "uma_a_mais"];
+export const LIMITES_ALEM = { curtos: 5, extras: 5, extrasMuitos: 15, seriesExtras: 10 } as const;
 
 // Títulos e critérios curtos (gravados na conquista). Os textos educativos
 // completos ficam na biblioteca editorial (conteudo.ts).
@@ -50,6 +62,12 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   constancia_vida_real: { titulo: "Constância na vida real", criterio: `Cumprir a meta em ${LIMITES.vidaReal.alvo} de ${LIMITES.vidaReal.janela} semanas elegíveis seguidas.`, repete: false },
   constancia_verdade: { titulo: "Constância de verdade", criterio: `Cumprir a meta em ${LIMITES.verdade.alvo} de ${LIMITES.verdade.janela} semanas elegíveis seguidas.`, repete: false },
   recomeco_consistente: { titulo: "Recomeço consistente", criterio: `Depois de ${LIMITES.recomeco.diasPausa}+ dias sem treinar, treinar em ${LIMITES.recomeco.semanas} semanas diferentes em até ${LIMITES.recomeco.diasDepois} dias da volta.`, repete: false },
+  fiz_o_necessario: { titulo: "Fiz o necessário", criterio: "Concluir um treino na versão curta (“meu treino possível hoje”), com pelo menos metade das séries planejadas para o dia.", repete: false },
+  nunca_deixei_pra_depois: { titulo: "Nunca deixei pra depois", criterio: `Concluir ${LIMITES_ALEM.curtos} treinos na versão curta, com pelo menos metade das séries planejadas para o dia.`, repete: false },
+  fui_alem: { titulo: "Fui além", criterio: "Concluir o primeiro treino extra liberado pelo personal.", repete: false },
+  milha_extra: { titulo: "Milha extra", criterio: `Concluir ${LIMITES_ALEM.extras} treinos extras liberados pelo personal.`, repete: false },
+  sempre_um_a_mais: { titulo: "Sempre um a mais", criterio: `Concluir ${LIMITES_ALEM.extrasMuitos} treinos extras liberados pelo personal.`, repete: false },
+  uma_a_mais: { titulo: "Uma a mais", criterio: `Somar ${LIMITES_ALEM.seriesExtras} séries além das prescritas (“+ Série extra”) em treinos concluídos.`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -224,6 +242,27 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   }
 
   if (e.relatorioVistoEm) out.push(nova("relatorio_mensal", "1", e.relatorioVistoEm, null, "Você abriu sua evolução completa."));
+
+  // Além do necessário: treino curto concluído, treinos extras e séries extras.
+  const curtos = concluidas.filter((s) => s.modo === "reduzido");
+  if (curtos[0]) out.push(nova("fiz_o_necessario", "1", curtos[0].iniciado_em, curtos[0].id, "Dia corrido, treino feito na versão curta."));
+  const c5 = curtos[LIMITES_ALEM.curtos - 1];
+  if (c5) out.push(nova("nunca_deixei_pra_depois", "1", c5.iniciado_em, c5.id, `${LIMITES_ALEM.curtos} treinos na versão curta: nos dias corridos, você não deixou pra depois.`));
+  const extras = ordenadas.filter((s) => classificarSessao(s) === "extra");
+  const marcosExtra: Array<[CodigoConquista, number, string]> = [["fui_alem", 1, "Seu primeiro treino extra, dentro do combinado com o personal."], ["milha_extra", LIMITES_ALEM.extras, `${LIMITES_ALEM.extras} treinos extras concluídos.`], ["sempre_um_a_mais", LIMITES_ALEM.extrasMuitos, `${LIMITES_ALEM.extrasMuitos} treinos extras concluídos.`]];
+  for (const [codigo, n, txt] of marcosExtra) {
+    const s = extras[n - 1];
+    if (s) out.push(nova(codigo, "1", s.iniciado_em, s.id, txt));
+  }
+  let somaExtras = 0;
+  for (const s of concluidas) {
+    if (s.modo === "extra") continue;
+    somaExtras += Math.max(0, (s.series_concluidas || 0) - (s.series_planejadas || 0));
+    if (somaExtras >= LIMITES_ALEM.seriesExtras) {
+      out.push(nova("uma_a_mais", "1", s.iniciado_em, s.id, `${LIMITES_ALEM.seriesExtras} séries além das prescritas, somando os treinos.`));
+      break;
+    }
+  }
   return out;
 }
 

@@ -13,7 +13,7 @@ import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes"
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
 import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
-import { detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CODIGOS_ALEM, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
@@ -93,7 +93,12 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     for (const l of linhas) if (!st.conquistas.some((c) => c.aluno_id === l.aluno_id && chave(c) === chave(l))) st.conquistas.push({ id: uid(), created_at: agora, ...l });
   } else {
     const db = await getDb();
-    await db.from("conquistas_aluno").upsert(linhas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    // Medalhas novas vão num pedido separado: se o banco ainda não as aceitar
+    // (migração 0037 pendente), as demais continuam sendo gravadas.
+    const novasAlem = linhas.filter((l) => CODIGOS_ALEM.includes(l.codigo));
+    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo));
+    if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasAlem.length) await db.from("conquistas_aluno").upsert(novasAlem, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
   }
   const todas = await listarConquistas(aluno.id);
   const novas = todas.filter((c) => !ja.has(chave(c)));
