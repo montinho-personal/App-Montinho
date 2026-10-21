@@ -6,27 +6,51 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
-import { CONTEUDO, nomeDaConquista } from "@/lib/conquistas/conteudo";
-import { ORDEM } from "@/lib/conquistas/vitrine";
-import type { CodigoConquista } from "@/lib/conquistas/regras";
+import { cardDaMedalha } from "@/lib/conquistas/compartilhavel";
+import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import type { ConquistaRow } from "@/lib/data/conquistas";
+import { gerarImagemMedalha } from "./cardMedalha";
+import { enviarEvento } from "./evento";
 
-const SELO_EXTRA: Record<string, string> = { recorde: "★", eu_voltei: "↺" };
 const CORES = ["#e3cd8a", "#ba9e50", "#4ade80", "#f3e6bd", "#ffffff", "#f59e0b"];
 
-function seloDe(codigo: string): string {
-  return ORDEM.find((o) => o.codigo === codigo)?.selo ?? SELO_EXTRA[codigo] ?? "★";
+function baixar(f: File) {
+  const url = URL.createObjectURL(f);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = f.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 export function CelebracaoMedalha({ conquistas, nome, animacoes = true, onFechar }: { conquistas: ConquistaRow[]; nome?: string; animacoes?: boolean; onFechar: () => void }) {
   const [i, setI] = useState(0);
   const [aberta, setAberta] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
   const atual = conquistas[i];
   // Confete com posições fixas por medalha (sem Math.random no render).
   const confete = useMemo(() => Array.from({ length: 36 }, (_, k) => ({ left: `${(k * 37) % 100}%`, dx: `${((k * 53) % 120) - 60}px`, delay: `${(k % 9) * 0.09}s`, cor: CORES[k % CORES.length] })), []);
   if (!atual || typeof document === "undefined") return null;
   const primeiroNome = (nome ?? "").split(" ")[0];
-  const mensagem = atual.codigo === "recorde" ? atual.descricao : (CONTEUDO[atual.codigo as CodigoConquista]?.mensagem ?? atual.descricao);
+  const card = cardDaMedalha(atual, nome ?? "");
+
+  async function compartilhar() {
+    setEnviando(true);
+    setAviso(null);
+    let r: ResultadoCompartilhar;
+    try {
+      const f = await gerarImagemMedalha(card);
+      r = await compartilharArquivo(navigator, f, card.legenda, baixar);
+    } catch {
+      r = "erro";
+    }
+    enviarEvento({ tipo: r === "baixado" ? "download" : r === "cancelado" ? "compartilhar_cancelado" : "compartilhar_nativo", modelo: atual.codigo, formato: "stories", origem: "medalha" });
+    if (r !== "enviado_ao_sistema") setAviso(MENSAGEM_RESULTADO[r]);
+    setEnviando(false);
+  }
 
   function abrir() {
     setAberta(true);
@@ -38,6 +62,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, onFechar
   }
 
   function proxima() {
+    setAviso(null);
     if (i + 1 < conquistas.length) {
       setI(i + 1);
       setAberta(false);
@@ -66,12 +91,18 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, onFechar
           <div className="flex flex-col items-center gap-3">
             <div className="medalha-revelar relative">
               <span aria-hidden className="chalala-brilho absolute inset-0 rounded-full bg-accent/50" />
-              <MedalhaIcone selo={seloDe(atual.codigo)} conquistada atual={null} alvo={null} tamanho={168} />
+              <MedalhaIcone selo={card.selo} conquistada atual={null} alvo={null} tamanho={150} />
             </div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">Nova medalha</p>
-            <h2 className="text-2xl font-extrabold leading-tight">{nomeDaConquista(atual.codigo, atual.titulo)}</h2>
-            <p className="text-sm text-fg-muted">{mensagem}</p>
-            <button type="button" onClick={proxima} className="touch mt-2 w-full rounded-xl bg-accent px-5 py-3 font-bold text-bg">
+            <h2 className="text-2xl font-extrabold leading-tight">{card.titulo}</h2>
+            {card.destaque ? <p className="text-sm font-semibold text-accent">{card.destaque}</p> : null}
+            <p className="mt-1 text-lg font-bold leading-snug">“{card.frase}”</p>
+            {card.porque ? <p className="text-xs text-fg-muted">{card.porque}</p> : null}
+            <button type="button" onClick={() => void compartilhar()} disabled={enviando} className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-bg disabled:opacity-60">
+              {enviando ? "Preparando a imagem…" : "📲 Compartilhar no Story / WhatsApp"}
+            </button>
+            {aviso ? <p className="text-xs text-fg-muted">{aviso}</p> : null}
+            <button type="button" onClick={proxima} className="touch w-full rounded-xl border border-border px-5 py-3 font-semibold text-fg">
               {i + 1 < conquistas.length ? "Próxima medalha →" : "Chalalá! Continuar"}
             </button>
           </div>

@@ -1,0 +1,98 @@
+// ============================================================================
+// Card compartilhável da medalha (Stories do Instagram / Status do WhatsApp).
+// O que as pessoas mais compartilham é o que diz QUEM ELAS SÃO (identidade),
+// com um RESULTADO CONCRETO (número, marca) e uma emoção de orgulho — em
+// poucas palavras. Por isso cada medalha tem:
+//   • frase: 1ª pessoa, curta, de identidade ("Voltei. E vou continuar.");
+//   • porque: uma linha sobre a importância, em linguagem calibrada;
+//   • destaque: o resultado concreto daquela conquista.
+// Mesmas proibições da biblioteca editorial (teste automático).
+// ============================================================================
+
+import type { CodigoConquista, ItemRecorde } from "./regras";
+import { CONTEUDO, nomeDaConquista } from "./conteudo";
+import { ORDEM } from "./vitrine";
+
+export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porque: string }> = {
+  primeiro_treino: { frase: "Eu tirei o “um dia” do papel.", porque: "O primeiro treino transforma intenção em ação. Toda evolução começa aqui." },
+  criando_raizes: { frase: "Voltei. E vou continuar voltando.", porque: "Voltar em outra semana é o que transforma um começo em rotina." },
+  primeira_meta_semanal: { frase: "Planejei. Cumpri.", porque: "Cumprir uma meta realista fortalece a confiança de que você consegue." },
+  relatorio_mensal: { frase: "Eu acompanho a minha evolução.", porque: "Os registros mostram progresso que o espelho ainda não mostra." },
+  treinos_10: { frase: "10 vezes eu escolhi aparecer.", porque: "É na repetição que técnica e força começam a se construir." },
+  primeiro_mes: { frase: "Um mês de treino. E é só o começo.", porque: "Treinar em semanas diferentes é o que constrói uma rotina de verdade." },
+  constancia_vida_real: { frase: "Constância não é perfeição.", porque: "Manter a frequência na vida real, mesmo com imprevistos, é o que sustenta resultados." },
+  semanas_consistentes_4: { frase: "4 semanas sem deixar para depois.", porque: "A evolução vem de estímulo e recuperação repetidos semana após semana." },
+  treinos_25: { frase: "25 treinos. Já é uma história.", porque: "Cada sessão soma prática, força e conhecimento sobre o próprio corpo." },
+  semanas_consistentes_8: { frase: "8 semanas firmes.", porque: "Dois meses de frequência é o tipo de constância que sustenta resultados." },
+  acompanhamento_12_semanas: { frase: "12 semanas na jornada.", porque: "Continuar mesmo quando a semana não sai perfeita é o que faz a diferença." },
+  constancia_verdade: { frase: "Constância de verdade.", porque: "Metas cumpridas ao longo de meses mostram que o treino virou parte da rotina." },
+  treinos_50: { frase: "50 treinos. Isso já é quem eu sou.", porque: "Uma marca de quem fez do treino parte da própria vida." },
+  recomeco_consistente: { frase: "Eu recomecei. E continuei.", porque: "Retomar e manter na semana seguinte mostra a rotina se reorganizando." },
+  recorde: { frase: "Mais forte do que da última vez.", porque: "Superar a própria marca é um dos sinais mais claros de progresso no treino." },
+  eu_voltei: { frase: "De volta ao jogo.", porque: "Pausas acontecem. Voltar é o que importa na trajetória." },
+};
+
+const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+function destaqueDeRecorde(r: ItemRecorde): string {
+  if (r.tipo === "reps") return `${r.exercicio}: ${r.agora} repetições${r.carga ? ` com ${fmt(r.carga)} kg` : ""}`;
+  return `${r.exercicio}: ${fmt(r.agora)} kg (antes ${fmt(r.antes)} kg)`;
+}
+
+/** Resultado concreto da conquista — o número que dá orgulho de mostrar. */
+export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: ItemRecorde[]; diasAfastado?: number; meta?: number } | null }): string | null {
+  const d = c.dados ?? {};
+  switch (c.codigo) {
+    case "recorde":
+      return d.recordes?.length ? destaqueDeRecorde(d.recordes[0]) : null;
+    case "treinos_10":
+      return "10 treinos concluídos";
+    case "treinos_25":
+      return "25 treinos concluídos";
+    case "treinos_50":
+      return "50 treinos concluídos";
+    case "semanas_consistentes_4":
+      return "4 semanas seguidas com a meta cumprida";
+    case "semanas_consistentes_8":
+      return "8 semanas seguidas com a meta cumprida";
+    case "constancia_vida_real":
+      return "3 de 4 semanas com a meta cumprida";
+    case "constancia_verdade":
+      return "8 de 12 semanas com a meta cumprida";
+    case "acompanhamento_12_semanas":
+      return "12 semanas de acompanhamento";
+    case "primeira_meta_semanal":
+      return d.meta ? `${d.meta} treinos na semana, como planejado` : "Meta da semana cumprida";
+    case "primeiro_treino":
+      return "Primeiro treino concluído";
+    case "primeiro_mes":
+      return "Primeiro mês de treino";
+    case "eu_voltei":
+      return d.diasAfastado ? `De volta depois de ${d.diasAfastado} dias` : "De volta aos treinos";
+    default:
+      return null;
+  }
+}
+
+export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string };
+
+const SELO_EXTRA: Record<string, string> = { recorde: "★", eu_voltei: "↺" };
+export const seloDaConquista = (codigo: string) => ORDEM.find((o) => o.codigo === codigo)?.selo ?? SELO_EXTRA[codigo] ?? "★";
+
+/** Tudo o que vai no card da medalha (mesmo texto na tela e na imagem). */
+export function cardDaMedalha(c: { codigo: string; titulo?: string | null; descricao?: string | null; conquistado_em: string; dados?: { recordes?: ItemRecorde[]; diasAfastado?: number; meta?: number } | null }, nome: string): CardMedalha {
+  const t = TEXTO_COMPARTILHAVEL[c.codigo as CodigoConquista] ?? { frase: CONTEUDO[c.codigo as CodigoConquista]?.mensagem ?? "Mais uma conquista.", porque: "" };
+  const titulo = nomeDaConquista(c.codigo, c.titulo);
+  const data = c.conquistado_em.slice(0, 10);
+  const dataBR = `${data.slice(8, 10)}/${data.slice(5, 7)}/${data.slice(0, 4)}`;
+  return {
+    selo: seloDaConquista(c.codigo),
+    titulo,
+    destaque: destaqueDaConquista(c),
+    frase: t.frase,
+    porque: t.porque,
+    nome: nome.trim().split(/\s+/)[0] ?? "",
+    data: dataBR,
+    legenda: `${t.frase} 🏅 ${titulo} — treinando com @montinho_personal`,
+  };
+}
