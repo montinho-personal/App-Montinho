@@ -10,7 +10,8 @@
 //  • "Não consegui" → pedido de adaptação. Finalização com resumo real.
 // ============================================================================
 
-import { descreverTecnica } from "@/lib/volume/tecnicas";
+import { descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
+import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -359,6 +360,27 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     setSeries((cur) => ({ ...cur, [seId]: cur[seId].map((s, i) => (i === idx ? { ...s, ...patch } : s)) }));
   }
 
+  // Bi-set/tri-set: exercícios do mesmo bloco viram uma coisa só na tela.
+  function itensDoTreino(): ItemTreino[] {
+    if (!sessao) return [];
+    return sessao.exercicios.map((se, i) => {
+      const e = exercicios.find((x) => x.id === se.exercicio_id) ?? exercicios[i];
+      return { id: se.id, bloco: e?.bloco ?? null, tecnica: e?.tecnica ?? null };
+    });
+  }
+  function contagemSeries(mais?: string): Record<string, { feitas: number; planejadas: number }> {
+    const c: Record<string, { feitas: number; planejadas: number }> = {};
+    for (const [id, l] of Object.entries(series)) {
+      const validas = l.filter((x) => x.tipo === "valida");
+      c[id] = { feitas: validas.filter((x) => x.concluida).length + (id === mais ? 1 : 0), planejadas: validas.length };
+    }
+    return c;
+  }
+  function irParaExercicio(seId: string) {
+    setAberto(seId);
+    requestAnimationFrame(() => document.getElementById(`ex-${seId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
   function concluirSerie(seId: string, idx: number, ex: ExercicioView, silencioso = false) {
     if (!sessao || !storage) return;
     const s = series[seId][idx];
@@ -385,12 +407,21 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const ordem = sessao.exercicios.map((x) => x.id);
     // Descanso da versão do dia (pode ter sido encurtado ao começar).
     const doDia = (sessao.snapshot as { exercicios?: ExercicioPrescrito[] } | null)?.exercicios?.find((x) => x.id === ex.id) ?? ex;
-    const descanso = descansoAposSerie(doDia, s.serie, ordem.indexOf(seId) === ordem.length - 1, temposSessao);
+    let descanso = descansoAposSerie(doDia, s.serie, ordem.indexOf(seId) === ordem.length - 1, temposSessao);
+    // No bi-set: sem descanso entre os exercícios; vai direto para o próximo da rodada.
+    let irPara: string | null = null;
+    const grupo = s.tipo === "valida" ? gruposDoTreino(itensDoTreino()).find((g) => g.ids.length > 1 && g.ids.includes(seId)) : undefined;
+    if (grupo) {
+      const r = proximoNoBloco(grupo, seId, contagemSeries(seId));
+      irPara = r.proximo !== seId ? r.proximo : null;
+      if (!r.fimDaRodada) descanso = null;
+    }
     if (!silencioso && descanso && descanso > 0) {
       const seg = descanso;
       const fim = new Date().getTime() + seg * 1000;
       setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim }));
     }
+    if (!silencioso && irPara) irParaExercicio(irPara);
     if (!silencioso && navigator.vibrate) navigator.vibrate(30);
     if (!silencioso) {
       const avisou = avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
@@ -876,7 +907,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       ) : null}
 
       <div className="space-y-3">
-        {sessao.exercicios.map((se, idx) => {
+        {(() => {
+        const grupos = gruposDoTreino(itensDoTreino());
+        const rotulos = rotulosDosExercicios(grupos);
+        const cartao = (se: (typeof sessao.exercicios)[number], idx: number) => {
           const exPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? (exercicios[idx] as ExercicioView | undefined);
           if (!exPlano) return null;
           const troca = trocaAtiva(se);
@@ -903,7 +937,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               <CardBody className="p-0">
                 <button type="button" onClick={() => setAberto(expandido ? null : se.id)} aria-expanded={expandido} className="w-full flex items-center gap-3 text-left px-4 py-3 touch">
                   <span className={`w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${completo ? "bg-success border-success text-bg" : "bg-bg border-border text-fg-muted"}`} aria-hidden>
-                    {completo ? <Icon name="check" size={16} /> : idx + 1}
+                    {completo ? <Icon name="check" size={16} /> : (rotulos[se.id] ?? idx + 1)}
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block font-semibold text-sm leading-tight">
@@ -1098,7 +1132,54 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               </CardBody>
             </Card>
           );
-        })}
+        };
+        const porId = new Map(sessao.exercicios.map((se, idx) => [se.id, { se, idx }]));
+        const nomeDe = (id: string) => {
+          const x = porId.get(id);
+          const e = x ? (exercicios.find((y) => y.id === x.se.exercicio_id) ?? exercicios[x.idx]) : null;
+          return trocaAtiva(x?.se as (typeof sessao.exercicios)[number])?.nome ?? e?.nome ?? "";
+        };
+        const cont = contagemSeries();
+        return grupos.map((g) => {
+          if (g.ids.length < 2) {
+            const x = porId.get(g.ids[0]);
+            return x ? cartao(x.se, x.idx) : null;
+          }
+          const rod = rodadaDoBloco(g, cont);
+          const metodo = METODOS.find((m) => m.v === g.tecnica)?.l ?? "Bi-set";
+          const agora = rod.concluido ? null : (g.ids.find((id) => (cont[id]?.feitas ?? 0) < (cont[id]?.planejadas ?? 0) && (cont[id]?.feitas ?? 0) < rod.atual) ?? null);
+          const sequencia = g.ids.map((id) => rotulos[id]).join(" + ");
+          return (
+            <section key={g.ids.join("-")} aria-label={`${metodo} ${sequencia}`} className="overflow-hidden rounded-2xl border-2 border-accent/70 bg-accent/[0.06]">
+              <div className="space-y-1.5 bg-accent/15 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-extrabold uppercase tracking-wide text-accent">🔗 {metodo} · {sequencia}</p>
+                  {rod.total ? <span className="shrink-0 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">{rod.concluido ? "✓ concluído" : `Rodada ${rod.atual} de ${rod.total}`}</span> : null}
+                </div>
+                <p className="text-xs text-fg-muted">Faça {g.ids.length === 2 ? "os dois" : `os ${g.ids.length}`} em sequência, <strong className="text-fg">sem descanso entre eles</strong>. Descanse só depois do último — isso é 1 rodada.</p>
+                {agora ? (
+                  <button type="button" onClick={() => irParaExercicio(agora)} className="touch flex w-full items-center justify-between gap-2 rounded-lg border border-accent/50 bg-bg/60 px-3 py-2 text-left text-sm">
+                    <span className="min-w-0 truncate"><span className="font-bold text-accent">Agora: {rotulos[agora]}</span> · {nomeDe(agora)}</span>
+                    <span className="shrink-0 text-accent" aria-hidden>→</span>
+                  </button>
+                ) : null}
+              </div>
+              <div className="space-y-0 p-2">
+                {g.ids.map((id, k) => {
+                  const x = porId.get(id);
+                  return (
+                    <div key={id}>
+                      {k > 0 ? <p className="py-1 text-center text-[11px] font-bold text-accent">↓ em seguida, sem descanso</p> : null}
+                      {x ? cartao(x.se, x.idx) : null}
+                    </div>
+                  );
+                })}
+                <p className="pt-2 text-center text-[11px] font-semibold text-accent">⏱ Descanso só no fim da rodada</p>
+              </div>
+            </section>
+          );
+        });
+        })()}
       </div>
 
       <Card className={conferindo && pendencias.length ? "border-warning" : "border-success/30"}>
