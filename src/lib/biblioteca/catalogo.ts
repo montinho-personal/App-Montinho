@@ -543,7 +543,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["rosca-scott-halter", "rosca-polia-baixa"],
   }),
   ex("rosca-inclinada-halteres", "Rosca inclinada com halteres", "biceps", {
-    s: ["rosca inclinada", "incline curl"],
+    s: ["rosca inclinada", "incline curl", "rosca direta banco inclinado", "rosca direta no banco inclinado", "rosca direta inclinada", "rosca no banco inclinado"],
     pad: "flexao_cotovelo", art: ["cotovelo", "ombro"], t: "mono", eq: ["halter", "banco"], n: "intermediario",
     exe: ["Banco a 45–60°, braços pendendo atrás da linha do tronco.", "Flexione os cotovelos sem trazê-los à frente.", "Desça alongando."],
     err: ["Cotovelos indo para frente.", "Tirar as costas do banco.", "Carga alta."],
