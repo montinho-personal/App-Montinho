@@ -50,6 +50,8 @@ type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ dias
 export const metadata = { title: "Aluno" };
 
 
+const ATALHO = "touch flex flex-col items-center justify-center gap-0.5 rounded-xl border border-border bg-bg/40 px-1 py-2.5 text-center text-[11px] font-semibold text-fg-muted hover:border-accent/50 hover:text-fg";
+
 export default async function AlunoDetailPage({ params, searchParams }: PageProps) {
   await requireTreinadorPage();
   const { id } = await params;
@@ -128,6 +130,37 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               <Field label="Início" value={dataBR(aluno.data_inicio)} />
               <Field label="Acesso até" value={dataBR(aluno.acesso_ate)} hint={diasAcesso !== null ? (diasAcesso < 0 ? `vencido há ${Math.abs(diasAcesso)}d` : `${diasAcesso}d restantes`) : undefined} tone={diasAcesso !== null && diasAcesso < 0 ? "red" : diasAcesso !== null && diasAcesso <= 7 ? "gold" : "neutral"} />
             </div>
+            {/* Ações: as duas principais em destaque e atalhos com ícone (fácil de achar no celular). */}
+            <div className="mt-5 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Link href={`/treinador/alunos/${id}/aula`} className="touch flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent px-3 py-3 text-center font-bold text-bg hover:bg-accent-hover">
+                  <span aria-hidden className="text-xl">👥</span>
+                  <span className="text-sm">Dar aula agora</span>
+                </Link>
+                <Link href={`/treinador/alunos/${id}/treinos`} className="touch flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-accent/70 px-3 py-3 text-center font-bold text-accent hover:bg-accent/10">
+                  <span aria-hidden className="text-xl">📝</span>
+                  <span className="text-sm">Revisar treino</span>
+                </Link>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
+                  <span aria-hidden className="text-lg">🏆</span>
+                  Troféus
+                </Link>
+                <Link href={`/treinador/alunos/${id}/jornada`} className={ATALHO}>
+                  <span aria-hidden className="text-lg">🗺️</span>
+                  Jornada
+                </Link>
+                <AtribuirTreinoButton alunoId={id} templates={templates} className={ATALHO}>
+                  <span aria-hidden className="text-lg">📋</span>
+                  Template
+                </AtribuirTreinoButton>
+                <EditarAlunoButton alunoId={id} inicial={{ nome: aluno.profile?.nome ?? "", telefone: aluno.telefone ?? "", status: aluno.status, data_nascimento: aluno.data_nascimento ?? "", data_inicio: aluno.data_inicio ?? "", acesso_ate: aluno.acesso_ate ?? "", objetivo: aluno.objetivo ?? "" }} className={ATALHO}>
+                  <span aria-hidden className="text-lg">✏️</span>
+                  Editar
+                </EditarAlunoButton>
+              </div>
+            </div>
             {aderencia.semanas.length >= 2 ? (
               <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
                 <div className="flex items-center gap-3">
@@ -143,19 +176,6 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                 </div>
               </div>
             ) : null}
-          </div>
-          <div className="flex flex-col gap-2 self-start">
-            <Link href={`/treinador/alunos/${id}/aula`} className="touch inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-4 text-sm font-bold text-bg hover:bg-accent-hover">
-              👥 Dar aula agora
-            </Link>
-            <Link href={`/treinador/alunos/${id}/treinos`} className="touch inline-flex items-center justify-center rounded-md border border-accent/60 px-4 text-sm font-bold text-accent">
-              Revisar treino
-            </Link>
-            <AtribuirTreinoButton alunoId={id} templates={templates} />
-            <Link href={`/treinador/alunos/${id}/jornada`} className="touch inline-flex items-center justify-center rounded-md border border-border px-4 text-sm font-semibold text-fg-muted hover:text-fg">
-              Ver jornada
-            </Link>
-            <EditarAlunoButton alunoId={id} inicial={{ nome: aluno.profile?.nome ?? "", telefone: aluno.telefone ?? "", status: aluno.status, data_nascimento: aluno.data_nascimento ?? "", data_inicio: aluno.data_inicio ?? "", acesso_ate: aluno.acesso_ate ?? "", objetivo: aluno.objetivo ?? "" }} />
           </div>
         </CardBody>
       </Card>

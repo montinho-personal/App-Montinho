@@ -8,13 +8,22 @@ import type { TemplateTreino } from "@/lib/supabase/types-extended";
 type Props = {
   alunoId: string;
   templates: TemplateTreino[];
+  /** Visual do atalho (cartão com ícone no perfil do aluno). */
+  className?: string;
+  children?: React.ReactNode;
 };
 
-export function AtribuirTreinoButton({ alunoId, templates }: Props) {
+export function AtribuirTreinoButton({ alunoId, templates, className, children }: Props) {
   const [aberto, setAberto] = useState(false);
   return (
     <>
-      <Button size="sm" onClick={() => setAberto(true)}>Atribuir template</Button>
+      {className ? (
+        <button type="button" onClick={() => setAberto(true)} className={className}>
+          {children}
+        </button>
+      ) : (
+        <Button size="sm" onClick={() => setAberto(true)}>Atribuir template</Button>
+      )}
       {aberto ? (
         <AtribuirTreinoModal alunoId={alunoId} templates={templates} onClose={() => setAberto(false)} />
       ) : null}
