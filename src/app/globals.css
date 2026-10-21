@@ -124,7 +124,33 @@
     letter-spacing: -0.02em;
   }
 
-  /* Alvo de toque mínimo para ações principais */
+  /* Medalha nova na conclusão do treino: tocar para abrir (desligável; reduz movimento) */
+@keyframes medalha-chamar {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.06) rotate(-6deg); }
+  75% { transform: scale(1.06) rotate(6deg); }
+}
+@keyframes medalha-revelar {
+  0% { transform: scale(0.2) rotateY(540deg); opacity: 0; }
+  70% { transform: scale(1.12) rotateY(0deg); opacity: 1; }
+  100% { transform: scale(1) rotateY(0deg); opacity: 1; }
+}
+@keyframes confete-cair {
+  0% { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--dx, 0px), 105vh, 0) rotate(720deg); opacity: 0.9; }
+}
+.medalha-chamar { animation: medalha-chamar 1.4s ease-in-out infinite; }
+.medalha-revelar { animation: medalha-revelar 900ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+.confete { position: absolute; top: 0; width: 8px; height: 14px; border-radius: 2px; animation: confete-cair 2.6s ease-in forwards; }
+.sem-animacao .medalha-chamar,
+.sem-animacao .medalha-revelar { animation: none; }
+.sem-animacao .confete { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .medalha-chamar, .medalha-revelar { animation: none; }
+  .confete { display: none; }
+}
+
+/* Alvo de toque mínimo para ações principais */
   .touch {
     min-height: var(--spacing-touch);
     min-width: var(--spacing-touch);

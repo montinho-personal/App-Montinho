@@ -16,6 +16,7 @@ import { POR_QUE } from "@/lib/evolucao/motor";
 import { SugestaoConclusao } from "@/components/desbloqueia/SugestaoConclusao";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
 import { enviarEvento } from "./evento";
+import { CelebracaoMedalha } from "./CelebracaoMedalha";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 
 // O editor (canvas, foto, exportação) só carrega quando o aluno pede.
@@ -45,8 +46,12 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
   };
 }
 
-export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nome: string; children?: React.ReactNode }) {
+type AulaPresencial = { nomeAluno: string; voltarHref: string; cabecalhos: Record<string, string> };
+
+export function TelaChalala({ base, nome, presencial = null, children }: { base: BaseConclusao; nome: string; presencial?: AulaPresencial | null; children?: React.ReactNode }) {
   const [resumo, setResumo] = useState<ResumoChalala | null>(null);
+  // Medalhas desta sessão: celebração interativa assim que o resumo chega.
+  const [celebrar, setCelebrar] = useState(true);
   const [falhou, setFalhou] = useState(false);
   const [editor, setEditor] = useState(false);
   const [animacoes, setAnimacoes] = useState(true);
@@ -60,13 +65,14 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
       // armazenamento indisponível: mantém o padrão
     }
     enviarEvento({ tipo: "conclusao_vista", origem: "conclusao" });
-    fetch(`/api/sessoes/${base.sessaoId}/chalala`)
+    fetch(`/api/sessoes/${base.sessaoId}/chalala`, presencial ? { headers: presencial.cabecalhos } : undefined)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d: ResumoChalala) => vivo && setResumo(d))
       .catch(() => vivo && setFalhou(true));
     return () => {
       vivo = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- busca uma vez por sessão
   }, [base.sessaoId]);
 
   function alternarAnimacoes() {
@@ -84,6 +90,15 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
   const r = resumo;
   const duracao = r ? r.duracaoMin : base.duracaoMin;
   const conquista = r?.conquistas.find((c) => c.codigo !== "relatorio_mensal") ?? null;
+  const medalhasNovas = r ? r.conquistas.filter((c) => c.codigo !== "relatorio_mensal" && (presencial || !c.vista_em)) : [];
+  function fecharCelebracao() {
+    setCelebrar(false);
+    // No app do aluno, marca como vistas (não repete). Na aula presencial, o
+    // aluno ainda vê a celebração quando abrir o app dele.
+    if (!presencial && medalhasNovas.length) {
+      fetch("/api/conquistas/vistas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: medalhasNovas.map((c) => c.id) }) }).catch(() => undefined);
+    }
+  }
   const dados: DadosCard = r ? dadosDoResumo(r) : { nomeTreino: base.nomeTreino, data: base.data, duracaoMin: base.duracaoMin, series: base.series };
 
   return (
@@ -170,7 +185,7 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
             <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Conquista desta sessão</p>
             <p className="font-bold">{nomeDaConquista(conquista.codigo, conquista.titulo)}</p>
             <p className="text-sm text-fg-muted">{conquista.codigo === "recorde" ? conquista.descricao : (CONTEUDO[conquista.codigo as CodigoConquista]?.mensagem ?? conquista.descricao)}</p>
-            {conquista.codigo !== "recorde" && conquista.codigo !== "eu_voltei" ? (
+            {!presencial && conquista.codigo !== "recorde" && conquista.codigo !== "eu_voltei" ? (
               <Link href={`/aluno/conquistas/todas?m=${conquista.codigo}`} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Entenda por que isso é importante</Link>
             ) : null}
           </CardBody>
@@ -192,6 +207,11 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
 
       {children}
 
+      {presencial ? (
+        <Link href={presencial.voltarHref} className="touch flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
+          Voltar para {presencial.nomeAluno}
+        </Link>
+      ) : (
       <div className="space-y-2">
         <button type="button" onClick={() => setEditor(true)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 font-bold text-bg">
           Compartilhar minha conquista
@@ -212,6 +232,9 @@ export function TelaChalala({ base, nome, children }: { base: BaseConclusao; nom
           Animações de comemoração: {animacoes ? "ligadas (desligar)" : "desligadas (ligar)"}
         </button>
       </div>
+      )}
+
+      {celebrar && medalhasNovas.length ? <CelebracaoMedalha conquistas={medalhasNovas} nome={presencial ? presencial.nomeAluno : nome} animacoes={animacoes} onFechar={fecharCelebracao} /> : null}
 
       {editor ? <EditorCard dados={dados} modeloInicial={r?.modeloSugerido ?? "A"} nome={nome} origem="conclusao" onFechar={() => setEditor(false)} /> : null}
     </div>

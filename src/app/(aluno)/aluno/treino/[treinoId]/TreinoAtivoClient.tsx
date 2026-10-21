@@ -624,23 +624,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       data: dataLocal(concluida.finalizado_em ?? concluida.iniciado_em),
     };
     if (presencial) {
-      return (
-        <div className="space-y-4">
-          <Card className="border-success/40">
-            <CardBody className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-success">Aula registrada</p>
-              <h1 className="text-xl font-bold">{base.nomeTreino}</h1>
-              <p className="text-sm text-fg-muted">
-                {presencial.nomeAluno} · {base.series} de {base.seriesPlanejadas} séries{base.duracaoMin ? ` · ${base.duracaoMin} min` : ""}
-              </p>
-              <p className="text-xs text-fg-muted">Já está no histórico, no volume da semana e na evolução. As conquistas aparecem quando {presencial.nomeAluno} abrir o app.</p>
-            </CardBody>
-          </Card>
-          <Link href={presencial.voltarHref} className="touch flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
-            Voltar para {presencial.nomeAluno}
-          </Link>
-        </div>
-      );
+      // Mesma comemoração do app do aluno (medalhas com "toque para abrir"),
+      // para o aluno ver na hora, durante a aula.
+      return <TelaChalala base={base} nome={presencial.nomeAluno} presencial={{ nomeAluno: presencial.nomeAluno, voltarHref: presencial.voltarHref, cabecalhos: cab }} />;
     }
     return (
       <TelaChalala base={base} nome={nomeAluno}>
