@@ -776,7 +776,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     ))}
                     {possivel.status === "reduzido" || possivel.apertado ? (() => {
                       const lentos = exercicios.filter((e) => !adiadosIds.has(e.id) && trocas[e.id]?.lento && trocas[e.id].opcoes.some((o) => o.rapido)).map((e) => e.nome);
-                      return lentos.length ? <p className="text-xs text-fg-muted">⚡ Para ganhar tempo: {lentos.join(", ")} {lentos.length > 1 ? "levam" : "leva"} tempo para montar. No treino, toque em “⇄ Trocar exercício” para usar uma máquina parecida.</p> : null;
+                      return lentos.length ? <p className="text-xs text-fg-muted">⚡ Para ganhar tempo: {lentos.join(", ")} {lentos.length > 1 ? "levam" : "leva"} tempo para montar as anilhas. No treino, toque em “⇄ Trocar exercício” para usar halteres ou máquina.</p> : null;
                     })() : null}
                     {ganhoDescanso.ajuda && possivelMenor ? (
                       <div className="mt-2 space-y-2 rounded-md border border-border bg-bg/40 p-2.5">
@@ -978,7 +978,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       </div>
                     ) : montagemLenta && tempoCurto && podeTrocar ? (
                       <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
-                        <span>⏱ Tempo curto? Este exercício leva tempo para montar (anilhas/peso). Uma máquina parecida é mais rápida.</span>
+                        <span>⏱ Tempo curto? Montar as anilhas deste exercício leva tempo. Com halteres ou na máquina é mais rápido.</span>
                         <button type="button" onClick={() => { setTrocaAberta(se.id); requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
                           Ver opções
                         </button>

@@ -7,9 +7,11 @@
 // continuam os do treino: só o exercício muda, e o peso/reps são registrados
 // normalmente.
 //
-// “Montagem lenta”: barra, anilhas, halteres, leg press 45°/hack (carregados
-// com anilha). Quando o tempo está curto, as opções em máquina/polia (montagem
-// rápida: é só mudar o pino) aparecem primeiro.
+// “Montagem lenta” = só o que se carrega com ANILHAS (onde se perde tempo):
+// leg press/hack e os levantamentos com barra ou Smith (agachamento, supino,
+// terra, stiff, remada curvada, elevação pélvica…). Halteres NÃO: são rápidos
+// e viram boa troca. Barras de braço (rosca, tríceps) costumam ser prontas.
+// Com tempo curto, opções rápidas (halter, máquina, polia) aparecem primeiro.
 // ============================================================================
 
 import { sugerirSubstituicoes, type ContextoAluno } from "@/lib/biblioteca/substituicao";
@@ -29,14 +31,18 @@ export type OpcaoTroca = {
 
 export type TrocasDoExercicio = { lento: boolean; opcoes: OpcaoTroca[] };
 
-const CARREGADO_COM_ANILHA = /leg press 45|hack|cavalinho|remada t|t-bar|belt squat/i;
+const CARREGADO_COM_ANILHA = /leg press|hack|cavalinho|remada t\b|t-bar|belt squat/i;
+const LEVANTAMENTO_COM_ANILHAS = /agachamento|supino|terra|stiff|remada curvada|levantamento|hip thrust|eleva[cç][aã]o p[eé]lvica|afundo|b[uú]lgaro|good morning/i;
 
 export function montagemLenta(i: Pick<ItemBiblioteca, "nome" | "equipamento">): boolean {
-  return i.equipamento.some((e) => e === "barra" || e === "anilha" || e === "barra_w" || e === "halter") || CARREGADO_COM_ANILHA.test(i.nome);
+  if (CARREGADO_COM_ANILHA.test(i.nome)) return true;
+  const comBarra = i.equipamento.some((e) => e === "barra" || e === "smith");
+  const comHalter = i.equipamento.some((e) => e === "halter" || e === "kettlebell");
+  return comBarra && !comHalter && LEVANTAMENTO_COM_ANILHAS.test(i.nome);
 }
 
 export function montagemRapida(i: Pick<ItemBiblioteca, "nome" | "equipamento">): boolean {
-  return !montagemLenta(i) && i.equipamento.some((e) => e === "maquina" || e === "polia" || e === "cabo");
+  return !montagemLenta(i) && i.equipamento.some((e) => e === "maquina" || e === "polia" || e === "cabo" || e === "halter" || e === "kettlebell" || e === "peso_corporal" || e === "elastico");
 }
 
 /** Texto para o aluno (os motivos do montador falam com o personal). */

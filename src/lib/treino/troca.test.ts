@@ -9,11 +9,16 @@ const porSlug = (s: string) => itens.find((i) => i.slug === s)!;
 const curadas: Equivalencia[] = CATALOGO.flatMap((e) => e.substituicoes.map((s) => ({ exercicioId: `cat-${e.slug}`, alternativaId: `cat-${s}`, origem: "catalogo" as const, status: "sugerida" as const, nota: null })));
 
 describe("troca de exercício pelo aluno", () => {
-  it("classifica montagem lenta (barra, halter, leg press 45) e rápida (máquina/polia)", () => {
+  it("só anilhas contam como montagem lenta; halter é rápido (e boa troca)", () => {
     expect(montagemLenta(porSlug("supino-reto-barra"))).toBe(true);
-    expect(montagemLenta(porSlug("supino-reto-halteres"))).toBe(true);
     expect(montagemLenta(porSlug("leg-press-45"))).toBe(true);
+    expect(montagemLenta(porSlug("supino-reto-halteres"))).toBe(false);
+    expect(montagemRapida(porSlug("supino-reto-halteres"))).toBe(true);
     expect(montagemRapida(porSlug("supino-reto-maquina"))).toBe(true);
+    const rosca = itens.find((i) => /^rosca direta/i.test(i.nome) && i.equipamento.includes("barra"));
+    if (rosca) expect(montagemLenta(rosca)).toBe(false);
+    const agach = itens.find((i) => /^agachamento livre/i.test(i.nome));
+    if (agach) expect(montagemLenta(agach)).toBe(true);
   });
 
   it("exercício de montagem lenta: máquina aparece primeiro", () => {
