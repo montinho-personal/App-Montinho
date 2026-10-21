@@ -26,6 +26,7 @@ import { AnelPercentual } from "@/components/graficos/AnelPercentual";
 import { dataBR, diasAte, tempoRelativo } from "@/lib/format";
 import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
 import { EditarAlunoButton } from "./EditarAlunoModal";
+import { EnviarAcessoButton } from "./EnviarAcesso";
 import { ComparadorFotos } from "./ComparadorFotos";
 import { ComparadorMedidas } from "./ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
@@ -142,7 +143,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   <span className="text-sm">Revisar treino</span>
                 </Link>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                 <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🏆</span>
                   Troféus
@@ -159,6 +160,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   <span aria-hidden className="text-lg">✏️</span>
                   Editar
                 </EditarAlunoButton>
+                <EnviarAcessoButton nome={aluno.profile?.nome ?? ""} email={aluno.profile?.email ?? null} telefone={aluno.telefone ?? null} className={ATALHO} />
               </div>
             </div>
             {aderencia.semanas.length >= 2 ? (
