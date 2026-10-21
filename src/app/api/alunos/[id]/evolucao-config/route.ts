@@ -10,6 +10,7 @@ const schema = z.object({
   max_por_exercicio: z.number().int().min(0).max(5),
   max_por_sessao: z.number().int().min(0).max(10),
   metricas: z.array(z.enum(["recorde", "mais_carga", "mais_reps", "acima_media"])).max(4),
+  vai_que_ta_facil: z.boolean().default(true),
 });
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {

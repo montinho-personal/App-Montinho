@@ -53,6 +53,7 @@ import { CHAMADA_CONTEXTO, REGRAS_DESBLOQUEIA, REPS_ALTAS, repsPrescritas, type 
 import type { ContextoConhecimento } from "@/lib/desbloqueia/tipos";
 import { enviarEvento } from "@/components/chalala/evento";
 import { ehPorTempo, segundosPrevistos } from "@/lib/treino/medida";
+import { FRASE_FACIL, LIMITE_FACIL, conviteVaiQueTaFacil } from "@/lib/chalala/facil";
 import { CronometroSerie } from "./CronometroSerie";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
@@ -143,6 +144,13 @@ const TECNICA_LABEL: Record<string, string> = {
   negativo: "Negativo: capriche na descida, devagar e controlada (3–4 s); a subida pode ser normal.",
 };
 
+/** Prescrição de UMA série: “10-12/8-10/6-8” vale por posição (pirâmide escrita numa linha). */
+function prescritoDaSerie(ex: ExercicioPrescrito, serie: number): string {
+  const r = repsDaSerie(ex, serie) || ex.reps || "";
+  const partes = r.split("/").map((x) => x.trim()).filter(Boolean);
+  return partes.length > 1 ? (partes[serie - 1] ?? partes[partes.length - 1]) : r;
+}
+
 function repsDaSerie(ex: ExercicioPrescrito, serie: number): string {
   const cfg = ex.series_config as { modo?: string; series?: Array<{ ordem: number; reps: string }> } | null | undefined;
   if (cfg?.modo === "detalhado" && cfg.series?.length) return cfg.series[serie - 1]?.reps ?? ex.reps;
@@ -161,6 +169,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [confiancaFim, setConfiancaFim] = useState<string | null>(null);
   const [progressaoChalala, setProgressaoChalala] = useState<Record<string, string>>({});
   const [tecnicaChalala, setTecnicaChalala] = useState<Record<string, number>>({});
+  // “Vai que tá fácil!”: convite antes da última série (seId → índice da série e texto).
+  const [facilChalala, setFacilChalala] = useState<Record<string, { idx: number; texto: string }>>({});
   const [sugestaoAviso, setSugestaoAviso] = useState<{ id: string; chamada: string } | null>(null);
   const [sugestaoDescanso, setSugestaoDescanso] = useState<{ id: string; chamada: string } | null>(null);
   const [leitura, setLeitura] = useState<ItemRapido | null>(null);
@@ -510,7 +520,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!silencioso) {
       const avisou = avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
       // Próxima série é a da técnica avançada prescrita? Recado ANTES dela (nunca junto de outro aviso).
-      if (!avisou) avisarTecnica(seId, idx, ex);
+      if (!avisou && !avisarTecnica(seId, idx, ex)) avisarVaiQueTaFacil(seId, idx, ex);
       // Descanso: só depois de algumas séries e se nada foi sugerido nesta sessão.
       const feitas = Object.values(series).flat().filter((x) => x.concluida).length + 1;
       if (!avisou && descanso && descanso > 0 && feitas >= 3) setSugestaoDescanso(proporSugestao("descanso"));
@@ -604,17 +614,54 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       /* ignora */
     }
   }
-  function avisarTecnica(seId: string, idx: number, ex: ExercicioView) {
+  function avisarTecnica(seId: string, idx: number, ex: ExercicioView): boolean {
     const lista = series[seId] ?? [];
     const validas = lista.filter((x) => x.tipo === "valida").length;
     const alvo = serieDaTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, validas);
     const prox = lista[idx + 1];
-    if (!alvo || !prox || prox.tipo !== "valida" || prox.concluida) return;
-    if (lista.slice(0, idx + 2).filter((x) => x.tipo === "valida").length !== alvo) return;
-    if (!podeIntervir(lerChalala(), "tecnica", ex.nome)) return;
+    if (!alvo || !prox || prox.tipo !== "valida" || prox.concluida) return false;
+    if (lista.slice(0, idx + 2).filter((x) => x.tipo === "valida").length !== alvo) return false;
+    if (!podeIntervir(lerChalala(), "tecnica", ex.nome)) return false;
     registrarChalala({ tipo: "tecnica", exercicio: ex.nome });
     setTecnicaChalala((t) => ({ ...t, [seId]: idx + 1 }));
     enviarEvento({ tipo: "chalala_advanced_technique_shown", ref: ex.tecnica, origem: "treino" });
+    return true;
+  }
+
+  /** “Vai que tá fácil!”: só antes da ÚLTIMA série válida, se as de hoje saíram fáceis (lib/chalala/facil). */
+  function avisarVaiQueTaFacil(seId: string, idx: number, ex: ExercicioView) {
+    if (!sessao || facilChalala[seId]) return;
+    const lista = (series[seId] ?? []).map((x, k) => (k === idx ? { ...x, concluida: true } : x));
+    const pendentes = lista.map((x, k) => ({ x, k })).filter(({ x }) => x.tipo === "valida" && !x.concluida);
+    if (pendentes.length !== 1) return;
+    const prox = pendentes[0];
+    const validas = lista.filter((x) => x.tipo === "valida").length;
+    const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
+    const texto = conviteVaiQueTaFacil({
+      feitas: lista.filter((x) => x.tipo === "valida" && x.concluida).map((x) => ({ reps: num(x.reps), rir: num(x.rir), desconforto: num(x.desconforto), prescrito: prescritoDaSerie(ex, x.serie) })),
+      proximaEhUltima: true,
+      porTempo: ehPorTempo(ex),
+      temCarga: lista.some((x) => x.concluida && (num(x.carga) ?? 0) > 0),
+      checkin: sessao.checkin_pre,
+      tempoCurto: !!sessao.tempo_disponivel_min,
+      ultimaComTecnica: serieDaTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, validas) === validas,
+      desligado: configEvolucao?.vai_que_ta_facil === false,
+    });
+    if (!texto) return;
+    let ja: string[] = [];
+    try {
+      ja = JSON.parse(localStorage.getItem(`montinho-facil:${sessao.id}`) ?? "[]") as string[];
+    } catch {
+      ja = [];
+    }
+    if (ja.length >= LIMITE_FACIL.porTreino || ja.includes(seId)) return;
+    try {
+      localStorage.setItem(`montinho-facil:${sessao.id}`, JSON.stringify([...ja, seId]));
+    } catch {
+      /* ignora */
+    }
+    setFacilChalala((f) => ({ ...f, [seId]: { idx: prox.k, texto } }));
+    enviarEvento({ tipo: "chalala_vai_que_ta_facil", origem: "treino" });
   }
 
   /** Evolução Inteligente: no máximo 1 aviso por exercício e 3 por sessão (limites do personal). */
@@ -1193,6 +1240,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         return (
                           <div key={s.clientKey} className={`grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center ${s.tipo === "aquecimento" ? "opacity-80" : ""}`}>
                             {tecnicaChalala[se.id] === i && !s.concluida && fraseDaTecnica(ex.tecnica) ? <p className="col-span-4 rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent">⚡ {fraseDaTecnica(ex.tecnica)}</p> : null}
+                            {facilChalala[se.id]?.idx === i && !s.concluida ? (
+                              <div role="note" className="col-span-4 rounded-md border border-accent/60 bg-accent/10 px-3 py-2">
+                                <p className="text-sm font-black text-accent">💪 {FRASE_FACIL}</p>
+                                <p className="text-xs text-fg-muted">{facilChalala[se.id].texto} Se não estiver bom, faça o planejado.</p>
+                              </div>
+                            ) : null}
                             <span className="text-xs font-mono text-fg-muted" title={s.tipo === "aquecimento" ? "Aquecimento (não conta como série válida)" : undefined}>
                               {s.tipo === "aquecimento" ? "A" : s.serie}
                             </span>

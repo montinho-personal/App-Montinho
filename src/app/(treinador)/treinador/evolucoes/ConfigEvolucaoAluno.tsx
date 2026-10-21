@@ -20,10 +20,11 @@ export function ConfigEvolucaoAluno({ alunoId, inicial }: { alunoId: string; ini
     toast.success("Avisos de evolução atualizados.");
     setAberto(false);
   }
-  if (!aberto) return <button type="button" onClick={() => setAberto(true)} className="alvo text-fg-muted underline-offset-2 hover:underline">Avisos no treino: {c.avisos_ativos ? `ligados (até ${c.max_por_sessao})` : "desligados"}</button>;
+  if (!aberto) return <button type="button" onClick={() => setAberto(true)} className="alvo text-fg-muted underline-offset-2 hover:underline">Avisos no treino: {c.avisos_ativos ? `ligados (até ${c.max_por_sessao})` : "desligados"} · Vai que tá fácil: {c.vai_que_ta_facil ? "ligado" : "desligado"}</button>;
   return (
     <div className="w-full space-y-2 rounded-lg border border-border p-3 text-xs">
       <label className="flex items-center gap-2"><input type="checkbox" checked={c.avisos_ativos} onChange={(e) => setC({ ...c, avisos_ativos: e.target.checked })} /> Avisos de evolução durante o treino</label>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={c.vai_que_ta_facil} onChange={(e) => setC({ ...c, vai_que_ta_facil: e.target.checked })} /> “Vai que tá fácil!” na última série (quando as anteriores saíram fáceis)</label>
       <div className="flex flex-wrap gap-3">
         <label className="flex items-center gap-1">Por exercício <input type="number" min={0} max={5} value={c.max_por_exercicio} onChange={(e) => setC({ ...c, max_por_exercicio: Math.max(0, Math.min(5, Number(e.target.value) || 0)) })} className="w-12 rounded border border-border bg-bg px-1" /></label>
         <label className="flex items-center gap-1">Por treino <input type="number" min={0} max={10} value={c.max_por_sessao} onChange={(e) => setC({ ...c, max_por_sessao: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} className="w-12 rounded border border-border bg-bg px-1" /></label>

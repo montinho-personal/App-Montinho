@@ -15,8 +15,8 @@ import { listarConquistas } from "@/lib/data/conquistas";
 import { dataLocal, inicioDaSemana, somarDias, type Semana } from "@/lib/aderencia/calcular";
 
 export type MetricaEvolucao = "recorde" | "mais_carga" | "mais_reps" | "acima_media";
-export type ConfigEvolucao = { avisos_ativos: boolean; max_por_exercicio: number; max_por_sessao: number; metricas: MetricaEvolucao[] };
-export const CONFIG_EVOLUCAO_PADRAO: ConfigEvolucao = { avisos_ativos: true, max_por_exercicio: 1, max_por_sessao: 3, metricas: ["recorde", "mais_carga", "mais_reps", "acima_media"] };
+export type ConfigEvolucao = { avisos_ativos: boolean; max_por_exercicio: number; max_por_sessao: number; metricas: MetricaEvolucao[]; /** “Vai que tá fácil!” na última série (0038). */ vai_que_ta_facil: boolean };
+export const CONFIG_EVOLUCAO_PADRAO: ConfigEvolucao = { avisos_ativos: true, max_por_exercicio: 1, max_por_sessao: 3, metricas: ["recorde", "mais_carga", "mais_reps", "acima_media"], vai_que_ta_facil: true };
 
 function demo(): Record<string, ConfigEvolucao> {
   const g = globalThis as unknown as { __montinhoEvolucaoConfig?: Record<string, ConfigEvolucao> };
@@ -29,9 +29,11 @@ export async function getConfigEvolucao(alunoId: string): Promise<ConfigEvolucao
   if (isDemoMode()) return demo()[alunoId] ?? CONFIG_EVOLUCAO_PADRAO;
   try {
     const db = await getDb();
-    const { data, error } = await db.from("evolucao_config").select("avisos_ativos, max_por_exercicio, max_por_sessao, metricas").eq("aluno_id", alunoId).maybeSingle();
+    let { data, error } = await db.from("evolucao_config").select("avisos_ativos, max_por_exercicio, max_por_sessao, metricas, vai_que_ta_facil").eq("aluno_id", alunoId).maybeSingle();
+    // Sem a coluna nova (0038 pendente): lê o resto e mantém o padrão do “Vai que tá fácil”.
+    if (error) ({ data, error } = await db.from("evolucao_config").select("avisos_ativos, max_por_exercicio, max_por_sessao, metricas").eq("aluno_id", alunoId).maybeSingle());
     if (error || !data) return CONFIG_EVOLUCAO_PADRAO;
-    return data as ConfigEvolucao;
+    return { ...CONFIG_EVOLUCAO_PADRAO, ...(data as Partial<ConfigEvolucao>) };
   } catch {
     return CONFIG_EVOLUCAO_PADRAO;
   }
@@ -43,7 +45,12 @@ export async function salvarConfigEvolucao(alunoId: string, cfg: ConfigEvolucao)
     return;
   }
   const db = await getDb();
-  const { error } = await db.from("evolucao_config").upsert({ aluno_id: alunoId, ...cfg, updated_at: new Date().toISOString() }, { onConflict: "aluno_id" });
+  let { error } = await db.from("evolucao_config").upsert({ aluno_id: alunoId, ...cfg, updated_at: new Date().toISOString() }, { onConflict: "aluno_id" });
+  if (error?.message.includes("vai_que_ta_facil")) {
+    const { vai_que_ta_facil: _v, ...resto } = cfg;
+    void _v;
+    ({ error } = await db.from("evolucao_config").upsert({ aluno_id: alunoId, ...resto, updated_at: new Date().toISOString() }, { onConflict: "aluno_id" }));
+  }
   if (error) throw new Error(error.message.includes("evolucao_config") ? "A tabela de configuração ainda não foi criada no banco (migração 0029)." : error.message);
 }
 

@@ -909,4 +909,12 @@ begin
   if not ok then raise exception 'T26: código de medalha inventado foi aceito'; end if;
   raise notice 'T26 OK: novas medalhas aceitas, código inválido barrado';
 end $$;
+-- T27 — 0038: “Vai que tá fácil” por aluno (padrão ligado) e evento novo
+do $$
+begin
+  insert into evolucao_config (aluno_id) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') on conflict (aluno_id) do nothing;
+  if not (select vai_que_ta_facil from evolucao_config where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T27: padrão deveria ser ligado'; end if;
+  insert into eventos_chalala (aluno_id, tipo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'chalala_vai_que_ta_facil');
+  raise notice 'T27 OK: Vai que tá fácil ligado por padrão e evento aceito';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'
