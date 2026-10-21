@@ -5,6 +5,7 @@
 // reconhecimentos. Inserção idempotente (aluno, código, referência).
 // ============================================================================
 
+import { relatorioDaConclusao, type RelatorioConclusao } from "@/lib/relatorios/conclusao";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { uid } from "@/lib/mock/store";
@@ -152,6 +153,8 @@ export type ResumoChalala = {
   evolucao: Descoberta | null;
   /** Até 3 destaques: evolução, conquista e meta da semana. */
   destaques: string[];
+  /** Relatório curto: completou tudo, volume vs anterior/média, recordes da vida. */
+  relatorio: RelatorioConclusao;
   /** Montinho Desbloqueia: explicação ligada ao que aconteceu hoje (anexada pela rota). */
   descoberta?: { id: string; pergunta: string; chamada: string } | null;
 };
@@ -189,6 +192,7 @@ export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise
     mensagem: msg.mensagem,
     modeloSugerido: msg.modeloSugerido,
     evolucao,
+    relatorio: relatorioDaConclusao(s, historicoSessoes),
     destaques: destaquesDaConclusao({ evolucao, conquistas: daSessao, meta: semana?.meta ?? null, pontosSemana, metaCumpridaAgora: msg.metaCumpridaAgora, extra: classificarSessao(sc) === "extra" }),
   };
 }

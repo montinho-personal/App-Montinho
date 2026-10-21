@@ -17,6 +17,7 @@ import { SugestaoConclusao } from "@/components/desbloqueia/SugestaoConclusao";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
 import { enviarEvento } from "./evento";
 import { CelebracaoMedalha } from "./CelebracaoMedalha";
+import { RelatorioTreino } from "./RelatorioTreino";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 
 // O editor (canvas, foto, exportação) só carrega quando o aluno pede.
@@ -112,7 +113,7 @@ export function TelaChalala({ base, nome, presencial = null, children }: { base:
             </span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">{parcial ? "Treino registrado" : "CHALALÁ! TREINO CONCLUÍDO!"}</h1>
-          <p className="text-fg-muted">{parcial ? "Hoje você adaptou a rotina e conseguiu treinar." : "Mais um passo na sua evolução."}</p>
+          <p className="text-fg-muted">{parcial ? "Hoje você adaptou a rotina e conseguiu treinar." : resumo?.relatorio?.completo ? "Você fez 100% do treino. Parabéns!" : "Mais um passo na sua evolução."}</p>
         </CardBody>
       </Card>
 
@@ -158,6 +159,8 @@ export function TelaChalala({ base, nome, presencial = null, children }: { base:
           ) : null}
         </CardBody>
       </Card>
+
+      {r?.relatorio ? <RelatorioTreino r={r.relatorio} letra={r.letra} /> : null}
 
       {r?.destaques?.length ? (
         <Card className="border-accent/40">
