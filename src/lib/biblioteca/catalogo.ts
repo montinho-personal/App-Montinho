@@ -808,7 +808,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
   }),
   ex("stiff-unilateral", "Stiff unilateral com halter", "posteriores", {
     s: ["stiff unilateral", "single leg rdl", "terra romeno unilateral"],
-    p: { gluteo: 0.5, core: 0.25 }, pad: "dobradica_quadril", art: DOBRA, t: "multi", eq: ["halter", "kettlebell"], n: "intermediario",
+    p: { gluteo: 0.5, core: 0.25, lombar: 0.25 }, pad: "dobradica_quadril", art: DOBRA, t: "multi", eq: ["halter", "kettlebell"], n: "intermediario",
     exe: ["Apoie-se em uma perna com o joelho levemente flexionado.", "Incline o tronco levando a outra perna para trás.", "Volte contraindo o glúteo."],
     err: ["Girar o quadril.", "Arredondar as costas.", "Perder o equilíbrio por pressa."],
     sub: ["stiff-halteres", "terra-romeno"], est: ["lombar"],
