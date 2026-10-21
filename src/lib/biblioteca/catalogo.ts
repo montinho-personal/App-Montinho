@@ -502,14 +502,14 @@ export const CATALOGO: ExercicioCatalogo[] = [
   }),
   ex("rosca-martelo", "Rosca martelo", "biceps", {
     s: ["martelo", "hammer curl", "rosca martelo halter"],
-    p: { antebraco: 0.5 }, pad: "flexao_cotovelo", art: ["cotovelo"], t: "mono", eq: ["halter"],
+    p: { antebraco: 1 }, pad: "flexao_cotovelo", art: ["cotovelo"], t: "mono", eq: ["halter"],
     exe: ["Pegada neutra (palmas uma para a outra).", "Flexione os cotovelos sem mover os ombros.", "Desça devagar."],
     err: ["Balançar.", "Cotovelos à frente.", "Punho dobrado."],
     sub: ["rosca-martelo-corda", "rosca-alternada-halteres"],
   }),
   ex("rosca-martelo-corda", "Rosca martelo na polia com corda", "biceps", {
     s: ["rosca corda", "hammer curl corda", "rosca martelo polia"],
-    p: { antebraco: 0.5 }, pad: "flexao_cotovelo", art: ["cotovelo"], t: "mono", eq: ["polia", "corda"],
+    p: { antebraco: 1 }, pad: "flexao_cotovelo", art: ["cotovelo"], t: "mono", eq: ["polia", "corda"],
     exe: ["Corda na polia baixa, pegada neutra.", "Flexione os cotovelos mantendo-os fixos.", "Volte até estender."],
     err: ["Inclinar o tronco.", "Cotovelos abrindo.", "Meia amplitude."],
     sub: ["rosca-martelo", "rosca-polia-baixa"],
