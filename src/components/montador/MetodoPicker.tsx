@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Tecnica } from "@/lib/volume/calcular";
 import { METODOS, TAMANHO_BLOCO, type GrupoMetodo } from "@/lib/volume/tecnicas";
+import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 
 const ICONE: Record<GrupoMetodo, string> = {
   Básico: "M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 12m-5 0a5 5 0 1 0 10 0a5 5 0 1 0-10 0M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0",
@@ -29,6 +30,7 @@ export function MetodoPicker({ valor, onEscolher, titulo = "Método", contexto, 
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const atual = METODOS.find((m) => m.v === valor) ?? null;
+  useFecharComVoltar(aberto, () => setAberto(false));
 
   useEffect(() => {
     if (!aberto) return;

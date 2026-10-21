@@ -29,7 +29,7 @@ const CAMPOS: Array<{ k: keyof ParametrosTempo; rotulo: string; ajuda: string; p
 
 const minutos = (s: number) => Math.round(s / 60);
 
-export function PainelTempo({ resultado, efetivos, doTreino, tempoAlvo, onTreino, onTempoAlvo, onSalvarPadrao }: Props) {
+export function PainelTempo({ resultado, efetivos, doTreino, tempoAlvo, onTreino, onTempoAlvo, onSalvarPadrao, economiaBlocosSeg = 0 }: Props & { economiaBlocosSeg?: number }) {
   const [aberto, setAberto] = useState(false);
   const alvo = Number(tempoAlvo) || null;
   const totalMin = minutos(resultado.totalSeg);
@@ -49,6 +49,11 @@ export function PainelTempo({ resultado, efetivos, doTreino, tempoAlvo, onTreino
         <span className="text-fg-subtle">
           {resultado.exercicios} exercício(s) · {resultado.series} série(s)
         </span>
+        {economiaBlocosSeg >= 60 ? (
+          <span className="text-success" title="Comparado ao mesmo treino com esses exercícios em séries tradicionais (o descanso entre os exercícios do bloco deixa de existir).">
+            🔗 bi-sets/tri-sets economizam ~{minutos(economiaBlocosSeg)} min
+          </span>
+        ) : null}
         {alvo ? (
           <span className={Math.abs(diferenca!) <= 5 ? "text-success" : diferenca! > 0 ? "text-warning" : "text-fg-muted"} title="Comparação com o tempo-alvo deste treino (orientativo)">
             alvo {alvo} min: {diferenca === 0 ? "no alvo" : diferenca! > 0 ? `${diferenca} min acima` : `${-diferenca!} min abaixo`}

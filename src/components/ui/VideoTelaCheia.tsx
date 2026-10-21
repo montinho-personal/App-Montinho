@@ -4,6 +4,7 @@
 // fechar no ✕, tocando fora ou no botão “voltar ao treino”. O treino continua
 // por baixo (nada é perdido). Formato vertical (Shorts) que se ajusta à tela.
 import { useEffect, useState } from "react";
+import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 import { createPortal } from "react-dom";
 import { embedUrl, thumbnailUrl, type VideoSource } from "@/lib/video";
 
@@ -33,6 +34,8 @@ export function BotaoVideoTelaCheia({ source, titulo }: { source: VideoSource; t
 }
 
 export function VideoTelaCheia({ source, titulo, onFechar }: { source: VideoSource; titulo: string; onFechar: () => void }) {
+  // Botão “voltar” do celular fecha o vídeo e volta ao treino.
+  useFecharComVoltar(true, onFechar);
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
     const antes = document.body.style.overflow;

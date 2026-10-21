@@ -299,10 +299,15 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   // app → padrão do treinador → treino → exercício → série.
   const [padraoTempos, setPadraoTempos] = useState<Partial<ParametrosTempo>>(temposTreinador);
   const duracoes = useMemo(() => {
-    const out: Record<string, { resultado: ResultadoTempo; efetivos: ParametrosTempo }> = {};
+    const out: Record<string, { resultado: ResultadoTempo; efetivos: ParametrosTempo; economiaBlocosSeg: number }> = {};
     for (const t of estado.treinos) {
       const efetivos = mesclarParametros(padraoTempos, t.tempos);
-      out[t.key] = { resultado: estimarDuracao(t.rows.filter((r) => r.nome.trim()).map(exercicioTempoDaLinha), efetivos), efetivos };
+      const linhas = t.rows.filter((r) => r.nome.trim()).map(exercicioTempoDaLinha);
+      const resultado = estimarDuracao(linhas, efetivos);
+      // Quanto os bi-sets/tri-sets economizam: o mesmo treino com os blocos feitos em séries tradicionais.
+      const temBloco = linhas.some((l) => ehTecnicaBloco(l.tecnica) && l.bloco?.trim());
+      const economiaBlocosSeg = temBloco ? Math.max(0, estimarDuracao(linhas.map((l) => (ehTecnicaBloco(l.tecnica) ? { ...l, tecnica: "normal" as Tecnica, bloco: null } : l)), efetivos).totalSeg - resultado.totalSeg) : 0;
+      out[t.key] = { resultado, efetivos, economiaBlocosSeg };
     }
     return out;
   }, [estado.treinos, padraoTempos]);
@@ -765,6 +770,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   <PainelTempo
                     resultado={duracoes[t.key].resultado}
                     efetivos={duracoes[t.key].efetivos}
+                    economiaBlocosSeg={duracoes[t.key].economiaBlocosSeg}
                     doTreino={t.tempos}
                     tempoAlvo={t.tempoAlvo || estado.programa.duracao_min}
                     onTreino={(tempos) => updTreino(t.key, { tempos })}

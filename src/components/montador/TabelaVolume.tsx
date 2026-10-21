@@ -1,5 +1,7 @@
 "use client";
 
+import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
+
 // ============================================================================
 // Tabela de Volume Semanal — sempre visível enquanto o treinador monta.
 // Desktop: coluna lateral sticky. Celular/tablet: barra inferior que abre um
@@ -49,6 +51,7 @@ const STATUS_COR: Record<LinhaVolume["status"], string> = {
 
 export function TabelaVolume(props: Props) {
   const [abertoMobile, setAbertoMobile] = useState(false);
+  useFecharComVoltar(abertoMobile, () => setAbertoMobile(false));
   return (
     <>
       {/* Desktop / telas largas */}
