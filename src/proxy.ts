@@ -9,7 +9,7 @@ import { DEMO_PERSONAS } from "@/lib/mock/personas";
 // no servidor (src/lib/auth/session.ts) e no banco (RLS). Não confie só aqui.
 
 const PUBLIC_PATHS = new Set(["/", "/login", "/cadastro", "/configuracao-pendente", "/pagamento/sucesso", "/sw.js", "/manifest.webmanifest", "/chalala"]);
-const PUBLIC_PREFIXES = ["/api/webhook", "/api/cron", "/api/public", "/api/auth", "/auth/", "/conta/", "/f/", "/_next", "/favicon", "/brand/"];
+const PUBLIC_PREFIXES = ["/api/webhook", "/api/cron", "/api/public", "/api/auth", "/auth/", "/conta/", "/f/", "/_next", "/favicon", "/brand/", "/prototipo/"];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
