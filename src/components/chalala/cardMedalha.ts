@@ -2,6 +2,7 @@
 // Layout pensado para o Story: nada importante nas faixas de cima e de baixo
 // (onde ficam o nome do perfil e a caixa de resposta do Instagram).
 import type { CardMedalha } from "@/lib/conquistas/compartilhavel";
+import { LOGO_STORY } from "@/lib/desbloqueia/card";
 import { carregarSvg, familiaFonte, paraBlob } from "./desenhar";
 
 const W = 1080;
@@ -84,7 +85,7 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
 
   // Marca
   // Logo oficial completo (M + MONTINHO / PERSONAL TRAINER), em destaque.
-  if (logo) ctx.drawImage(logo, W / 2 - 200, 200, 400, 274);
+  if (logo) ctx.drawImage(logo, W / 2 - LOGO_STORY.w / 2, LOGO_STORY.y, LOGO_STORY.w, LOGO_STORY.h);
 
   // Medalha
   const cx = W / 2;

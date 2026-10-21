@@ -11,7 +11,7 @@ import { carregarSvg, familiaFonte, medidorCanvas, paraBlob } from "@/components
 import { enviarEvento } from "@/components/chalala/evento";
 
 function desenharCard(canvas: HTMLCanvasElement, c: ConteudoConhecimento, logo: HTMLImageElement | null) {
-  const { w, h, margem } = CARD_DESCOBERTA;
+  const { w, h } = CARD_DESCOBERTA;
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
@@ -24,9 +24,10 @@ function desenharCard(canvas: HTMLCanvasElement, c: ConteudoConhecimento, logo: 
   ctx.fillRect(0, 0, w, h);
   const lay = layoutDescoberta(c, medidorCanvas(ctx, familia));
   ctx.fillStyle = lay.cor;
-  ctx.fillRect(margem, 440, 120, 8);
-  if (logo) ctx.drawImage(logo, margem, 120, 420, 287);
+  ctx.fillRect(lay.barra.x, lay.barra.y, lay.barra.w, lay.barra.h);
+  if (logo) ctx.drawImage(logo, lay.logo.x, lay.logo.y, lay.logo.w, lay.logo.h);
   ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "center";
   for (const l of lay.linhas) {
     ctx.font = `${l.peso} ${l.tamanho}px ${familia}`;
     ctx.fillStyle = l.cor;
@@ -39,7 +40,7 @@ function desenharCard(canvas: HTMLCanvasElement, c: ConteudoConhecimento, logo: 
   ctx.fill();
   ctx.font = `800 52px ${familia}`;
   ctx.fillStyle = "#0a0a0a";
-  ctx.fillText(s.texto, s.x + 40, s.y + 66);
+  ctx.fillText(s.texto, s.x + s.w / 2, s.y + 66);
 }
 
 export function CardDescoberta({ conteudo, onFechar }: { conteudo: ConteudoConhecimento; onFechar: () => void }) {
