@@ -3,6 +3,7 @@
 // Minha Jornada: mapa vertical por capítulos (trilha sinuosa, medalhas,
 // “Você está aqui”) e linha do tempo. Só exibe — os estados vêm do motor
 // oficial de conquistas, calculado no servidor.
+import { CaminhoSemanas } from "./CaminhoSemanas";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -145,6 +146,8 @@ export function JornadaClient({ jornada, eventos, stats, nome, modo = "aluno", a
               <button type="button" onClick={() => aqui.current?.scrollIntoView({ behavior: "smooth", block: "center" })} className="alvo shrink-0 text-xs font-semibold text-accent underline-offset-2 hover:underline">Ver no mapa</button>
             </section>
           ) : null}
+
+          {jornada.caminho ? <CaminhoSemanas caminho={jornada.caminho} /> : null}
 
           <div className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-2xl" aria-label="Mapa da jornada">
             {jornada.capitulos.map((cap) => {

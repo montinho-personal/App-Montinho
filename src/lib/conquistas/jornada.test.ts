@@ -3,7 +3,7 @@ import { calcularAderencia, somarDias, type PausaAluno } from "@/lib/aderencia/c
 import type { SessaoConquista } from "./regras";
 import { detectarConquistas } from "./regras";
 import { proximaMedalha, vitrineDeMedalhas } from "./vitrine";
-import { CAPITULO_DA_MEDALHA, ciclos, linhaDoTempo, montarJornada, rotuloCiclo } from "./jornada";
+import { CAPITULO_DA_MEDALHA, caminhoDaJornada, ciclos, linhaDoTempo, montarJornada, rotuloCiclo } from "./jornada";
 
 let n = 0;
 const s = (dia: string, o: Partial<SessaoConquista> = {}): SessaoConquista => ({ id: `j${++n}`, iniciado_em: `${dia}T13:00:00Z`, status: "concluida", series_planejadas: 10, series_concluidas: 10, exercicios: [], ...o });
@@ -98,5 +98,22 @@ describe("Minha Jornada — linha do tempo", () => {
     const { aderencia } = jornadaDe(semanaCumprida("2026-08-17"), "2026-08-19");
     const ev = linhaDoTempo({ conquistas: [], semanas: aderencia.semanas, hoje: "2026-08-19", reconhecimentos: [] });
     expect(ev[0].data.slice(0, 10)).toBe("2026-08-19");
+  });
+});
+
+describe("caminho semana a semana", () => {
+  it("cor da fase, começo de fase e retorno depois de parar", () => {
+    const semanas = ["2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05"].map((inicio, i) => ({ inicio, status: (i === 2 || i === 3 ? "sem_treino" : "cumprida") as "cumprida" | "sem_treino", concluidas: 0, parciais: 0, extras: 0 }));
+    const sessoes = [
+      { iniciado_em: "2026-09-08T13:00:00Z", status: "concluida", fase: "adaptacao" },
+      { iniciado_em: "2026-09-15T13:00:00Z", status: "concluida", fase: "adaptacao" },
+      { iniciado_em: "2026-10-06T13:00:00Z", status: "concluida", fase: "intensificacao" },
+    ];
+    const c = caminhoDaJornada({ semanas, sessoes, conquistas: [{ codigo: "eu_voltei", conquistado_em: "2026-10-06T13:00:00Z", dados: { diasAfastado: 21 } }] });
+    expect(c.semanas.map((w) => w.fase)).toEqual(["adaptacao", "adaptacao", null, null, "intensificacao"]);
+    expect(c.semanas.map((w) => w.novaFase)).toEqual(["adaptacao", null, null, null, "intensificacao"]);
+    expect(c.semanas[4]).toMatchObject({ retorno: true, diasParado: 21, treinos: 1 });
+    expect(c.faseAtual).toBe("intensificacao");
+    expect(c.retornos).toBe(1);
   });
 });

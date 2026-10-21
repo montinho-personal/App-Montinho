@@ -17,7 +17,7 @@ import { CODIGOS_ALEM, CODIGOS_FASE, CODIGOS_TECNICA, detectarConquistas, mensag
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
-import { ciclos, linhaDoTempo, montarJornada } from "@/lib/conquistas/jornada";
+import { caminhoDaJornada, ciclos, linhaDoTempo, montarJornada } from "@/lib/conquistas/jornada";
 import { descobertasDaSessao, type Descoberta } from "@/lib/evolucao/motor";
 import { execucoesDeSessoes, sessaoParaAvaliar } from "@/lib/evolucao/adaptar";
 import { listarHistoricoResumo } from "@/lib/data/historico";
@@ -303,7 +303,7 @@ export async function dadosDaJornada(aluno: AlunoBase) {
   const [{ todas, sessoes, aderencia }, reconhecimentos] = await Promise.all([sincronizarConquistas(aluno), listarReconhecimentos(aluno.id)]);
   const hoje = dataLocal(new Date());
   const medalhas = vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje });
-  const jornada = montarJornada({ medalhas, proxima: proximaMedalha(medalhas), conquistas: todas, semanas: aderencia.semanas });
+  const jornada = { ...montarJornada({ medalhas, proxima: proximaMedalha(medalhas), conquistas: todas, semanas: aderencia.semanas }), caminho: caminhoDaJornada({ semanas: aderencia.semanas, sessoes, conquistas: todas }) };
   const eventos = linhaDoTempo({
     conquistas: todas,
     semanas: aderencia.semanas,

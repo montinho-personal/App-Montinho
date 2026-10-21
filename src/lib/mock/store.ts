@@ -192,7 +192,7 @@ function seed(): DemoStore {
       iniciado_em: agoraMenos(dias, 19),
       finalizado_em: agoraMenos(dias, 20),
       duracao_seg: 3300 + (i % 4) * 300,
-      snapshot: { treino_id: treino.id, letra: treino.letra },
+      snapshot: { treino_id: treino.id, letra: treino.letra, fase: dias > 18 ? "adaptacao" : "intensificacao" },
       series_planejadas: planejadas,
       series_concluidas: concluidas,
       feedback_percepcao: i % 4 === 0 ? "pesado" : "ok",

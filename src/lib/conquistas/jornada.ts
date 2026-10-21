@@ -13,7 +13,7 @@
 //   (6 meses, 1 ano…) a partir das semanas reais — marcos, não medalhas novas.
 // ============================================================================
 
-import { somarDias, type Semana } from "@/lib/aderencia/calcular";
+import { dataLocal, somarDias, type Semana } from "@/lib/aderencia/calcular";
 import type { CodigoConquista } from "./regras";
 import type { Medalha } from "./vitrine";
 import { CONTEUDO, nomeDaConquista } from "./conteudo";
@@ -73,6 +73,8 @@ export type NoJornada =
   | { tipo: "ciclo"; id: string; capitulo: number; semanas: number; titulo: string; data: string | null; alcancado: boolean; proxima: boolean };
 
 export type Jornada = {
+  /** Desenho semana a semana (fases, pausas e retornos); ausente em telas antigas. */
+  caminho?: CaminhoJornada;
   capitulos: Array<Capitulo & { nos: NoJornada[]; alcancados: number; total: number }>;
   /** Índice (na lista achatada de nós) ANTES do qual fica o “Você está aqui”. */
   posicao: number;
@@ -184,4 +186,57 @@ export function linhaDoTempo(e: {
   for (const r of e.reconhecimentos) add({ chave: `r:${r.id}`, data: r.created_at, tipo: "reconhecimento", titulo: "Mensagem do Montinho", detalhe: r.mensagem, autor: "personal" });
   for (const c of e.ciclosAlcancados ?? []) if (c.data) add({ chave: `ciclo:${c.semanas}`, data: `${c.data}T15:00:00Z`, tipo: "ciclo", titulo: rotuloCiclo(c.semanas), detalhe: "Marco de tempo de acompanhamento." });
   return [...out.values()].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : a.chave < b.chave ? -1 : 1));
+}
+
+// ---------------------------------------------------------------------------
+// Caminho semana a semana (desenho do mapa): fases do protocolo, pausas e
+// retornos. Cada semana vira um ponto; a cor é a fase da semana.
+// ---------------------------------------------------------------------------
+export type SemanaCaminho = {
+  inicio: string;
+  status: Semana["status"];
+  treinos: number;
+  /** Fase da maioria dos treinos da semana (null = sem fase registrada). */
+  fase: string | null;
+  /** Começo de uma fase diferente da semana com treino anterior. */
+  novaFase: string | null;
+  /** Semana em que o aluno voltou depois de 14+ dias parado. */
+  retorno: boolean;
+  /** Dias parado antes da volta (quando houver). */
+  diasParado: number | null;
+};
+
+export type CaminhoJornada = {
+  semanas: SemanaCaminho[];
+  faseAtual: string | null;
+  /** Fases concluídas (medalhas de fase), na ordem. */
+  fasesConcluidas: Array<{ fase: string; data: string }>;
+  retornos: number;
+};
+
+export function caminhoDaJornada(e: {
+  semanas: Pick<Semana, "inicio" | "status" | "concluidas" | "parciais" | "extras">[];
+  sessoes: Array<{ iniciado_em: string; status: string; fase?: string | null; conta_aderencia?: boolean }>;
+  conquistas: Array<{ codigo: string; conquistado_em: string; dados?: { diasAfastado?: number } | null }>;
+}): CaminhoJornada {
+  const local = (iso: string) => dataLocal(iso);
+  const validas = e.sessoes.filter((s) => s.conta_aderencia !== false && s.status === "concluida");
+  let anterior: string | null = null;
+  const semanas: SemanaCaminho[] = e.semanas.map((w) => {
+    const fim = somarDias(w.inicio, 6);
+    const daSemana = validas.filter((s) => {
+      const d = local(s.iniciado_em);
+      return d >= w.inicio && d <= fim;
+    });
+    const conta = new Map<string, number>();
+    for (const s of daSemana) if (s.fase) conta.set(s.fase, (conta.get(s.fase) ?? 0) + 1);
+    const fase = [...conta.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    const novaFase = fase && fase !== anterior ? fase : null;
+    if (fase) anterior = fase;
+    const volta = e.conquistas.find((c) => c.codigo === "eu_voltei" && local(c.conquistado_em) >= w.inicio && local(c.conquistado_em) <= fim);
+    return { inicio: w.inicio, status: w.status, treinos: daSemana.length, fase, novaFase, retorno: !!volta, diasParado: volta?.dados?.diasAfastado ?? null };
+  });
+  const NOME: Record<string, string> = { completou_adaptacao: "adaptacao", completou_intensificacao: "intensificacao", completou_consolidacao: "consolidacao" };
+  const fasesConcluidas = e.conquistas.filter((c) => NOME[c.codigo]).sort((a, b) => (a.conquistado_em < b.conquistado_em ? -1 : 1)).map((c) => ({ fase: NOME[c.codigo], data: c.conquistado_em }));
+  return { semanas, faseAtual: anterior, fasesConcluidas, retornos: e.conquistas.filter((c) => c.codigo === "eu_voltei").length };
 }
