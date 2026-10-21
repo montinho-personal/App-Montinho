@@ -203,7 +203,7 @@
   min-width: 24px;
 }
 
-/* Minha Jornada: brilho ao conquistar e entrada do painel (respeitam prefers-reduced-motion via motion-safe). */
+/* Jornada (painéis): entrada do painel (respeita prefers-reduced-motion via motion-safe). */
 @keyframes jornadaBrilho {
   0%, 100% { filter: none; }
   50% { filter: drop-shadow(0 0 12px #ba9e50); }
@@ -214,7 +214,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   A Jornada do Chalalá (protótipo): animações discretas. Tudo via motion-safe
+   A Jornada do Chalalá: animações discretas. Tudo via motion-safe
    ou desligado pelo atributo data-movimento="reduzido" no contêiner.
    --------------------------------------------------------------------------- */
 @keyframes chalala-revelar {

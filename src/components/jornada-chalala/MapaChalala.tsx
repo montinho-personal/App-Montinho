@@ -20,7 +20,7 @@ const PASSO = 128;
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 const xDoNo = (i: number) => (i % 2 === 0 ? 118 : 242);
 /** Quem aparece em cada capítulo (um por tela). */
-const GUIA: Record<number, PersonagemChalala["id"]> = { 1: "montinho", 2: "oddway", 3: "colombo", 4: "fenix", 5: "montinho" };
+const GUIA: Record<number, PersonagemChalala["id"]> = { 1: "montinho", 2: "oogway", 3: "colombo", 4: "fenix", 5: "montinho" };
 
 type Props = {
   jornada: Jornada;
@@ -32,9 +32,11 @@ type Props = {
   /** Toque num personagem do mapa: abre a explicação curta dele. */
   onAbrirPersonagem: (id: PersonagemChalala["id"]) => void;
   semTreinos?: boolean;
+  /** Ao abrir, rola até “Você está aqui”. */
+  rolarAteAqui?: boolean;
 };
 
-export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPersonagem, semTreinos = false }: Props) {
+export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPersonagem, semTreinos = false, rolarAteAqui = false }: Props) {
   const raiz = useRef<HTMLDivElement>(null);
   const aqui = useRef<HTMLDivElement>(null);
   const indice = useMemo(() => new Map(jornada.nos.map((n, i) => [n.id, i])), [jornada.nos]);
@@ -70,6 +72,15 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPerso
       if (pedido) cancelAnimationFrame(pedido);
     };
   }, [movimento, jornada]);
+
+  // Primeira abertura: rola até “Você está aqui” (só na montagem).
+  const rolou = useRef(!rolarAteAqui);
+  useEffect(() => {
+    if (rolou.current) return;
+    rolou.current = true;
+    const t = setTimeout(() => aqui.current?.scrollIntoView({ behavior: movimento === "reduzido" ? "auto" : "smooth", block: "center" }), 250);
+    return () => clearTimeout(t);
+  }, [movimento]);
 
   // Nó revelado: rola até ele e mostra o Colombo comemorando.
   useEffect(() => {

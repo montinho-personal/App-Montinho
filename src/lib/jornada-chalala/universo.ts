@@ -46,7 +46,7 @@ export const FALAS_CHALALA = {
 } as const;
 
 export type PersonagemChalala = {
-  id: "montinho" | "colombo" | "oddway" | "fenix";
+  id: "montinho" | "colombo" | "oogway" | "fenix";
   nome: string;
   papel: string;
   /** Explicação curta (abre ao tocar no personagem). */
@@ -83,8 +83,8 @@ export const PERSONAGENS_CHALALA: PersonagemChalala[] = [
     fala: "Olha só! Mais uma conquista pra sua história!",
   },
   {
-    id: "oddway",
-    nome: "Mestre Oddway",
+    id: "oogway",
+    nome: "Mestre Oogway",
     papel: "O Guardião do Ritmo",
     resumo: "A tartaruga sábia que ensina sobre paciência, constância e respeito ao próprio tempo.",
     personalidade: "Paciente e sábio. Respeita o ritmo de cada um.",

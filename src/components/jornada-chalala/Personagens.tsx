@@ -2,7 +2,7 @@
 // Personagens de “A Jornada do Chalalá” — PROPOSTAS CONCEITUAIS em SVG original.
 // Montinho (o Guia) é uma representação simbólica provisória: silhueta de
 // guia de trilha com o halter “M” da marca; a aparência real só entra com
-// referência aprovada. Colombo, Mestre Oddway e Fênix são companheiros de aventura, com
+// referência aprovada. Colombo, Mestre Oogway e Fênix são companheiros de aventura, com
 // proporção de mascote adulto (nada de brinquedo). Um por tela, no máximo.
 // ============================================================================
 
@@ -65,7 +65,7 @@ export function Colombo({ tamanho = 80 }: { tamanho?: number }) {
   );
 }
 
-export function Oddway({ tamanho = 80 }: { tamanho?: number }) {
+export function Oogway({ tamanho = 80 }: { tamanho?: number }) {
   return (
     <svg viewBox="0 0 100 100" width={tamanho} height={tamanho} aria-hidden>
       <ellipse cx="50" cy="88" rx="30" ry="4" fill="#000" opacity="0.3" />
@@ -113,7 +113,7 @@ export function Fenix({ tamanho = 80 }: { tamanho?: number }) {
 export function Personagem({ id, tamanho }: { id: PersonagemChalala["id"]; tamanho?: number }) {
   if (id === "montinho") return <Montinho tamanho={tamanho} />;
   if (id === "colombo") return <Colombo tamanho={tamanho} />;
-  if (id === "oddway") return <Oddway tamanho={tamanho} />;
+  if (id === "oogway") return <Oogway tamanho={tamanho} />;
   return <Fenix tamanho={tamanho} />;
 }
 

@@ -43,7 +43,7 @@ export function CaminhoChalala({ caminho, onAbrirPersonagem }: { caminho: Caminh
   return (
     <section className="space-y-3 rounded-3xl border border-border bg-[#171B21] p-3" aria-label="Seu caminho semana a semana">
       <div className="flex items-start gap-2">
-        <PersonagemBotao id="oddway" tamanho={56} onAbrir={onAbrirPersonagem} />
+        <PersonagemBotao id="oogway" tamanho={56} onAbrir={onAbrirPersonagem} />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Fases do seu protocolo</p>
           <p className="text-xs text-fg-muted">{atual ? FASE_INFO[atual].resumo : "As fases aparecem aqui quando o Montinho definir a fase do seu protocolo."}</p>

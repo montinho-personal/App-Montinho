@@ -50,7 +50,7 @@ Capítulos são narrativa, não bloqueio (regra já existente). O caminho dourad
 ### Personagens (`src/components/jornada-chalala/Personagens.tsx`; nomes e papéis aprovados pelo Montinho em 21/10/2026)
 - **Montinho — O Guia**: aparece em momentos especiais, como o Mestre dos Magos, trazendo conselhos, humor e motivação. Silhueta provisória de guia de trilha com o halter “M” no peito, sem rosto; a aparência real só entra com referência aprovada. Abertura dos capítulos 1 e 5 e diário.
 - **Colombo — O Explorador**: curioso, aventureiro e divertido. Representa a descoberta de novos caminhos e celebra as conquistas do aluno. Companheiro redondo com cachecol e lanterna. “Próxima conquista”, revelação de medalha e capítulo 3.
-- **Mestre Oddway — O Guardião do Ritmo**: a tartaruga sábia que ensina sobre paciência, constância e respeito ao próprio tempo. Tartaruga exploradora com mochila e bússola. Fases e capítulo 2.
+- **Mestre Oogway — O Guardião do Ritmo**: a tartaruga sábia que ensina sobre paciência, constância e respeito ao próprio tempo. Tartaruga exploradora com mochila e bússola. Fases e capítulo 2.
 - **Fênix — O Símbolo do Recomeço**: representa a capacidade de voltar depois de uma pausa, sem perder a história construída. Ave em azul-montanha com cauda e asas em chamas douradas. Retorno depois de pausa e capítulo 4.
 - No mapa, cada personagem aparece com o **nome em cima do bonequinho** (`PersonagemBotao`); **tocar abre uma explicação curta** (papel, resumo, fala e quando aparece), no mesmo painel inferior das medalhas.
 - Regra: no máximo um personagem por tela; o aluno é o protagonista.
@@ -74,8 +74,11 @@ Mesmas regras editoriais já testadas (sem prazo de hábito, sem culpa, sem prom
 - **Aniversário de acompanhamento** e **lembrança especial**: os marcos de 6 meses/1 ano já existem; a “lembrança” (resumo dos melhores momentos) é proposta para a integração.
 - Performance: SVG inline, sem bibliotecas; animações em CSS; parallax via `transform` com `requestAnimationFrame`.
 
-## Etapa E/F — Aprovação e integração (só com autorização)
-1. Trocar o componente em `/aluno/jornada` por `JornadaChalalaClient` alimentado por `dadosDaJornada` (mesmos dados), mantendo abas do aluno e “Entendi” da introdução.
-2. Mensagens de interação ligadas aos eventos reais (medalha nova = `conquista.vista_em` nulo; retorno = `eu_voltei`).
-3. Página do personal (`/treinador/alunos/[id]/jornada`) recebe a mesma tela em modo treinador.
-4. Remover a flag e a rota de protótipo.
+## Etapa E/F — Aprovação e integração (feita em 21/10/2026)
+Aprovado pelo Montinho em 21/10/2026 (“Aprovado” + “Pode publicar”). O que foi feito:
+1. `/aluno/jornada` e `/treinador/alunos/[id]/jornada` agora usam `JornadaChalala` (`src/components/jornada-chalala/JornadaChalala.tsx`), alimentado pelos mesmos dados reais de `dadosDaJornada`. Abas: Mapa · Minha História · Personagens. Introdução com “Entendi” no primeiro acesso do aparelho; compartilhar medalha e reconhecimentos do personal mantidos.
+2. Medalha nova (conquistada há até 7 dias) é revelada uma vez por aparelho (Colombo comemora); nada é gravado no banco.
+3. Movimento: segue `prefers-reduced-motion`; o aluno pode também “Reduzir movimento do mapa” (preferência local).
+4. Protótipo removido: rota `/prototipo/jornada-chalala`, bandeira `NEXT_PUBLIC_JORNADA_CHALALA_PROTOTIPO`, dados fictícios e componentes antigos da jornada (`src/components/jornada/`). A variável de ambiente antiga no projeto demo da Vercel ficou sem efeito.
+
+Pendências de arte: aparência real do Montinho (hoje silhueta simbólica) e ilustrações definitivas das cinco regiões, se o Montinho quiser um acabamento premium com ilustrador.
