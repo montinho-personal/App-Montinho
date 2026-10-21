@@ -39,7 +39,9 @@ type Reconhecimento = {
 function criarReconhecimento(): Reconhecimento | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as { SpeechRecognition?: new () => Reconhecimento; webkitSpeechRecognition?: new () => Reconhecimento };
-  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  // O prefixado é o motor consolidado do Chrome/Android; o sem prefixo (novo)
+  // pode falhar em silêncio em algumas versões.
+  const Ctor = w.webkitSpeechRecognition ?? w.SpeechRecognition;
   return Ctor ? new Ctor() : null;
 }
 
@@ -48,7 +50,6 @@ const ROTULO_METODO = new Map(METODOS.map((m) => [m.v, m.l]));
 export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, onAplicar }: Props) {
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState("");
-  const [parcial, setParcial] = useState("");
   const [ouvindo, setOuvindo] = useState(false);
   const [erroMic, setErroMic] = useState<string | null>(null);
   const [substituir, setSubstituir] = useState(false);
@@ -68,7 +69,7 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
     };
   }, [aberto]);
 
-  const fala = `${texto} ${parcial}`.trim();
+  const fala = texto.trim();
   const ditado = useMemo(() => interpretarDitado(fala, itens, { favoritos, uso }), [fala, itens, favoritos, uso]);
   const trocas = trocasDe.fala === fala ? trocasDe.trocas : {};
   const removidos = trocasDe.fala === fala ? trocasDe.removidos : new Set<number>();
@@ -84,43 +85,77 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
   });
   const validas = linhas.filter((l) => l.linha && !removidos.has(l.i)).map((l) => l.linha!);
 
+  // Uma sessão por frase (no Android o modo "contínuo" repete/perde palavras):
+  // quando a pessoa pausa, a sessão termina e religamos sozinhos até ela tocar
+  // em parar. A fala vai direto para o texto, inclusive a parcial.
+  const querOuvir = useRef(false);
+  const textoRef = useRef("");
+  useEffect(() => {
+    textoRef.current = texto;
+  }, [texto]);
+
+  function iniciarSessao() {
+    const r = criarReconhecimento();
+    if (!r) return;
+    const base = textoRef.current.trim();
+    r.lang = "pt-BR";
+    r.continuous = false;
+    r.interimResults = true;
+    r.onresult = (ev) => {
+      const falado = Array.from(ev.results)
+        .map((x) => x[0]?.transcript ?? "")
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      setTexto(`${base} ${falado}`.trim());
+    };
+    r.onerror = (ev) => {
+      if (ev.error === "aborted") return;
+      if (ev.error === "no-speech") {
+        // Pausa longa depois de ditar = terminou; só avisa se nada foi dito.
+        querOuvir.current = false;
+        if (!textoRef.current.trim()) setErroMic("Não ouvi nada. Toque e fale de novo.");
+        return;
+      }
+      querOuvir.current = false;
+      setErroMic(ev.error === "not-allowed" || ev.error === "service-not-allowed" ? "Permita o microfone para este site (cadeado ao lado do endereço → Permissões → Microfone)." : ev.error === "network" ? "O reconhecimento de voz precisa de internet. Tente de novo." : "O microfone parou. Toque para continuar.");
+    };
+    r.onend = () => {
+      if (querOuvir.current) {
+        try {
+          iniciarSessao();
+          return;
+        } catch {
+          querOuvir.current = false;
+        }
+      }
+      setOuvindo(false);
+      if (!textoRef.current.trim()) setErroMic((e) => e ?? "Não captei nenhuma fala. Toque de novo e fale perto do celular — ou use o microfone do teclado na caixa abaixo.");
+    };
+    rec.current = r;
+    r.start();
+  }
+
   function ouvir() {
     setErroMic(null);
     if (ouvindo) {
+      querOuvir.current = false;
       rec.current?.stop();
+      setOuvindo(false);
       return;
     }
-    const r = criarReconhecimento();
-    if (!r) return;
-    r.lang = "pt-BR";
-    r.continuous = true;
-    r.interimResults = true;
-    r.onresult = (ev) => {
-      let finais = "";
-      let temp = "";
-      for (let k = ev.resultIndex; k < ev.results.length; k++) {
-        const res = ev.results[k];
-        if (res.isFinal) finais += ` ${res[0].transcript}`;
-        else temp += ` ${res[0].transcript}`;
-      }
-      if (finais) setTexto((t) => `${t} ${finais}`.replace(/\s+/g, " ").trim());
-      setParcial(temp.trim());
-    };
-    r.onerror = (ev) => setErroMic(ev.error === "not-allowed" || ev.error === "service-not-allowed" ? "Permita o microfone para este site nas configurações do navegador." : ev.error === "no-speech" ? "Não ouvi nada. Toque e fale de novo." : "O microfone parou. Toque para continuar.");
-    r.onend = () => {
-      setOuvindo(false);
-      setParcial("");
-    };
-    rec.current = r;
     try {
-      r.start();
+      querOuvir.current = true;
+      iniciarSessao();
       setOuvindo(true);
     } catch {
+      querOuvir.current = false;
       setErroMic("Não foi possível ligar o microfone.");
     }
   }
 
   function aplicar() {
+    querOuvir.current = false;
     rec.current?.stop();
     onAplicar(validas, substituir);
     setAberto(false);
@@ -128,6 +163,7 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
   }
 
   const fechar = () => {
+    querOuvir.current = false;
     rec.current?.stop();
     setAberto(false);
   };
@@ -175,7 +211,7 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
                   ) : null}
                   {erroMic ? <p className="mb-2 text-xs text-warning">{erroMic}</p> : null}
                   <textarea
-                    value={ouvindo && parcial ? `${texto} ${parcial}` : texto}
+                    value={texto}
                     onChange={(e) => setTexto(e.target.value)}
                     rows={3}
                     aria-label="Texto do treino"
