@@ -879,6 +879,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                 <div>
                                   <SeletorExercicio
                                     valor={r.nome}
+                                    bibliotecaId={r.bibliotecaId}
                                     itens={itensBiblioteca}
                                     favoritos={favoritosSet}
                                     uso={usoMap}

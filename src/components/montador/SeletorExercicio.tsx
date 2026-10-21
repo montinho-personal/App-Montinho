@@ -5,13 +5,16 @@
 // ↑/↓ para escolher e Enter para confirmar (Enter sem lista aberta adiciona a
 // próxima linha, como antes). Texto livre continua permitido.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { GRUPO_COR, GRUPO_LABEL } from "@/lib/grupos";
 import { buscarExercicios } from "@/lib/biblioteca/busca";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 
 type Props = {
   valor: string;
+  /** Exercício da biblioteca já ligado à linha (o nome pode ser um sinônimo). */
+  bibliotecaId?: string | null;
   itens: ItemBiblioteca[];
   favoritos: Set<string>;
   uso: Map<string, number>;
@@ -23,19 +26,57 @@ type Props = {
   ariaLabel: string;
 };
 
-export function SeletorExercicio({ valor, itens, favoritos, uso, onTexto, onEscolher, onEnterLivre, onMover, placeholder, ariaLabel }: Props) {
+export function SeletorExercicio({ valor, bibliotecaId, itens, favoritos, uso, onTexto, onEscolher, onEnterLivre, onMover, placeholder, ariaLabel }: Props) {
   const [aberto, setAberto] = useState(false);
   const [destaque, setDestaque] = useState(0);
-  const resultados = useMemo(
-    () => (aberto && valor.trim().length >= 2 ? buscarExercicios(itens, valor, {}, { favoritos, uso, limite: 8 }) : []),
-    [aberto, valor, itens, favoritos, uso]
-  );
+  // Ao tocar num exercício já escolhido (sem digitar), a lista mostra trocas do mesmo músculo.
+  const [digitou, setDigitou] = useState(false);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const atual = useMemo(() => {
+    const porId = bibliotecaId ? itens.find((i) => i.id === bibliotecaId) : undefined;
+    if (porId) return porId;
+    const q = valor.trim().toLowerCase();
+    if (q.length < 2) return null;
+    return itens.find((i) => i.nome.toLowerCase() === q) ?? buscarExercicios(itens, valor, {}, { limite: 1 })[0]?.item ?? null;
+  }, [itens, valor, bibliotecaId]);
+  const modoTroca = aberto && !digitou && !!atual;
+  const resultados = useMemo(() => {
+    if (!aberto) return [];
+    if (modoTroca && atual)
+      return itens
+        .filter((i) => i.grupo === atual.grupo && i.id !== atual.id)
+        .sort((a, b) => Number(favoritos.has(b.id)) - Number(favoritos.has(a.id)) || (uso.get(b.id) ?? 0) - (uso.get(a.id) ?? 0) || a.nome.localeCompare(b.nome))
+        .slice(0, 12)
+        .map((item) => ({ item, motivo: "mesmo músculo" as string | undefined }));
+    return valor.trim().length >= 2 ? buscarExercicios(itens, valor, {}, { favoritos, uso, limite: 8 }) : [];
+  }, [aberto, modoTroca, atual, valor, itens, favoritos, uso]);
   const mostrar = aberto && resultados.length > 0;
+
+  // A lista fica por cima da página (a tabela do montador rola de lado e cortava a lista).
+  useEffect(() => {
+    if (!aberto) return;
+    const medir = () => {
+      const r = inputRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const largura = Math.min(window.innerWidth - 16, Math.max(r.width, 300));
+      setRect({ left: Math.max(8, Math.min(r.left, window.innerWidth - largura - 8)), top: r.bottom + 2, width: largura });
+    };
+    medir();
+    window.addEventListener("scroll", medir, true);
+    window.addEventListener("resize", medir);
+    return () => {
+      window.removeEventListener("scroll", medir, true);
+      window.removeEventListener("resize", medir);
+    };
+  }, [aberto]);
   const listaId = `sug-${ariaLabel.replace(/\W+/g, "-")}`;
 
   function escolher(item: ItemBiblioteca) {
     onEscolher(item);
     setAberto(false);
+    // Fecha o teclado no celular; tocar de novo no nome reabre as trocas.
+    inputRef.current?.blur();
   }
 
   return (
@@ -47,12 +88,20 @@ export function SeletorExercicio({ valor, itens, favoritos, uso, onTexto, onEsco
         aria-controls={listaId}
         aria-autocomplete="list"
         aria-activedescendant={mostrar ? `${listaId}-${destaque}` : undefined}
+        ref={inputRef}
         onChange={(e) => {
           onTexto(e.target.value);
+          setDigitou(true);
           setAberto(true);
           setDestaque(0);
         }}
-        onFocus={() => setAberto(true)}
+        onFocus={(e) => {
+          // Selecionado: é só digitar para substituir.
+          e.currentTarget.select();
+          setDigitou(false);
+          setDestaque(0);
+          setAberto(true);
+        }}
         onBlur={() => setTimeout(() => setAberto(false), 120)}
         onKeyDown={(e) => {
           if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
@@ -71,7 +120,7 @@ export function SeletorExercicio({ valor, itens, favoritos, uso, onTexto, onEsco
           } else if (e.key === "Enter") {
             e.preventDefault();
             const exato = resultados.find((r) => r.item.nome.toLowerCase() === valor.trim().toLowerCase());
-            if (mostrar && !exato) escolher(resultados[Math.min(destaque, resultados.length - 1)].item);
+            if (mostrar && (!exato || modoTroca)) escolher(resultados[Math.min(destaque, resultados.length - 1)].item);
             else {
               if (exato) onEscolher(exato.item);
               setAberto(false);
@@ -83,8 +132,9 @@ export function SeletorExercicio({ valor, itens, favoritos, uso, onTexto, onEsco
         aria-label={ariaLabel}
         className="w-full bg-transparent px-2 py-2.5 text-[13px] font-medium outline-none focus:bg-accent/5"
       />
-      {mostrar ? (
-        <ul id={listaId} role="listbox" className="absolute left-0 right-0 top-full z-30 max-h-72 overflow-auto rounded-lg border border-border bg-surface shadow-xl">
+      {mostrar && rect && typeof document !== "undefined" ? createPortal(
+        <ul id={listaId} role="listbox" style={{ position: "fixed", left: rect.left, top: rect.top, width: rect.width }} className="z-[75] max-h-[50vh] overflow-auto rounded-lg border border-accent/40 bg-surface shadow-2xl">
+          {modoTroca && atual ? <li className="sticky top-0 border-b border-border bg-surface px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-accent">⇄ Trocar por — {GRUPO_LABEL[atual.grupo]} (ou digite para buscar)</li> : null}
           {resultados.map((r, i) => (
             <li
               key={r.item.id}
@@ -110,7 +160,8 @@ export function SeletorExercicio({ valor, itens, favoritos, uso, onTexto, onEsco
               </span>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body
       ) : null}
     </div>
   );
