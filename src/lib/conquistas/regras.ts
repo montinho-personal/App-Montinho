@@ -39,11 +39,52 @@ export type CodigoConquista =
   | "fui_alem"
   | "milha_extra"
   | "sempre_um_a_mais"
-  | "uma_a_mais";
+  | "uma_a_mais"
+  // Técnicas avançadas (quantos tipos diferentes já fez)
+  | "primeira_tecnica"
+  | "tecnicas_2"
+  | "tecnicas_3"
+  | "tecnicas_4"
+  | "tecnicas_5"
+  | "tecnicas_7"
+  | "tecnicas_10"
+  | "mestre_tecnicas";
 
 /** Medalhas “Além do necessário” (0037): gravadas à parte para nunca travar as antigas se o banco ainda não as aceitar. */
 export const CODIGOS_ALEM: CodigoConquista[] = ["fiz_o_necessario", "nunca_deixei_pra_depois", "fui_alem", "milha_extra", "sempre_um_a_mais", "uma_a_mais"];
 export const LIMITES_ALEM = { curtos: 5, extras: 5, extrasMuitos: 15, seriesExtras: 10 } as const;
+
+/**
+ * Técnicas avançadas que contam para as medalhas (cada uma conta uma vez).
+ * Pirâmide crescente e decrescente contam juntas; bi-set e combinado também.
+ */
+export const TECNICAS_MEDALHA = {
+  dropset: "Drop-set",
+  rest_pause: "Rest-pause",
+  myo_reps: "Myo-reps",
+  cluster: "Cluster",
+  tres_sete: "3/7",
+  piramide: "Pirâmide",
+  biset: "Bi-set",
+  triset: "Tri-set",
+  superset: "Super-set",
+  pre_exaustao: "Pré-exaustão",
+  super_slow: "Super slow",
+  negativo: "Negativo",
+  isometria: "Isometria",
+} as const;
+export type FamiliaTecnica = keyof typeof TECNICAS_MEDALHA;
+export const TOTAL_TECNICAS = Object.keys(TECNICAS_MEDALHA).length;
+export function familiaTecnica(t: string | null | undefined): FamiliaTecnica | null {
+  if (!t) return null;
+  if (t === "piramide_decrescente") return "piramide";
+  if (t === "combinado") return "biset";
+  return t in TECNICAS_MEDALHA ? (t as FamiliaTecnica) : null;
+}
+/** Medalhas por quantidade de técnicas diferentes (a última = todas). */
+export const MARCOS_TECNICA: Array<[CodigoConquista, number]> = [["primeira_tecnica", 1], ["tecnicas_2", 2], ["tecnicas_3", 3], ["tecnicas_4", 4], ["tecnicas_5", 5], ["tecnicas_7", 7], ["tecnicas_10", 10], ["mestre_tecnicas", TOTAL_TECNICAS]];
+/** Medalhas das técnicas (0043): gravadas à parte, como as “Além do necessário”. */
+export const CODIGOS_TECNICA: CodigoConquista[] = MARCOS_TECNICA.map(([c]) => c);
 
 // Títulos e critérios curtos (gravados na conquista). Os textos educativos
 // completos ficam na biblioteca editorial (conteudo.ts).
@@ -68,6 +109,14 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   milha_extra: { titulo: "Milha extra", criterio: `Concluir ${LIMITES_ALEM.extras} treinos extras liberados pelo personal.`, repete: false },
   sempre_um_a_mais: { titulo: "Sempre um a mais", criterio: `Concluir ${LIMITES_ALEM.extrasMuitos} treinos extras liberados pelo personal.`, repete: false },
   uma_a_mais: { titulo: "Uma a mais", criterio: `Somar ${LIMITES_ALEM.seriesExtras} séries além das prescritas (“+ Série extra”) em treinos concluídos.`, repete: false },
+  primeira_tecnica: { titulo: "Primeira técnica", criterio: "Fazer pelo menos uma série de uma técnica avançada (drop-set, rest-pause, bi-set, pirâmide…) num treino concluído.", repete: false },
+  tecnicas_2: { titulo: "Duas técnicas", criterio: "Já ter feito pelo menos uma série de 2 técnicas avançadas diferentes.", repete: false },
+  tecnicas_3: { titulo: "Três técnicas", criterio: "Já ter feito pelo menos uma série de 3 técnicas avançadas diferentes.", repete: false },
+  tecnicas_4: { titulo: "Quatro técnicas", criterio: "Já ter feito pelo menos uma série de 4 técnicas avançadas diferentes.", repete: false },
+  tecnicas_5: { titulo: "Cinco técnicas", criterio: "Já ter feito pelo menos uma série de 5 técnicas avançadas diferentes.", repete: false },
+  tecnicas_7: { titulo: "Sete técnicas", criterio: "Já ter feito pelo menos uma série de 7 técnicas avançadas diferentes.", repete: false },
+  tecnicas_10: { titulo: "Dez técnicas", criterio: "Já ter feito pelo menos uma série de 10 técnicas avançadas diferentes.", repete: false },
+  mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -78,12 +127,32 @@ export const VERSAO_CRITERIO: Record<CodigoConquista, number> = Object.fromEntri
 export const REGRAS_CONQUISTAS = { diasRetomada: 14, registrosParaRecorde: 2, diasPrimeiroMes: 28, treinosPrimeiroMes: 4 };
 
 export type SerieConquista = { tipo: string; carga_kg: number | null; reps: number | null };
+
+/**
+ * Técnicas avançadas já feitas (data da primeira vez de cada uma): conta o
+ * exercício com técnica que teve pelo menos uma série registrada (sem ser
+ * aquecimento) num treino concluído do app.
+ */
+export function tecnicasFeitas(sessoes: SessaoConquista[]): Array<{ familia: FamiliaTecnica; data: string; sessaoId: string }> {
+  const out: Array<{ familia: FamiliaTecnica; data: string; sessaoId: string }> = [];
+  const vistas = new Set<FamiliaTecnica>();
+  const ordenadas = [...sessoes].filter((s) => s.conta_aderencia !== false && s.origem !== "importado" && s.status === "concluida").sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
+  for (const s of ordenadas)
+    for (const e of s.exercicios ?? []) {
+      const f = familiaTecnica(e.tecnica);
+      if (!f || vistas.has(f)) continue;
+      if (!e.series.some((x) => x.tipo !== "aquecimento" && (x.reps ?? 0) > 0)) continue;
+      vistas.add(f);
+      out.push({ familia: f, data: s.iniciado_em, sessaoId: s.id });
+    }
+  return out;
+}
 export type SessaoConquista = SessaoAderencia & {
   feedback_percepcao?: string | null;
   checkin_pre?: string | null;
   /** false = histórico importado: serve de base para recordes, mas não gera conquistas. */
   conta_aderencia?: boolean;
-  exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[] }>;
+  exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null }>;
   /** "app" ou "importado" (histórico de outro app). */
   origem?: string | null;
 };
@@ -262,6 +331,15 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
       out.push(nova("uma_a_mais", "1", s.iniciado_em, s.id, `${LIMITES_ALEM.seriesExtras} séries além das prescritas, somando os treinos.`));
       break;
     }
+  }
+
+  // Técnicas avançadas: 1, 2, 3, 4, 5, 7, 10 e todas as técnicas diferentes.
+  const tecnicas = tecnicasFeitas(e.sessoes);
+  for (const [codigo, n] of MARCOS_TECNICA) {
+    const t = tecnicas[n - 1];
+    if (!t) continue;
+    const nomes = tecnicas.slice(0, n).map((x) => TECNICAS_MEDALHA[x.familia]);
+    out.push(nova(codigo, "1", t.data, t.sessaoId, n === 1 ? `Primeira técnica avançada: ${nomes[0]}.` : n === TOTAL_TECNICAS ? "Você já fez todas as técnicas avançadas!" : `${n} técnicas diferentes: ${nomes.join(", ")}.`));
   }
   return out;
 }

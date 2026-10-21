@@ -925,4 +925,11 @@ begin
   if position('myo_reps' in (select pg_get_constraintdef(oid) from pg_constraint where conname = 'session_sets_tipo_check')) = 0 then raise exception 'T28: tipo myo_reps não aceito'; end if;
   raise notice 'T28 OK: técnicas configuráveis';
 end $$;
+-- T29 — 0043: medalhas das técnicas avançadas aceitas
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'mestre_tecnicas', '1', now(), 'Mestre das técnicas');
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'tecnicas_3', '1', now(), 'Três técnicas');
+  raise notice 'T29 OK: medalhas das técnicas aceitas';
+end $$;
 \echo 'TODOS OS TESTES PASSARAM'

@@ -11,9 +11,9 @@
 
 import { CATALOGO, type CodigoConquista } from "./regras";
 
-export const CONTEUDO_VERSAO = "2026-10-20.1";
+export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -24,6 +24,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   autoconhecimento: "Autoconhecimento",
   desempenho: "Desempenho",
   alem: "Além do necessário",
+  tecnicas: "Técnicas avançadas",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -300,6 +301,94 @@ const BASE: Record<CodigoConquista, Base> = {
     importancia: "Repor séries que ficaram para trás, nos dias em que você está bem, ajuda a manter o volume planejado da semana.",
     explicacao: "O convite para a série extra só aparece quando faz sentido (sem desconforto e sem cansaço relatado). O volume continua sendo acompanhado pelo personal.",
     proximoPasso: "Use a série extra quando estiver bem; nos dias puxados, o planejado já basta.",
+    fontes: ["sdt2025"],
+  },
+  primeira_tecnica: {
+    categoria: "tecnicas",
+    resumo: "A primeira série com técnica avançada.",
+    mensagem: "Primeira técnica avançada na conta. Chalalá!",
+    comoConquistar: "Quando o Montinho colocar uma técnica avançada no seu treino, faça e registre pelo menos uma série dela.",
+    significado: "Você experimentou um jeito diferente de treinar, além das séries tradicionais.",
+    importancia: "Variar o estímulo, com orientação, ajuda a manter o treino desafiador e interessante.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Preste atenção na explicação da técnica no treino: ela diz como fazer cada parte.",
+    fontes: ["sdt2025"],
+  },
+  tecnicas_2: {
+    categoria: "tecnicas",
+    resumo: "Duas técnicas avançadas diferentes.",
+    mensagem: "Duas técnicas no repertório!",
+    comoConquistar: "Registre séries de 2 técnicas avançadas diferentes ao longo dos treinos.",
+    significado: "Seu repertório de treino está crescendo.",
+    importancia: "Conhecer mais de uma técnica dá ao personal mais opções para ajustar o seu treino.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Continue seguindo a ficha: as próximas técnicas vêm quando fizerem sentido.",
+    fontes: ["sdt2025"],
+  },
+  tecnicas_3: {
+    categoria: "tecnicas",
+    resumo: "Três técnicas avançadas diferentes.",
+    mensagem: "Três técnicas! Você está pegando o jeito.",
+    comoConquistar: "Registre séries de 3 técnicas avançadas diferentes ao longo dos treinos.",
+    significado: "Você já domina várias formas de deixar a série mais intensa.",
+    importancia: "Técnicas diferentes estimulam o músculo de formas diferentes, sempre dentro do planejado.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Capriche na execução: técnica avançada pede movimento bem feito.",
+    fontes: ["sdt2025"],
+  },
+  tecnicas_4: {
+    categoria: "tecnicas",
+    resumo: "Quatro técnicas avançadas diferentes.",
+    mensagem: "Quatro técnicas na bagagem!",
+    comoConquistar: "Registre séries de 4 técnicas avançadas diferentes ao longo dos treinos.",
+    significado: "Seu treino ganhou variedade com acompanhamento.",
+    importancia: "Variedade planejada ajuda a manter a motivação e o desafio ao longo dos meses.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Conte ao Montinho de quais técnicas você mais gostou.",
+    fontes: ["sdt2025"],
+  },
+  tecnicas_5: {
+    categoria: "tecnicas",
+    resumo: "Cinco técnicas avançadas diferentes.",
+    mensagem: "Cinco técnicas! Repertório de respeito.",
+    comoConquistar: "Registre séries de 5 técnicas avançadas diferentes ao longo dos treinos.",
+    significado: "Você já conhece boa parte das técnicas que o Montinho usa.",
+    importancia: "Saber executar bem cada técnica deixa o treino mais seguro e eficiente.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Siga registrando cada pedaço das séries: isso ajuda o personal a ajustar a carga.",
+    fontes: ["sdt2025"],
+  },
+  tecnicas_7: {
+    categoria: "tecnicas",
+    resumo: "Sete técnicas avançadas diferentes.",
+    mensagem: "Sete técnicas. Você está ficando craque!",
+    comoConquistar: "Registre séries de 7 técnicas avançadas diferentes ao longo dos treinos.",
+    significado: "Você passou por mais da metade das técnicas avançadas.",
+    importancia: "Um repertório amplo permite treinos variados sem perder o foco no objetivo.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Continue no seu ritmo: as técnicas aparecem quando o treino pedir.",
+    fontes: ["sdt2025"],
+  },
+  tecnicas_10: {
+    categoria: "tecnicas",
+    resumo: "Dez técnicas avançadas diferentes.",
+    mensagem: "Dez técnicas! Poucos chegam aqui.",
+    comoConquistar: "Registre séries de 10 técnicas avançadas diferentes ao longo dos treinos.",
+    significado: "Você conhece quase todas as técnicas avançadas do Montinho.",
+    importancia: "Experiência com muitas técnicas mostra dedicação e confiança no processo.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Falta pouco para fazer todas. Siga a ficha com calma.",
+    fontes: ["sdt2025"],
+  },
+  mestre_tecnicas: {
+    categoria: "tecnicas",
+    resumo: "Fez todas as técnicas avançadas.",
+    mensagem: "Mestre das técnicas! Você já fez todas. Chalalá!",
+    comoConquistar: "Registre pelo menos uma série de cada técnica avançada usada pelo Montinho.",
+    significado: "Você passou por todas as técnicas avançadas do Montinho.",
+    importancia: "Conhecer todas as técnicas é sinal de muita prática e de confiança no seu treino.",
+    explicacao: "As técnicas avançadas (drop-set, rest-pause, bi-set, pirâmide, cluster e outras) são prescritas pelo Montinho quando fazem sentido no seu treino. Conta uma série registrada de cada técnica, em treino concluído; cada técnica conta uma vez.",
+    proximoPasso: "Agora é usar cada técnica no momento certo, como o Montinho planejar.",
     fontes: ["sdt2025"],
   },
   eu_voltei: {

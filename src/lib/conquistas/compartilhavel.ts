@@ -36,6 +36,14 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   milha_extra: { frase: "Eu vou além do combinado.", porque: "Pequenos acréscimos, semana após semana, fazem diferença." },
   sempre_um_a_mais: { frase: "Sempre um a mais.", porque: "Ir além, com equilíbrio e acompanhamento, virou parte da minha rotina." },
   uma_a_mais: { frase: "Sobrou gás? Uma a mais.", porque: "Aproveitar os dias bons ajuda a completar o volume planejado da semana." },
+  primeira_tecnica: { frase: "Subi de nível no treino.", porque: "Experimentar uma técnica avançada, com orientação, deixa o treino mais desafiador." },
+  tecnicas_2: { frase: "Duas técnicas no repertório.", porque: "Mais técnicas, mais formas de desafiar o músculo." },
+  tecnicas_3: { frase: "Três técnicas. Pegando o jeito.", porque: "Cada técnica nova é um jeito diferente de evoluir." },
+  tecnicas_4: { frase: "Quatro técnicas na bagagem.", porque: "Variedade planejada mantém o treino desafiador." },
+  tecnicas_5: { frase: "Cinco técnicas. Treino de respeito.", porque: "Executar bem cada técnica é sinal de prática e dedicação." },
+  tecnicas_7: { frase: "Sete técnicas. Ficando craque.", porque: "Um repertório amplo deixa o treino sempre interessante." },
+  tecnicas_10: { frase: "Dez técnicas. Poucos chegam aqui.", porque: "Experiência com muitas técnicas mostra dedicação ao processo." },
+  mestre_tecnicas: { frase: "Mestre das técnicas.", porque: "Fazer todas as técnicas avançadas é coisa de quem leva o treino a sério." },
 };
 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
@@ -87,6 +95,17 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
       return "15 treinos extras concluídos";
     case "uma_a_mais":
       return "10 séries além das prescritas";
+    case "primeira_tecnica":
+      return "Primeira técnica avançada";
+    case "tecnicas_2":
+    case "tecnicas_3":
+    case "tecnicas_4":
+    case "tecnicas_5":
+    case "tecnicas_7":
+    case "tecnicas_10":
+      return `${c.codigo.split("_")[1]} técnicas avançadas diferentes`;
+    case "mestre_tecnicas":
+      return "Todas as técnicas avançadas";
     default:
       return null;
   }

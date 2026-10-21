@@ -13,7 +13,7 @@ describe("vitrine de medalhas (20 únicas)", () => {
   it("ordem da jornada; conquistadas com data, abertas com progresso real", () => {
     const sessoes = Array.from({ length: 7 }, (_, i) => s(`2026-10-${String(i + 1).padStart(2, "0")}`));
     const ms = vitrine(sessoes, [{ codigo: "primeiro_treino", conquistado_em: "2026-10-01T13:00:00Z" }, { codigo: "recorde", conquistado_em: "2026-10-05T13:00:00Z" }], "2026-10-20");
-    expect(ms).toHaveLength(20);
+    expect(ms).toHaveLength(28);
     expect(ms.map((m) => m.codigo)).not.toContain("recorde");
     expect(ms[0]).toMatchObject({ codigo: "primeiro_treino", titulo: "Primeiro passo", conquistada: true, falta: null });
     expect(ms.find((m) => m.codigo === "treinos_10")).toMatchObject({ conquistada: false, atual: 7, alvo: 10 });

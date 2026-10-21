@@ -160,3 +160,21 @@ describe("conquistas — além do necessário", () => {
     expect(codigos(detectar([s("2026-10-20", { modo: "reduzido", conta_aderencia: false })]))).not.toContain("fiz_o_necessario");
   });
 });
+
+describe("medalhas das técnicas avançadas", () => {
+  const comTecnica = (dia: string, tecnicas: string[], reps = 10) => s(dia, { exercicios: tecnicas.map((t, i) => ({ exercicio_id: `e${i}`, nome: `Ex ${i}`, tecnica: t, series: [{ tipo: "valida", carga_kg: 20, reps }] })) });
+  it("1, 2 e 3 técnicas diferentes; pirâmide crescente e decrescente contam como uma", () => {
+    const r = detectar([comTecnica("2026-10-01", ["dropset"]), comTecnica("2026-10-03", ["piramide", "piramide_decrescente"]), comTecnica("2026-10-06", ["rest_pause", "normal"])]);
+    expect(codigos(r)).toEqual(expect.arrayContaining(["primeira_tecnica", "tecnicas_2", "tecnicas_3"]));
+    expect(codigos(r)).not.toContain("tecnicas_4");
+    expect(r.find((x) => x.codigo === "tecnicas_3")?.descricao).toBe("3 técnicas diferentes: Drop-set, Pirâmide, Rest-pause.");
+  });
+  it("exercício com técnica sem série registrada não conta", () => {
+    expect(codigos(detectar([comTecnica("2026-10-01", ["dropset"], 0)]))).not.toContain("primeira_tecnica");
+  });
+  it("todas as técnicas = Mestre das técnicas", () => {
+    const todas = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete", "piramide", "biset", "triset", "superset", "pre_exaustao", "super_slow", "negativo", "isometria"];
+    const r = detectar([comTecnica("2026-10-01", todas.slice(0, 6)), comTecnica("2026-10-05", todas.slice(6))]);
+    expect(codigos(r)).toEqual(expect.arrayContaining(["tecnicas_5", "tecnicas_7", "tecnicas_10", "mestre_tecnicas"]));
+  });
+});

@@ -10,7 +10,7 @@ import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/ade
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
 import type { CodigoConquista, SessaoConquista } from "./regras";
-import { LIMITES_ALEM } from "./regras";
+import { LIMITES_ALEM, MARCOS_TECNICA, TECNICAS_MEDALHA, tecnicasFeitas, type FamiliaTecnica } from "./regras";
 
 export type Medalha = {
   codigo: CodigoConquista;
@@ -53,6 +53,15 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "nunca_deixei_pra_depois", selo: "5×" },
   { codigo: "milha_extra", selo: "5+" },
   { codigo: "sempre_um_a_mais", selo: "15+" },
+  // Técnicas avançadas
+  { codigo: "primeira_tecnica", selo: "T1" },
+  { codigo: "tecnicas_2", selo: "T2" },
+  { codigo: "tecnicas_3", selo: "T3" },
+  { codigo: "tecnicas_4", selo: "T4" },
+  { codigo: "tecnicas_5", selo: "T5" },
+  { codigo: "tecnicas_7", selo: "T7" },
+  { codigo: "tecnicas_10", selo: "T10" },
+  { codigo: "mestre_tecnicas", selo: "★T" },
 ];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
@@ -75,6 +84,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const daApp = e.sessoes.filter((s) => s.conta_aderencia !== false && s.status !== "em_andamento");
   const curtos = daApp.filter((s) => s.modo === "reduzido" && classificarSessao(s) === "concluida").length;
   const extras = daApp.filter((s) => classificarSessao(s) === "extra").length;
+  // Técnicas avançadas já feitas (cada uma conta uma vez).
+  const feitas = new Set(tecnicasFeitas(e.sessoes).map((t) => t.familia));
   const seriesExtras = daApp.filter((s) => s.modo !== "extra" && classificarSessao(s) === "concluida").reduce((a, s) => a + Math.max(0, (s.series_concluidas || 0) - (s.series_planejadas || 0)), 0);
 
   const progresso = (c: CodigoConquista): { atual: number | null; alvo: number | null; falta: string | null; disponivel: boolean } => {
@@ -129,6 +140,23 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "sempre_um_a_mais": {
         const n = c === "fui_alem" ? 1 : c === "milha_extra" ? LIMITES_ALEM.extras : LIMITES_ALEM.extrasMuitos;
         return extras ? { atual: Math.min(extras, n), alvo: n, falta: `Faltam ${plural(n - Math.min(extras, n), "treino extra", "treinos extras")}, dentro do combinado com o Montinho.`, disponivel: true } : { atual: null, alvo: null, falta: "Quando o Montinho liberar treinos extras para você, eles aparecem em “Treino extra”.", disponivel: false };
+      }
+      case "primeira_tecnica":
+      case "tecnicas_2":
+      case "tecnicas_3":
+      case "tecnicas_4":
+      case "tecnicas_5":
+      case "tecnicas_7":
+      case "tecnicas_10":
+      case "mestre_tecnicas": {
+        const n = MARCOS_TECNICA.find(([x]) => x === c)?.[1] ?? 1;
+        const faltam = feitas.size ? Object.entries(TECNICAS_MEDALHA).filter(([f]) => !feitas.has(f as FamiliaTecnica)).map(([, nome]) => nome) : [];
+        return {
+          atual: Math.min(feitas.size, n),
+          alvo: n,
+          falta: `Faltam ${plural(n - Math.min(feitas.size, n), "técnica avançada diferente", "técnicas avançadas diferentes")}. Elas aparecem quando o Montinho coloca na sua ficha.${c === "mestre_tecnicas" && faltam.length ? ` Ainda não fez: ${faltam.join(", ")}.` : ""}`,
+          disponivel: true,
+        };
       }
       case "uma_a_mais":
         return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `Faltam ${plural(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };

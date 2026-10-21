@@ -51,6 +51,15 @@ export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "e
   nunca_deixei_pra_depois: 3,
   milha_extra: 3,
   sempre_um_a_mais: 4,
+  // Técnicas avançadas
+  primeira_tecnica: 2,
+  tecnicas_2: 3,
+  tecnicas_3: 3,
+  tecnicas_4: 3,
+  tecnicas_5: 4,
+  tecnicas_7: 4,
+  tecnicas_10: 5,
+  mestre_tecnicas: 5,
 };
 
 export type NoJornada =
