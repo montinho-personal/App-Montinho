@@ -172,7 +172,12 @@ export type Convite = {
   origem: string | null;
   ativo: boolean;
   created_at: string;
+  /** 0068: link pessoal de “convide um amigo” (AMIGO-XXXXX) do visitante. */
+  indicador_aluno_id?: string | null;
 };
+
+/** 0068: amigo que entrou pelo link de um visitante (+10 dias, até +30). */
+export type Indicacao = { id: string; indicador_aluno_id: string; indicado_aluno_id: string; dias_bonus: number; created_at: string };
 
 export type AcessoVisitante = {
   aluno_id: string;

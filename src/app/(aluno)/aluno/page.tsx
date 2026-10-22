@@ -42,6 +42,10 @@ import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { PedirWhatsapp } from "@/components/visitante/PedirWhatsapp";
 import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
 import { GuardarTreinosOffline } from "@/components/offline/GuardarTreinosOffline";
+import { campanhaDoVisitante } from "@/lib/data/campanhas";
+import { conviteLiberado, linkOferta } from "@/lib/visitante/campanhas";
+import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
+import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
 
 export const metadata = { title: "Início" };
 
@@ -86,6 +90,10 @@ export default async function AlunoHomePage() {
   const duracaoEstimada = proximo?.duracao_estimada_min ?? estimarDuracao(sessoes, proximo?.letra ?? null);
   const emAlta = cargasEmAlta(sessoes, historicoResumo, 2);
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
+  // Campanhas do visitante (0068): oferta do fim do acesso e convite de amigo, em destaque.
+  const campanha = FEATURES.modoVisitante && ehVisitante(sessao) ? await campanhaDoVisitante(alunoId, sessao.acessoFim ?? null).catch(() => null) : null;
+  const ofertaHref = campanha?.oferta && BRAND.contact.whatsapp ? linkOferta(campanha.oferta, BRAND.contact.whatsapp) : null;
+  const mostrarConvite = Boolean(campanha && conviteLiberado(campanha.treinosConcluidos, campanha.indicacao));
 
   return (
     <div className="space-y-5">
@@ -97,6 +105,8 @@ export default async function AlunoHomePage() {
           {saudacao}, <span className="text-accent">{primeiroNome}</span>
         </h1>
       </header>
+
+      {campanha?.oferta && ofertaHref ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
 
@@ -182,7 +192,9 @@ export default async function AlunoHomePage() {
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !emAndamento && !proximo && podeRegistrar("visitante", sessao.acessoFim ?? null) ? <ComeceAquiSite tela="inicio" /> : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
-      {FEATURES.modoVisitante && ehVisitante(sessao) ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
+      {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}
+      {/* No máximo um convite por tela: com campanha em destaque, sai o convite comum. */}
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !campanha?.oferta && !mostrarConvite ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
 
       {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
       <Link href="/aluno/vitorias" className="block">

@@ -39,6 +39,10 @@ import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
 import { lerMeta, rotuloMeta } from "@/lib/treino/meta-reps";
 import { guardarTela } from "@/lib/offline/paginas";
+import { conviteLiberado } from "@/lib/visitante/campanhas";
+import type { CampanhaVisitante } from "@/lib/data/campanhas";
+import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
+import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
 import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
@@ -79,6 +83,8 @@ type Props = {
   perdidas?: Record<string, Deficit>;
   /** Aula presencial (painel do personal). */
   presencial?: Presencial | null;
+  /** Visitante: oferta do fim do acesso e convite de amigo (0068), no fim do treino. */
+  campanha?: (CampanhaVisitante & { ofertaHref: string | null }) | null;
   /** Opções de troca por exercício do plano (regras do personal/catálogo). */
   trocas?: Record<string, TrocasDoExercicio>;
   /** Última execução de cada opção de troca (para vir preenchido). */
@@ -183,7 +189,7 @@ function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[
 const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
   Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -977,6 +983,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               {feedback === "dor" ? <p className="text-xs text-fg-muted">Obrigado por avisar. O {BRAND.name} verá isso antes do próximo treino. Se a dor for forte, procure avaliação.</p> : null}
             </CardBody>
           </Card>
+          {campanha?.oferta && campanha.ofertaHref ? (
+            <OfertaVisitante oferta={campanha.oferta} href={campanha.ofertaHref} tela="fim_treino" />
+          ) : campanha && conviteLiberado(campanha.treinosConcluidos + (concluida.status === "concluida" && !sessaoConcluida ? 1 : 0), campanha.indicacao) ? (
+            <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="fim_treino" />
+          ) : null}
       </TelaChalala>
     );
   }

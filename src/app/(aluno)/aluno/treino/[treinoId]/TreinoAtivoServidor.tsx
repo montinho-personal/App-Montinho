@@ -21,9 +21,12 @@ import { progressoesRecentes } from "@/lib/data/conquistas";
 import { dadosConfianca } from "@/lib/data/confianca";
 import { ehFichaNova } from "@/lib/chalala/confianca";
 import { ehExtraGerado } from "@/lib/data/extra-gerado";
+import { campanhaDoVisitante } from "@/lib/data/campanhas";
+import { linkOferta } from "@/lib/visitante/campanhas";
+import { BRAND } from "@/config/brand";
 
 
-export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null }: {
+export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null, visitante = null }: {
   alunoId: string;
   nomeAluno: string;
   treinoId: string;
@@ -32,6 +35,8 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   rec?: string;
   tempo?: string;
   presencial?: Presencial | null;
+  /** Visitante (Modo Visitante): campanhas no fim do treino. */
+  visitante?: { acessoFim: string | null } | null;
 }) {
   const treinoPlano = await getTreinoComExercicios(treinoId);
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
@@ -94,6 +99,10 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
     };
   });
 
+  // Campanhas do visitante (0068), mostradas na tela de fim de treino.
+  const camp = visitante && !presencial ? await campanhaDoVisitante(alunoId, visitante.acessoFim).catch(() => null) : null;
+  const campanha = camp ? { ...camp, ofertaHref: camp.oferta && BRAND.contact.whatsapp ? linkOferta(camp.oferta, BRAND.contact.whatsapp) : null } : null;
+
   const sessaoAtiva = emAndamento && emAndamento.treino_id === treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
   const outraSessao = emAndamento && emAndamento.treino_id !== treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
 
@@ -117,6 +126,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       desbloqueia={desbloqueia ?? undefined}
       progressoesRecentes={progressoes}
       confianca={confianca}
+      campanha={campanha}
       extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );

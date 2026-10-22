@@ -13,6 +13,7 @@ import { ConvitesClient } from "./ConvitesClient";
 import { AcoesVisitante } from "./AcoesVisitante";
 import { BoasVindasWhatsapp } from "./BoasVindasWhatsapp";
 import { mensagemBoasVindas } from "@/lib/visitante/boas-vindas-whatsapp";
+import { indicacoesPorVisitante } from "@/lib/data/campanhas";
 
 export const metadata = { title: "Visitantes" };
 
@@ -21,7 +22,8 @@ const OBJETIVO: Record<string, string> = { hipertrofia: "Massa muscular", emagre
 export default async function VisitantesPage() {
   if (!FEATURES.modoVisitante) notFound();
   await requireTreinadorPage();
-  const [convites, visitantes, desafios] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios()]);
+  const [convites, visitantes, desafios, indicacoes] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios(), indicacoesPorVisitante().catch(() => new Map())]);
+  const nomeVisitante = new Map(visitantes.map((v) => [v.id, (v.profile?.nome ?? "").split(" ")[0]]));
   const nomeDesafio = new Map(desafios.map((d) => [d.id, d.nome]));
   const curta = (d: string | null) => (d ? d.split("-").reverse().join("/") : null);
   const hoje = dataLocal(new Date());
@@ -75,6 +77,13 @@ export default async function VisitantesPage() {
                         {v.perfil?.onboarding_concluido_em ? "" : " · questionário pendente"}
                         {v.perfil?.interesse_desafios ? " · quer ser avisado de desafios" : ""}
                       </p>
+                      {indicacoes.get(v.id)?.amigos || indicacoes.get(v.id)?.convidadoPor ? (
+                        <p className="text-xs font-semibold text-accent">
+                          {indicacoes.get(v.id)?.amigos ? `🤝 Convidou ${indicacoes.get(v.id)!.amigos} ${indicacoes.get(v.id)!.amigos === 1 ? "amigo" : "amigos"} · ganhou +${indicacoes.get(v.id)!.diasGanhos} dias` : ""}
+                          {indicacoes.get(v.id)?.amigos && indicacoes.get(v.id)?.convidadoPor ? " · " : ""}
+                          {indicacoes.get(v.id)?.convidadoPor ? `Entrou pelo convite de ${nomeVisitante.get(indicacoes.get(v.id)!.convidadoPor!) || "outro visitante"}` : ""}
+                        </p>
+                      ) : null}
                       <div className="mt-2">
                         <BoasVindasWhatsapp
                           id={v.id}

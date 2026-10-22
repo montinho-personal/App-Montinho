@@ -486,7 +486,8 @@ select test_logout();
 -- T14 — 0020: treino extra (aluno só pede; personal aprova) e prioridade
 -- ============================================================================
 select test_login('11111111-1111-1111-1111-111111111111');
-insert into config_extra (aluno_id, habilitado, requer_aprovacao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true, true);
+insert into config_extra (aluno_id, habilitado, requer_aprovacao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true, true)
+  on conflict (aluno_id) do update set habilitado = true, requer_aprovacao = true; -- 0067 já cria a linha ao criar o aluno
 insert into extras_liberados (id, aluno_id, modalidade, titulo, duracao_min) values ('eeeeeeee-0000-0000-0000-00000000000a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cardio_leve', 'Caminhada', 30), ('eeeeeeee-0000-0000-0000-00000000000b', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'mobilidade', 'Mobilidade', 20);
 update exercicios set prioridade = 'essencial' where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 select test_login('22222222-2222-2222-2222-222222222222');
@@ -517,7 +518,7 @@ declare n int;
 begin
   select count(*) into n from solicitacoes_extra;
   if n <> 0 then raise exception 'T14: aluno B viu pedido de A'; end if;
-  select count(*) into n from config_extra;
+  select count(*) into n from config_extra where aluno_id <> 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; -- 0067: B tem a própria linha
   if n <> 0 then raise exception 'T14: aluno B viu configuração de A'; end if;
 end $$;
 select test_login('11111111-1111-1111-1111-111111111111');
@@ -1161,4 +1162,78 @@ begin
 end $$;
 reset role;
 \echo 'T38 OK: WhatsApp do visitante só no próprio cadastro e só se vazio'
+-- T39 — 0068: convite de amigo (+10 dias por amigo cadastrado, até +30)
+update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update alunos set modalidade = 'consultoria' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+update acessos_visitante set fim = now() + interval '5 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update training_sessions set status = 'em_andamento' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if public.meu_convite_indicacao() is not null then raise exception 'T39a: código liberado antes de 4 treinos concluídos'; end if;
+end $$;
+select test_logout();
+insert into training_sessions (aluno_id, client_key, status) select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't39-' || g, 'concluida' from generate_series(1, 4) g;
+select test_login('22222222-2222-2222-2222-222222222222');
+create temp table _t39 (codigo text);
+grant all on _t39 to authenticated;
+do $$
+declare c1 text; c2 text;
+begin
+  c1 := public.meu_convite_indicacao();
+  c2 := public.meu_convite_indicacao();
+  if c1 is null or c1 !~ '^AMIGO-[A-Z2-9]{5}$' then raise exception 'T39b: código inválido (%)', c1; end if;
+  if c1 <> c2 then raise exception 'T39c: segunda chamada criou outro código'; end if;
+  insert into _t39 values (c1);
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if public.meu_convite_indicacao() is not null then raise exception 'T39d: aluno da consultoria ganhou código de visitante'; end if;
+end $$;
+select test_logout();
+-- 4 amigos se cadastram pelo link (como a API de cadastro faz)
+do $$
+declare
+  fim_antes timestamptz; fim_depois timestamptz; conv uuid; i int; uid uuid; aid uuid; total int;
+begin
+  select fim into fim_antes from acessos_visitante where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select id into conv from convites where codigo = (select codigo from _t39);
+  for i in 1..4 loop
+    uid := gen_random_uuid();
+    insert into auth.users (id, email) values (uid, 'amigo' || i || '@exemplo.local');
+    insert into alunos (profile_id, status, modalidade) values (uid, 'ativo', 'visitante') returning id into aid;
+    insert into acessos_visitante (aluno_id, convite_id, tipo, inicio, fim) values (aid, conv, 'dias', now(), now() + interval '30 days');
+  end loop;
+  select fim into fim_depois from acessos_visitante where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select sum(dias_bonus) into total from indicacoes where indicador_aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if total <> 30 then raise exception 'T39e: bônus total deveria ser 30, foi %', total; end if;
+  if abs(extract(epoch from (fim_depois - fim_antes)) - 30 * 86400) > 60 then raise exception 'T39f: acesso não ganhou exatamente +30 dias (% → %)', fim_antes, fim_depois; end if;
+  if (select count(*) from indicacoes where indicador_aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') <> 4 then raise exception 'T39g: indicações não registradas'; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if (select count(*) from indicacoes) <> 4 then raise exception 'T39h: indicador não vê as próprias indicações'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare ok boolean := false;
+begin
+  if (select count(*) from indicacoes) <> 0 then raise exception 'T39i: aluno vê indicações de outro'; end if;
+  begin insert into indicacoes (indicador_aluno_id, indicado_aluno_id, dias_bonus) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 30); exception when others then ok := true; end;
+  if not ok then raise exception 'T39j: aluno conseguiu se dar bônus'; end if;
+end $$;
+select test_logout();
+set role anon;
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.meu_convite_indicacao(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T39k: anon executou meu_convite_indicacao()'; end if;
+end $$;
+reset role;
+\echo 'T39 OK: convite de amigo só com 4 treinos, +10 dias por amigo até +30, sem bônus forjado'
 \echo 'TODOS OS TESTES PASSARAM'

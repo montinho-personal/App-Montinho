@@ -38,7 +38,8 @@ export async function convitePublico(codigo: string): Promise<ConvitePublico | n
 export async function listarConvites(): Promise<Convite[]> {
   if (isDemoMode()) return [{ id: "demo-convite", codigo: CONVITE_DEMO.codigo, campanha_id: null, tipo_acesso: "dias", dias: 30, acesso_ate: null, max_usos: 50, usos: 3, valido_ate: null, renovavel: true, permite_conversao: true, origem: "instagram", ativo: true, created_at: new Date().toISOString() }];
   const db = await getDb();
-  const { data } = await db.from("convites").select("*").order("created_at", { ascending: false }).limit(200);
+  // Os links pessoais de “convide um amigo” (0068) aparecem em cada visitante, não na lista de convites.
+  const { data } = await db.from("convites").select("*").is("indicador_aluno_id", null).order("created_at", { ascending: false }).limit(200);
   return (data ?? []) as Convite[];
 }
 
