@@ -4,25 +4,14 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input, Label } from "@/components/ui/Input";
-import { GRUPO_LABEL, normalizarNome } from "@/lib/grupos";
+import { GRUPO_LABEL } from "@/lib/grupos";
+import { buscarExercicios, FILTROS_MONTADOR } from "@/lib/visitante/busca-exercicio";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 
 export type ItemLeve = { id: string; nome: string; grupo: GrupoMuscular; sinonimos: string[]; equipamento: string[]; video: boolean };
 
 type Linha = { chave: string; id: string | null; biblioteca_id: string; series: number; reps: string; descanso_seg: number };
 
-const FILTROS: Array<{ valor: string; rotulo: string }> = [
-  { valor: "peito", rotulo: "Peito" },
-  { valor: "costas", rotulo: "Costas" },
-  { valor: "ombro", rotulo: "Ombros" },
-  { valor: "biceps", rotulo: "Bíceps" },
-  { valor: "triceps", rotulo: "Tríceps" },
-  { valor: "quadriceps", rotulo: "Quadríceps" },
-  { valor: "posteriores", rotulo: "Posteriores" },
-  { valor: "gluteo", rotulo: "Glúteos" },
-  { valor: "panturrilha", rotulo: "Panturrilha" },
-  { valor: "abdomen", rotulo: "Abdômen" },
-];
 const DESCANSOS = [45, 60, 90, 120, 180];
 const fmtDescanso = (s: number) => (s < 60 ? `${s} s` : s % 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s / 60} min`);
 
@@ -40,11 +29,7 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
   const [erro, setErro] = useState<string | null>(null);
 
   const resultados = useMemo(() => {
-    const q = normalizarNome(busca);
-    return itens
-      .filter((i) => !filtro || i.grupo.startsWith(filtro))
-      .filter((i) => !q || normalizarNome(i.nome).includes(q) || i.sinonimos.some((s) => normalizarNome(s).includes(q)))
-      .slice(0, 40);
+    return buscarExercicios(itens, busca, filtro);
   }, [itens, busca, filtro]);
 
   function adicionar(item: ItemLeve) {
@@ -158,7 +143,7 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            {FILTROS.map((f) => (
+            {FILTROS_MONTADOR.map((f) => (
               <button key={f.valor} type="button" onClick={() => { setFiltro(filtro === f.valor ? null : f.valor); setBusca(""); }} aria-pressed={filtro === f.valor} className={`min-h-9 rounded-full border px-3 text-xs ${filtro === f.valor ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted"}`}>
                 {f.rotulo}
               </button>
