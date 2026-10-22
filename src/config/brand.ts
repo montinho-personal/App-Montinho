@@ -63,7 +63,7 @@ export const BRAND = {
 
   /** CONTATOS — vazios ficam ocultos. */
   contact: {
-    whatsapp: "", // só números, ex: "5511999999999" (preencher com o número de atendimento)
+    whatsapp: "5511981063409", // WhatsApp oficial do Montinho (só números, com 55 + DDD), informado por ele em 22/10/2026
     email: "",
     instagram: "montinho_personal",
     site: "https://www.montinhopersonal.com.br/",
