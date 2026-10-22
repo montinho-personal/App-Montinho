@@ -10,12 +10,14 @@ import { useToast } from "@/components/ui/Toast";
 import { FOCOS_EXTRA, TEMPOS_EXTRA_MIN, type CorpoExtra, type FocoExtra, type ResultadoExtraGerado } from "@/lib/treino/extra-gerado";
 import type { ContextoExtraGerado } from "@/lib/data/extra-gerado";
 import { BRAND } from "@/config/brand";
+import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
+import { EuMonto, type ItemEscolhido } from "./EuMonto";
 
 const CORPO: Record<CorpoExtra, string> = { bem: "Bem recuperado", cansado: "Um pouco cansado", dor: "Com dor ou desconforto" };
 const chip = (on: boolean) => `touch rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`;
 const chave = () => `extra-gerado:${new Date().toISOString().slice(0, 10)}:${Math.random().toString(36).slice(2, 10)}`;
 
-export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
+export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGerado; biblioteca: ItemBiblioteca[]; atalhos: Array<{ nome: string; biblioteca_id: string | null; grupo: string | null }> }) {
   const router = useRouter();
   const toast = useToast();
   const [tempo, setTempo] = useState<number | null>(null);
@@ -23,6 +25,9 @@ export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
   const [corpo, setCorpo] = useState<CorpoExtra | null>(null);
   const [previa, setPrevia] = useState<ResultadoExtraGerado | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [modo, setModo] = useState<"app" | "livre">("app");
+  const [itens, setItensState] = useState<ItemEscolhido[]>([]);
+  const setItens = (f: (a: ItemEscolhido[]) => ItemEscolhido[]) => { setItensState(f); setPrevia(null); };
 
   if (ctx.bloqueio) {
     const voltarASequencia = !ctx.cumprida && ctx.proximo && !ctx.emAndamento;
@@ -53,11 +58,13 @@ export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
     );
   }
 
-  const pronto = tempo && foco && corpo;
+  const pronto = !!corpo && (modo === "app" ? !!(tempo && foco) : itens.length > 0);
+  const corpoPedido = (f = foco, t = tempo, c = corpo) =>
+    modo === "app" ? { modo, foco: f, tempo_min: t, corpo: c } : { modo, corpo: c, itens: itens.map((i) => ({ nome: i.nome, biblioteca_id: i.biblioteca_id, series: i.series, reps: i.reps })) };
   async function montar(f = foco, t = tempo, c = corpo) {
-    if (!f || !t || !c) return;
+    if (!c || (modo === "app" && (!f || !t))) return;
     setCarregando(true);
-    const r = await fetch("/api/extras/montar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foco: f, tempo_min: t, corpo: c }) })
+    const r = await fetch("/api/extras/montar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpoPedido(f, t, c)) })
       .then((x) => x.json())
       .catch(() => null);
     setCarregando(false);
@@ -66,9 +73,9 @@ export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
     setPrevia(r.resultado ?? null);
   }
   async function comecar() {
-    if (!foco || !tempo || !corpo) return;
+    if (!pronto) return;
     setCarregando(true);
-    const r = await fetch("/api/extras/montar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foco, tempo_min: tempo, corpo, iniciar: true, client_key: chave() }) }).catch(() => null);
+    const r = await fetch("/api/extras/montar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...corpoPedido(), iniciar: true, client_key: chave() }) }).catch(() => null);
     const d = (await r?.json().catch(() => null)) as { id?: string; treinoId?: string; error?: string } | null;
     if (!r?.ok || !d?.id) { setCarregando(false); return toast.error(d?.error ?? "Não foi possível começar agora."); }
     router.push(`/aluno/treino/${d.treinoId}?sessao=${d.id}`);
@@ -80,9 +87,19 @@ export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Semana cumprida · {ctx.feitos} de {ctx.programados} treinos ✓</p>
           <h2 className="mt-1 text-lg font-bold">Monte o seu treino extra</h2>
-          <p className="text-fg-muted">Três toques e o app monta com exercícios do seu plano, já com a carga da última vez.</p>
+          <p className="text-fg-muted">Deixe o app montar em três toques ou monte do seu jeito, tocando ou falando.</p>
         </div>
 
+        <div className="grid grid-cols-2 gap-1 rounded-xl border border-border p-1" role="group" aria-label="Quem monta o extra">
+          {([["app", "O app monta"], ["livre", "Eu monto"]] as const).map(([v, t]) => (
+            <button key={v} type="button" aria-pressed={modo === v} onClick={() => { setModo(v); setPrevia(null); }} className={`touch rounded-lg py-2 text-sm font-bold ${modo === v ? "bg-accent text-bg" : "text-fg-muted"}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {modo === "livre" ? <EuMonto itens={itens} setItens={setItens} biblioteca={biblioteca} atalhos={atalhos} seriesDisponiveis={ctx.seriesDisponiveis} /> : (
+        <>
         <fieldset className="space-y-1.5">
           <legend className="font-semibold">Quanto tempo você tem?</legend>
           <div className="flex flex-wrap gap-1.5">
@@ -106,6 +123,9 @@ export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
           </div>
         </fieldset>
 
+        </>
+        )}
+
         <fieldset className="space-y-1.5">
           <legend className="font-semibold">Como está o seu corpo?</legend>
           <div className="flex flex-wrap gap-1.5">
@@ -119,7 +139,7 @@ export function MontarExtra({ ctx }: { ctx: ContextoExtraGerado }) {
 
         {!previa ? (
           <button type="button" disabled={!pronto || carregando} onClick={() => void montar()} className="touch w-full rounded-lg bg-accent px-4 py-3 font-bold text-bg disabled:opacity-50">
-            {carregando ? "Montando…" : "Montar meu extra"}
+            {carregando ? "Montando…" : modo === "app" ? "Montar meu extra" : "Conferir meu extra"}
           </button>
         ) : previa.ok ? (
           <div className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-3" aria-live="polite">

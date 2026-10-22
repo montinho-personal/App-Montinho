@@ -373,14 +373,16 @@ export const solicitarExtraSchema = z.object({
   mensagem: textoOpcional(300),
 });
 export const decidirExtraSchema = z.object({ id: z.string().min(1).max(64), status: z.enum(["aprovada", "recusada"]), resposta: textoOpcional(300) });
-/** Extra montado pelo app: as três respostas; iniciar=true começa a sessão. */
-export const montarExtraSchema = z.object({
-  foco: z.enum(["prioridade", "full_body", "pequenos"]),
-  tempo_min: z.coerce.number().int().refine((n) => [15, 20, 30, 45, 60].includes(n), "Tempo inválido"),
-  corpo: z.enum(["bem", "cansado", "dor"]),
-  iniciar: z.boolean().optional().default(false),
-  client_key: z.string().min(8).max(80).optional(),
-});
+/** Extra: "app" (as três respostas) ou "livre" (o aluno escolhe); iniciar=true começa a sessão. */
+const baseMontar = { corpo: z.enum(["bem", "cansado", "dor"]), iniciar: z.boolean().optional().default(false), client_key: z.string().min(8).max(80).optional() };
+export const montarExtraSchema = z.discriminatedUnion("modo", [
+  z.object({ modo: z.literal("app"), foco: z.enum(["prioridade", "full_body", "pequenos"]), tempo_min: z.coerce.number().int().refine((n) => [15, 20, 30, 45, 60].includes(n), "Tempo inválido"), ...baseMontar }),
+  z.object({
+    modo: z.literal("livre"),
+    itens: z.array(z.object({ biblioteca_id: z.string().max(64).nullable().optional(), nome: z.string().trim().min(1).max(80), series: z.coerce.number().int().min(1).max(5), reps: z.string().trim().max(20).default("10-12") })).min(1).max(8),
+    ...baseMontar,
+  }),
+]);
 export const registrarAtividadeExtraSchema = z.object({
   extra_id: z.string().min(1).max(64),
   client_key: z.string().min(8).max(80),

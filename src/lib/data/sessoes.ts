@@ -289,7 +289,8 @@ export function exerciciosDaSessao(sessaoId: string, doDia: ExercicioPrescrito[]
   return doDia.map((e, ordem) => ({
     id: uid(),
     session_id: sessaoId,
-    exercicio_id: e.id,
+    // Exercício montado da biblioteca (extra "eu monto") não existe no plano: sem vínculo.
+    exercicio_id: e.treino_id ? e.id : null,
     biblioteca_id: e.biblioteca_id ?? null,
     client_key: `ex:${e.id}`,
     ordem,

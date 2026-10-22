@@ -195,3 +195,34 @@ export function montarExtraGerado(e: EntradaExtraGerado): ResultadoExtraGerado {
 export function semanaCumprida(feitos: number, programados: number | null): boolean {
   return !!programados && programados > 0 && feitos >= programados;
 }
+
+// ---------------------------------------------------------------------------
+// "Eu monto": o aluno escolhe (tocando ou falando) os exercícios do extra.
+// Ele decide o quê; o app só confere a segurança: dor, 48 h por músculo e o
+// teto de séries extras da semana. Pedido do Montinho, 22/10/2026.
+// ---------------------------------------------------------------------------
+export const LIMITES_EXTRA_LIVRE = { maxExercicios: 8, maxSeries: 5, seriesPadrao: 3, repsPadrao: "10-12" };
+
+export type ItemExtraLivre = {
+  /** Exercício do plano (traz carga anterior e recado) ou montado a partir da biblioteca. */
+  exercicio: ExercicioPrescrito;
+  series: number;
+  reps: string;
+};
+
+export function montarExtraLivre(e: { itens: ItemExtraLivre[]; corpo: CorpoExtra; recentes48h: GrupoMuscular[]; seriesDisponiveis: number; tempos?: Partial<ParametrosTempo> | null }): ResultadoExtraGerado {
+  const L = LIMITES_EXTRA_LIVRE;
+  if (e.corpo === "dor") return { ok: false, motivo: "Com dor ou desconforto, hoje não tem extra. Conte para o Montinho o que está sentindo: ele ajusta com você." };
+  if (!e.itens.length) return { ok: false, motivo: "Escolha pelo menos um exercício." };
+  if (e.itens.length > L.maxExercicios) return { ok: false, motivo: `No máximo ${L.maxExercicios} exercícios no extra.` };
+  const descansando = e.itens.filter((i) => i.exercicio.grupo_muscular && e.recentes48h.includes(i.exercicio.grupo_muscular));
+  if (descansando.length) {
+    return { ok: false, motivo: `${descansando.map((i) => `${i.exercicio.nome} (${rotulo(i.exercicio.grupo_muscular!)})`).join(", ")}: ${descansando.length > 1 ? "esses músculos foram treinados" : "esse músculo foi treinado"} há menos de ${REGRAS_EXTRA_GERADO.horasRecuperacao} h. Troque por outro exercício: recuperação também faz parte do treino.` };
+  }
+  const total = e.itens.reduce((n, i) => n + i.series, 0);
+  if (total > e.seriesDisponiveis) return { ok: false, motivo: `Seu extra tem ${total} séries e o limite desta semana é ${e.seriesDisponiveis}. Tire ${total - e.seriesDisponiveis} série${total - e.seriesDisponiveis > 1 ? "s" : ""} ou um exercício.` };
+  const exercicios = e.itens.map((i) => ({ ...versaoExtra(i.exercicio, Math.min(L.maxSeries, Math.max(1, Math.round(i.series)))), reps: (i.reps || L.repsPadrao).slice(0, 20) }));
+  const avisos = e.corpo === "cansado" ? ["Você marcou que está um pouco cansado: se pesar, faça menos séries. O descanso também conta."] : [];
+  const grupos = [...new Set(exercicios.map((x) => x.grupo_muscular).filter(Boolean))] as GrupoMuscular[];
+  return { ok: true, extra: { titulo: "Extra: do meu jeito", exercicios, series: total, duracaoMin: Math.max(5, Math.round(estimarPrescricao(exercicios, e.tempos).totalSeg / 60)), grupos, avisos } };
+}

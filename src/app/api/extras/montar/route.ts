@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, montarExtraSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
-  const respostas = { foco: data.foco, tempoMin: data.tempo_min, corpo: data.corpo };
+  const respostas = data.modo === "app" ? { modo: "app" as const, foco: data.foco, tempoMin: data.tempo_min, corpo: data.corpo } : { modo: "livre" as const, corpo: data.corpo, itens: data.itens };
   try {
     if (!data.iniciar) return NextResponse.json(await previaExtraGerado(sessao.alunoId, respostas));
     if (!data.client_key) return NextResponse.json({ error: "client_key obrigatória" }, { status: 400 });
