@@ -6,6 +6,7 @@ import * as missTerracos from "./miss-terracos-tambore";
 import * as mrBellagio from "./missao-mr-bellagio";
 import * as exMerendeira from "./projeto-ex-merendeira";
 import * as corpoEsculpido from "./missao-corpo-esculpido";
+import * as shapeLutador from "./operacao-shape-lutador";
 
 export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[] };
 
@@ -14,6 +15,7 @@ export const PRESCRICOES: PrescricaoPronta[] = [
   { id: mrBellagio.ID_PRESCRICAO, titulo: `${mrBellagio.ROTULO} — Push/Pull/Legs/Push/Pull 5×/semana`, alunoNome: mrBellagio.NOME_ALUNO, plano: mrBellagio.PRESCRICAO, pendencias: mrBellagio.PENDENCIAS },
   { id: exMerendeira.ID_PRESCRICAO, titulo: `${exMerendeira.ROTULO} — Upper/Lower em sequência`, alunoNome: exMerendeira.NOME_ALUNA, plano: exMerendeira.PRESCRICAO, pendencias: exMerendeira.PENDENCIAS },
   { id: corpoEsculpido.ID_PRESCRICAO, titulo: `${corpoEsculpido.ROTULO} — 6 treinos (Seg a Sáb) + cardio no domingo`, alunoNome: corpoEsculpido.NOME_ALUNA, plano: corpoEsculpido.PRESCRICAO, pendencias: corpoEsculpido.PENDENCIAS },
+  { id: shapeLutador.ID_PRESCRICAO, titulo: `${shapeLutador.ROTULO} — 5 treinos em sequência (A → E)`, alunoNome: shapeLutador.NOME_ALUNO, plano: shapeLutador.PRESCRICAO, pendencias: shapeLutador.PENDENCIAS },
 ];
 
 export function prescricoesParaAluno(nome: string | null | undefined): PrescricaoPronta[] {
