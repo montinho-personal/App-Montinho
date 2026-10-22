@@ -483,3 +483,43 @@ export const conteudoConhecimentoSchema = z
 export const salvarConteudoConhecimentoSchema = z.object({ conteudo: conteudoConhecimentoSchema, status: z.enum(["rascunho", "em_revisao", "publicado", "arquivado"]) }).strict();
 export const statusConhecimentoSchema = z.object({ status: z.enum(["rascunho", "em_revisao", "publicado", "arquivado"]) }).strict();
 export const porqueExercicioSchema = z.object({ texto: z.string().trim().max(600, "Use no máximo 600 caracteres") }).strict();
+
+// Modo Visitante (0052)
+export const cadastroVisitanteSchema = z.object({
+  codigo: z.string().trim().min(4).max(40),
+  nome: z.string().trim().min(2, "Digite seu nome").max(120),
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(160),
+  senha: z.string().min(8, "A senha precisa de pelo menos 8 caracteres").max(72),
+  aceite_privacidade: z.literal(true, { message: "É preciso aceitar a política de privacidade" }),
+});
+
+export const conviteSchema = z
+  .object({
+    codigo: z.string().trim().min(4).max(32),
+    tipo_acesso: z.enum(["permanente", "dias", "ate_data"]),
+    dias: z.number().int().min(1).max(365).nullable().optional(),
+    acesso_ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    max_usos: z.number().int().min(1).max(100000).nullable().optional(),
+    valido_ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    origem: z.string().trim().max(60).nullable().optional(),
+  })
+  .refine((c) => c.tipo_acesso !== "dias" || c.dias != null, { message: "Informe quantos dias", path: ["dias"] })
+  .refine((c) => c.tipo_acesso !== "ate_data" || c.acesso_ate, { message: "Informe a data final", path: ["acesso_ate"] });
+
+export const conviteAtivoSchema = z.object({ ativo: z.boolean() });
+
+export const perfilVisitanteSchema = z.object({
+  objetivo: z.enum(["hipertrofia", "emagrecimento", "condicionamento", "saude", "forca", "outro"]),
+  experiencia: z.enum(["iniciante", "intermediario", "avancado"]),
+  frequencia_semanal: z.number().int().min(1).max(7),
+  local_treino: z.enum(["academia", "casa", "condominio", "outro"]),
+  minutos_por_treino: z.number().int().min(10).max(240),
+  dificuldades: z.array(z.enum(["tempo", "constancia", "motivacao", "nao_sei_montar", "sem_resultado", "nao_sei_executar"])).max(6).default([]),
+  interesse_desafios: z.boolean(),
+});
+
+export const acaoVisitanteSchema = z.discriminatedUnion("acao", [
+  z.object({ acao: z.literal("renovar"), dias: z.number().int().min(1).max(365) }),
+  z.object({ acao: z.literal("encerrar") }),
+  z.object({ acao: z.literal("converter") }),
+]);

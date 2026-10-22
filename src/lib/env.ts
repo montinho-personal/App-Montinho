@@ -36,6 +36,8 @@ export const FEATURES = {
   iaMemoria: process.env.AI_PROVIDER === "anthropic" && Boolean(process.env.ANTHROPIC_API_KEY),
   /** Estimativa de estímulo secundário ligada por padrão na Tabela de Volume. */
   secundarioPadrao: process.env.NEXT_PUBLIC_VOLUME_SECUNDARIO_PADRAO === "true",
+  /** Modo Visitante (cadastro por convite, acesso com prazo). Sem a flag, as rotas respondem 404. */
+  modoVisitante: process.env.NEXT_PUBLIC_MODO_VISITANTE === "true",
 } as const;
 
 /** Nome do cookie que guarda a identidade escolhida no modo demo. */

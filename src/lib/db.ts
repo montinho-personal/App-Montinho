@@ -27,12 +27,17 @@ const perfilDemo = (p: Profile | undefined): Profile | null => (p ? { ...p, avat
 // ============================================================================
 // Alunos
 // ============================================================================
-export async function listAlunos(): Promise<AlunoComPerfil[]> {
+/** Alunos da consultoria. Visitantes (Modo Visitante) só com `incluirVisitantes` — eles têm a própria tela. */
+export async function listAlunos(opts: { incluirVisitantes?: boolean } = {}): Promise<AlunoComPerfil[]> {
   if (isDemoMode()) {
-    return demoStore().alunos.map((a) => ({ ...a, profile: perfilDemo(mockProfiles.find((p) => p.id === a.profile_id)) }));
+    return demoStore()
+      .alunos.filter((a) => opts.incluirVisitantes || a.modalidade !== "visitante")
+      .map((a) => ({ ...a, profile: perfilDemo(mockProfiles.find((p) => p.id === a.profile_id)) }));
   }
   const db = await getDb();
-  const { data } = await db.from("alunos").select("*, profile:profiles(*)").order("created_at", { ascending: false });
+  let q = db.from("alunos").select("*, profile:profiles(*)").order("created_at", { ascending: false });
+  if (!opts.incluirVisitantes) q = q.neq("modalidade", "visitante");
+  const { data } = await q;
   return (data ?? []) as AlunoComPerfil[];
 }
 
@@ -230,7 +235,7 @@ export async function getConhecimento(id: string) {
 // Métricas simples do painel (contagens de alunos)
 // ============================================================================
 export async function getDashboardMetrics() {
-  const alunos = isDemoMode() ? demoStore().alunos : ((await (await getDb()).from("alunos").select("status, acesso_ate")).data ?? []);
+  const alunos = isDemoMode() ? demoStore().alunos : ((await (await getDb()).from("alunos").select("status, acesso_ate").neq("modalidade", "visitante")).data ?? []);
   const hoje = new Date().toISOString().slice(0, 10);
   const proximosVencer = alunos.filter((a) => {
     if (!a.acesso_ate) return false;

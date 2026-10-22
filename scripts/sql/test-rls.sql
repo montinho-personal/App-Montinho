@@ -941,4 +941,56 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'completou_adaptacao', '1', now(), 'Adaptação concluída');
   raise notice 'T30 OK: fase do protocolo e medalhas de fase';
 end $$;
+-- T31 — 0052: Modo Visitante (acesso vencido não inicia treino; convites só do treinador)
+insert into convites (codigo, tipo_acesso, dias) values ('TESTE-31', 'dias', 30);
+update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+insert into acessos_visitante (aluno_id, tipo, fim) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dias', now() - interval '1 day');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false; n int;
+begin
+  begin
+    insert into training_sessions (aluno_id, treino_id, client_key, letra, nome_treino)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','cccccccc-cccc-cccc-cccc-cccccccccccc','t31-vencido','A','Treino A');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T31a: visitante vencido iniciou treino'; end if;
+  select count(*) into n from acessos_visitante;
+  if n <> 1 then raise exception 'T31b: visitante deveria ver só o próprio acesso (viu %)', n; end if;
+  select count(*) into n from convites;
+  if n <> 0 then raise exception 'T31c: visitante leu convites'; end if;
+  ok := false;
+  begin insert into convites (codigo, tipo_acesso) values ('HACK-31', 'permanente'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T31d: visitante criou convite'; end if;
+  insert into perfil_visitante (aluno_id, objetivo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'hipertrofia');
+end $$;
+select test_logout();
+update acessos_visitante set fim = now() + interval '30 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+insert into training_sessions (aluno_id, treino_id, client_key, letra, nome_treino)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','cccccccc-cccc-cccc-cccc-cccccccccccc','t31-em-dia','A','Treino A');
+select test_logout();
+update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+\echo 'T31 OK: visitante vencido só lê; em dia registra; convites só do treinador'
+-- T32 — 0053: convite público mostra só o necessário; reserva respeita as vagas
+insert into convites (codigo, tipo_acesso, dias, max_usos) values ('VAGA-UNICA', 'dias', 7, 1);
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false; r record;
+begin
+  select * into r from convite_publico('vaga-unica');
+  if r.situacao <> 'ok' or r.dias <> 7 then raise exception 'T32a: convite público errado'; end if;
+  begin perform reservar_convite('VAGA-UNICA'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T32b: aluno conseguiu reservar convite direto'; end if;
+end $$;
+select test_logout();
+do $$
+declare n int;
+begin
+  select count(*) into n from reservar_convite('VAGA-UNICA');
+  if n <> 1 then raise exception 'T32c: primeira reserva deveria passar'; end if;
+  select count(*) into n from reservar_convite('VAGA-UNICA');
+  if n <> 0 then raise exception 'T32d: segunda reserva passou do limite'; end if;
+  if (select situacao from convite_publico('VAGA-UNICA')) <> 'esgotado' then raise exception 'T32e: deveria aparecer esgotado'; end if;
+end $$;
+\echo 'T32 OK: convite público e reserva atômica'
 \echo 'TODOS OS TESTES PASSARAM'

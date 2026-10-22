@@ -1,11 +1,13 @@
 export const dynamic = "force-dynamic";
 
+import { FEATURES } from "@/lib/env";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { requireTreinadorPage } from "@/lib/auth/session";
 
 const NAV = [
   { label: "Visão geral", href: "/treinador", icon: "home" },
   { label: "Alunos", href: "/treinador/alunos", icon: "users" },
+  ...(FEATURES.modoVisitante ? [{ label: "Visitantes", href: "/treinador/visitantes", icon: "user" } as const] : []),
   { label: "Central de aderência", href: "/treinador/aderencia", icon: "chart" },
   { label: "Celebrar conquistas", href: "/treinador/conquistas", icon: "star" },
   { label: "Evoluções dos alunos", href: "/treinador/evolucoes", icon: "chart" },

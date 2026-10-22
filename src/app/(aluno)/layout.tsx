@@ -7,6 +7,7 @@ import { BRAND } from "@/config/brand";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { avatarDoUsuario } from "@/lib/data/perfil";
+import { AvisoAcessoVisitante } from "@/components/visitante/AvisoAcessoVisitante";
 
 const TABS = [
   { label: "Início", href: "/aluno", icon: "home" },
@@ -48,7 +49,10 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
         <FioMarca />
       </header>
       <main id="conteudo" className="flex-1 pb-28">
-        <div className="max-w-md mx-auto px-4 py-5">{children}</div>
+        <div className="max-w-md mx-auto px-4 py-5">
+          {sessao.modalidade === "visitante" ? <AvisoAcessoVisitante fim={sessao.acessoFim ?? null} /> : null}
+          {children}
+        </div>
       </main>
       <MobileTabBar items={[...TABS]} />
     </div>

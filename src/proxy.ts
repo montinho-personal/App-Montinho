@@ -8,8 +8,8 @@ import { DEMO_PERSONAS } from "@/lib/mock/personas";
 // Proxy = checagem OTIMISTA de rota (Next 16). A autorização de verdade acontece
 // no servidor (src/lib/auth/session.ts) e no banco (RLS). Não confie só aqui.
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/cadastro", "/configuracao-pendente", "/pagamento/sucesso", "/sw.js", "/manifest.webmanifest", "/chalala"]);
-const PUBLIC_PREFIXES = ["/api/webhook", "/api/cron", "/api/public", "/api/auth", "/auth/", "/conta/", "/f/", "/_next", "/favicon", "/brand/", "/opengraph-image", "/twitter-image"];
+const PUBLIC_PATHS = new Set(["/", "/login", "/cadastro", "/configuracao-pendente", "/pagamento/sucesso", "/sw.js", "/manifest.webmanifest", "/chalala", "/privacidade"]);
+const PUBLIC_PREFIXES = ["/api/webhook", "/api/cron", "/api/public", "/api/auth", "/auth/", "/conta/", "/f/", "/convite/", "/_next", "/favicon", "/brand/", "/opengraph-image", "/twitter-image"];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;

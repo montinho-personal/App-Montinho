@@ -43,9 +43,15 @@ export async function getSessao(): Promise<SessaoApp | null> {
   if (profile.role === "treinador") {
     return { mode: "live", userId: user.id, nome: profile.nome, role: "treinador", alunoId: null };
   }
-  const { data: aluno } = await supabase.from("alunos").select("id").eq("profile_id", user.id).maybeSingle();
+  const { data: aluno } = await supabase.from("alunos").select("id, modalidade").eq("profile_id", user.id).maybeSingle();
   if (!aluno) return null; // perfil sem cadastro de aluno: não libera dados
-  return { mode: "live", userId: user.id, nome: profile.nome, role: "aluno", alunoId: aluno.id };
+  const modalidade = aluno.modalidade === "visitante" ? "visitante" : "consultoria";
+  let acessoFim: string | null = null;
+  if (modalidade === "visitante") {
+    const { data: acesso } = await supabase.from("acessos_visitante").select("fim").eq("aluno_id", aluno.id).maybeSingle();
+    acessoFim = acesso?.fim ?? null;
+  }
+  return { mode: "live", userId: user.id, nome: profile.nome, role: "aluno", alunoId: aluno.id, modalidade, acessoFim };
 }
 
 // ---------------------------------------------------------------------------

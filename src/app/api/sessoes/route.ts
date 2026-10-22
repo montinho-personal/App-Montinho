@@ -25,6 +25,6 @@ export async function POST(request: Request) {
     return NextResponse.json(s, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao iniciar sessão";
-    return NextResponse.json({ error: msg }, { status: /não encontrado|não está mais/i.test(msg) ? 404 : /Sem versão possível|não liberado|não usa este treino/i.test(msg) ? 409 : 500 });
+    return NextResponse.json({ error: msg }, { status: /não encontrado|não está mais/i.test(msg) ? 404 : /acesso ao app terminou/i.test(msg) ? 403 : /Sem versão possível|não liberado|não usa este treino/i.test(msg) ? 409 : 500 });
   }
 }

@@ -31,6 +31,8 @@ export type Aluno = {
   data_inicio: string | null;
   acesso_ate: string | null;
   ultimo_treino_em: string | null;
+  /** 'consultoria' (padrão) ou 'visitante' (0052). */
+  modalidade?: "consultoria" | "visitante";
   created_at: string;
   updated_at: string;
 };
@@ -51,6 +53,8 @@ export type Treino = {
   tempo_alvo_min?: number | null;
   /** Parâmetros de tempo efetivos no salvamento (treinador + treino). */
   tempos_efetivos?: Record<string, unknown> | null;
+  /** 'personal' (padrão) ou 'proprio' (montado pelo visitante, 0052). */
+  autoria?: "personal" | "proprio";
   created_at: string;
   updated_at: string;
 };
@@ -150,4 +154,47 @@ export type Pagamento = {
   raw_webhook: unknown;
   created_at: string;
   updated_at: string;
+};
+
+// Modo Visitante (0052)
+export type Convite = {
+  id: string;
+  codigo: string;
+  campanha_id: string | null;
+  tipo_acesso: "permanente" | "dias" | "ate_data";
+  dias: number | null;
+  acesso_ate: string | null;
+  max_usos: number | null;
+  usos: number;
+  valido_ate: string | null;
+  renovavel: boolean;
+  permite_conversao: boolean;
+  origem: string | null;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type AcessoVisitante = {
+  aluno_id: string;
+  convite_id: string | null;
+  campanha_id: string | null;
+  tipo: "permanente" | "dias" | "ate_data";
+  inicio: string;
+  fim: string | null;
+  recursos: Record<string, unknown>;
+  renovavel: boolean;
+  origem: string | null;
+};
+
+export type PerfilVisitante = {
+  aluno_id: string;
+  objetivo: "hipertrofia" | "emagrecimento" | "condicionamento" | "saude" | "forca" | "outro" | null;
+  experiencia: "iniciante" | "intermediario" | "avancado" | null;
+  frequencia_semanal: number | null;
+  local_treino: "academia" | "casa" | "condominio" | "outro" | null;
+  minutos_por_treino: number | null;
+  dificuldades: string[];
+  interesse_desafios: boolean | null;
+  onboarding_concluido_em: string | null;
+  aceite_privacidade_em: string | null;
 };

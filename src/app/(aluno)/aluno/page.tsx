@@ -32,12 +32,21 @@ import { albumParaAluno } from "@/lib/data/desbloqueia";
 import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
 import { paraVisao } from "@/components/desbloqueia/visao";
 import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
+import { redirect } from "next/navigation";
+import { FEATURES } from "@/lib/env";
+import { ehVisitante } from "@/lib/auth/guards";
+import { perfilVisitante } from "@/lib/data/visitantes";
 
 export const metadata = { title: "Início" };
 
 export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
+  // Visitante novo: primeiro o questionário de boas-vindas.
+  if (FEATURES.modoVisitante && ehVisitante(sessao)) {
+    const perfil = await perfilVisitante(alunoId).catch(() => null);
+    if (!perfil?.onboarding_concluido_em) redirect("/aluno/boas-vindas");
+  }
   const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia, conquistas, historicoResumo] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),

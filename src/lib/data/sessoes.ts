@@ -314,6 +314,8 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
       const { data } = await db.from("training_sessions").select("id").eq("aluno_id", alunoId).eq("client_key", input.clientKey).single();
       return (await getSessao(alunoId, data!.id))!;
     }
+    // Modo Visitante: a política pode_registrar() barra acesso vencido.
+    if (error.code === "42501") throw new Error("Seu acesso ao app terminou. Seus treinos e medalhas continuam aqui para você ver; para voltar a treinar, fale com o Montinho.");
     throw new Error(`Não foi possível iniciar a sessão: ${error.message}`);
   }
   const { error: exErr } = await db.from("session_exercises").insert(

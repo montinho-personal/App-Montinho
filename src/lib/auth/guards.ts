@@ -4,7 +4,12 @@ export type Papel = "treinador" | "aluno";
 
 export type SessaoApp =
   | { mode: "live" | "demo"; userId: string; nome: string; role: "treinador"; alunoId: null }
-  | { mode: "live" | "demo"; userId: string; nome: string; role: "aluno"; alunoId: string };
+  | { mode: "live" | "demo"; userId: string; nome: string; role: "aluno"; alunoId: string; modalidade?: "consultoria" | "visitante"; acessoFim?: string | null };
+
+/** Visitante (Modo Visitante, 0052)? Alunos da consultoria e treinador: false. */
+export function ehVisitante(sessao: SessaoApp | null): boolean {
+  return sessao?.role === "aluno" && sessao.modalidade === "visitante";
+}
 
 /** Treinador acessa qualquer aluno; aluno só o próprio cadastro. */
 export function podeAcessarAluno(sessao: SessaoApp | null, alunoId: string | null | undefined): boolean {
