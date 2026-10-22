@@ -2,15 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { registrarCliqueGa } from "@/components/analytics/ga";
+import { eventoGa, registrarCliqueGa } from "@/components/analytics/ga";
 
-type Props = { id: string; tela: string; refCodigo: string; titulo: string; texto: string; botao: string; href: string; dispensavel: boolean; destaque?: boolean };
+type Props = { id: string; tela: string; refCodigo: string; titulo: string; texto: string; botao: string; href: string; dispensavel: boolean; destaque?: boolean; canal?: "whatsapp" | "instagram" };
 
 const enviar = (id: string, tipo: "exibido" | "clicado" | "dispensado", tela: string) =>
   fetch("/api/visitante/cta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cta: id, tipo, tela }), keepalive: true }).catch(() => undefined);
 
-/** Convite para falar com o Montinho no WhatsApp (registra exibido/clicado/dispensado). */
-export function CtaCard({ id, tela, refCodigo, titulo, texto, botao, href, dispensavel, destaque }: Props) {
+/** Convite para falar com o Montinho no WhatsApp ou seguir no Instagram (registra exibido/clicado/dispensado). */
+export function CtaCard({ id, tela, refCodigo, titulo, texto, botao, href, dispensavel, destaque, canal = "whatsapp" }: Props) {
   const [fechado, setFechado] = useState(false);
   const registrado = useRef(false);
   useEffect(() => {
@@ -42,7 +42,8 @@ export function CtaCard({ id, tela, refCodigo, titulo, texto, botao, href, dispe
         rel="noopener noreferrer"
         onClick={() => {
           void enviar(id, "clicado", tela);
-          registrarCliqueGa(refCodigo, tela);
+          if (canal === "instagram") eventoGa("instagram_click", { cta_ref: refCodigo, tela });
+          else registrarCliqueGa(refCodigo, tela);
         }}
         className="alvo mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-4 font-semibold text-bg"
       >

@@ -1,20 +1,22 @@
 // ============================================================================
-// Modo Visitante — convites para falar com o Montinho no WhatsApp (CTAs).
+// Modo Visitante — convites para falar com o Montinho (CTAs).
 // Puro (sem rede). Todo convite comercial leva ao WhatsApp oficial com um
 // código de origem (APP-…) no fim da mensagem, para o Montinho saber de onde
-// veio a conversa. Regras anti-chatice:
+// veio a conversa; o do Instagram leva ao perfil. O acesso dura cerca de 30
+// dias, então o ritmo é curto (pedido do Montinho, 22/10/2026):
 //  • no máximo 1 convite por tela;
-//  • dispensou → some por alguns dias; tocou → some por 14 dias;
-//  • já apareceu muitas vezes na semana → descansa;
+//  • um dia sim, um dia não: dia com convite, dia sem;
+//  • dispensou ou tocou → some por 2 dias (o Instagram, tocado, não volta);
 //  • nunca durante o treino.
-// O aviso de acesso vencido é a exceção: aparece sempre (é informação).
+// Os avisos de acesso ficam fora do rodízio; o vencido aparece sempre (é informação).
 // ============================================================================
 
-export type CtaId = "acesso_vencido" | "acesso_vencendo" | "desafio_concluido" | "constancia" | "evolucao" | "montar_treino";
+export type CtaId = "acesso_vencido" | "acesso_vencendo" | "desafio_concluido" | "constancia" | "evolucao" | "montar_treino" | "instagram";
 export type Tela = "aviso" | "inicio" | "evolucao" | "meus_treinos" | "jornada";
 
 export type Cta = {
   id: CtaId;
+  canal: "whatsapp" | "instagram";
   ref: string;
   telas: Tela[];
   prioridade: number;
@@ -29,6 +31,7 @@ export type Cta = {
 export const CTAS: Record<CtaId, Cta> = {
   acesso_vencido: {
     id: "acesso_vencido",
+    canal: "whatsapp",
     ref: "APP-FIM",
     telas: ["aviso"],
     prioridade: 100,
@@ -40,6 +43,7 @@ export const CTAS: Record<CtaId, Cta> = {
   },
   acesso_vencendo: {
     id: "acesso_vencendo",
+    canal: "whatsapp",
     ref: "APP-VENC",
     telas: ["aviso"],
     prioridade: 90,
@@ -51,6 +55,7 @@ export const CTAS: Record<CtaId, Cta> = {
   },
   desafio_concluido: {
     id: "desafio_concluido",
+    canal: "whatsapp",
     ref: "APP-DESAFIO",
     telas: ["inicio", "jornada"],
     prioridade: 80,
@@ -58,10 +63,11 @@ export const CTAS: Record<CtaId, Cta> = {
     texto: "Você cumpriu o combinado. Quer continuar evoluindo com um treino feito para você e acompanhamento do Montinho?",
     botao: "Quero saber mais",
     mensagem: "Oi, Montinho! Concluí o desafio no app e quero saber como continuar com você.",
-    pausaDias: 7,
+    pausaDias: 2,
   },
   constancia: {
     id: "constancia",
+    canal: "whatsapp",
     ref: "APP-CONSTANCIA",
     telas: ["inicio"],
     prioridade: 60,
@@ -69,10 +75,11 @@ export const CTAS: Record<CtaId, Cta> = {
     texto: "Já são vários treinos registrados. Com um plano feito para o seu objetivo, cada treino rende ainda mais.",
     botao: "Conversar com o Montinho",
     mensagem: "Oi, Montinho! Estou treinando com o app e queria um plano feito para mim.",
-    pausaDias: 10,
+    pausaDias: 2,
   },
   evolucao: {
     id: "evolucao",
+    canal: "whatsapp",
     ref: "APP-EVOLUCAO",
     telas: ["evolucao"],
     prioridade: 50,
@@ -80,10 +87,11 @@ export const CTAS: Record<CtaId, Cta> = {
     texto: "O Montinho olha os seus registros com você e mostra o que ajustar para continuar evoluindo.",
     botao: "Falar com o Montinho",
     mensagem: "Oi, Montinho! Estava vendo minha evolução no app e queria sua opinião.",
-    pausaDias: 10,
+    pausaDias: 2,
   },
   montar_treino: {
     id: "montar_treino",
+    canal: "whatsapp",
     ref: "APP-MONTAR",
     telas: ["meus_treinos"],
     prioridade: 40,
@@ -91,12 +99,24 @@ export const CTAS: Record<CtaId, Cta> = {
     texto: "Ele monta os treinos para o seu objetivo, sua rotina e seu tempo, e acompanha a sua evolução.",
     botao: "Quero um treino feito para mim",
     mensagem: "Oi, Montinho! Estou montando meus treinos no app e queria um feito por você.",
-    pausaDias: 10,
+    pausaDias: 2,
+  },
+  instagram: {
+    id: "instagram",
+    canal: "instagram",
+    ref: "APP-IG",
+    telas: ["inicio"],
+    prioridade: 10,
+    titulo: "Primeiro treino feito ✓",
+    texto: "No Instagram o Montinho mostra execução, ajustes e o dia a dia com os alunos. Dá para aprender um pouco a cada post.",
+    botao: "Seguir @montinho_personal",
+    mensagem: "",
+    pausaDias: 2,
   },
 };
 
 export const IDS_CTA = Object.keys(CTAS) as CtaId[];
-export const LIMITES_CTA = { pausaClique: 14, exibicoesSemana: 6 } as const;
+export const LIMITES_CTA = { pausaClique: 2 } as const;
 
 export type EventoCta = { cta: string; tipo: "exibido" | "clicado" | "dispensado"; created_at: string };
 
@@ -126,6 +146,8 @@ function elegivel(id: CtaId, c: ContextoCta): boolean {
       return c.acesso !== "vencido" && c.treinosConcluidos >= 4;
     case "montar_treino":
       return c.acesso !== "vencido" && c.temTreinoProprio;
+    case "instagram":
+      return c.acesso !== "vencido" && c.treinosConcluidos >= 1 && !c.eventos.some((e) => e.cta === "instagram" && e.tipo === "clicado");
   }
 }
 
@@ -134,21 +156,31 @@ function descansando(cta: Cta, eventos: EventoCta[], agora: number): boolean {
   const doCta = eventos.filter((e) => e.cta === cta.id);
   const ha = (e: EventoCta) => agora - Date.parse(e.created_at);
   if (doCta.some((e) => e.tipo === "dispensado" && ha(e) < cta.pausaDias! * DIA)) return true;
-  if (doCta.some((e) => e.tipo === "clicado" && ha(e) < LIMITES_CTA.pausaClique * DIA)) return true;
-  return doCta.filter((e) => e.tipo === "exibido" && ha(e) < 7 * DIA).length >= LIMITES_CTA.exibicoesSemana;
+  return doCta.some((e) => e.tipo === "clicado" && ha(e) < LIMITES_CTA.pausaClique * DIA);
+}
+
+const diaSP = (t: number) => new Date(t).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+const noRodizio = (cta: Cta | undefined) => !!cta && !cta.telas.includes("aviso");
+
+/** Um dia sim, um dia não: se ontem teve convite e hoje ainda não, hoje é dia de folga. */
+export function diaDeFolga(eventos: EventoCta[], agora: number): boolean {
+  const dias = new Set(eventos.filter((e) => e.tipo === "exibido" && noRodizio(CTAS[e.cta as CtaId])).map((e) => diaSP(Date.parse(e.created_at))));
+  return !dias.has(diaSP(agora)) && dias.has(diaSP(agora - DIA));
 }
 
 /** O convite desta tela (no máximo um), ou nenhum. */
 export function escolherCta(c: ContextoCta): Cta | null {
   const agora = (c.agora ?? new Date()).getTime();
+  const folga = diaDeFolga(c.eventos, agora);
   return (
     IDS_CTA.map((id) => CTAS[id])
-      .filter((cta) => cta.telas.includes(c.tela) && elegivel(cta.id, c) && !descansando(cta, c.eventos, agora))
+      .filter((cta) => cta.telas.includes(c.tela) && !(folga && noRodizio(cta)) && elegivel(cta.id, c) && !descansando(cta, c.eventos, agora))
       .sort((a, b) => b.prioridade - a.prioridade)[0] ?? null
   );
 }
 
-/** Link do WhatsApp oficial com o código de origem no fim da mensagem. */
-export function linkCta(cta: Cta, whatsapp: string): string {
-  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(`${cta.mensagem} [${cta.ref}]`)}`;
+/** Link do WhatsApp oficial com o código de origem no fim da mensagem (ou o perfil do Instagram). */
+export function linkCta(cta: Cta, contato: { whatsapp: string; instagram?: string | null }): string {
+  if (cta.canal === "instagram") return `https://instagram.com/${contato.instagram}`;
+  return `https://wa.me/${contato.whatsapp}?text=${encodeURIComponent(`${cta.mensagem} [${cta.ref}]`)}`;
 }

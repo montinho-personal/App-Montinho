@@ -48,7 +48,7 @@ export async function carregarLeads(): Promise<{ leads: Lead[]; eventos: EventoC
   const st = new Map((status ?? []).map((x) => [x.aluno_id as string, x as { status: StatusLead; anotacao: string | null }]));
   const leads = linhas.map((l): Lead => {
     const feitas = (sessoes ?? []).filter((x) => x.aluno_id === l.aluno_id);
-    const clique = (eventos ?? []).find((e) => e.aluno_id === l.aluno_id && e.tipo === "clicado");
+    const clique = (eventos ?? []).find((e) => e.aluno_id === l.aluno_id && e.tipo === "clicado" && CTAS[e.cta as CtaId]?.canal !== "instagram");
     const ref = clique ? (CTAS[clique.cta as CtaId]?.ref ?? clique.cta) : null;
     return {
       id: l.aluno_id,

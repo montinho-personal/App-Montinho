@@ -5,6 +5,7 @@
 // de uma. Respeita "animações desligadas" e "reduzir movimento".
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { BRAND } from "@/config/brand";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
 import { cardDaMedalha } from "@/lib/conquistas/compartilhavel";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
@@ -106,6 +107,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
             <button type="button" onClick={() => void compartilhar()} disabled={enviando} className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-bg disabled:opacity-60">
               {enviando ? "Preparando a imagem…" : "📲 Compartilhar no Story / WhatsApp"}
             </button>
+            {BRAND.contact.instagram ? <p className="text-xs text-fg-muted">No Story, marque @{BRAND.contact.instagram}: ele reposta.</p> : null}
             {aviso ? <p className="text-xs text-fg-muted">{aviso}</p> : null}
             <button type="button" onClick={proxima} className="touch w-full rounded-xl border border-border px-5 py-3 font-semibold text-fg">
               {i + 1 < conquistas.length ? "Próxima medalha →" : "Chalalá! Continuar"}
