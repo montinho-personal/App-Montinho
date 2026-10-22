@@ -119,8 +119,8 @@ export function BoasVindasClient({ primeiroNome, inicial }: { primeiroNome: stri
         <Chips opcoes={DIFICULDADES} valor={dificuldades} multiplo onChange={(v) => setDificuldades((d) => (d.includes(v) ? d.filter((x) => x !== v) : [...d, v]))} />
       </section>
       <section className="space-y-2">
-        <h2 className="font-semibold">Quer participar dos desafios do Montinho?</h2>
-        <Chips<"sim" | "nao"> opcoes={[{ valor: "sim", rotulo: "Quero!" }, { valor: "nao", rotulo: "Agora não" }]} valor={desafios === null ? null : desafios ? "sim" : "nao"} onChange={(v) => setDesafios(v === "sim")} />
+        <h2 className="font-semibold">Quando o Montinho lançar um desafio (ex.: 21 dias), quer ser avisado?</h2>
+        <Chips<"sim" | "nao"> opcoes={[{ valor: "sim", rotulo: "Quero ser avisado" }, { valor: "nao", rotulo: "Agora não" }]} valor={desafios === null ? null : desafios ? "sim" : "nao"} onChange={(v) => setDesafios(v === "sim")} />
       </section>
       {erro ? <p className="text-sm text-danger" role="alert">{erro}</p> : null}
       <Button type="button" className="w-full" disabled={enviando} onClick={() => void salvar()}>

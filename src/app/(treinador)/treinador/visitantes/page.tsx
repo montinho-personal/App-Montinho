@@ -60,6 +60,7 @@ export default async function VisitantesPage() {
                         {v.perfil?.objetivo ? ` · ${OBJETIVO[v.perfil.objetivo] ?? v.perfil.objetivo}` : ""}
                         {v.perfil?.frequencia_semanal ? ` · ${v.perfil.frequencia_semanal}×/semana` : ""}
                         {v.perfil?.onboarding_concluido_em ? "" : " · questionário pendente"}
+                        {v.perfil?.interesse_desafios ? " · quer ser avisado de desafios" : ""}
                       </p>
                     </div>
                     <AcoesVisitante id={v.id} vencido={e.estado === "vencido"} />
