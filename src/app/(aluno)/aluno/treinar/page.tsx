@@ -7,6 +7,9 @@ import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { estadoSemana } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
 import { BRAND } from "@/config/brand";
+import { FEATURES } from "@/lib/env";
+import { ehVisitante } from "@/lib/auth/guards";
+import { podeRegistrar } from "@/lib/visitante/acesso";
 
 export const metadata = { title: "Treinar" };
 
@@ -16,6 +19,9 @@ export default async function TreinarPage() {
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
   const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, treinos.map((t) => t.letra));
+  // Modo Visitante: quem monta os próprios treinos vê o atalho do montador.
+  const visitante = FEATURES.modoVisitante && ehVisitante(sessao);
+  const podeMontar = visitante && podeRegistrar("visitante", sessao.acessoFim ?? null);
   const ultimaPorLetra = new Map<string, string>();
   for (const s of sessoes) if (s.letra && !ultimaPorLetra.has(s.letra)) ultimaPorLetra.set(s.letra, s.finalizado_em ?? s.iniciado_em);
 
@@ -44,9 +50,15 @@ export default async function TreinarPage() {
         </Link>
       ) : null}
 
+      {podeMontar ? (
+        <Link href={treinos.length ? "/aluno/meus-treinos" : "/aluno/meus-treinos/novo"} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-accent/50 px-4 text-sm font-semibold text-accent">
+          <Icon name="plus" size={18} /> {treinos.length ? "Montar ou editar meus treinos" : "Montar meu primeiro treino"}
+        </Link>
+      ) : null}
+
       {treinos.length === 0 ? (
         <Card className="border-dashed">
-          <CardBody className="text-center py-8 text-sm text-fg-muted">Nenhum treino liberado ainda. Fale com o {BRAND.name}.</CardBody>
+          <CardBody className="text-center py-8 text-sm text-fg-muted">{visitante ? "Você ainda não tem treinos. Monte o primeiro no botão acima." : `Nenhum treino liberado ainda. Fale com o ${BRAND.name}.`}</CardBody>
         </Card>
       ) : (
         <ul className="space-y-3">

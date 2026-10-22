@@ -993,4 +993,45 @@ begin
   if (select situacao from convite_publico('VAGA-UNICA')) <> 'esgotado' then raise exception 'T32e: deveria aparecer esgotado'; end if;
 end $$;
 \echo 'T32 OK: convite público e reserva atômica'
+-- T33 — 0054: visitante monta só os próprios treinos; não mexe nos do personal
+update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update acessos_visitante set fim = now() + interval '30 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare tid uuid; ok boolean := false; n int;
+begin
+  insert into treinos (aluno_id, letra, nome, autoria) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'G', 'Meu treino', 'proprio') returning id into tid;
+  insert into exercicios (treino_id, nome, series, reps) values (tid, 'Supino reto', 3, '10');
+  update exercicios set series = 4 where treino_id = tid;
+  begin insert into treinos (aluno_id, letra, nome, autoria) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'H', 'Falso personal', 'personal'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T33a: visitante criou treino como se fosse do personal'; end if;
+  begin insert into treinos (aluno_id, letra, nome, autoria) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'H', 'Treino alheio', 'proprio'); ok := false; exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T33b: visitante criou treino para outro aluno'; end if;
+  update treinos set nome = 'mexido' where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T33c: visitante alterou treino do personal'; end if;
+  update exercicios set series = 99 where treino_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T33d: visitante alterou exercício do personal'; end if;
+end $$;
+select test_logout();
+update acessos_visitante set fim = now() - interval '1 day' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into treinos (aluno_id, letra, nome, autoria) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'H', 'Vencido', 'proprio'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T33e: visitante vencido criou treino'; end if;
+end $$;
+select test_logout();
+update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into treinos (aluno_id, letra, nome, autoria) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'H', 'Consultoria', 'proprio'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T33f: aluno da consultoria ganhou escrita em treinos'; end if;
+end $$;
+select test_logout();
+\echo 'T33 OK: visitante monta só os próprios treinos'
 \echo 'TODOS OS TESTES PASSARAM'

@@ -37,12 +37,12 @@ export function caminhoStoragePermitido(sessao: SessaoApp | null, caminho: strin
 /** Converte a identidade de demo guardada no cookie em sessão. Retorna null se inválida. */
 export function sessaoDoCookieDemo(
   valor: string | undefined,
-  personas: Array<{ chave: string; userId: string; nome: string; role: Papel; alunoId: string | null }>
+  personas: Array<{ chave: string; userId: string; nome: string; role: Papel; alunoId: string | null; modalidade?: "consultoria" | "visitante" }>
 ): SessaoApp | null {
   if (!valor) return null;
   const p = personas.find((x) => x.chave === valor);
   if (!p) return null;
   if (p.role === "treinador") return { mode: "demo", userId: p.userId, nome: p.nome, role: "treinador", alunoId: null };
   if (!p.alunoId) return null;
-  return { mode: "demo", userId: p.userId, nome: p.nome, role: "aluno", alunoId: p.alunoId };
+  return { mode: "demo", userId: p.userId, nome: p.nome, role: "aluno", alunoId: p.alunoId, ...(p.modalidade === "visitante" ? { modalidade: "visitante" as const, acessoFim: null } : {}) };
 }

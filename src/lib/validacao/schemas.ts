@@ -523,3 +523,22 @@ export const acaoVisitanteSchema = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("encerrar") }),
   z.object({ acao: z.literal("converter") }),
 ]);
+
+// Modo Visitante, fase 3: treino montado pelo próprio visitante (0054)
+export const treinoProprioSchema = z.object({
+  id: z.string().uuid().nullable().optional(),
+  nome: z.string().trim().min(2, "Dê um nome ao treino").max(60),
+  exercicios: z
+    .array(
+      z.object({
+        id: z.string().max(64).nullable().optional(),
+        biblioteca_id: z.string().min(1).max(80),
+        series: z.number().int().min(1).max(10),
+        reps: z.string().trim().regex(/^\d{1,3}(-\d{1,3})?$/, "Repetições: use um número (10) ou faixa (8-12)"),
+        descanso_seg: z.number().int().min(15).max(600),
+      })
+    )
+    .min(1, "Adicione pelo menos um exercício")
+    .max(15, "Até 15 exercícios por treino"),
+});
+export type TreinoProprioInput = z.infer<typeof treinoProprioSchema>;

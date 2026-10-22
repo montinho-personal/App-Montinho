@@ -43,7 +43,13 @@ export async function listarConvites(): Promise<Convite[]> {
 }
 
 export async function listarVisitantes(): Promise<VisitanteComDados[]> {
-  if (isDemoMode()) return [];
+  if (isDemoMode()) {
+    const { demoStore } = await import("@/lib/mock/store");
+    const { mockProfiles } = await import("@/lib/mock/db");
+    return demoStore()
+      .alunos.filter((a) => a.modalidade === "visitante")
+      .map((a) => ({ ...a, profile: mockProfiles.find((p) => p.id === a.profile_id) ?? null, acesso: null, perfil: null, convite_codigo: "DEMO-30" }));
+  }
   const db = await getDb();
   const { data } = await db
     .from("alunos")

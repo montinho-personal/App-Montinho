@@ -43,7 +43,7 @@ export default async function AlunoHomePage() {
   const sessao = await requireAlunoPage();
   const alunoId = sessao.alunoId;
   // Visitante novo: primeiro o questionário de boas-vindas.
-  if (FEATURES.modoVisitante && ehVisitante(sessao)) {
+  if (FEATURES.modoVisitante && ehVisitante(sessao) && sessao.mode === "live") {
     const perfil = await perfilVisitante(alunoId).catch(() => null);
     if (!perfil?.onboarding_concluido_em) redirect("/aluno/boas-vindas");
   }
