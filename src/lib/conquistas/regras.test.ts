@@ -169,6 +169,15 @@ describe("medalhas das técnicas avançadas", () => {
     expect(codigos(r)).not.toContain("tecnicas_4");
     expect(r.find((x) => x.codigo === "tecnicas_3")?.descricao).toBe("3 técnicas diferentes: Drop-set, Pirâmide, Rest-pause.");
   });
+  it("isometria na prancha (já parada por natureza) não conta; em exercício com movimento conta", () => {
+    const prancha = s("2026-10-01", { exercicios: [{ exercicio_id: "p", nome: "Abdominal prancha", tecnica: "isometria", series: [{ tipo: "valida", carga_kg: 1, reps: 60 }] }, { exercicio_id: "a", nome: "Cadeira abdutora", tecnica: "piramide", series: [{ tipo: "valida", carga_kg: 70, reps: 20 }] }] });
+    const r = detectar([prancha]);
+    expect(codigos(r)).toContain("primeira_tecnica");
+    expect(codigos(r)).not.toContain("tecnicas_2");
+    expect(r.find((x) => x.codigo === "primeira_tecnica")?.descricao).toBe("Primeira técnica avançada: Pirâmide.");
+    const agacho = s("2026-10-03", { exercicios: [{ exercicio_id: "g", nome: "Agachamento livre", tecnica: "isometria", series: [{ tipo: "valida", carga_kg: 40, reps: 8 }] }] });
+    expect(codigos(detectar([prancha, agacho]))).toContain("tecnicas_2");
+  });
   it("exercício com técnica sem série registrada não conta", () => {
     expect(codigos(detectar([comTecnica("2026-10-01", ["dropset"], 0)]))).not.toContain("primeira_tecnica");
   });

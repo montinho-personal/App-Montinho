@@ -175,6 +175,14 @@ export function fasesConquistadas(sessoes: SessaoConquista[]): Array<{ codigo: C
  * exercício com técnica que teve pelo menos uma série registrada (sem ser
  * aquecimento) num treino concluído do app.
  */
+/**
+ * Exercícios que JÁ são parados por natureza (prancha, cadeirinha na parede,
+ * hollow hold…): marcar “isometria” neles não é técnica avançada (pedido do
+ * personal, 22/10/2026). A isometria continua valendo nos exercícios com movimento.
+ */
+const ISOMETRICO_POR_NATUREZA = /\b(prancha|plank|cadeirinha|wall ?sit|hollow|isometric[ao]|isometria|parada de mao)\b/;
+export const exercicioJaIsometrico = (nome: string) => ISOMETRICO_POR_NATUREZA.test(normalizarNome(nome));
+
 export function tecnicasFeitas(sessoes: SessaoConquista[]): Array<{ familia: FamiliaTecnica; data: string; sessaoId: string }> {
   const out: Array<{ familia: FamiliaTecnica; data: string; sessaoId: string }> = [];
   const vistas = new Set<FamiliaTecnica>();
@@ -183,6 +191,7 @@ export function tecnicasFeitas(sessoes: SessaoConquista[]): Array<{ familia: Fam
     for (const e of s.exercicios ?? []) {
       const f = familiaTecnica(e.tecnica);
       if (!f || vistas.has(f)) continue;
+      if (f === "isometria" && exercicioJaIsometrico(e.nome)) continue;
       if (!e.series.some((x) => x.tipo !== "aquecimento" && (x.reps ?? 0) > 0)) continue;
       vistas.add(f);
       out.push({ familia: f, data: s.iniciado_em, sessaoId: s.id });
