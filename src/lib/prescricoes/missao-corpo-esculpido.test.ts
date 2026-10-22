@@ -29,11 +29,11 @@ describe("prescrição Missão Corpo Esculpido & Punhos de Aço (Naya) — confo
 
   it("pirâmides, bi-sets, reps e RIR como na ficha", () => {
     expect(E("A", "Prancha frontal")).toMatchObject({ tecnica: "isometria", series: 2, reps: "60s" });
-    expect(E("A", "Agachamento no Smith")).toMatchObject({ tecnica: "piramide", reps: "15/12/10/8", rir: 3 });
+    expect(E("A", "Agachamento no Smith")).toMatchObject({ tecnica: "piramide", reps: "15/12/10/8", rir: 0 });
     expect(E("B", "Desenvolvimento Arnold")).toMatchObject({ tecnica: "biset", bloco: "B1", reps: "12/12/10/10" });
     expect(E("C", "Stiff com barra").reps).toBe("12/12/10/8");
-    expect(E("C", "Abdominal supra na polia em pé")).toMatchObject({ series: 4, reps: "20", rir: null });
-    expect(E("D", "Tríceps testa na polia com barra reta")).toMatchObject({ series: 4, reps: "12", rir: null });
+    expect(E("C", "Abdominal supra na polia em pé")).toMatchObject({ series: 4, reps: "20", rir: 0 });
+    expect(E("D", "Tríceps testa na polia com barra reta")).toMatchObject({ series: 4, reps: "12", rir: 0 });
     expect(E("F", "Rosca inversa (pegada pronada)")).toMatchObject({ tecnica: "biset", bloco: "F2", series: 3 });
   });
 
@@ -43,6 +43,18 @@ describe("prescrição Missão Corpo Esculpido & Punhos de Aço (Naya) — confo
         if (x.tecnica === "biset" && x.descanso_seg === 0) expect(x.descanso_apos_seg).toBe(0);
         else expect(x.descanso_seg).toBeNull();
       }
+  });
+
+  it("regra do personal: tudo até a falha e aquecimento no 1º exercício (prancha fica de fora)", () => {
+    for (const t of PRESCRICAO.treinos) {
+      const naoPrancha = t.exercicios.filter((x) => !/prancha/i.test(x.nome));
+      expect(naoPrancha.every((x) => x.rir === 0 && /até a falha/.test(x.observacoes ?? ""))).toBe(true);
+      expect(naoPrancha[0].observacoes).toMatch(/2 séries de aquecimento/);
+      expect(t.exercicios.filter((x) => /aquecimento/.test(x.observacoes ?? ""))).toHaveLength(1);
+    }
+    expect(E("A", "Prancha frontal").observacoes).toBeNull();
+    expect(E("A", "Cadeira extensora").observacoes).toMatch(/^Fazer em todas as séries: 5 repetições isométricas.*aquecimento/);
+    expect(E("F", "Panturrilha no leg press").observacoes).toMatch(/10 repetições isométricas/);
   });
 
   it("aparece só para a Naya e lista o que precisa de confirmação", () => {
