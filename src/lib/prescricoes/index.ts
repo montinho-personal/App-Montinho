@@ -5,6 +5,7 @@ import { normalizarNome } from "@/lib/grupos";
 import * as missTerracos from "./miss-terracos-tambore";
 import * as mrBellagio from "./missao-mr-bellagio";
 import * as exMerendeira from "./projeto-ex-merendeira";
+import * as corpoEsculpido from "./missao-corpo-esculpido";
 
 export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[] };
 
@@ -12,6 +13,7 @@ export const PRESCRICOES: PrescricaoPronta[] = [
   { id: missTerracos.ID_PRESCRICAO, titulo: `${missTerracos.ROTULO} — Upper/Lower 4×/semana`, alunoNome: missTerracos.NOME_ALUNA, plano: missTerracos.PRESCRICAO, pendencias: missTerracos.PENDENCIAS },
   { id: mrBellagio.ID_PRESCRICAO, titulo: `${mrBellagio.ROTULO} — Push/Pull/Legs/Push/Pull 5×/semana`, alunoNome: mrBellagio.NOME_ALUNO, plano: mrBellagio.PRESCRICAO, pendencias: mrBellagio.PENDENCIAS },
   { id: exMerendeira.ID_PRESCRICAO, titulo: `${exMerendeira.ROTULO} — Upper/Lower em sequência`, alunoNome: exMerendeira.NOME_ALUNA, plano: exMerendeira.PRESCRICAO, pendencias: exMerendeira.PENDENCIAS },
+  { id: corpoEsculpido.ID_PRESCRICAO, titulo: `${corpoEsculpido.ROTULO} — 6 treinos (Seg a Sáb) + cardio no domingo`, alunoNome: corpoEsculpido.NOME_ALUNA, plano: corpoEsculpido.PRESCRICAO, pendencias: corpoEsculpido.PENDENCIAS },
 ];
 
 export function prescricoesParaAluno(nome: string | null | undefined): PrescricaoPronta[] {
