@@ -20,6 +20,7 @@ import { trocasParaExercicios } from "@/lib/data/trocas";
 import { progressoesRecentes } from "@/lib/data/conquistas";
 import { dadosConfianca } from "@/lib/data/confianca";
 import { ehFichaNova } from "@/lib/chalala/confianca";
+import { ehExtraGerado } from "@/lib/data/extra-gerado";
 
 
 export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null }: {
@@ -32,12 +33,16 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   tempo?: string;
   presencial?: Presencial | null;
 }) {
-  const treino = await getTreinoComExercicios(treinoId);
+  const treinoPlano = await getTreinoComExercicios(treinoId);
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
-  if (!treino || treino.aluno_id !== alunoId) notFound();
+  if (!treinoPlano || treinoPlano.aluno_id !== alunoId) notFound();
+  // Extra montado pelo app: os exercícios vêm da foto da sessão (podem ser de treinos diferentes do plano).
+  const sessaoPedida = sessaoId && !presencial ? await getSessao(alunoId, sessaoId) : null;
+  const gerado = ehExtraGerado(sessaoPedida) ? (sessaoPedida!.snapshot as { treino?: { nome?: string }; exercicios?: typeof treinoPlano.exercicios }) : null;
+  const treino = gerado?.exercicios?.length ? { ...treinoPlano, letra: "+", nome: gerado.treino?.nome ?? "Treino extra", observacoes: null, ativo: true, exercicios: gerado.exercicios } : treinoPlano;
 
   const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf] = await Promise.all([
-    sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
+    sessaoPedida ? Promise.resolve(sessaoPedida) : sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
     ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     listarBiblioteca(),
     getPlanoAtivo(alunoId),

@@ -194,6 +194,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                   })}
                 </div>
               </fieldset>
+              <p className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[11px] text-fg-muted"><strong className="text-fg">Extra montado pelo app:</strong> só aparece depois que o aluno faz todos os treinos programados da semana. Ele escolhe tempo (15 a 60 min), foco (músculos prioridade, full body leve ou músculos pequenos) e como está o corpo; o app monta com exercícios do plano, com 2 repetições sobrando, e sai liberado direto, respeitando o máximo por semana, as séries extras e os dias acima.</p>
               <p className="text-[11px] text-fg-subtle">Sempre bloqueados pelo app: dor ou desconforto relatado, mesmo grupo muscular treinado há menos de 48 h (extra intenso), limite da semana atingido. Sem resposta de recuperação, extra intenso vira pedido para você.</p>
               <button type="button" disabled={salvando} onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PUT", cfg, "Regras salvas.")} className="touch rounded-lg bg-accent px-4 py-2 font-bold text-bg disabled:opacity-60">
                 Salvar regras

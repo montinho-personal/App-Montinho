@@ -10,12 +10,13 @@ import { BRAND } from "@/config/brand";
 import { FEATURES } from "@/lib/env";
 import { ehVisitante } from "@/lib/auth/guards";
 import { podeRegistrar } from "@/lib/visitante/acesso";
+import { contextoExtraGerado } from "@/lib/data/extra-gerado";
 
 export const metadata = { title: "Treinar" };
 
 export default async function TreinarPage() {
   const sessao = await requireAlunoPage();
-  const [plano, emAndamento, sessoes] = await Promise.all([getPlanoAtivo(sessao.alunoId), getSessaoEmAndamento(sessao.alunoId), listSessoes(sessao.alunoId, { limite: 60 })]);
+  const [plano, emAndamento, sessoes, extra] = await Promise.all([getPlanoAtivo(sessao.alunoId), getSessaoEmAndamento(sessao.alunoId), listSessoes(sessao.alunoId, { limite: 60 }), contextoExtraGerado(sessao.alunoId).catch(() => null)]);
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
   const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, treinos.map((t) => t.letra));
@@ -94,8 +95,60 @@ export default async function TreinarPage() {
                 </li>
               );
             })}
+          {extra?.habilitado ? <CardExtra ctx={extra} /> : null}
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * O treino extra no fim da lista. Apagado e sem clique enquanto a semana não
+ * está cumprida (todos os treinos programados), para o aluno ver o que vem
+ * depois sem pular a sequência. Pedido do Montinho, 22/10/2026.
+ */
+function CardExtra({ ctx }: { ctx: NonNullable<Awaited<ReturnType<typeof contextoExtraGerado>>> }) {
+  const liberado = !ctx.bloqueio;
+  const falta = ctx.programados ? Math.max(0, ctx.programados - ctx.feitos) : null;
+  const titulo = "Treino extra";
+  const texto = liberado
+    ? "Semana cumprida! Monte o seu treino extra em três toques."
+    : !ctx.cumprida
+      ? `Para liberar o treino extra, complete primeiro todos os treinos do seu protocolo nesta semana${ctx.programados ? `: ${ctx.feitos} de ${ctx.programados} feitos${falta ? `, falta${falta > 1 ? "m" : ""} ${falta}` : ""}` : ""}.`
+      : ctx.bloqueio!;
+  const conteudo = (
+    <Card className={liberado ? "border-accent/50 transition-colors hover:border-accent" : "border-dashed opacity-60"}>
+      <CardBody className="flex items-center gap-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${liberado ? "bg-accent text-bg" : "border border-border text-fg-subtle"}`} aria-hidden>
+          {liberado ? <span className="text-xl font-black">+</span> : <Icon name="lock" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-sm">{titulo}</p>
+            <span className={`text-[10px] uppercase tracking-wider font-bold ${liberado ? "text-accent" : "text-fg-subtle"}`}>{liberado ? "liberado" : "bloqueado"}</span>
+          </div>
+          <p className="text-xs text-fg-subtle mt-0.5">{texto}</p>
+          {!liberado && !ctx.cumprida && ctx.programados ? (
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
+              <div className="h-full bg-fg-subtle" style={{ width: `${Math.min(100, Math.round((ctx.feitos / ctx.programados) * 100))}%` }} />
+            </div>
+          ) : null}
+        </div>
+        {liberado ? <Icon name="chevron" className="text-fg-subtle" /> : null}
+      </CardBody>
+    </Card>
+  );
+  return (
+    <li>
+      {liberado ? (
+        <Link href="/aluno/extra" className="block">
+          {conteudo}
+        </Link>
+      ) : (
+        <div aria-disabled="true" aria-label={`${titulo}, bloqueado. ${texto}`}>
+          {conteudo}
+        </div>
+      )}
+    </li>
   );
 }
