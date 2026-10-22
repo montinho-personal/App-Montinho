@@ -764,11 +764,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     void sincronizar();
   }
 
-  /** Finaliza o exercício com a percepção de esforço e já abre o próximo pendente. */
-  function finalizarExercicio(seId: string, percepcao: PercepcaoExercicio | null) {
+  /** Fecha o exercício e abre o próximo pendente (depois de finalizar ou pular). */
+  function abrirProximo(seId: string) {
     if (!sessao) return;
-    marcarExercicio(seId, "concluido", percepcao);
-    setPerguntandoEsforco(null);
     const ordem = sessao.exercicios.map((x) => x.id);
     const proximo = ordem.slice(ordem.indexOf(seId) + 1).find((id) => {
       const st = statusEx[id] ?? sessao.exercicios.find((x) => x.id === id)?.status;
@@ -776,6 +774,21 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     });
     setAberto(proximo ?? null);
     if (proximo) setTimeout(() => document.getElementById(`ex-${proximo}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+  }
+
+  /** Finaliza o exercício com a percepção de esforço e já abre o próximo pendente. */
+  function finalizarExercicio(seId: string, percepcao: PercepcaoExercicio | null) {
+    if (!sessao) return;
+    marcarExercicio(seId, "concluido", percepcao);
+    setPerguntandoEsforco(null);
+    abrirProximo(seId);
+  }
+
+  /** “Pular hoje”: registra, avisa na tela e segue para o próximo exercício. */
+  function pularExercicio(seId: string, nome: string) {
+    marcarExercicio(seId, "pulado");
+    toast.success(`${nome}: pulado hoje.`);
+    abrirProximo(seId);
   }
 
   async function pedirAdaptacao(ex: ExercicioView, seId: string, motivo: "nao_consegui" | "desconforto" | "sem_equipamento", descricao: string) {
@@ -1419,7 +1432,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       <button type="button" onClick={() => setAdaptacaoAberta(adaptacaoAberta === se.id ? null : se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                         Não consegui este exercício
                       </button>
-                      <button type="button" onClick={() => marcarExercicio(se.id, "pulado")} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-subtle hover:text-fg">
+                      <button type="button" onClick={() => pularExercicio(se.id, exPlano.nome)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-subtle hover:text-fg">
                         Pular hoje
                       </button>
                     </div>
