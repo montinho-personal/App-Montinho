@@ -116,11 +116,17 @@ begin
   on conflict (aluno_id) do update set contact_id = excluded.contact_id, lead_id = excluded.lead_id,
     ultimo_evento = excluded.ultimo_evento, atualizado_em = now();
 
+  -- Número que chegou depois (visitante antigo informou no app): completa o contato, sem sobrescrever.
+  if v_tel is not null then
+    update crm_contacts set telefone = v_tel where id = v_contato and nullif(btrim(telefone), '') is null;
+  end if;
+
   if evento <> 'lead_novo' then
     v_tipo := case evento when 'whatsapp_clicado' then 'whatsapp_open' else 'note' end;
     v_desc := case evento
       when 'onboarding_concluido' then format('Respondeu as boas-vindas do app (objetivo: %s; %s treinos por semana; %s).',
         coalesce(lead->>'objetivo', '—'), coalesce(lead->>'frequencia_semanal', '—'), coalesce(lead->>'local_treino', '—'))
+      when 'whatsapp_informado' then format('Informou o WhatsApp no app: %s.', coalesce(v_tel, '—'))
       when 'whatsapp_clicado' then format('Tocou no WhatsApp pelo app (convite %s).', coalesce(p->'detalhes'->>'convite', '—'))
       when 'desafio_concluido' then format('Concluiu o desafio%s no app (%s treinos feitos).', coalesce(' ' || nullif(lead->>'desafio', ''), ''), coalesce(lead->>'treinos_feitos', '0'))
       when 'status_alterado' then format('No painel de leads do app: status “%s”.', coalesce(p->'detalhes'->>'status', lead->>'status'))

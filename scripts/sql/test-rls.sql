@@ -1137,4 +1137,28 @@ begin
 end $$;
 reset role;
 \echo 'T37 OK: conversão preserva histórico; funções do visitante só com login'
+-- T38 — 0063: visitante grava só o próprio WhatsApp, só se vazio; anon não executa
+update alunos set modalidade = 'visitante', telefone = null where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update alunos set telefone = null where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if not public.salvar_meu_whatsapp('+55 11 98765-4321') then raise exception 'T38a: visitante não gravou o próprio WhatsApp'; end if;
+  if public.salvar_meu_whatsapp('+55 11 91111-1111') then raise exception 'T38b: sobrescreveu um WhatsApp já informado'; end if;
+end $$;
+select test_logout();
+do $$
+begin
+  if (select telefone from alunos where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') is distinct from '+55 11 98765-4321' then raise exception 'T38c: telefone não ficou gravado'; end if;
+  if (select telefone from alunos where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') is not null then raise exception 'T38d: mexeu no cadastro de outro aluno'; end if;
+end $$;
+set role anon;
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.salvar_meu_whatsapp('+55 11 98765-4321'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T38e: anon executou salvar_meu_whatsapp()'; end if;
+end $$;
+reset role;
+\echo 'T38 OK: WhatsApp do visitante só no próprio cadastro e só se vazio'
 \echo 'TODOS OS TESTES PASSARAM'

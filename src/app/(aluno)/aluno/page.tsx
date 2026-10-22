@@ -39,6 +39,7 @@ import { perfilVisitante } from "@/lib/data/visitantes";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
+import { PedirWhatsapp } from "@/components/visitante/PedirWhatsapp";
 
 export const metadata = { title: "Início" };
 
@@ -92,6 +93,8 @@ export default async function AlunoHomePage() {
           {saudacao}, <span className="text-accent">{primeiroNome}</span>
         </h1>
       </header>
+
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
 
       {/* 1. Sessão em andamento ou próximo treino — CTA prioritário */}
       {emAndamento ? (

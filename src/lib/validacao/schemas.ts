@@ -497,16 +497,21 @@ export const statusConhecimentoSchema = z.object({ status: z.enum(["rascunho", "
 export const porqueExercicioSchema = z.object({ texto: z.string().trim().max(600, "Use no máximo 600 caracteres") }).strict();
 
 // Modo Visitante (0052)
+const whatsappCampo = z
+  .string()
+  .trim()
+  .max(30)
+  .refine((v) => whatsappBR(v) != null, "Digite seu WhatsApp com DDD, ex.: (11) 98765-4321")
+  .transform((v) => whatsappBR(v)!);
+
+/** Visitante que entrou antes do WhatsApp obrigatório informa o número (0063). */
+export const whatsappVisitanteSchema = z.object({ whatsapp: whatsappCampo });
+
 export const cadastroVisitanteSchema = z.object({
   codigo: z.string().trim().min(4).max(40),
   nome: z.string().trim().min(2, "Digite seu nome").max(120),
   email: z.string().trim().toLowerCase().email("E-mail inválido").max(160),
-  whatsapp: z
-    .string()
-    .trim()
-    .max(30)
-    .refine((v) => whatsappBR(v) != null, "Digite seu WhatsApp com DDD, ex.: (11) 98765-4321")
-    .transform((v) => whatsappBR(v)!),
+  whatsapp: whatsappCampo,
   senha: z.string().min(8, "A senha precisa de pelo menos 8 caracteres").max(72),
   aceite_privacidade: z.literal(true, { message: "É preciso aceitar a política de privacidade" }),
 });
