@@ -28,6 +28,8 @@ export type Medalha = {
   nova: boolean;
   /** false = a janela já passou ou só se aplica depois de uma pausa: não é “próxima”. */
   disponivel: boolean;
+  /** Detalhe do que a pessoa fez (ex.: quais técnicas avançadas). */
+  detalhe?: string | null;
 };
 
 /** Jornada sugerida (ordem visual). Critérios são independentes da ordem. */
@@ -90,7 +92,15 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const curtos = daApp.filter((s) => s.modo === "reduzido" && classificarSessao(s) === "concluida").length;
   const extras = daApp.filter((s) => classificarSessao(s) === "extra").length;
   // Técnicas avançadas já feitas (cada uma conta uma vez).
+  const ordemTecnicas = tecnicasFeitas(e.sessoes).map((t) => TECNICAS_MEDALHA[t.familia]);
   const feitas = new Set(tecnicasFeitas(e.sessoes).map((t) => t.familia));
+  /** Quais técnicas contaram para a medalha (as n primeiras feitas) ou, se ainda falta, quais já foram feitas. */
+  const detalheTecnica = (c: CodigoConquista, ganha: boolean): string | null => {
+    const n = MARCOS_TECNICA.find(([x]) => x === c)?.[1];
+    if (!n || !ordemTecnicas.length) return null;
+    const nomes = ganha ? ordemTecnicas.slice(0, n) : ordemTecnicas;
+    return ganha ? `${nomes.length === 1 ? "Técnica" : "Técnicas"}: ${nomes.join(", ")}.` : `Você já fez: ${nomes.join(", ")}.`;
+  };
   // Fase atual (a do treino concluído mais recente) e quantos treinos seguidos nela.
   const comFase = daApp.filter((s) => s.status === "concluida" && s.fase).sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
   const faseAtual = comFase.reduce<{ fase: string; treinos: number } | null>((acc, s) => (acc && acc.fase === s.fase ? { fase: acc.fase, treinos: acc.treinos + 1 } : { fase: s.fase!, treinos: 1 }), null);
@@ -197,6 +207,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       falta: data ? null : p.falta,
       nova: !!data && dias(dataLocal(data), e.hoje) <= 7,
       disponivel: !!data || p.disponivel,
+      detalhe: detalheTecnica(codigo, !!data),
     };
   });
 }

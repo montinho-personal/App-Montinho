@@ -39,6 +39,7 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
       </div>
 
       <p className="font-semibold">{m.conquistada ? t.mensagem : t.comoConquistar}</p>
+      {m.detalhe ? <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm font-semibold text-accent">{m.detalhe}</p> : null}
 
       {!m.conquistada && m.alvo ? (
         <div className="space-y-1">

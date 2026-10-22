@@ -19,6 +19,17 @@ describe("vitrine de medalhas (20 únicas)", () => {
     expect(ms.find((m) => m.codigo === "treinos_10")).toMatchObject({ conquistada: false, atual: 7, alvo: 10 });
     expect(ms.find((m) => m.codigo === "treinos_10")?.falta).toMatch(/Faltam 3 treinos concluídos/);
   });
+  it("medalhas de técnica mostram quais técnicas contaram (e as já feitas nas que faltam)", () => {
+    const treino = s("2026-10-21", { exercicios: [
+      { exercicio_id: "a", nome: "Puxada frontal supinada", tecnica: "piramide", series: [{ tipo: "valida", carga_kg: 50, reps: 20 }] },
+      { exercicio_id: "b", nome: "Rosca direta", tecnica: "biset", series: [{ tipo: "valida", carga_kg: 10, reps: 15 }] },
+    ] });
+    const ms = vitrine([treino], [{ codigo: "primeira_tecnica", conquistado_em: "2026-10-21T13:00:00Z" }, { codigo: "tecnicas_2", conquistado_em: "2026-10-21T13:00:00Z" }], "2026-10-22");
+    expect(ms.find((m) => m.codigo === "primeira_tecnica")?.detalhe).toBe("Técnica: Pirâmide.");
+    expect(ms.find((m) => m.codigo === "tecnicas_2")?.detalhe).toBe("Técnicas: Pirâmide, Bi-set.");
+    expect(ms.find((m) => m.codigo === "tecnicas_3")?.detalhe).toBe("Você já fez: Pirâmide, Bi-set.");
+    expect(ms.find((m) => m.codigo === "primeiro_treino")?.detalhe).toBeNull();
+  });
   it("extras, parciais e histórico sem autorização não contam como treino concluído", () => {
     const sessoes = [s("2026-10-01"), s("2026-10-02", { modo: "extra" }), s("2026-10-03", { series_concluidas: 2 }), s("2026-10-04", { conta_aderencia: false })];
     expect(vitrine(sessoes, [], "2026-10-05").find((m) => m.codigo === "treinos_10")?.atual).toBe(1);
