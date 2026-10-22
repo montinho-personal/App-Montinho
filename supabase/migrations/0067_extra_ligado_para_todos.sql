@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0066 — Treino extra ligado para todos os alunos.
+-- 0067 — Treino extra ligado para todos os alunos.
 -- Aplicada em produção pelo SQL Editor (22/10/2026).
 --
 -- Pedido do Montinho (22/10/2026): "pode deixar ligado para todos". Cria a
