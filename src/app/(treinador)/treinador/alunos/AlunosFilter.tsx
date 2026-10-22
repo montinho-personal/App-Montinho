@@ -9,6 +9,7 @@ type Counts = {
   ativo: number;
   pendente: number;
   inadimplente: number;
+  arquivado: number;
 };
 
 const FILTERS: Array<{ key: string; label: string; statusKey: keyof Counts }> = [
@@ -16,6 +17,7 @@ const FILTERS: Array<{ key: string; label: string; statusKey: keyof Counts }> = 
   { key: "ativo", label: "Ativos", statusKey: "ativo" },
   { key: "pendente", label: "Pendentes", statusKey: "pendente" },
   { key: "inadimplente", label: "Inadimplentes", statusKey: "inadimplente" },
+  { key: "arquivado", label: "Arquivados", statusKey: "arquivado" },
 ];
 
 export function AlunosFilter({ counts }: { counts: Counts }) {

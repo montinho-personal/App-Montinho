@@ -16,8 +16,9 @@ export default async function AlunosListPage({ searchParams }: PageProps) {
   const { q, status } = await searchParams;
   const alunos = await listAlunos();
 
+  // Arquivados (quem não acompanha mais) saem da lista; ficam no filtro “Arquivados”.
   const filtrados = alunos.filter((a) => {
-    if (status && a.status !== status) return false;
+    if (status ? a.status !== status : a.status === "arquivado") return false;
     if (q) {
       const term = q.toLowerCase();
       const nome = a.profile?.nome?.toLowerCase() ?? "";
@@ -29,10 +30,11 @@ export default async function AlunosListPage({ searchParams }: PageProps) {
   });
 
   const counts = {
-    todos: alunos.length,
+    todos: alunos.filter((a) => a.status !== "arquivado").length,
     ativo: alunos.filter((a) => a.status === "ativo").length,
     pendente: alunos.filter((a) => a.status === "pendente").length,
     inadimplente: alunos.filter((a) => a.status === "inadimplente").length,
+    arquivado: alunos.filter((a) => a.status === "arquivado").length,
   };
 
   return (
