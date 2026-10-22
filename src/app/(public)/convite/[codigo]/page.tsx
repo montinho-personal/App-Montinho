@@ -38,7 +38,7 @@ export default async function ConvitePage({ params }: { params: Promise<{ codigo
           <div className="space-y-4 text-center py-4" role="alert">
             <p className="font-semibold">{MENSAGEM_CONVITE[motivo]}</p>
             {BRAND.contact.whatsapp ? (
-              <a className="alvo inline-block text-accent underline-offset-2 hover:underline" href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(`Oi, Montinho! Tentei entrar com o convite ${codigo} e não consegui.`)}`} target="_blank" rel="noopener noreferrer">
+              <a className="alvo inline-block text-accent underline-offset-2 hover:underline" href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(`Oi, Montinho! Tentei entrar com o convite ${codigo} e não consegui. [APP-CONVITE]`)}`} target="_blank" rel="noopener noreferrer">
                 Falar com o Montinho no WhatsApp
               </a>
             ) : null}

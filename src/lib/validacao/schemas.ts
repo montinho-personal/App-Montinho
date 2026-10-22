@@ -554,3 +554,10 @@ export const desafioSchema = z
     meta_treinos: z.number().int().min(1).max(100),
   })
   .refine((d) => d.fim >= d.inicio, { message: "A data final precisa ser depois do início", path: ["fim"] });
+
+// Modo Visitante, fase 6: eventos dos convites para o WhatsApp (0057)
+export const ctaEventoSchema = z.object({
+  cta: z.enum(["acesso_vencido", "acesso_vencendo", "desafio_concluido", "constancia", "evolucao", "montar_treino"]),
+  tipo: z.enum(["exibido", "clicado", "dispensado"]),
+  tela: z.enum(["aviso", "inicio", "evolucao", "meus_treinos", "jornada"]),
+});

@@ -143,26 +143,32 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                 <input type="checkbox" checked={cfg.habilitado} onChange={(e) => setCfg({ ...cfg, habilitado: e.target.checked })} className="h-4 w-4 accent-[var(--color-accent)]" />
                 Permitir treinos extras
               </label>
+              <p className="-mt-1 pl-6 text-[11px] text-fg-subtle">Ligado: o aluno vê o botão “Quero fazer um treino extra” com as opções que você liberou abaixo. Desligado: ele não pede extra nenhum.</p>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={cfg.requer_aprovacao} onChange={(e) => setCfg({ ...cfg, requer_aprovacao: e.target.checked })} className="h-4 w-4 accent-[var(--color-accent)]" />
                 Exigir minha aprovação em todo extra
               </label>
+              <p className="-mt-1 pl-6 text-[11px] text-fg-subtle">Marcado: todo extra vira um pedido para você aprovar antes. Desmarcado: o app libera sozinho quando o aluno está dentro das regras abaixo.</p>
               <div className="grid grid-cols-2 gap-2">
                 <label className="space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Máximo por semana</span>
+                  <span className="block text-[11px] text-fg-subtle">Quantos treinos extras ele pode fazer de segunda a domingo.</span>
                   <input inputMode="numeric" value={cfg.max_por_semana} onChange={(e) => setCfg({ ...cfg, max_por_semana: Math.min(7, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-full`} />
                 </label>
                 <label className="space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Séries extras/semana (resistido)</span>
+                  <span className="block text-[11px] text-fg-subtle">Teto de séries de musculação somando os extras da semana (cardio e mobilidade não contam).</span>
                   <input inputMode="numeric" value={cfg.limite_series_semana} onChange={(e) => setCfg({ ...cfg, limite_series_semana: Math.min(60, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-full`} />
                 </label>
                 <label className="col-span-2 space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Intervalo mínimo desde o último treino para extra intenso sem aprovação (horas)</span>
+                  <span className="block text-[11px] text-fg-subtle">Se o último treino foi há menos horas que isso, um extra de musculação vira pedido para você aprovar.</span>
                   <input inputMode="numeric" value={cfg.intervalo_min_horas} onChange={(e) => setCfg({ ...cfg, intervalo_min_horas: Math.min(72, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-24`} />
                 </label>
               </div>
               <fieldset className="space-y-1">
                 <legend className="text-[11px] text-fg-muted">Dias permitidos</legend>
+                <p className="text-[11px] text-fg-subtle">Dias da semana em que o aluno pode pedir extra (dourado = liberado).</p>
                 <div className="flex flex-wrap gap-1">
                   {DIAS.map((d, i) => {
                     const on = cfg.dias_permitidos.includes(i);

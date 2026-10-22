@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { eventoGa } from "@/components/analytics/ga";
 
 export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
   const [nome, setNome] = useState("");
@@ -30,6 +31,7 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
       });
       const j = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) throw new Error(j.error ?? "Não foi possível criar a conta agora.");
+      eventoGa("sign_up", { method: "convite" });
       const { error } = await createSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password: senha });
       if (error) {
         window.location.href = "/login?next=/aluno/boas-vindas";

@@ -20,6 +20,7 @@ import { FEATURES } from "@/lib/env";
 import { ehVisitante } from "@/lib/auth/guards";
 import { compararMeses } from "@/lib/visitante/evolucao";
 import { MesContraMes } from "@/components/visitante/MesContraMes";
+import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 
 export const metadata = { title: "Evolução" };
 
@@ -72,6 +73,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         </Card>
       ) : null}
       {visitante ? <MesContraMes c={compararMeses(sessoes)} semanaFraca={semanaFraca} /> : null}
+      {visitante ? <CtaVisitante alunoId={sessao.alunoId} tela="evolucao" acessoFim={sessao.acessoFim ?? null} /> : null}
       <RelatorioEvolucao
         modo="aluno"
         dias={dias}

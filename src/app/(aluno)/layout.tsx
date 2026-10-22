@@ -50,7 +50,7 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
       </header>
       <main id="conteudo" className="flex-1 pb-28">
         <div className="max-w-md mx-auto px-4 py-5">
-          {sessao.modalidade === "visitante" ? <AvisoAcessoVisitante fim={sessao.acessoFim ?? null} /> : null}
+          {sessao.modalidade === "visitante" ? <AvisoAcessoVisitante alunoId={sessao.alunoId} fim={sessao.acessoFim ?? null} /> : null}
           {children}
         </div>
       </main>

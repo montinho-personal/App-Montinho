@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { ArquivarTreino } from "./ArquivarTreino";
+import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 
 export const metadata = { title: "Meus treinos" };
 
@@ -59,6 +60,7 @@ export default async function MeusTreinosPage() {
           ))}
         </ul>
       )}
+      <CtaVisitante alunoId={sessao.alunoId} tela="meus_treinos" acessoFim={sessao.acessoFim ?? null} />
       <Link href="/aluno/treinar" className="alvo block text-center text-sm text-accent underline-offset-2 hover:underline">Ir para Treinar</Link>
     </div>
   );

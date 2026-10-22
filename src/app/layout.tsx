@@ -5,6 +5,10 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { BRAND, brandCssVars } from "@/config/brand";
 import { appMode } from "@/lib/env";
 import { DemoBanner } from "@/components/layout/DemoBanner";
+import { ConsentimentoAnalytics } from "@/components/analytics/ConsentimentoAnalytics";
+
+// Google Analytics só em produção (variável definida só lá) e só após o aceite.
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || null;
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -46,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </a>
         {demo ? <DemoBanner /> : null}
         <ToastProvider>{children}</ToastProvider>
+        {GA_ID && /^G-[A-Z0-9]{4,20}$/.test(GA_ID) ? <ConsentimentoAnalytics id={GA_ID} /> : null}
       </body>
     </html>
   );

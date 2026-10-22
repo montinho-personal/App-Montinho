@@ -9,6 +9,7 @@ import { juntarEventos } from "@/lib/conquistas/jornada";
 import { FEATURES } from "@/lib/env";
 import { ehVisitante } from "@/lib/auth/guards";
 import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
+import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 
 export const metadata = { title: "A Jornada do Chalalá" };
 
@@ -24,6 +25,7 @@ export default async function JornadaPage() {
   return (
     <div className="space-y-5">
       <DesafioDoVisitante alunoId={sessao.alunoId} />
+      <CtaVisitante alunoId={sessao.alunoId} tela="jornada" acessoFim={sessao.acessoFim ?? null} />
       {jornada}
     </div>
   );
