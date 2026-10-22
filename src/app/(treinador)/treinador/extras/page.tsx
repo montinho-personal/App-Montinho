@@ -31,7 +31,7 @@ export default async function TreinosExtrasPage({ searchParams }: { searchParams
     const cfg = config ?? { ...CONFIG_EXTRA_PADRAO, observacao: null };
     detalhe = {
       alunoId,
-      config: { habilitado: cfg.habilitado, requer_aprovacao: cfg.requer_aprovacao, max_por_semana: cfg.max_por_semana, dias_permitidos: cfg.dias_permitidos, limite_series_semana: cfg.limite_series_semana, intervalo_min_horas: cfg.intervalo_min_horas, observacao: cfg.observacao },
+      config: { habilitado: cfg.habilitado, requer_aprovacao: cfg.requer_aprovacao, aprovacao_so_intensos: cfg.aprovacao_so_intensos ?? true, max_por_semana: cfg.max_por_semana, dias_permitidos: cfg.dias_permitidos, limite_series_semana: cfg.limite_series_semana, intervalo_min_horas: cfg.intervalo_min_horas, observacao: cfg.observacao },
       extras: extras.map((x) => ({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao, duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas, ativo: x.ativo })),
       treinos: plano.treinos.map((t) => ({ id: t.id, nome: `${t.letra} — ${t.nome}` })),
       feitos: extrasFeitos.map((s) => ({ id: s.id, titulo: s.nome_treino ?? "Treino extra", data: s.iniciado_em, duracaoMin: s.duracao_seg ? Math.round(s.duracao_seg / 60) : null, series: s.series_concluidas })),

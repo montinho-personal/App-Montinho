@@ -1,0 +1,12 @@
+-- ============================================================================
+-- 0062 — Treino extra: aprovação só para o que é intenso.
+--
+-- Pedido do Montinho (22/10/2026): "pode desmarcar a aprovação pra caminhada
+-- e mobilidade". Antes, "exigir minha aprovação" valia para todo extra. Agora,
+-- com aprovacao_so_intensos = true, só musculação adicional e treino
+-- complementar viram pedido; caminhada, mobilidade, cardio e sessão técnica
+-- são liberados quando o aluno está dentro das regras (dias, limite da
+-- semana, dor, tempo). Os bloqueios de segurança continuam iguais.
+-- Padrão true: é o comportamento que ele pediu para os próximos alunos.
+-- ============================================================================
+alter table config_extra add column if not exists aprovacao_so_intensos boolean not null default true;

@@ -57,8 +57,30 @@ describe("treino extra", () => {
     expect(classificarExtra({ ...base, tempoDisponivelMin: 20, config: cfg, extra: cardio }).motivos[0]).toMatch(/30 min/);
   });
 
-  it("personal exige aprovação manual", () => {
-    expect(classificarExtra({ ...base, config: { ...cfg, requer_aprovacao: true }, extra: cardio }).classe).toBe("aprovacao");
+  it("personal exige aprovação manual em todo extra", () => {
+    expect(classificarExtra({ ...base, config: { ...cfg, requer_aprovacao: true, aprovacao_so_intensos: false }, extra: cardio }).classe).toBe("aprovacao");
+  });
+
+  it("aprovação só nos intensos: caminhada e mobilidade liberadas, musculação vira pedido", () => {
+    const so = { ...cfg, requer_aprovacao: true, aprovacao_so_intensos: true };
+    const mobilidade: ExtraLiberado = { ...cardio, id: "x3", modalidade: "mobilidade", titulo: "Mobilidade" };
+    const pernas: ExtraLiberado = { ...bracos, id: "x4", grupos: ["quadriceps"] };
+    expect(classificarExtra({ ...base, config: so, extra: cardio }).classe).toBe("liberado");
+    expect(classificarExtra({ ...base, config: so, extra: mobilidade }).classe).toBe("liberado");
+    const r = classificarExtra({ ...base, config: so, extra: pernas });
+    expect(r.classe).toBe("aprovacao");
+    expect(r.motivos.join(" ")).toMatch(/de musculação/);
+  });
+
+  it("aprovação só nos intensos não fura os bloqueios: dor relatada e dia não permitido continuam valendo", () => {
+    const so = { ...cfg, requer_aprovacao: true, aprovacao_so_intensos: true };
+    expect(classificarExtra({ ...base, recuperacao: "dor", config: so, extra: cardio }).classe).toBe("nao_recomendado");
+    expect(classificarExtra({ ...base, config: { ...so, dias_permitidos: [6, 0] }, extra: cardio }).classe).toBe("nao_recomendado");
+  });
+
+  it("padrão novo: aprovação só nos intensos", () => {
+    expect(CONFIG_EXTRA_PADRAO.requer_aprovacao).toBe(true);
+    expect(CONFIG_EXTRA_PADRAO.aprovacao_so_intensos).toBe(true);
   });
 
   it("semana com meta já cumprida não muda a regra (extra é avaliado pela recuperação, não pela meta)", () => {

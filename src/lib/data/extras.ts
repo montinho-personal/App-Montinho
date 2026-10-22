@@ -45,7 +45,7 @@ function demo(): DemoExtras {
     // Dados fictícios do modo demonstração: a Aline tem extras liberados.
     const agora = new Date().toISOString();
     g.__montinhoExtras = {
-      configs: [{ aluno_id: "aline", ...CONFIG_EXTRA_PADRAO, habilitado: true, requer_aprovacao: false, max_por_semana: 2, observacao: null, updated_at: agora }],
+      configs: [{ aluno_id: "aline", ...CONFIG_EXTRA_PADRAO, habilitado: true, requer_aprovacao: false, aprovacao_so_intensos: true, max_por_semana: 2, observacao: null, updated_at: agora }],
       extras: [
         { id: "extra-caminhada", aluno_id: "aline", modalidade: "cardio_leve", titulo: "Caminhada leve", descricao: "Ritmo em que dá para conversar. Sem subir ladeira forte.", duracao_min: 30, treino_id: null, grupos: [], series_estimadas: 0, ativo: true, created_at: agora },
         { id: "extra-mobilidade", aluno_id: "aline", modalidade: "mobilidade", titulo: "Mobilidade de quadril e ombros", descricao: "Sequência leve, sem dor.", duracao_min: 20, treino_id: null, grupos: [], series_estimadas: 0, ativo: true, created_at: agora },
