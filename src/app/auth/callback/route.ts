@@ -38,7 +38,12 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServerClient();
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) return erro("link", `exchange:${error.name}`);
+      if (error) {
+        // Sem o “verificador” guardado neste navegador: o link foi aberto em outro
+        // app/navegador (ex.: dentro do Gmail/Outlook), não é link vencido.
+        const outroNavegador = error.name === "AuthPKCECodeVerifierMissingError" || /code verifier/i.test(error.message);
+        return erro(outroNavegador ? "navegador" : "link", `exchange:${error.name}`);
+      }
       return NextResponse.redirect(new URL(next, url.origin));
     }
     if (tokenHash && type && TIPOS.includes(type)) {

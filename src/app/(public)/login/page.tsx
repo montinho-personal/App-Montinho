@@ -16,5 +16,5 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next, erro } = await searchParams;
   if (s) redirect(s.role === "treinador" ? "/treinador" : "/aluno");
   if (mode === "demo") return <DemoLoginClient personas={DEMO_PERSONAS.map((p) => ({ chave: p.chave, nome: p.nome, role: p.role }))} />;
-  return <LoginClient next={next && next.startsWith("/") ? next : "/"} erroInicial={erro === "link" ? "link" : null} />;
+  return <LoginClient next={next && next.startsWith("/") ? next : "/"} erroInicial={erro === "link" || erro === "navegador" ? erro : null} />;
 }

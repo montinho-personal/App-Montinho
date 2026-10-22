@@ -8,12 +8,22 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { BRAND } from "@/config/brand";
 
 const MSG_LINK = "Esse link não vale mais: ele já foi usado ou passou do prazo. Digite seu e-mail e peça um novo link.";
+const MSG_NAVEGADOR = "O link abriu em um navegador diferente do que você usou para pedir (por exemplo, dentro do app do Gmail ou do Outlook). Peça um novo link aqui e, no e-mail, toque e segure o link e escolha abrir no mesmo navegador (Safari ou Chrome).";
 
-export function LoginClient({ next, erroInicial = null }: { next: string; erroInicial?: "link" | null }) {
+/** Explica o limite de envio de e-mails do Supabase em vez de uma mensagem genérica. */
+function msgEnvio(e: unknown, padrao: string): string {
+  const err = e as { status?: number; code?: string; message?: string } | null;
+  if (err?.status !== 429 && err?.code !== "over_email_send_rate_limit") return padrao;
+  const seg = err?.message?.match(/after (\d+) seconds?/)?.[1];
+  if (seg) return `Aguarde ${seg} segundos antes de pedir outro e-mail.`;
+  return "Muitos e-mails pedidos em pouco tempo. Use o e-mail mais recente que você recebeu ou tente de novo daqui a 1 hora.";
+}
+
+export function LoginClient({ next, erroInicial = null }: { next: string; erroInicial?: "link" | "navegador" | null }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(erroInicial === "link" ? MSG_LINK : null);
+  const [error, setError] = useState<string | null>(erroInicial === "link" ? MSG_LINK : erroInicial === "navegador" ? MSG_NAVEGADOR : null);
   const [sent, setSent] = useState<"link" | "senha" | "primeiro" | false>(false);
 
   // Link do convite (padrão do Supabase) chega com a sessão no fragmento
@@ -74,8 +84,8 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
       const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect } });
       if (error) throw error;
       setSent("link");
-    } catch {
-      setError("Não foi possível enviar o link agora. Tente de novo em instantes.");
+    } catch (e) {
+      setError(msgEnvio(e, "Não foi possível enviar o link agora. Tente de novo em instantes."));
     } finally {
       setLoading(false);
     }
@@ -94,8 +104,8 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirect });
       if (error) throw error;
       setSent(primeiro ? "primeiro" : "senha");
-    } catch {
-      setError("Não foi possível enviar o e-mail agora. Tente de novo em instantes.");
+    } catch (e) {
+      setError(msgEnvio(e, "Não foi possível enviar o e-mail agora. Tente de novo em instantes."));
     } finally {
       setLoading(false);
     }

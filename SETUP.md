@@ -195,14 +195,22 @@ O ambiente já existe; estes três passos usam chaves ou telas da sua conta.
    - Esqueceu a senha? Na tela de entrada, **esqueci a senha** envia um e-mail que
      leva direto à tela de nova senha.
 
-4. **(Opcional) Links que funcionam em qualquer aparelho.** Por padrão o link do
-   e-mail só completa o login no navegador que o pediu. Para abrir no celular um
-   link pedido no computador, troque os modelos de e-mail do Supabase:
-   **Authentication → Email Templates**, em *Magic Link* e *Confirm signup*
-   substitua `{{ .ConfirmationURL }}` por
-   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink`
-   e, em *Reset Password*, por
-   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery`.
+4. **(Obrigatório para alunos com iPhone/Gmail/Outlook) Links que funcionam em qualquer
+   navegador.** No padrão do Supabase o link do e-mail só completa o login no mesmo
+   navegador que o pediu; aberto dentro do app do Gmail/Outlook ou em outro navegador,
+   falha (`AuthPKCECodeVerifierMissingError` no log `[auth/callback]`; o login mostra
+   a mensagem “O link abriu em um navegador diferente…”). Em
+   **Authentication → Email Templates** troque `{{ .ConfirmationURL }}` por:
+   - *Reset Password* (também usado por “Primeiro acesso? Criar minha senha”):
+     `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=recovery`
+   - *Magic Link*: `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=magiclink`
+   - *Invite user*: `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=invite`
+   - *Confirm signup*: `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=signup`
+5. **Limite de e-mails.** O envio padrão do Supabase (`noreply@mail.app.supabase.io`)
+   tem limite baixo por hora para o projeto inteiro (erro `over_email_send_rate_limit`;
+   o login mostra “Muitos e-mails pedidos em pouco tempo…”). Com muitos alunos fazendo
+   o primeiro acesso no mesmo dia, configure um SMTP próprio em
+   **Authentication → Emails → SMTP Settings** e aumente o limite em **Rate Limits**.
 
 > Observação técnica: na Vercel, a *Deployment Protection* ficou ligada só para
 > **previews**; a produção é pública (os alunos entram pelo login do app).
