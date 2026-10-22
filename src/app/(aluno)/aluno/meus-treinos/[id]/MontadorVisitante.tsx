@@ -4,25 +4,14 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input, Label } from "@/components/ui/Input";
-import { GRUPO_LABEL, normalizarNome } from "@/lib/grupos";
+import { GRUPO_LABEL } from "@/lib/grupos";
+import { filtrarExercicios, filtrosComItens } from "@/lib/visitante/busca-exercicios";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 
 export type ItemLeve = { id: string; nome: string; grupo: GrupoMuscular; sinonimos: string[]; equipamento: string[]; video: boolean };
 
 type Linha = { chave: string; id: string | null; biblioteca_id: string; series: number; reps: string; descanso_seg: number };
 
-const FILTROS: Array<{ valor: string; rotulo: string }> = [
-  { valor: "peito", rotulo: "Peito" },
-  { valor: "costas", rotulo: "Costas" },
-  { valor: "ombro", rotulo: "Ombros" },
-  { valor: "biceps", rotulo: "Bíceps" },
-  { valor: "triceps", rotulo: "Tríceps" },
-  { valor: "quadriceps", rotulo: "Quadríceps" },
-  { valor: "posteriores", rotulo: "Posteriores" },
-  { valor: "gluteo", rotulo: "Glúteos" },
-  { valor: "panturrilha", rotulo: "Panturrilha" },
-  { valor: "abdomen", rotulo: "Abdômen" },
-];
 const DESCANSOS = [45, 60, 90, 120, 180];
 const fmtDescanso = (s: number) => (s < 60 ? `${s} s` : s % 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s / 60} min`);
 
@@ -40,12 +29,9 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
   const [erro, setErro] = useState<string | null>(null);
 
   const resultados = useMemo(() => {
-    const q = normalizarNome(busca);
-    return itens
-      .filter((i) => !filtro || i.grupo.startsWith(filtro))
-      .filter((i) => !q || normalizarNome(i.nome).includes(q) || i.sinonimos.some((s) => normalizarNome(s).includes(q)))
-      .slice(0, 40);
+    return filtrarExercicios(itens, busca, filtro);
   }, [itens, busca, filtro]);
+  const filtros = useMemo(() => filtrosComItens(itens), [itens]);
 
   function adicionar(item: ItemLeve) {
     setLinhas((l) => [...l, { chave: novaChave(), id: null, biblioteca_id: item.id, series: 3, reps: iniciante ? "10-12" : "8-12", descanso_seg: 90 }]);
@@ -150,7 +136,7 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
       {buscando ? (
         <section className="space-y-3 rounded-xl border border-accent/40 p-3" aria-label="Escolher exercício">
           <div className="flex items-center gap-2">
-            <Input value={busca} onChange={(e) => { setBusca(e.target.value); setFiltro(null); }} placeholder="Buscar: supino, agachamento…" aria-label="Buscar exercício" autoFocus />
+            <Input value={busca} onChange={(e) => { setBusca(e.target.value); setFiltro(null); }} placeholder="Buscar: supino, adutora, agachamento…" aria-label="Buscar exercício" autoFocus />
             {linhas.length ? (
               <button type="button" className={botao} onClick={() => setBuscando(false)} aria-label="Fechar busca">
                 <Icon name="x" size={16} />
@@ -158,12 +144,16 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            {FILTROS.map((f) => (
+            {filtros.map((f) => (
               <button key={f.valor} type="button" onClick={() => { setFiltro(filtro === f.valor ? null : f.valor); setBusca(""); }} aria-pressed={filtro === f.valor} className={`min-h-9 rounded-full border px-3 text-xs ${filtro === f.valor ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted"}`}>
                 {f.rotulo}
               </button>
             ))}
           </div>
+          <p className="text-xs text-fg-subtle" aria-live="polite">
+            {resultados.length} {resultados.length === 1 ? "exercício" : "exercícios"}
+            {resultados.length > 8 ? " · role a lista para ver todos" : ""}
+          </p>
           <ul className="max-h-80 divide-y divide-border overflow-y-auto">
             {resultados.map((r) => (
               <li key={r.id}>
