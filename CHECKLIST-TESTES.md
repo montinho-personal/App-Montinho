@@ -111,3 +111,23 @@ Capturas em `docs/screenshots/`: login demo (01), início do aluno (02), Treinar
 | Unitário | PASSOU | `src/lib/push/mensagem.test.ts` (2): título/corpo/link do treino; sem nome |
 | Produção | APLICADO | migration 0015, hash da chave em `config_privada`, `pg_cron` a cada 5 min chamando `/api/cron/lembretes`; chaves VAPID e `LEMBRETE_CHAVE` na Vercel |
 | Notificação no celular real | NÃO EXECUTADO | precisa de um aparelho com permissão concedida (ver GUIA) |
+
+## Modo Visitante — fase 9, testes (22/10/2026)
+Critérios de aceite do prompt do Modo Visitante, conferidos na demonstração (Playwright, Pixel 7) e no banco local:
+
+| Critério | Como foi testado | Resultado |
+|---|---|---|
+| Visitante cria a conta | `/convite/DEMO-30` abre o cadastro; código inexistente não deixa cadastrar; reserva atômica e devolução da vaga (T32) | OK |
+| Cadastra os próprios treinos | Bia monta “Treino teste E2E” em Meus treinos; só `autoria='proprio'` e só dela (T33) | OK |
+| Registra sessões | Bia inicia o treino e conclui a série 1; vencido não inicia (T31) | OK |
+| Acompanha a evolução | `/aluno/evolucao` (este mês × mês passado) | OK |
+| Participa de desafios | Jornada com o desafio; medalha `desafio_concluido` (T34) | OK |
+| CTAs coerentes, WhatsApp contextualizado | Convite aparece em Meus treinos com `wa.me/5511981063409` e mensagem com `[APP-MONTAR]` | OK |
+| Clique registrado | POST `/api/visitante/cta` com `clicado`; regras de `cta_eventos` (T35) | OK |
+| Personal vê a origem do interesse | `/treinador/leads` (funil, convites, CRM) e `/treinador/visitantes` | OK |
+| Personal configura acessos e campanhas | Convites, desafios, renovar/encerrar/converter no painel | OK |
+| Conversão preserva o histórico | T37: sessões e treinos próprios iguais antes/depois; aluno convertido registra e vê os treinos | OK |
+| Funcionalidades existentes | Aline (consultoria): Treinar normal, sem convites do visitante; lista de alunos sem visitantes; 535 testes unitários; T1–T37 | OK |
+| Segurança e privacidade | GA só depois do aceite (nenhuma chamada antes); caminho sem ids — corrigido para ids que não parecem uuid (`caminho.ts`); 0061 fecha `pode_registrar()`/`visitante_em_dia()` para quem não está logado | OK |
+
+Banco de produção (consulta de integridade): visitantes com acesso e perfil, `acesso_ate` igual ao fim do acesso, usos do convite = acessos, nenhum evento de CTA de aluno da consultoria, fila do CRM sem pendências nem falhas.

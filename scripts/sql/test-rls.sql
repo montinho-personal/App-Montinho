@@ -1101,4 +1101,40 @@ end $$;
 select test_logout();
 update crm_config set ativo = false, webhook_url = null where id = 1;
 \echo 'T36 OK: leads e fila do CRM só do treinador'
+-- T37 — 0061 + conversão: visitante vira aluno sem perder nada; funções do visitante fechadas para anon
+do $$
+declare n_antes int; n_depois int; t_antes int; t_depois int;
+begin
+  update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  update acessos_visitante set fim = now() - interval '1 day' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n_antes from training_sessions where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into t_antes from treinos where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and autoria = 'proprio';
+  if t_antes = 0 then raise exception 'T37 pré: esperava treino próprio do visitante (T33)'; end if;
+  -- conversão como a API faz
+  update alunos set modalidade = 'consultoria', acesso_ate = null where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n_depois from training_sessions where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into t_depois from treinos where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and autoria = 'proprio';
+  if n_antes <> n_depois or t_antes <> t_depois then raise exception 'T37a: conversão perdeu histórico (sessões % → %, treinos % → %)', n_antes, n_depois, t_antes, t_depois; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int;
+begin
+  if not public.pode_registrar() then raise exception 'T37b: aluno convertido (acesso antigo vencido) não pode registrar'; end if;
+  select count(*) into n from treinos where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and autoria = 'proprio';
+  if n = 0 then raise exception 'T37c: aluno convertido não vê os treinos que montou'; end if;
+end $$;
+select test_logout();
+set role anon;
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.pode_registrar(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T37d: anon executou pode_registrar()'; end if;
+  ok := false;
+  begin perform public.visitante_em_dia(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T37e: anon executou visitante_em_dia()'; end if;
+end $$;
+reset role;
+\echo 'T37 OK: conversão preserva histórico; funções do visitante só com login'
 \echo 'TODOS OS TESTES PASSARAM'

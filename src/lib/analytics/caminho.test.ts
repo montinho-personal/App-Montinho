@@ -10,4 +10,12 @@ describe("caminho enviado ao Google Analytics", () => {
     expect(caminhoAnonimo("/aluno/evolucao")).toBe("/aluno/evolucao");
     expect(caminhoAnonimo("/")).toBe("/");
   });
+
+  it("tira ids que não parecem uuid depois das pastas de aluno e treino", () => {
+    expect(caminhoAnonimo("/aluno/treino/t-aline-c")).toBe("/aluno/treino/:id");
+    expect(caminhoAnonimo("/treinador/alunos/al-1/aula/t-2")).toBe("/treinador/alunos/:id/aula/:id");
+    expect(caminhoAnonimo("/aluno/meus-treinos/novo")).toBe("/aluno/meus-treinos/novo");
+    expect(caminhoAnonimo("/aluno/meus-treinos/abc")).toBe("/aluno/meus-treinos/:id");
+    expect(caminhoAnonimo("/treinador/alunos")).toBe("/treinador/alunos");
+  });
 });
