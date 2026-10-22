@@ -1069,4 +1069,36 @@ begin
 end $$;
 select test_logout();
 \echo 'T35 OK: eventos de CTA só do próprio aluno'
+-- T36 — 0058: leads e fila do CRM (só treinador; gatilhos só com a sincronização ligada)
+do $$
+declare n int;
+begin
+  update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  insert into leads_status (aluno_id, status) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'novo');
+  select count(*) into n from crm_fila;
+  if n <> 0 then raise exception 'T36a: enfileirou com a sincronização desligada'; end if;
+  update crm_config set webhook_url = 'https://exemplo.com/webhook', ativo = true where id = 1;
+  update leads_status set status = 'em_conversa' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  insert into cta_eventos (aluno_id, cta, tipo, tela) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'constancia', 'clicado', 'inicio');
+  update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n from crm_fila;
+  if n <> 3 then raise exception 'T36b: esperava 3 novidades na fila (status, WhatsApp, virou aluno), veio %', n; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from crm_fila;
+  if n <> 0 then raise exception 'T36c: aluno leu a fila do CRM'; end if;
+  select count(*) into n from crm_config;
+  if n <> 0 then raise exception 'T36d: aluno leu a configuração do CRM'; end if;
+  begin insert into leads_status (aluno_id, status) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'interessado'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T36e: aluno gravou status de lead'; end if;
+  ok := false;
+  begin perform crm_pendentes('chave-errada'); exception when others then ok := true; end;
+  if not ok then raise exception 'T36f: crm_pendentes sem a chave do agendador'; end if;
+end $$;
+select test_logout();
+update crm_config set ativo = false, webhook_url = null where id = 1;
+\echo 'T36 OK: leads e fila do CRM só do treinador'
 \echo 'TODOS OS TESTES PASSARAM'

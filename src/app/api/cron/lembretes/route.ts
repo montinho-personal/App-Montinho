@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { MINUTOS_SEM_ATIVIDADE, mensagemTreinoAberto, type LembreteDevido } from "@/lib/push/mensagem";
 import { TTL_SEG, agruparPorEnvio, mensagemChalala, topicoDoEnvio, type EnvioChalala } from "@/lib/push/chalala";
 import { configurarVapid, enviarAosAparelhos } from "@/lib/push/enviar";
+import { entregarWebhook } from "@/lib/crm/entregar";
 
 export const dynamic = "force-dynamic";
 
@@ -51,5 +52,16 @@ export async function POST(req: Request) {
       chalala.falhas += r.falha;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala });
+  // 3) CRM do personal (Modo Visitante, 0058): entrega a fila de novidades dos leads.
+  const crm = { entregues: 0, falhas: 0 };
+  const { data: pendentes, error: e3 } = await db.rpc("crm_pendentes", { p_chave: chave });
+  if (!e3) {
+    for (const p of (pendentes ?? []) as Array<{ id: number; url: string; token: string; payload: unknown }>) {
+      const r = await entregarWebhook(p.url, p.token, p.payload);
+      await db.rpc("crm_resultado", { p_chave: chave, p_id: p.id, p_ok: r.ok, p_codigo: r.codigo, p_erro: r.erro });
+      if (r.ok) crm.entregues++;
+      else crm.falhas++;
+    }
+  }
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, crm: e3 ? "indisponivel" : crm });
 }

@@ -561,3 +561,13 @@ export const ctaEventoSchema = z.object({
   tipo: z.enum(["exibido", "clicado", "dispensado"]),
   tela: z.enum(["aviso", "inicio", "evolucao", "meus_treinos", "jornada"]),
 });
+
+// Modo Visitante, fase 8: painel de leads e CRM (0058)
+export const leadStatusSchema = z.object({
+  status: z.enum(["novo", "em_conversa", "interessado", "sem_interesse", "virou_aluno"]),
+  anotacao: z.string().trim().max(2000).nullable().optional(),
+});
+export const crmConfigSchema = z.object({
+  webhook_url: z.string().trim().max(500).nullable(),
+  ativo: z.boolean(),
+});

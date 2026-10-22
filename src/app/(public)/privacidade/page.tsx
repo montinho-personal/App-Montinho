@@ -40,7 +40,7 @@ export default function PrivacidadePage() {
           <section>
             <h2>Com quem compartilhamos</h2>
             <p>
-              Não vendemos nem cedemos seus dados. Eles ficam guardados em serviços de infraestrutura contratados para o app funcionar (banco de dados e hospedagem). Estatísticas de uso, como as do Google Analytics, só são ativadas se você aceitar, e nunca recebem seu nome, e-mail, telefone ou dados de saúde.
+              Não vendemos nem cedemos seus dados. Eles ficam guardados em serviços de infraestrutura contratados para o app funcionar (banco de dados e hospedagem). Se você entrou por convite, seu nome, e-mail e o andamento no app (convite, desafio, objetivo, treinos feitos) podem ir para a ferramenta de gestão de contatos (CRM) do {BRAND.name}, só para ele poder falar com você. Estatísticas de uso, como as do Google Analytics, só são ativadas se você aceitar, e nunca recebem seu nome, e-mail, telefone ou dados de saúde.
             </p>
           </section>
           <section>

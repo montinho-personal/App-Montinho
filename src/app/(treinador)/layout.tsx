@@ -8,7 +8,7 @@ const NAV = [
   { label: "Visão geral", href: "/treinador", icon: "home" },
   { label: "Buscar", href: "/treinador/busca", icon: "search" },
   { label: "Alunos", href: "/treinador/alunos", icon: "users" },
-  ...(FEATURES.modoVisitante ? [{ label: "Visitantes", href: "/treinador/visitantes", icon: "user" } as const] : []),
+  ...(FEATURES.modoVisitante ? [{ label: "Visitantes", href: "/treinador/visitantes", icon: "user" } as const, { label: "Leads", href: "/treinador/leads", icon: "chart" } as const] : []),
   { label: "Central de aderência", href: "/treinador/aderencia", icon: "chart" },
   { label: "Celebrar conquistas", href: "/treinador/conquistas", icon: "star" },
   { label: "Evoluções dos alunos", href: "/treinador/evolucoes", icon: "chart" },
