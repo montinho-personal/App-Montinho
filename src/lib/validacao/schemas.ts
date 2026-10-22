@@ -1,5 +1,6 @@
 // Validação de entrada no servidor (zod). Mensagens em PT-BR.
 import { z } from "zod";
+import { whatsappBR } from "@/lib/visitante/whatsapp";
 
 export const GRUPOS = [
   "peito", "costas", "ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio",
@@ -500,6 +501,12 @@ export const cadastroVisitanteSchema = z.object({
   codigo: z.string().trim().min(4).max(40),
   nome: z.string().trim().min(2, "Digite seu nome").max(120),
   email: z.string().trim().toLowerCase().email("E-mail inválido").max(160),
+  whatsapp: z
+    .string()
+    .trim()
+    .max(30)
+    .refine((v) => whatsappBR(v) != null, "Digite seu WhatsApp com DDD, ex.: (11) 98765-4321")
+    .transform((v) => whatsappBR(v)!),
   senha: z.string().min(8, "A senha precisa de pelo menos 8 caracteres").max(72),
   aceite_privacidade: z.literal(true, { message: "É preciso aceitar a política de privacidade" }),
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { linkWhatsApp } from "@/lib/acesso/mensagem";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { STATUS_LEAD, type Lead, type StatusLead } from "@/lib/visitante/leads";
 
@@ -27,7 +28,16 @@ function LinhaLead({ l }: { l: Lead }) {
             {l.convertido ? <span className="ml-2 rounded-full border border-accent/40 px-2 py-0.5 text-[11px] text-accent">Virou aluno</span> : null}
           </p>
           <p className="text-xs text-fg-muted">
-            {l.email ?? "sem e-mail"} · entrou em {dataBR(l.cadastroEm)}
+            {l.email ?? "sem e-mail"}
+            {l.telefone ? (
+              <>
+                {" · "}
+                <a href={linkWhatsApp(l.telefone, `Olá, ${l.nome.split(" ")[0]}!`)} target="_blank" rel="noopener noreferrer" className="alvo text-accent underline-offset-2 hover:underline">
+                  {l.telefone}
+                </a>
+              </>
+            ) : null}
+            {" · "}entrou em {dataBR(l.cadastroEm)}
             {l.convite ? ` · convite ${l.convite}` : ""}
             {l.origem ? ` (${l.origem})` : ""}
             {l.desafio ? ` · ${l.desafio}` : ""}

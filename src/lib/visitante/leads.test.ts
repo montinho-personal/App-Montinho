@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { csvLeads, funil, resumoCtas, urlWebhookValida, type Lead } from "./leads";
 
-const l = (o: Partial<Lead>): Lead => ({ id: "1", nome: "Ana", email: "ana@x.com", cadastroEm: "2026-10-20T12:00:00Z", convite: "DESAFIO-AB12", origem: "instagram", desafio: null, acessoFim: null, onboarding: false, objetivo: null, treinosFeitos: 0, ultimoTreino: null, whatsapp: null, status: "novo", anotacao: null, convertido: false, ...o });
+const l = (o: Partial<Lead>): Lead => ({ id: "1", nome: "Ana", email: "ana@x.com", telefone: null, cadastroEm: "2026-10-20T12:00:00Z", convite: "DESAFIO-AB12", origem: "instagram", desafio: null, acessoFim: null, onboarding: false, objetivo: null, treinosFeitos: 0, ultimoTreino: null, whatsapp: null, status: "novo", anotacao: null, convertido: false, ...o });
 
 describe("painel de leads", () => {
   it("funil do convite até virar aluno", () => {
@@ -20,7 +20,7 @@ describe("painel de leads", () => {
 
   it("planilha abre no Excel em português e não executa fórmula", () => {
     const csv = csvLeads([l({ nome: "=HYPERLINK(\"x\")", anotacao: "falou; volta segunda", status: "em_conversa" })]);
-    expect(csv.startsWith("﻿Nome;E-mail;Status")).toBe(true);
+    expect(csv.startsWith("﻿Nome;E-mail;WhatsApp;Status")).toBe(true);
     expect(csv).toContain(`"'=HYPERLINK(""x"")"`);
     expect(csv).toContain("Em conversa");
     expect(csv).toContain(`"falou; volta segunda"`);

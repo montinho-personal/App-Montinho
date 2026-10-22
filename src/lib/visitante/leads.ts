@@ -16,6 +16,7 @@ export type Lead = {
   id: string;
   nome: string;
   email: string | null;
+  telefone: string | null;
   cadastroEm: string;
   convite: string | null;
   origem: string | null;
@@ -73,9 +74,9 @@ const dataBR = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("
 
 /** Planilha dos leads (separador “;”, como o Excel em português abre direto). */
 export function csvLeads(leads: Lead[]): string {
-  const cab = ["Nome", "E-mail", "Status", "Cadastro", "Convite", "Origem", "Desafio", "Acesso até", "Objetivo", "Treinos feitos", "Último treino", "Tocou no WhatsApp", "Anotação"];
+  const cab = ["Nome", "E-mail", "WhatsApp", "Status", "Cadastro", "Convite", "Origem", "Desafio", "Acesso até", "Objetivo", "Treinos feitos", "Último treino", "Tocou no WhatsApp", "Anotação"];
   const linhas = leads.map((l) =>
-    [l.nome, l.email, STATUS_LEAD[l.status], dataBR(l.cadastroEm), l.convite, l.origem, l.desafio, dataBR(l.acessoFim), l.objetivo, l.treinosFeitos, dataBR(l.ultimoTreino), l.whatsapp ? `${l.whatsapp.ref} em ${dataBR(l.whatsapp.em)}` : "", l.anotacao].map(celula).join(";")
+    [l.nome, l.email, l.telefone, STATUS_LEAD[l.status], dataBR(l.cadastroEm), l.convite, l.origem, l.desafio, dataBR(l.acessoFim), l.objetivo, l.treinosFeitos, dataBR(l.ultimoTreino), l.whatsapp ? `${l.whatsapp.ref} em ${dataBR(l.whatsapp.em)}` : "", l.anotacao].map(celula).join(";")
   );
   return `﻿${[cab.join(";"), ...linhas].join("\r\n")}\r\n`;
 }

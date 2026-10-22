@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { eventoGa } from "@/components/analytics/ga";
+import { whatsappBR } from "@/lib/visitante/whatsapp";
 
 export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [senha, setSenha] = useState("");
   const [aceite, setAceite] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -20,6 +22,7 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
     setErro(null);
     if (nome.trim().length < 2) return setErro("Digite seu nome.");
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErro("Digite um e-mail válido.");
+    if (!whatsappBR(whatsapp)) return setErro("Digite seu WhatsApp com DDD, ex.: (11) 98765-4321.");
     if (senha.length < 8) return setErro("A senha precisa de pelo menos 8 caracteres.");
     if (!aceite) return setErro("Para continuar, aceite a política de privacidade.");
     setEnviando(true);
@@ -27,7 +30,7 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
       const r = await fetch("/api/public/convite/cadastro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), senha, aceite_privacidade: true }),
+        body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), whatsapp: whatsapp.trim(), senha, aceite_privacidade: true }),
       });
       const j = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) throw new Error(j.error ?? "Não foi possível criar a conta agora.");
@@ -53,6 +56,11 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
       <div>
         <Label htmlFor="email">E-mail</Label>
         <Input id="email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" autoComplete="email" required />
+      </div>
+      <div>
+        <Label htmlFor="whatsapp">WhatsApp com DDD</Label>
+        <Input id="whatsapp" type="tel" inputMode="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 98765-4321" autoComplete="tel-national" required />
+        <FieldHint>Para o Montinho falar com você sobre o seu acesso e os desafios.</FieldHint>
       </div>
       <div>
         <Label htmlFor="senha">Crie uma senha</Label>

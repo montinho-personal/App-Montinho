@@ -16,7 +16,7 @@ type LinhaAcesso = {
   fim: string | null;
   convite: { codigo: string; origem: string | null } | null;
   campanha: { nome: string } | null;
-  aluno: { id: string; modalidade: string; created_at: string; profile: { nome: string | null; email: string | null } | null; perfil: { objetivo: string | null; onboarding_concluido_em: string | null } | null } | null;
+  aluno: { id: string; modalidade: string; telefone: string | null; created_at: string; profile: { nome: string | null; email: string | null } | null; perfil: { objetivo: string | null; onboarding_concluido_em: string | null } | null } | null;
 };
 
 export async function carregarLeads(): Promise<{ leads: Lead[]; eventos: EventoCtaPainel[] }> {
@@ -26,7 +26,7 @@ export async function carregarLeads(): Promise<{ leads: Lead[]; eventos: EventoC
       .filter((a) => a.modalidade === "visitante")
       .map((a): Lead => {
         const feitas = s.sessions.filter((x) => x.aluno_id === a.id && x.status !== "em_andamento" && (x.series_concluidas ?? 0) > 0);
-        return { id: a.id, nome: mockProfiles.find((p) => p.id === a.profile_id)?.nome ?? "Visitante", email: mockProfiles.find((p) => p.id === a.profile_id)?.email ?? null, cadastroEm: a.created_at, convite: "DEMO-30", origem: "instagram", desafio: "Desafio 7 Dias Chalalá", acessoFim: null, onboarding: true, objetivo: "hipertrofia", treinosFeitos: feitas.length, ultimoTreino: feitas.map((x) => x.iniciado_em).sort().at(-1) ?? null, whatsapp: null, status: "novo", anotacao: null, convertido: false };
+        return { id: a.id, nome: mockProfiles.find((p) => p.id === a.profile_id)?.nome ?? "Visitante", email: mockProfiles.find((p) => p.id === a.profile_id)?.email ?? null, telefone: a.telefone ?? null, cadastroEm: a.created_at, convite: "DEMO-30", origem: "instagram", desafio: "Desafio 7 Dias Chalalá", acessoFim: null, onboarding: true, objetivo: "hipertrofia", treinosFeitos: feitas.length, ultimoTreino: feitas.map((x) => x.iniciado_em).sort().at(-1) ?? null, whatsapp: null, status: "novo", anotacao: null, convertido: false };
       });
     return { leads, eventos: [] };
   }
@@ -34,7 +34,7 @@ export async function carregarLeads(): Promise<{ leads: Lead[]; eventos: EventoC
   const desde = new Date(Date.now() - 90 * 86_400_000).toISOString();
   const { data: acessos } = await db
     .from("acessos_visitante")
-    .select("aluno_id, inicio, fim, convite:convites(codigo, origem), campanha:campanhas(nome), aluno:alunos(id, modalidade, created_at, profile:profiles(nome, email), perfil:perfil_visitante(objetivo, onboarding_concluido_em))")
+    .select("aluno_id, inicio, fim, convite:convites(codigo, origem), campanha:campanhas(nome), aluno:alunos(id, modalidade, telefone, created_at, profile:profiles(nome, email), perfil:perfil_visitante(objetivo, onboarding_concluido_em))")
     .order("inicio", { ascending: false })
     .limit(1000);
   const linhas = (acessos ?? []) as unknown as LinhaAcesso[];
@@ -54,6 +54,7 @@ export async function carregarLeads(): Promise<{ leads: Lead[]; eventos: EventoC
       id: l.aluno_id,
       nome: l.aluno?.profile?.nome ?? "Visitante",
       email: l.aluno?.profile?.email ?? null,
+      telefone: l.aluno?.telefone ?? null,
       cadastroEm: l.aluno?.created_at ?? l.inicio,
       convite: l.convite?.codigo ?? null,
       origem: l.convite?.origem ?? null,

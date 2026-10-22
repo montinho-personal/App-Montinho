@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     await admin.from("profiles").update({ nome: body.nome, role: "aluno" }).eq("id", userId);
     const { data: aluno, error: alunoErr } = await admin
       .from("alunos")
-      .insert({ profile_id: userId, status: "ativo", modalidade: "visitante", data_inicio: agora.toISOString().slice(0, 10), acesso_ate: fim ? fim.toISOString().slice(0, 10) : null })
+      .insert({ profile_id: userId, telefone: body.whatsapp, status: "ativo", modalidade: "visitante", data_inicio: agora.toISOString().slice(0, 10), acesso_ate: fim ? fim.toISOString().slice(0, 10) : null })
       .select("id")
       .single();
     if (alunoErr || !aluno) throw alunoErr ?? new Error("aluno");
