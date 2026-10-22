@@ -34,6 +34,8 @@ export type Recuperacao = keyof typeof RECUPERACAO;
 export type ConfigExtra = {
   habilitado: boolean;
   requer_aprovacao: boolean;
+  /** Com requer_aprovacao: só extras intensos (musculação, complementar) viram pedido; os leves seguem as regras. */
+  aprovacao_so_intensos: boolean;
   max_por_semana: number;
   /** 0 = domingo … 6 = sábado */
   dias_permitidos: number[];
@@ -43,7 +45,7 @@ export type ConfigExtra = {
   intervalo_min_horas: number;
 };
 
-export const CONFIG_EXTRA_PADRAO: ConfigExtra = { habilitado: false, requer_aprovacao: true, max_por_semana: 1, dias_permitidos: [0, 1, 2, 3, 4, 5, 6], limite_series_semana: 12, intervalo_min_horas: 12 };
+export const CONFIG_EXTRA_PADRAO: ConfigExtra = { habilitado: false, requer_aprovacao: true, aprovacao_so_intensos: true, max_por_semana: 1, dias_permitidos: [0, 1, 2, 3, 4, 5, 6], limite_series_semana: 12, intervalo_min_horas: 12 };
 
 export type ExtraLiberado = {
   id: string;
@@ -124,7 +126,7 @@ export function classificarExtra(e: {
   } else if (x.modalidade === "cardio_moderado" && e.recuperacao === "cansado") {
     pedeAprovacao.push("Você está um pouco cansado: o personal decide se vale um cardio moderado hoje.");
   }
-  if (c.requer_aprovacao) pedeAprovacao.push("O personal pediu para aprovar cada treino extra.");
+  if (c.requer_aprovacao && !(c.aprovacao_so_intensos && !intenso)) pedeAprovacao.push(c.aprovacao_so_intensos ? "O personal pediu para aprovar cada treino extra de musculação." : "O personal pediu para aprovar cada treino extra.");
 
   if (pedeAprovacao.length && !e.aprovadoHoje) return { classe: "aprovacao", motivos: pedeAprovacao };
   return { classe: "liberado", motivos: [e.aprovadoHoje ? "Aprovado pelo personal para hoje." : "Dentro das regras que o personal configurou para você.", "Treino extra não conta na meta semanal; ele aparece separado no seu histórico."] };

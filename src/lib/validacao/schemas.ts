@@ -346,6 +346,7 @@ const recuperacaoSchema = z.enum(["bem", "cansado", "dor", "prefiro_nao"]).nulla
 export const configExtraSchema = z.object({
   habilitado: z.boolean(),
   requer_aprovacao: z.boolean(),
+  aprovacao_so_intensos: z.boolean().optional().default(true),
   max_por_semana: z.coerce.number().int().min(0).max(7),
   dias_permitidos: z.array(z.coerce.number().int().min(0).max(6)).max(7),
   limite_series_semana: z.coerce.number().int().min(0).max(60),

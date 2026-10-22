@@ -11,7 +11,7 @@ import type { ExtraDitado } from "@/lib/treino/ditado-extra";
 import { DitarExtra } from "./DitarExtra";
 
 type Pendente = { id: string; aluno: string; titulo: string; classificacao: string; motivos: string[]; recuperacao: Recuperacao | null; tempo: number | null; data: string };
-type Config = { habilitado: boolean; requer_aprovacao: boolean; max_por_semana: number; dias_permitidos: number[]; limite_series_semana: number; intervalo_min_horas: number; observacao: string | null };
+type Config = { habilitado: boolean; requer_aprovacao: boolean; aprovacao_so_intensos: boolean; max_por_semana: number; dias_permitidos: number[]; limite_series_semana: number; intervalo_min_horas: number; observacao: string | null };
 type Extra = { id: string; modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number; ativo: boolean };
 type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number; sugestao: { sugestao: SugestaoExtra | null; motivo: string } } | null;
 
@@ -144,11 +144,25 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                 Permitir treinos extras
               </label>
               <p className="-mt-1 pl-6 text-[11px] text-fg-subtle">Ligado: o aluno vê o botão “Quero fazer um treino extra” com as opções que você liberou abaixo. Desligado: ele não pede extra nenhum.</p>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={cfg.requer_aprovacao} onChange={(e) => setCfg({ ...cfg, requer_aprovacao: e.target.checked })} className="h-4 w-4 accent-[var(--color-accent)]" />
-                Exigir minha aprovação em todo extra
-              </label>
-              <p className="-mt-1 pl-6 text-[11px] text-fg-subtle">Marcado: todo extra vira um pedido para você aprovar antes. Desmarcado: o app libera sozinho quando o aluno está dentro das regras abaixo.</p>
+              <fieldset className="space-y-1">
+                <legend className="text-sm">Quando pedir a minha aprovação</legend>
+                {([
+                  { v: "intensos", t: "Só nos extras de musculação e treino complementar", d: "Caminhada, mobilidade, cardio e sessão técnica saem liberados quando o aluno está dentro das regras abaixo." },
+                  { v: "todos", t: "Em todo extra", d: "Até uma caminhada vira pedido para você aprovar antes." },
+                  { v: "nunca", t: "Nunca: o app decide pelas regras", d: "Libera sozinho o que estiver dentro das regras; só os casos duvidosos viram pedido." },
+                ] as const).map((o) => {
+                  const atual = !cfg.requer_aprovacao ? "nunca" : cfg.aprovacao_so_intensos ? "intensos" : "todos";
+                  return (
+                    <label key={o.v} className="flex items-start gap-2 py-0.5">
+                      <input type="radio" name="aprovacao" checked={atual === o.v} onChange={() => setCfg({ ...cfg, requer_aprovacao: o.v !== "nunca", aprovacao_so_intensos: o.v !== "todos" })} className="mt-1 h-4 w-4 accent-[var(--color-accent)]" />
+                      <span>
+                        <span className="block">{o.t}</span>
+                        <span className="block text-[11px] text-fg-subtle">{o.d}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
               <div className="grid grid-cols-2 gap-2">
                 <label className="space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Máximo por semana</span>
