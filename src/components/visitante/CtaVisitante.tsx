@@ -28,7 +28,7 @@ export async function CtaVisitante({ alunoId, tela, acessoFim }: { alunoId: stri
     temTreinoProprio: Boolean(plano?.treinos.some((t) => t.ativo && t.autoria === "proprio")),
     eventos,
   });
-  if (!cta) return null;
+  if (!cta || (cta.canal === "instagram" && !BRAND.contact.instagram)) return null;
   return (
     <CtaCard
       id={cta.id}
@@ -37,7 +37,8 @@ export async function CtaVisitante({ alunoId, tela, acessoFim }: { alunoId: stri
       titulo={cta.titulo}
       texto={cta.texto}
       botao={cta.botao}
-      href={linkCta(cta, BRAND.contact.whatsapp)}
+      href={linkCta(cta, BRAND.contact)}
+      canal={cta.canal}
       dispensavel={cta.pausaDias !== null}
       destaque={cta.id === "acesso_vencido" || cta.id === "desafio_concluido"}
     />

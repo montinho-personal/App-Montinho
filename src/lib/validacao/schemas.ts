@@ -580,7 +580,7 @@ export const desafioSchema = z
 
 // Modo Visitante, fase 6: eventos dos convites para o WhatsApp (0057)
 export const ctaEventoSchema = z.object({
-  cta: z.enum(["acesso_vencido", "acesso_vencendo", "desafio_concluido", "constancia", "evolucao", "montar_treino"]),
+  cta: z.enum(["acesso_vencido", "acesso_vencendo", "desafio_concluido", "constancia", "evolucao", "montar_treino", "instagram"]),
   tipo: z.enum(["exibido", "clicado", "dispensado"]),
   tela: z.enum(["aviso", "inicio", "evolucao", "meus_treinos", "jornada"]),
 });
