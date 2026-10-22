@@ -37,6 +37,7 @@ import { descansoDaRodada, mesclarParametros, type ParametrosTempo } from "@/lib
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
+import { avisoMeta, lerMeta, rotuloMeta, situacaoMeta } from "@/lib/treino/meta-reps";
 import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
@@ -1206,6 +1207,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           const extrasFeitas = Math.max(0, feitas - (se.series_planejadas ?? planejadas));
           const ultima = troca ? (ultimasTroca[troca.id] ?? null) : ultimas[ex.id];
           const expandido = aberto === se.id;
+          // Meta de reps do personal em cada série válida (pirâmide 20/15/12/10 ou série a série).
+          const metas = lista.map((s, i) => (s.tipo === "valida" && !ehPorTempo(ex) ? lerMeta(prescritoDaSerie(ex, lista.slice(0, i + 1).filter((x) => x.tipo === "valida").length)) : null));
+          const textoMeta = ultima ? avisoMeta(metas, lista.map((s) => (s.concluida ? "" : s.reps))) : null;
           const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
           const tecnicaTxt = ex.tecnica_config ? (instrucaoTecnica(ex.tecnica, ex.tecnica_config) ?? "") : [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
           const corTecnica = COR_TECNICA[ex.tecnica] ?? "#d4a84b";
@@ -1321,6 +1325,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     ) : (
                       <p className="text-xs text-fg-subtle">Primeira vez registrando este exercício.</p>
                     )}
+                    {textoMeta ? (
+                      <p role="note" className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+                        <span className="font-bold text-accent">🎯 Meta: {metas.filter((m) => m !== null).map((m) => rotuloMeta(m!)).join(" · ")} reps.</span> {textoMeta}
+                      </p>
+                    ) : null}
 
                     <div className="space-y-2">
                       <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1">
@@ -1380,15 +1389,20 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                               onChange={(e) => atualizar(se.id, i, { carga: e.target.value, concluida: false, sincronizada: false })}
                               className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                             />
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              aria-label={ehPorTempo(ex) ? `Tempo da série ${s.serie} em segundos` : `Repetições da série ${s.serie}`}
-                              value={s.reps}
-                              placeholder={ref?.reps != null ? String(ref.reps) : ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps"}
-                              onChange={(e) => atualizar(se.id, i, { reps: e.target.value, concluida: false, sincronizada: false })}
-                              className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
-                            />
+                            <div className="relative">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                aria-label={ehPorTempo(ex) ? `Tempo da série ${s.serie} em segundos` : `Repetições da série ${s.serie}${metas[i] ? ` (meta ${rotuloMeta(metas[i]!)})` : ""}`}
+                                value={s.reps}
+                                placeholder={ref?.reps != null ? String(ref.reps) : ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps"}
+                                onChange={(e) => atualizar(se.id, i, { reps: e.target.value, concluida: false, sincronizada: false })}
+                                className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
+                              />
+                              {metas[i] && !s.concluida && situacaoMeta(s.reps, metas[i]) === "abaixo" ? (
+                                <span aria-hidden className="pointer-events-none absolute -top-1.5 right-1 rounded bg-accent px-1 text-[9px] font-bold leading-tight text-bg">meta {rotuloMeta(metas[i]!)}</span>
+                              ) : null}
+                            </div>
                             <button
                               type="button"
                               onClick={() => concluirSerie(se.id, i, ex)}
