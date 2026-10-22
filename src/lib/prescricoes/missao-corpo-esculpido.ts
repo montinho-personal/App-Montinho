@@ -28,7 +28,7 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
 import { comRegras } from "./regras";
 
-export const ID_PRESCRICAO = "missao-corpo-esculpido-v1";
+export const ID_PRESCRICAO = "missao-corpo-esculpido-v2"; // v2: isometrias da ficha, até a falha e aquecimento (22/10)
 export const NOME_ALUNA = "Naya Martins Ribeiro de Oliveira";
 export const ROTULO = "Missão Corpo Esculpido & Punhos de Aço";
 
