@@ -10,11 +10,14 @@
 // Decisões do personal: abdominal supra = em pé; supino 45° = inclinado na
 // máquina; hip thrust = com barra; rosca direta = barra reta; sexta sem
 // panturrilha (como na ficha); rosca inversa na polia conta como bíceps.
+//  • Padrão de toda ficha (./regras, 22/10/2026): até a falha (RIR 0) e
+//    aquecimento no 1º exercício de cada treino.
 // ============================================================================
 
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
+import { comRegras } from "./regras";
 
 export const ID_PRESCRICAO = "missao-mr-bellagio-v1";
 export const NOME_ALUNO = "Denis Cruz";
@@ -100,7 +103,7 @@ const pir = (nome: string, reps: string[] = P20, rir: number | null = 3) => ex(n
 const prancha = () => ex("Prancha frontal", ["60s", "60s"], null, { tecnica: "isometria" });
 const biA = (nome: string, reps: string[], bloco: string, rir: number | null = null) => ex(nome, reps, 0, { tecnica: "biset", bloco, descansoApos: 0, rir });
 const biB = (nome: string, reps: string[], bloco: string, rir: number | null = null) => ex(nome, reps, null, { tecnica: "biset", bloco, rir });
-const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[]): TreinoInput => ({ letra, nome, ativo: true, observacoes: null, exercicios });
+const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[]): TreinoInput => comRegras({ letra, nome, ativo: true, observacoes: null, exercicios });
 
 export const PRESCRICAO: SalvarPlanoInput = {
   programa: {

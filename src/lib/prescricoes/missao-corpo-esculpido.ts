@@ -20,14 +20,13 @@
 // Atualização (22/10/2026, prints da ficha com as observações):
 //  • Técnicas avançadas da ficha nas observações (repetições isométricas de 3 s
 //    no pico de contração, ajustes de execução).
-//  • Regra do personal: todo exercício até a falha muscular (RIR 0); o primeiro
-//    exercício de cada treino leva o aquecimento; se o primeiro for prancha, o
-//    aquecimento vai no seguinte (e a prancha fica fora da regra da falha).
+//  • Padrão de toda ficha (./regras): até a falha e aquecimento no 1º exercício.
 // ============================================================================
 
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
+import { comRegras } from "./regras";
 
 export const ID_PRESCRICAO = "missao-corpo-esculpido-v1";
 export const NOME_ALUNA = "Naya Martins Ribeiro de Oliveira";
@@ -111,22 +110,6 @@ function ex(nome: string, reps: string[], descansoSeg: number | null, o: Opc = {
 const P20 = ["20", "15", "12", "10"];
 const ISO5 = "Fazer em todas as séries: 5 repetições isométricas (segurando 3 s no pico de contração) e o restante das repetições normais, explodindo.";
 const ISO10 = "Fazer em todas as séries: 10 repetições isométricas (segurando 3 s no pico de contração) e o restante das repetições normais, explodindo.";
-const FALHA = "Chegar todas até a falha!";
-const AQUECIMENTO = "Antes: 2 séries de aquecimento com pouco peso, sem chegar na falha. Depois, chegar todas até a falha!";
-const ehPrancha = (e: ExercicioInput) => /prancha/i.test(e.nome);
-
-/** Regra do personal: tudo até a falha (RIR 0) e aquecimento no 1º exercício que não for prancha. */
-function comRegras(t: TreinoInput): TreinoInput {
-  const primeiro = t.exercicios.findIndex((e) => !ehPrancha(e));
-  return {
-    ...t,
-    exercicios: t.exercicios.map((e, i) => {
-      if (ehPrancha(e)) return e;
-      const fim = i === primeiro ? AQUECIMENTO : FALHA;
-      return { ...e, rir: 0, observacoes: [e.observacoes, fim].filter(Boolean).join(" ") };
-    }),
-  };
-}
 const x = (n: number, r: string) => Array.from({ length: n }, () => r);
 const pir = (nome: string, reps: string[], obs: string | null = null) => ex(nome, reps, null, { tecnica: "piramide", rir: 3, obs });
 const biA = (nome: string, reps: string[], bloco: string, obs: string | null = null) => ex(nome, reps, 0, { tecnica: "biset", bloco, descansoApos: 0, rir: 3, obs });

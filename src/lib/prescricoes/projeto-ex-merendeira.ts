@@ -19,11 +19,14 @@
 // Panturrilha no leg press 45° (criada em 0056); “Abdominal supra na polia”
 // = em pé (como na ficha do Denis); “Elevação pélvica” = Hip thrust com barra
 // (como na ficha da Adriana).
+//  • Padrão de toda ficha (./regras, 22/10/2026): até a falha (RIR 0) e
+//    aquecimento no 1º exercício de cada treino.
 // ============================================================================
 
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
+import { comRegras } from "./regras";
 
 export const ID_PRESCRICAO = "projeto-ex-merendeira-v1";
 export const NOME_ALUNA = "Natalia Cristina Nascimento";
@@ -103,7 +106,7 @@ const x4 = (r: string) => [r, r, r, r];
 const pir = (nome: string, reps: string[], rir: number | null, obs: string | null = null) => ex(nome, reps, null, { tecnica: "piramide", rir, obs });
 const biA = (nome: string, reps: string[], bloco: string, rir: number | null) => ex(nome, reps, 0, { tecnica: "biset", bloco, descansoApos: 0, rir });
 const biB = (nome: string, reps: string[], bloco: string, rir: number | null) => ex(nome, reps, null, { tecnica: "biset", bloco, rir });
-const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[]): TreinoInput => ({ letra, nome, ativo: true, observacoes: null, exercicios });
+const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[]): TreinoInput => comRegras({ letra, nome, ativo: true, observacoes: null, exercicios });
 
 export const PRESCRICAO: SalvarPlanoInput = {
   programa: {
