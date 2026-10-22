@@ -159,7 +159,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   <span className="text-sm">Revisar treino</span>
                 </Link>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🏆</span>
                   Troféus
@@ -167,6 +167,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                 <Link href={`/treinador/alunos/${id}/jornada`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🗺️</span>
                   Jornada
+                </Link>
+                <Link href={`/relatorio/${id}`} className={ATALHO}>
+                  <span aria-hidden className="text-lg">📄</span>
+                  Relatório
                 </Link>
                 <AtribuirTreinoButton alunoId={id} templates={templates} className={ATALHO}>
                   <span aria-hidden className="text-lg">📋</span>
@@ -296,6 +300,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             content: (
               <div className="space-y-5">
               <ParaOPersonal alunoId={id} alertas={alertas} />
+              <Link href={`/relatorio/${id}`} className="flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm hover:border-accent">
+                <span><span className="font-bold text-accent">Relatório premium de evolução de carga</span><span className="block text-xs text-fg-muted">Documento completo, músculo a músculo, pronto para baixar em PDF e enviar ao aluno.</span></span>
+                <span aria-hidden className="text-accent">→</span>
+              </Link>
               <RelatorioEvolucao modo="treinador" dias={dias} basePath={`/treinador/alunos/${id}`} sessoes={sessoes} programa={plano.programa} treinos={plano.treinos} evolucao={evolucao as Evolucao[]} checkIns={checkIns} versoes={versoes} exportarHref={`/api/alunos/${id}/exportar`} historicoResumo={historicoResumo} aderencia={aderencia} inicioAcompanhamento={aluno.data_inicio ?? aluno.created_at.slice(0, 10)} pedidosExtra={pedidosExtra.slice(0, 15).map((p) => ({ titulo: tituloExtra[p.extra_id] ?? "Treino extra", status: p.status, data: p.created_at, resposta: p.resposta }))} />
               </div>
             ),

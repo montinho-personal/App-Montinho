@@ -55,6 +55,10 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
           Minhas conquistas e card dos 30 dias →
         </Link>
         <Link href="/aluno/vitorias" className="ml-4 mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">Sua evolução da semana →</Link>
+        <Link href={`/relatorio/${sessao.alunoId}`} className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          <span><span className="font-bold text-accent">Seu relatório completo de evolução</span><span className="block text-xs text-fg-muted">Carga músculo a músculo, marcas pessoais e constância. Dá para baixar em PDF.</span></span>
+          <span aria-hidden className="text-accent">→</span>
+        </Link>
         <RegistrarRelatorio />
       </header>
       {aderencia ? (
