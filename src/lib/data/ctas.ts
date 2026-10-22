@@ -10,11 +10,11 @@ function demo(): Demo {
   return g.__montinhoCtas;
 }
 
-export async function eventosCta(alunoId: string, dias = 15): Promise<EventoCta[]> {
+export async function eventosCta(alunoId: string, dias = 45): Promise<EventoCta[]> {
   const desde = new Date(Date.now() - dias * 86_400_000).toISOString();
   if (isDemoMode()) return demo().filter((e) => e.aluno_id === alunoId && e.created_at >= desde);
   const db = await getDb();
-  const { data } = await db.from("cta_eventos").select("cta, tipo, created_at").eq("aluno_id", alunoId).gte("created_at", desde).order("created_at", { ascending: false }).limit(300);
+  const { data } = await db.from("cta_eventos").select("cta, tipo, created_at").eq("aluno_id", alunoId).gte("created_at", desde).order("created_at", { ascending: false }).limit(1000);
   return (data ?? []) as EventoCta[];
 }
 
