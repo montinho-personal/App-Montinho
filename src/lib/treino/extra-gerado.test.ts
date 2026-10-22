@@ -94,3 +94,33 @@ describe("extra montado pelo app", () => {
     expect(primeiraFaixa(null)).toBe("10-12");
   });
 });
+
+import { montarExtraLivre } from "./extra-gerado";
+describe("extra do meu jeito", () => {
+  const item = (nome: string, grupo: GrupoMuscular, series = 3, reps = "12") => ({ exercicio: ex(nome, grupo), series, reps });
+  const b = { corpo: "bem" as const, recentes48h: [] as GrupoMuscular[], seriesDisponiveis: 12 };
+
+  it("monta o que o aluno escolheu, com as séries e reps dele, em versão simples", () => {
+    const r = montarExtraLivre({ ...b, itens: [item("Rosca direta", "biceps", 3, "12"), item("Elevação lateral", "ombro_lateral", 4, "15")] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.extra.exercicios.map((x) => [x.nome, x.series, x.reps])).toEqual([["Rosca direta", 3, "12"], ["Elevação lateral", 4, "15"]]);
+    expect(r.extra.exercicios.every((x) => x.tecnica === "normal" && x.rir === 2)).toBe(true);
+    expect(r.extra.series).toBe(7);
+  });
+
+  it("barra músculo treinado há menos de 48 h, dizendo qual", () => {
+    const r = montarExtraLivre({ ...b, recentes48h: ["biceps"], itens: [item("Rosca direta", "biceps")] });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.motivo).toMatch(/Rosca direta \(bíceps\)/);
+  });
+
+  it("respeita o teto de séries da semana, dor e lista vazia", () => {
+    const muitas = montarExtraLivre({ ...b, itens: [item("A", "biceps", 5), item("B", "triceps", 5), item("C", "panturrilha", 5)] });
+    expect(muitas.ok).toBe(false);
+    if (!muitas.ok) expect(muitas.motivo).toMatch(/15 séries.*limite desta semana é 12.*Tire 3/);
+    expect(montarExtraLivre({ ...b, corpo: "dor", itens: [item("A", "biceps")] }).ok).toBe(false);
+    expect(montarExtraLivre({ ...b, itens: [] }).ok).toBe(false);
+  });
+});

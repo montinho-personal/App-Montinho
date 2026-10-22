@@ -10,7 +10,9 @@ import { completarGrupos } from "@/lib/data/biblioteca";
 import { estadoSemana } from "@/lib/relatorios/calcular";
 import { CONFIG_EXTRA_PADRAO } from "@/lib/treino/extra";
 import { dataLocal, diaDaSemana, inicioDaSemana } from "@/lib/aderencia/calcular";
-import { montarExtraGerado, semanaCumprida, REGRAS_EXTRA_GERADO, type CorpoExtra, type FocoExtra, type ResultadoExtraGerado } from "@/lib/treino/extra-gerado";
+import { montarExtraGerado, montarExtraLivre, semanaCumprida, GRUPOS_PEQUENOS, LIMITES_EXTRA_LIVRE, REGRAS_EXTRA_GERADO, type CorpoExtra, type FocoExtra, type ItemExtraLivre, type ResultadoExtraGerado } from "@/lib/treino/extra-gerado";
+import { listarBiblioteca } from "@/lib/data/biblioteca";
+import { normalizarNome } from "@/lib/grupos";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { ExercicioPrescrito, TrainingSession } from "@/lib/supabase/types-sessoes";
@@ -94,27 +96,64 @@ export async function contextoExtraGerado(alunoId: string): Promise<ContextoExtr
   return (await carregar(alunoId)).ctx;
 }
 
-export type RespostasExtra = { foco: FocoExtra; tempoMin: number; corpo: CorpoExtra };
+export type EscolhaLivre = { biblioteca_id?: string | null; nome: string; series: number; reps: string };
+export type RespostasExtra =
+  | { modo: "app"; foco: FocoExtra; tempoMin: number; corpo: CorpoExtra }
+  | { modo: "livre"; corpo: CorpoExtra; itens: EscolhaLivre[] };
 
-function gerar(c: Carga, r: RespostasExtra): ResultadoExtraGerado {
+/** O que o aluno escolheu → exercício do plano (carga anterior, recado) ou, se não houver, da biblioteca. */
+async function resolverEscolhas(c: Carga, itens: EscolhaLivre[]): Promise<ItemExtraLivre[] | { erro: string }> {
+  const biblioteca = await listarBiblioteca();
+  const out: ItemExtraLivre[] = [];
+  for (const i of itens.slice(0, LIMITES_EXTRA_LIVRE.maxExercicios)) {
+    const nome = normalizarNome(i.nome);
+    const b = biblioteca.find((x) => (i.biblioteca_id && x.id === i.biblioteca_id) || normalizarNome(x.nome) === nome);
+    // Mesmo movimento do plano? Usa o do plano (carga anterior, recado). "Elevação lateral" do plano
+    // = "Elevação lateral com halteres" da biblioteca, se for o mesmo grupo.
+    const nomesB = b ? [b.nome, ...(b.sinonimos ?? [])].map(normalizarNome) : [];
+    const doPlano =
+      c.exercicios.find((x) => (b && x.biblioteca_id === b.id) || normalizarNome(x.nome) === nome || nomesB.includes(normalizarNome(x.nome))) ??
+      (b ? c.exercicios.find((x) => x.grupo_muscular === b.grupo && nomesB.some((n) => n.startsWith(normalizarNome(x.nome) + " "))) : undefined);
+    const series = Math.min(LIMITES_EXTRA_LIVRE.maxSeries, Math.max(1, Math.round(i.series || LIMITES_EXTRA_LIVRE.seriesPadrao)));
+    const reps = (i.reps || LIMITES_EXTRA_LIVRE.repsPadrao).trim().slice(0, 20);
+    if (doPlano) { out.push({ exercicio: doPlano, series, reps }); continue; }
+    if (!b) return { erro: `Não encontrei “${i.nome}” na biblioteca de exercícios. Escolha outro nome.` };
+    if (b.contaVolume === false || b.grupo === "cardio") return { erro: `“${b.nome}” não é exercício de musculação: para cardio e mobilidade, use as opções liberadas pelo Montinho.` };
+    const pequeno = GRUPOS_PEQUENOS.includes(b.grupo);
+    const sintetico = {
+      id: uid(), treino_id: "", ordem: out.length, nome: b.nome, series, reps, ie: 7, descanso_seg: pequeno ? 60 : 90, observacoes: null, video_url: null, created_at: new Date().toISOString(),
+      biblioteca_id: b.id, series_config: null, grupo_muscular: b.grupo, grupos_secundarios: b.secundarios ?? [], grupo_origem: "biblioteca", grupo_confianca: "alta",
+      series_aquecimento: 0, tecnica: "normal", tecnica_extras: null, tecnica_series: null, tecnica_config: null, bloco: null, unilateral: false, carga_alvo: null, rir: 2, cadencia: null, conta_volume: true, removido_em: null,
+    } as unknown as ExercicioPrescrito;
+    out.push({ exercicio: sintetico, series, reps });
+  }
+  return out;
+}
+
+async function gerar(c: Carga, r: RespostasExtra): Promise<ResultadoExtraGerado> {
+  if (r.modo === "livre") {
+    const itens = await resolverEscolhas(c, r.itens);
+    if ("erro" in itens) return { ok: false, motivo: itens.erro };
+    return montarExtraLivre({ itens, corpo: r.corpo, recentes48h: c.recentes48h, seriesDisponiveis: c.ctx.seriesDisponiveis, tempos: c.tempos });
+  }
   return montarExtraGerado({ exercicios: c.exercicios, prioridades: c.ctx.prioridades, foco: r.foco, tempoMin: r.tempoMin, corpo: r.corpo, recentes48h: c.recentes48h, proximoTreino: c.proximoGrupos, seriesDisponiveis: c.ctx.seriesDisponiveis, tempos: c.tempos });
 }
 
 export async function previaExtraGerado(alunoId: string, r: RespostasExtra): Promise<{ ctx: ContextoExtraGerado; resultado: ResultadoExtraGerado | null }> {
   const c = await carregar(alunoId);
   if (c.ctx.bloqueio) return { ctx: c.ctx, resultado: null };
-  return { ctx: c.ctx, resultado: gerar(c, r) };
+  return { ctx: c.ctx, resultado: await gerar(c, r) };
 }
 
 /** Começa o extra montado. Liberado direto (decisão do Montinho, 22/10/2026), mas só dentro das regras. */
 export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { clientKey: string }): Promise<SessaoCompleta> {
   const c = await carregar(alunoId);
   if (c.ctx.bloqueio) throw new Error(`Extra não disponível agora: ${c.ctx.bloqueio}`);
-  const g = gerar(c, r);
+  const g = await gerar(c, r);
   if (!g.ok) throw new Error(`Extra não disponível agora: ${g.motivo}`);
   const ex = g.extra;
   // A tela de treino abre pelo treino do primeiro exercício; os exercícios vêm da foto da sessão.
-  const treinoId = ex.exercicios[0].treino_id ?? c.treinoBase;
+  const treinoId = ex.exercicios.find((x) => x.treino_id)?.treino_id || c.treinoBase;
   const agora = new Date().toISOString();
   const sessao: TrainingSession = {
     id: uid(),
@@ -131,7 +170,7 @@ export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { 
     snapshot: {
       treino: { id: treinoId, letra: "+", nome: ex.titulo, observacoes: null, tempos: c.tempos ?? {} },
       exercicios: ex.exercicios,
-      extra: { id: null, gerado: true, modalidade: "resistido", titulo: ex.titulo, foco: r.foco, grupos: ex.grupos, series_estimadas: ex.series },
+      extra: { id: null, gerado: true, modalidade: "resistido", titulo: ex.titulo, foco: r.modo === "app" ? r.foco : "livre", grupos: ex.grupos, series_estimadas: ex.series },
       recuperacao: r.corpo,
     },
     series_planejadas: ex.series,
@@ -140,7 +179,7 @@ export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { 
     checkin_pre: r.corpo === "cansado" ? "cansado" : "muito_bem",
     checkin_pre_nota: null,
     modo: "extra",
-    tempo_disponivel_min: r.tempoMin,
+    tempo_disponivel_min: r.modo === "app" ? r.tempoMin : null,
     extra_id: null,
     series_concluidas: 0,
     feedback_percepcao: null,
@@ -155,4 +194,14 @@ export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { 
 /** Sessão é um extra montado pelo app? (a tela de treino usa a foto dela) */
 export function ehExtraGerado(s: { modo?: string | null; snapshot?: unknown } | null | undefined): boolean {
   return !!s && s.modo === "extra" && !!(s.snapshot as { extra?: { gerado?: boolean } } | null)?.extra?.gerado;
+}
+
+/** Atalhos do "Eu monto": exercícios do plano, um por nome, na ordem do plano. */
+export async function atalhosDoPlano(alunoId: string): Promise<Array<{ nome: string; biblioteca_id: string | null; grupo: string | null }>> {
+  const plano = await getPlanoAtivo(alunoId);
+  const vistos = new Set<string>();
+  const exs = await completarGrupos(plano.treinos.filter((t) => t.ativo).flatMap((t) => t.exercicios) as ExercicioPrescrito[]);
+  return exs
+    .filter((x) => x.conta_volume !== false && x.grupo_muscular && x.grupo_muscular !== "cardio" && !vistos.has(normalizarNome(x.nome)) && vistos.add(normalizarNome(x.nome)))
+    .map((x) => ({ nome: x.nome, biblioteca_id: x.biblioteca_id ?? null, grupo: x.grupo_muscular }));
 }

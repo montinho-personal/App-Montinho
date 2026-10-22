@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getConfigExtra, listarExtras, listarSolicitacoes } from "@/lib/data/extras";
-import { contextoExtraGerado } from "@/lib/data/extra-gerado";
+import { atalhosDoPlano, contextoExtraGerado } from "@/lib/data/extra-gerado";
+import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { MontarExtra } from "./MontarExtra";
 import { BRAND } from "@/config/brand";
 import { ExtraClient } from "./ExtraClient";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function TreinoExtraPage() {
   const sessao = await requireAlunoPage();
   const [config, extras, pedidos, ctx] = await Promise.all([getConfigExtra(sessao.alunoId), listarExtras(sessao.alunoId, true), listarSolicitacoes({ alunoId: sessao.alunoId, desde: new Date(new Date().getTime() - 14 * 86_400_000).toISOString() }), contextoExtraGerado(sessao.alunoId)]);
+  const [biblioteca, atalhos] = ctx.bloqueio ? [[], []] : await Promise.all([listarBiblioteca(), atalhosDoPlano(sessao.alunoId)]);
   const titulos = Object.fromEntries(extras.map((x) => [x.id, x.titulo]));
   return (
     <div className="space-y-5">
@@ -30,7 +32,7 @@ export default async function TreinoExtraPage() {
         </div>
       ) : (
         <>
-          <MontarExtra ctx={ctx} />
+          <MontarExtra ctx={ctx} biblioteca={biblioteca} atalhos={atalhos} />
           {extras.length ? (
             <section className="space-y-2">
               <h2 className="text-sm font-bold uppercase tracking-wider text-fg-muted">Outras opções liberadas pelo {BRAND.name}</h2>
