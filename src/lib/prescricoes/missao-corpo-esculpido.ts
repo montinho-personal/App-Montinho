@@ -17,6 +17,12 @@
 // “Rosca direta banco 45°” = Rosca inclinada com halteres; “Abdominal supra
 // na polia” = em pé; “Tríceps testa na polia com barra reta” criado em 0062.
 // Pontos a confirmar ficam em PENDENCIAS (nada inventado no lugar).
+// Atualização (22/10/2026, prints da ficha com as observações):
+//  • Técnicas avançadas da ficha nas observações (repetições isométricas de 3 s
+//    no pico de contração, ajustes de execução).
+//  • Regra do personal: todo exercício até a falha muscular (RIR 0); o primeiro
+//    exercício de cada treino leva o aquecimento; se o primeiro for prancha, o
+//    aquecimento vai no seguinte (e a prancha fica fora da regra da falha).
 // ============================================================================
 
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
@@ -103,11 +109,29 @@ function ex(nome: string, reps: string[], descansoSeg: number | null, o: Opc = {
 }
 
 const P20 = ["20", "15", "12", "10"];
+const ISO5 = "Fazer em todas as séries: 5 repetições isométricas (segurando 3 s no pico de contração) e o restante das repetições normais, explodindo.";
+const ISO10 = "Fazer em todas as séries: 10 repetições isométricas (segurando 3 s no pico de contração) e o restante das repetições normais, explodindo.";
+const FALHA = "Chegar todas até a falha!";
+const AQUECIMENTO = "Antes: 2 séries de aquecimento com pouco peso, sem chegar na falha. Depois, chegar todas até a falha!";
+const ehPrancha = (e: ExercicioInput) => /prancha/i.test(e.nome);
+
+/** Regra do personal: tudo até a falha (RIR 0) e aquecimento no 1º exercício que não for prancha. */
+function comRegras(t: TreinoInput): TreinoInput {
+  const primeiro = t.exercicios.findIndex((e) => !ehPrancha(e));
+  return {
+    ...t,
+    exercicios: t.exercicios.map((e, i) => {
+      if (ehPrancha(e)) return e;
+      const fim = i === primeiro ? AQUECIMENTO : FALHA;
+      return { ...e, rir: 0, observacoes: [e.observacoes, fim].filter(Boolean).join(" ") };
+    }),
+  };
+}
 const x = (n: number, r: string) => Array.from({ length: n }, () => r);
 const pir = (nome: string, reps: string[], obs: string | null = null) => ex(nome, reps, null, { tecnica: "piramide", rir: 3, obs });
 const biA = (nome: string, reps: string[], bloco: string, obs: string | null = null) => ex(nome, reps, 0, { tecnica: "biset", bloco, descansoApos: 0, rir: 3, obs });
 const biB = (nome: string, reps: string[], bloco: string, obs: string | null = null) => ex(nome, reps, null, { tecnica: "biset", bloco, rir: 3, obs });
-const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[]): TreinoInput => ({ letra, nome, ativo: true, observacoes: null, exercicios });
+const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[]): TreinoInput => comRegras({ letra, nome, ativo: true, observacoes: null, exercicios });
 
 export const PRESCRICAO: SalvarPlanoInput = {
   programa: {
@@ -129,14 +153,14 @@ export const PRESCRICAO: SalvarPlanoInput = {
   treinos: [
     treino("A", "Glúteos + Quadríceps", [
       ex("Prancha frontal", x(2, "60s"), null, { tecnica: "isometria", rir: 3 }),
-      pir("Cadeira extensora", P20),
-      pir("Agachamento no Smith", ["15", "12", "10", "8"]),
-      pir("Leg press 45°", ["15", "12", "10", "8"]),
-      pir("Cadeira abdutora", P20),
-      pir("Hip thrust com barra", P20),
+      pir("Cadeira extensora", P20, ISO5),
+      pir("Agachamento no Smith", ["15", "12", "10", "8"], "Colocar duas anilhas de 1 kg no chão (ou uma plataforma) para apoiar o calcanhar. Pés um pouco além da linha do ombro, pontas para fora e joelhos acompanhando a linha dos pés. Descer o máximo que a sua amplitude deixar."),
+      pir("Leg press 45°", ["15", "12", "10", "8"], "Como no agachamento: pernas um pouco mais abertas, pontas dos pés e joelhos para fora. Descer o máximo que a sua amplitude deixar."),
+      pir("Cadeira abdutora", P20, ISO5),
+      pir("Hip thrust com barra", P20, ISO5),
     ]),
     treino("B", "Costas + Ombros + Bíceps", [
-      pir("Remada sentada pegada aberta", P20),
+      pir("Remada sentada pegada aberta", P20, ISO5),
       pir("Remada sentada na polia (triângulo)", P20),
       pir("Puxada frontal aberta (pulley)", P20, "Pegada aberta pronada."),
       biA("Desenvolvimento Arnold", ["12", "12", "10", "10"], "B1"),
@@ -144,10 +168,10 @@ export const PRESCRICAO: SalvarPlanoInput = {
       pir("Rosca martelo", P20),
     ]),
     treino("C", "Posterior de Coxa + Glúteos + Abdômen", [
-      pir("Cadeira flexora", P20),
+      pir("Cadeira flexora", P20, ISO5),
       pir("Stiff com barra", ["12", "12", "10", "8"]),
       pir("Mesa flexora", P20),
-      pir("Glúteo coice na polia", ["15", "15", "12", "10"]),
+      pir("Glúteo coice na polia", ["15", "15", "12", "10"], "Pode fazer com a perna esticada ou flexionada, tanto faz: veja o vídeo e escolha a que preferir."),
       pir("Agachamento búlgaro", ["12", "10", "8", "8"], "Com halteres."),
       ex("Abdominal supra na polia em pé", x(4, "20"), null),
     ]),
@@ -155,16 +179,16 @@ export const PRESCRICAO: SalvarPlanoInput = {
       pir("Supino inclinado com halteres", P20, "Banco a 45°."),
       pir("Pulldown com braços estendidos", P20, "Com barra."),
       pir("Crucifixo invertido na máquina", P20, "Pegada pronada."),
-      pir("Tríceps pulley com barra W", P20),
+      pir("Tríceps pulley com barra W", P20, ISO5),
       ex("Tríceps testa na polia com barra reta", x(4, "12"), null),
       ex("Tríceps francês na polia", x(4, "10"), null, { obs: "Polia baixa, com corda, unilateral (um braço de cada vez)." }),
     ]),
     treino("E", "Lower completo", [
       pir("Leg press horizontal", P20),
-      ex("Agachamento búlgaro", x(4, "12"), null, { obs: "Com halteres." }),
+      ex("Agachamento búlgaro", x(4, "12"), null, { obs: "Com halteres. Começar sempre pela perna mais fraca; na mais forte, fazer o mesmo número de repetições que conseguiu na mais fraca." }),
       pir("Cadeira flexora", ["15", "12", "10", "10"]),
       pir("Mesa flexora", P20),
-      pir("Cadeira abdutora", P20),
+      pir("Cadeira abdutora", P20, ISO5),
     ]),
     treino("F", "Músculos pequenos — Tríceps, Bíceps, Panturrilhas e Abdômen", [
       ex("Tríceps francês com halter", x(3, "12"), null, { rir: 3, obs: "Unilateral (um braço de cada vez)." }),
@@ -173,7 +197,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       biA("Rosca inversa (pegada pronada)", x(3, "12"), "F2", "Com barra reta."),
       biB("Rosca martelo", x(3, "12"), "F2"),
       pir("Rosca inclinada com halteres", P20, "Banco a 45°."),
-      ex("Panturrilha no leg press", x(4, "20"), null, { obs: "Leg press 180 (horizontal)." }),
+      ex("Panturrilha no leg press", x(4, "20"), null, { obs: `Leg press 180 (horizontal). ${ISO10}` }),
       pir("Panturrilha sentado", P20),
       ex("Abdominal remador", x(4, "15"), null),
     ]),
