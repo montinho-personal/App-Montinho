@@ -44,7 +44,9 @@ describe("relatório da conclusão", () => {
   it("recorde considera as cargas do histórico importado (planilha)", () => {
     const hoje = sessao("h", "2026-10-15", [["Supino", [[45, 10]]]]);
     expect(relatorioDaConclusao(hoje, [], [{ nome: "supino", bibliotecaId: null, carga: 50, data: "2026-10-10" }]).maiorPeso?.recordeVida).toBe(false);
-    expect(relatorioDaConclusao(hoje, [], [{ nome: "Supino", bibliotecaId: null, carga: 40, data: "2026-10-10" }]).recordesVida).toEqual([{ exercicio: "Supino", carga: 45, antes: 40 }]);
+    // Um registro anterior só ainda não vale recorde (mesmo critério das medalhas: 2+).
+    expect(relatorioDaConclusao(hoje, [], [{ nome: "Supino", bibliotecaId: null, carga: 40, data: "2026-10-10" }]).recordesVida).toEqual([]);
+    expect(relatorioDaConclusao(hoje, [], [{ nome: "Supino", bibliotecaId: null, carga: 40, data: "2026-10-10" }, { nome: "Supino", bibliotecaId: null, carga: 37.5, data: "2026-10-03" }]).recordesVida).toEqual([{ exercicio: "Supino", carga: 45, antes: 40 }]);
   });
 
   it("treino parcial mostra a porcentagem feita", () => {

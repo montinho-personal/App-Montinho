@@ -28,7 +28,7 @@ import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
 import { EditarAlunoButton } from "./EditarAlunoModal";
 import { EnviarAcessoButton } from "./EnviarAcesso";
 import { ComparadorFotos } from "./ComparadorFotos";
-import { ComparadorMedidas } from "./ComparadorMedidas";
+import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";

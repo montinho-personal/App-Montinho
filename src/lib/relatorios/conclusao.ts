@@ -10,6 +10,7 @@
 // ============================================================================
 
 import { normalizarNome } from "@/lib/grupos";
+import { REGRAS_CONQUISTAS } from "@/lib/conquistas/regras";
 
 type SerieLike = { tipo: string; carga_kg: number | null; reps: number | null };
 type ExLike = { biblioteca_id: string | null; nome: string; series: SerieLike[] };
@@ -43,7 +44,8 @@ export type RelatorioConclusao = {
 
 const chave = (e: Pick<ExLike, "biblioteca_id" | "nome">) => e.biblioteca_id || normalizarNome(e.nome);
 const validas = (e: ExLike) => e.series.filter((s) => s.tipo === "valida" && (s.reps ?? 0) > 0);
-const epley = (c: number, r: number) => c * (1 + r / 30);
+// Força estimada (Epley) só vale de 1 a 12 repetições — igual ao relatório.
+const epley = (c: number, r: number) => (r >= 1 && r <= 12 ? c * (1 + r / 30) : null);
 
 function volume(s: SessaoRelatorio): { kg: number; reps: number } {
   let kg = 0;
@@ -58,7 +60,10 @@ function volume(s: SessaoRelatorio): { kg: number; reps: number } {
 
 function melhorSerie(e: ExLike): number | null {
   let m: number | null = null;
-  for (const x of validas(e)) if ((x.carga_kg ?? 0) > 0) m = Math.max(m ?? 0, epley(x.carga_kg!, x.reps!));
+  for (const x of validas(e)) {
+    const v = (x.carga_kg ?? 0) > 0 ? epley(x.carga_kg!, x.reps!) : null;
+    if (v != null) m = Math.max(m ?? 0, v);
+  }
   return m;
 }
 
@@ -106,7 +111,9 @@ export function relatorioDaConclusao(hoje: SessaoRelatorio, historico: SessaoRel
     const carga = maiorCarga(e);
     const doImportado = base.filter((b) => b.data < quando(hoje).slice(0, 10) && ((!!e.biblioteca_id && b.bibliotecaId === e.biblioteca_id) || normalizarNome(b.nome) === normalizarNome(e.nome))).map((b) => b.carga);
     const antesMax = Math.max(0, ...anteriores.map(maiorCarga), ...doImportado);
-    const recorde = carga > 0 && antesMax > 0 && carga > antesMax;
+    // Recorde da vida: mesmo critério do relatório e das medalhas (2+ registros anteriores).
+    const registrosAntes = anteriores.filter((x) => maiorCarga(x) > 0).length + doImportado.length;
+    const recorde = carga > 0 && antesMax > 0 && carga > antesMax && registrosAntes >= REGRAS_CONQUISTAS.registrosParaRecorde;
     if (recorde) recordesVida.push({ exercicio: e.nome, carga, antes: antesMax });
     if (carga > 0 && (!maiorPeso || carga > maiorPeso.carga)) maiorPeso = { exercicio: e.nome, carga, recordeVida: recorde };
   }

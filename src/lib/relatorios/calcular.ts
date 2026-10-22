@@ -15,6 +15,7 @@ import type { SessaoCompleta } from "@/lib/data/sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { Frequencia } from "@/lib/volume/calcular";
 import { indice, type ResultadoAderencia } from "@/lib/aderencia/calcular";
+import { REGRAS_CONQUISTAS } from "@/lib/conquistas/regras";
 
 export type Periodo = { inicio: Date; fim: Date };
 
@@ -219,7 +220,9 @@ export function recordesNoPeriodo(sessoes: SessaoCompleta[], p: Periodo): Record
       const t = new Date(s.data).getTime();
       return t >= p.inicio.getTime() && t <= p.fim.getTime();
     });
-    if (!antes.length || !dentro.length) continue; // sem histórico anterior não é "recorde", é primeira execução
+    // Mesmo critério do aviso no treino e das medalhas: 2+ treinos anteriores
+    // com o exercício. Antes disso é “primeira vez”, não recorde.
+    if (!dentro.length || new Set(antes.map((s) => s.sessaoId)).size < REGRAS_CONQUISTAS.registrosParaRecorde) continue;
     const maxCargaAntes = Math.max(...antes.map((s) => s.carga_kg ?? 0));
     const melhorDentro = dentro.filter((s) => s.carga_kg != null && s.reps).sort((a, b) => (b.carga_kg ?? 0) - (a.carga_kg ?? 0))[0];
     if (melhorDentro && (melhorDentro.carga_kg ?? 0) > maxCargaAntes) {

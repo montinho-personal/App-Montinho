@@ -21,6 +21,7 @@ import { ehVisitante } from "@/lib/auth/guards";
 import { compararMeses } from "@/lib/visitante/evolucao";
 import { MesContraMes } from "@/components/visitante/MesContraMes";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
+import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 
 export const metadata = { title: "Evolução" };
 
@@ -90,6 +91,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         historicoResumo={historicoResumo}
         inicioAcompanhamento={aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null}
       />
+      {evolucao.length >= 2 ? <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" /> : null}
     </div>
   );
 }

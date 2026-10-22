@@ -46,12 +46,13 @@ describe("relatórios — fórmulas e denominadores", () => {
       sessao(16, "A", [{ ex: "Supino", carga: 35, reps: 10 }]),
       sessao(40, "A", [{ ex: "Supino", carga: 35, reps: 8 }]),
       sessao(45, "B", [{ ex: "Remada", carga: 45, reps: 10 }]),
+      sessao(50, "A", [{ ex: "Supino", carga: 32.5, reps: 8 }]), // recorde exige 2+ treinos anteriores
     ];
     const r = resumoPeriodo(sessoes, { A: 1, B: 1 }, 30, AGORA);
     expect(r.sessoesFeitas).toBe(5);
     expect(r.sessoesPlanejadas).toBe(9);
     expect(r.aderencia).toBe(56);
-    expect(r.aderenciaAnterior).toBe(22);
+    expect(r.aderenciaAnterior).toBe(33);
     expect(r.tendencia).toBe("melhor");
     expect(r.dadosSuficientes).toBe(true);
     expect(r.conquistas.some((c) => c.tipo === "carga" && c.titulo.includes("Supino"))).toBe(true);
@@ -70,10 +71,12 @@ describe("relatórios — fórmulas e denominadores", () => {
     expect(r2.tendencia).toBe("sem_comparacao");
   });
 
-  it("recordes só quando há histórico anterior (primeira execução não é recorde)", () => {
+  it("recordes só com 2+ treinos anteriores no exercício (mesmo critério do aviso e das medalhas)", () => {
     const p = periodoDias(7, AGORA);
     expect(recordesNoPeriodo([sessao(1, "A", [{ ex: "Supino", carga: 40, reps: 8 }])], p)).toEqual([]);
-    const prs = recordesNoPeriodo([sessao(1, "A", [{ ex: "Supino", carga: 40, reps: 8 }]), sessao(20, "A", [{ ex: "Supino", carga: 40, reps: 6 }])], p);
+    // 1 treino anterior só: ainda não é recorde
+    expect(recordesNoPeriodo([sessao(1, "A", [{ ex: "Supino", carga: 40, reps: 8 }]), sessao(20, "A", [{ ex: "Supino", carga: 40, reps: 6 }])], p)).toEqual([]);
+    const prs = recordesNoPeriodo([sessao(1, "A", [{ ex: "Supino", carga: 40, reps: 8 }]), sessao(20, "A", [{ ex: "Supino", carga: 40, reps: 6 }]), sessao(27, "A", [{ ex: "Supino", carga: 37.5, reps: 8 }])], p);
     expect(prs[0]).toMatchObject({ tipo: "reps", valor: 8, carga: 40, anterior: 6 });
   });
 
