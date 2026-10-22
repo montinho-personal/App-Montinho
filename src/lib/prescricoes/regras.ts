@@ -30,3 +30,17 @@ export function comRegras(t: TreinoInput): TreinoInput {
     exercicios: t.exercicios.map((e, i) => (foraDaRegra(e) ? e : { ...e, rir: 0, observacoes: obsComPadrao(e.observacoes, i === primeiro) })),
   };
 }
+
+/** Quantos exercícios (dos treinos ativos) ainda não seguem o padrão. */
+export function exerciciosForaDoPadrao(treinos: TreinoInput[]): number {
+  let n = 0;
+  for (const t of treinos) {
+    if (!t.ativo) continue;
+    const ajustado = comRegras(t);
+    t.exercicios.forEach((e, i) => {
+      const a = ajustado.exercicios[i];
+      if (a.rir !== e.rir || (a.observacoes ?? "") !== (e.observacoes ?? "")) n++;
+    });
+  }
+  return n;
+}

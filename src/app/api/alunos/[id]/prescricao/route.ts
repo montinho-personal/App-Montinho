@@ -12,6 +12,7 @@ import { assinaturaTreinos, PRESCRICOES } from "@/lib/prescricoes";
 import { auditarPrescricao } from "@/lib/prescricoes/auditar";
 import { lerJson, salvarPlanoSchema } from "@/lib/validacao/schemas";
 import { normalizarNome } from "@/lib/grupos";
+import { paraTreinoInput } from "@/lib/prescricoes/converter";
 import type { TreinoLetra } from "@/lib/supabase/types-sessoes";
 
 const schema = z.object({ prescricao_id: z.string().min(1).max(80) });
@@ -38,10 +39,7 @@ export async function POST(request: Request, { params }: Ctx) {
     return NextResponse.json({ ok: true, jaCadastrada: true, auditoria: auditarPrescricao({ treinos: atual.treinos.map((t) => ({ ...t, letra: t.letra as TreinoLetra, exercicios: t.exercicios })) as TreinoInput[] }) });
   }
   // Treinos atuais (se houver) ficam arquivados — nada é apagado.
-  const arquivados: TreinoInput[] = atual.treinos.map((t) => ({
-    id: t.id, letra: t.letra as TreinoLetra, nome: t.nome, ativo: false, observacoes: t.observacoes,
-    exercicios: t.exercicios.map((e) => ({ id: e.id, nome: e.nome, series: e.series, reps: e.reps, ie: e.ie, rir: e.rir, descanso_seg: e.descanso_seg, observacoes: e.observacoes, grupo_muscular: e.grupo_muscular, grupos_secundarios: e.grupos_secundarios, grupo_origem: e.grupo_origem, grupo_confianca: e.grupo_confianca, series_aquecimento: e.series_aquecimento, tecnica: e.tecnica, tecnica_extras: e.tecnica_extras ?? null, tecnica_series: e.tecnica_series ?? null, tecnica_config: e.tecnica_config ?? null, descanso_apos_seg: e.descanso_apos_seg ?? null, cadencia: e.cadencia ?? null, prioridade: e.prioridade ?? "normal", bloco: e.bloco, unilateral: e.unilateral, carga_alvo: e.carga_alvo, conta_volume: e.conta_volume, series_config: e.series_config, biblioteca_id: e.biblioteca_id })),
-  }));
+  const arquivados: TreinoInput[] = atual.treinos.map((t) => paraTreinoInput(t, false));
   try {
     const resultado = await salvarPlano(id, sessao.userId, { ...pr.plano, treinos: [...pr.plano.treinos, ...arquivados], motivo: `${pr.plano.motivo ?? "Prescrição cadastrada"} [${pr.id}]` });
     await criarIntervencao(id, sessao.userId, { tipo: "revisao_treino", titulo: `Treino cadastrado (versão ${resultado.versao.versao})`, descricao: pr.titulo, referencia: { versao_id: resultado.versao.id, prescricao: pr.id }, visivel_aluno: true }).catch(() => undefined);

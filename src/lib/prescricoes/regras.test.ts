@@ -21,3 +21,14 @@ describe("padrão de toda ficha: até a falha e aquecimento no 1º exercício", 
     expect(foraDaRegra({ nome: "Cadeira extensora", grupo_muscular: "quadriceps", conta_volume: true })).toBe(false);
   });
 });
+
+describe("exerciciosForaDoPadrao", () => {
+  it("conta só o que muda; depois de aplicar, zero", async () => {
+    const { comRegras, exerciciosForaDoPadrao } = await import("./regras");
+    const e = (nome: string, rir: number | null, obs: string | null = null) => ({ nome, series: 3, reps: "12", ie: null, rir, descanso_seg: 60, observacoes: obs, grupo_muscular: null, grupos_secundarios: [] }) as never;
+    const t = { letra: "A", nome: "A", ativo: true, observacoes: null, exercicios: [e("Prancha frontal", 3), e("Supino reto", 3), e("Crucifixo", 2, "Devagar.")] } as never;
+    expect(exerciciosForaDoPadrao([t])).toBe(2);
+    expect(exerciciosForaDoPadrao([comRegras(t)])).toBe(0);
+    expect(exerciciosForaDoPadrao([{ ...(t as object), ativo: false } as never])).toBe(0);
+  });
+});

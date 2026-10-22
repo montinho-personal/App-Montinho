@@ -47,6 +47,9 @@ import { listarExtras, listarSolicitacoes } from "@/lib/data/extras";
 import { AcompanhamentoClient } from "./AcompanhamentoClient";
 import type { Anamnese } from "@/lib/supabase/types-extended";
 import type { Evolucao } from "@/lib/supabase/types";
+import { AplicarPadraoCard } from "@/components/prescricoes/AplicarPadraoCard";
+import { exerciciosForaDoPadrao } from "@/lib/prescricoes/regras";
+import { paraTreinoInput } from "@/lib/prescricoes/converter";
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ dias?: string }> };
 
@@ -224,6 +227,12 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           jaCadastrada={versoes.some((v) => v.motivo?.includes(`[${pr.id}]`)) || (plano.treinos.length > 0 && assinaturaTreinos(plano.treinos) === assinaturaTreinos(pr.plano.treinos))}
         />
       ))}
+      {(() => {
+        // Padrão do personal (até a falha + aquecimento): só quando não há prescrição pronta esperando cadastro.
+        const prontaPendente = prescricoesParaAluno(aluno.profile?.nome).some((pr) => !versoes.some((v) => v.motivo?.includes(`[${pr.id}]`)));
+        const fora = plano.programa && !prontaPendente ? exerciciosForaDoPadrao(plano.treinos.map((t) => paraTreinoInput(t))) : 0;
+        return fora > 0 ? <AplicarPadraoCard alunoId={id} fora={fora} /> : null;
+      })()}
       {importacoesParaAluno(aluno.profile?.nome).map((imp) => (
         <HistoricoResumoCard
           key={imp.id}
