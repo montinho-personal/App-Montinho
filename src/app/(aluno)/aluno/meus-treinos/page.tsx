@@ -11,6 +11,7 @@ import { Icon } from "@/components/ui/Icon";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { ArquivarTreino } from "./ArquivarTreino";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
+import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
 
 export const metadata = { title: "Meus treinos" };
 
@@ -33,9 +34,10 @@ export default async function MeusTreinosPage() {
           <Icon name="plus" size={18} /> Montar um treino
         </Link>
       ) : null}
+      {pode && meus.length < 2 ? <ComeceAquiSite tela="meus_treinos" /> : null}
       {meus.length === 0 ? (
         <Card className="border-dashed">
-          <CardBody className="text-center py-8 text-sm text-fg-muted">Você ainda não montou nenhum treino. Comece pelo botão acima: leva uns 2 minutos.</CardBody>
+          <CardBody className="text-center py-8 text-sm text-fg-muted">Você ainda não montou nenhum treino. Comece pelo botão “Montar um treino”: leva uns 2 minutos.</CardBody>
         </Card>
       ) : (
         <ul className="space-y-3">

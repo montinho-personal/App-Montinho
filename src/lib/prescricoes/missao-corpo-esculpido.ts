@@ -170,7 +170,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       ex("Tríceps francês com halter", x(3, "12"), null, { rir: 3, obs: "Unilateral (um braço de cada vez)." }),
       biA("Tríceps pulley com barra W", x(3, "12"), "F1"),
       biB("Tríceps testa na polia com barra reta", x(3, "12"), "F1"),
-      biA("Rosca inversa (pegada pronada)", x(3, "12"), "F2", "Com barra W."),
+      biA("Rosca inversa (pegada pronada)", x(3, "12"), "F2", "Com barra reta."),
       biB("Rosca martelo", x(3, "12"), "F2"),
       pir("Rosca inclinada com halteres", P20, "Banco a 45°."),
       ex("Panturrilha no leg press", x(4, "20"), null, { obs: "Leg press 180 (horizontal)." }),
@@ -182,8 +182,4 @@ export const PRESCRICAO: SalvarPlanoInput = {
 };
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
-export const PENDENCIAS: string[] = [
-  "Agachamento búlgaro está nos treinos C e E, mas a estratégia da Naya diz para evitar búlgaro, afundo e avanço. Mantive como na ficha — confirme.",
-  "Na ficha, o Hip thrust (treino A) e a Cadeira abdutora (treino E) aparecem duas vezes; cadastrei uma vez cada (a ficha diz 6 e 5 exercícios).",
-  "“Rosca inversa barra W” (treino F) cadastrada como rosca inversa livre com barra W (não na polia).",
-];
+export const PENDENCIAS: string[] = [];

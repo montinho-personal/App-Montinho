@@ -40,6 +40,7 @@ import { podeRegistrar } from "@/lib/visitante/acesso";
 import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { PedirWhatsapp } from "@/components/visitante/PedirWhatsapp";
+import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
 
 export const metadata = { title: "Início" };
 
@@ -176,6 +177,7 @@ export default async function AlunoHomePage() {
         )
       )}
 
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !emAndamento && !proximo && podeRegistrar("visitante", sessao.acessoFim ?? null) ? <ComeceAquiSite tela="inicio" /> : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
 

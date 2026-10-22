@@ -48,6 +48,6 @@ describe("prescrição Missão Corpo Esculpido & Punhos de Aço (Naya) — confo
   it("aparece só para a Naya e lista o que precisa de confirmação", () => {
     expect(prescricoesParaAluno("Naya Martins Ribeiro de Oliveira").map((p) => p.id)).toEqual(["missao-corpo-esculpido-v1"]);
     expect(prescricoesParaAluno("Natalia Cristina Nascimento").map((p) => p.id)).not.toContain("missao-corpo-esculpido-v1");
-    expect(PENDENCIAS.some((p) => /búlgaro/.test(p))).toBe(true);
+    expect(PENDENCIAS).toEqual([]); // búlgaro, hip thrust/abdutora e rosca inversa confirmados pelo personal (22/10)
   });
 });
