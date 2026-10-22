@@ -34,6 +34,7 @@ import { ExemplosSemelhantes } from "@/components/montador/ExemplosSemelhantes";
 import { SeletorExercicio } from "@/components/montador/SeletorExercicio";
 import { AlternativasExercicio } from "@/components/montador/AlternativasExercicio";
 import { DitarTreino, type LinhaDitada } from "@/components/montador/DitarTreino";
+import { foraDaRegra, obsComPadrao } from "@/lib/prescricoes/regras";
 import { configDaLinha } from "@/lib/treino/ditado";
 import { indicePorNome, interpretarEquipamentos } from "@/lib/biblioteca/itens";
 import type { ContextoAluno } from "@/lib/biblioteca/substituicao";
@@ -475,6 +476,19 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     const m = METODOS.find((x) => x.v === metodo);
     toast.success(`${m?.l ?? "Método"} aplicado a ${keys.length} exercício(s).`);
   };
+  /** Padrão do personal: todo exercício até a falha (RIR 0) e aquecimento no 1º de cada treino. */
+  const aplicarPadraoFicha = () => {
+    commit((e) => ({
+      ...e,
+      treinos: e.treinos.map((t) => {
+        if (!t.ativo) return t;
+        const fora = (r: Row) => !r.nome.trim() || foraDaRegra({ nome: r.nome, grupo_muscular: r.grupo, conta_volume: r.contaVolume });
+        const primeiro = t.rows.findIndex((r) => !fora(r));
+        return { ...t, rows: t.rows.map((r, i) => (fora(r) ? r : { ...r, rir: "0", observacoes: obsComPadrao(r.observacoes, i === primeiro) })) };
+      }),
+    }));
+    toast.success("Até a falha em todos e aquecimento no 1º exercício de cada treino. Confira e salve (dá para desfazer).");
+  };
   /** Treino ditado por voz (já conferido na prévia): entra no fim ou substitui. */
   const aplicarDitado = (tk: string, linhas: LinhaDitada[], substituir: boolean) => {
     commit((e) => ({
@@ -767,6 +781,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             <input type="checkbox" checked={avancado} onChange={(e) => setAvancado(e.target.checked)} /> campos avançados
           </label>
           <button type="button" onClick={usarDescansoPadrao} className="touch rounded-md border border-border px-3 text-sm text-fg-muted hover:text-fg inline-flex items-center gap-1.5" title="Limpa os descansos individuais: passa a valer o padrão"><Icon name="timer" size={16} /> Usar descanso padrão</button>
+          <button type="button" onClick={aplicarPadraoFicha} className="touch rounded-md border border-border px-3 text-sm text-fg-muted hover:text-fg" title="Todo exercício até a falha (RIR 0) e aquecimento no 1º exercício de cada treino (prancha e cardio ficam de fora)">Padrão: falha + aquecimento</button>
           <button type="button" onClick={() => setShowExemplos((v) => !v)} className="touch rounded-md border border-accent/40 px-3 text-sm font-semibold text-accent hover:bg-accent/10 inline-flex items-center gap-1.5"><Icon name="sparkles" size={16} /> Já montei algo parecido?</button>
           <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo da alteração (opcional)" aria-label="Motivo da alteração" className="h-11 rounded-md border border-border bg-bg px-3 text-sm w-56" maxLength={300} />
           <button type="button" onClick={() => void salvar()} disabled={saving} className="touch rounded-md bg-accent px-5 text-sm font-bold text-bg hover:bg-accent-hover disabled:opacity-50">{saving ? "Salvando…" : "Salvar (Ctrl+S)"}</button>

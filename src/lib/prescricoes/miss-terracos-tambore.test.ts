@@ -48,13 +48,11 @@ describe("prescrição Miss Terraços Tamboré — conforme a ficha do personal"
     expect(desc("A", "Leg press horizontal (180°)")).toEqual([null, null, null, null]);
   });
 
-  it("RIR: 0 onde é 0 (não é ‘sem RIR’), 3 onde é 3, vazio onde não foi informado", () => {
+  it("RIR 0 em tudo (padrão do personal: até a falha); prancha sem RIR", () => {
     expect(E("A", "Elevação pélvica com barra").rir).toBe(0);
-    expect(E("C", "Levantamento terra sumô").rir).toBe(0);
-    expect(E("A", "Agachamento no Smith").rir).toBe(3);
-    expect(E("B", "Remada baixa pegada aberta").rir).toBeNull();
+    expect(E("A", "Agachamento no Smith").rir).toBe(0);
+    expect(E("B", "Rosca martelo").rir).toBe(0);
     expect(E("A", "Abdominal prancha").rir).toBeNull();
-    expect(E("B", "Rosca martelo").rir).toBeNull();
   });
 
   it("três bi-sets: 4 rodadas, sem descanso entre os dois, descanso padrão após a rodada; sem séries extras", () => {

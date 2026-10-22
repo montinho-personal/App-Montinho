@@ -29,10 +29,10 @@ describe("prescrição Projeto Ex-Merendeira (Natália) — conforme a ficha do 
   it("pirâmides, RIR e bi-sets como na ficha", () => {
     const e = (l: string, nome: string) => PRESCRICAO.treinos.find((t) => t.letra === l)!.exercicios.find((x) => x.nome === nome)!;
     expect(e("A", "Abdominal infra no banco declinado").reps).toBe("12/10/8/6");
-    expect(e("A", "Agachamento no Smith")).toMatchObject({ tecnica: "piramide", rir: 3, reps: "15/12/10/10" });
-    expect(e("B", "Remada cavalinho")).toMatchObject({ tecnica: "normal", rir: null, reps: "15", series: 4 });
-    expect(e("B", "Desenvolvimento Arnold")).toMatchObject({ tecnica: "biset", bloco: "B1", rir: 3 });
-    expect(e("B", "Crucifixo invertido com halteres")).toMatchObject({ tecnica: "biset", bloco: "B1", rir: null });
+    expect(e("A", "Agachamento no Smith")).toMatchObject({ tecnica: "piramide", rir: 0, reps: "15/12/10/10" });
+    expect(e("B", "Remada cavalinho")).toMatchObject({ tecnica: "normal", rir: 0, reps: "15", series: 4 });
+    expect(e("B", "Desenvolvimento Arnold")).toMatchObject({ tecnica: "biset", bloco: "B1", rir: 0 });
+    expect(e("B", "Crucifixo invertido com halteres")).toMatchObject({ tecnica: "biset", bloco: "B1", rir: 0 });
     expect(e("C", "Cadeira abdutora")).toMatchObject({ bloco: "C1", reps: "20" });
     expect(e("D", "Elevação frontal com halteres").observacoes).toMatch(/Alternada/);
   });
