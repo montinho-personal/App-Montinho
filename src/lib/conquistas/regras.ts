@@ -53,7 +53,9 @@ export type CodigoConquista =
   | "chegou_intensificacao"
   | "completou_adaptacao"
   | "completou_intensificacao"
-  | "completou_consolidacao";
+  | "completou_consolidacao"
+  // Modo Visitante: desafio (campanha) concluído — uma por desafio
+  | "desafio_concluido";
 
 /** Medalhas “Além do necessário” (0037): gravadas à parte para nunca travar as antigas se o banco ainda não as aceitar. */
 export const CODIGOS_ALEM: CodigoConquista[] = ["fiz_o_necessario", "nunca_deixei_pra_depois", "fui_alem", "milha_extra", "sempre_um_a_mais", "uma_a_mais"];
@@ -95,6 +97,11 @@ export const CODIGOS_TECNICA: CodigoConquista[] = MARCOS_TECNICA.map(([c]) => c)
 export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "completou_adaptacao", "completou_intensificacao", "completou_consolidacao"];
 export const LIMITES_FASE = { minTreinos: 4 } as const;
 
+/** Medalha de desafio (0055): gravada à parte, como as de fase. */
+export const CODIGOS_DESAFIO: CodigoConquista[] = ["desafio_concluido"];
+/** Desafio do visitante: N treinos concluídos entre início e fim (datas em São Paulo, inclusivas). */
+export type DesafioConquista = { id: string; nome: string; inicio: string | null; fim: string | null; metaTreinos: number };
+
 // Títulos e critérios curtos (gravados na conquista). Os textos educativos
 // completos ficam na biblioteca editorial (conteudo.ts).
 export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: string; repete: boolean }> = {
@@ -131,6 +138,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   completou_consolidacao: { titulo: "Consolidação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de consolidação e começar um novo ciclo definido pelo personal.`, repete: false },
   mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
+  desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
 
@@ -142,6 +150,18 @@ export const REGRAS_CONQUISTAS = { diasRetomada: 14, registrosParaRecorde: 2, di
 export type SerieConquista = { tipo: string; carga_kg: number | null; reps: number | null };
 
 const NOME_FASE: Record<string, string> = { adaptacao: "adaptação", intensificacao: "intensificação", consolidacao: "consolidação" };
+
+/** Progresso do desafio: treinos concluídos dentro do período e quando a meta foi batida. */
+export function progressoDesafio(d: DesafioConquista, concluidas: Array<Pick<SessaoConquista, "id" | "iniciado_em">>): { feitos: number; concluidoEm: { data: string; sessaoId: string } | null } {
+  const dentro = concluidas
+    .filter((s) => {
+      const dia = dataLocal(s.iniciado_em);
+      return (!d.inicio || dia >= d.inicio) && (!d.fim || dia <= d.fim);
+    })
+    .sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
+  const alvo = dentro[d.metaTreinos - 1];
+  return { feitos: dentro.length, concluidoEm: alvo ? { data: alvo.iniciado_em, sessaoId: alvo.id } : null };
+}
 
 /** Medalhas de fase, em ordem de tempo (usa os treinos concluídos do app com fase registrada). */
 export function fasesConquistadas(sessoes: SessaoConquista[]): Array<{ codigo: CodigoConquista; data: string; sessaoId: string; texto: string }> {
@@ -235,6 +255,8 @@ export type EntradaConquistas = {
   baseCarga?: BaseCarga[];
   /** AAAA-MM-DD (padrão: hoje em São Paulo). */
   hoje?: string;
+  /** Modo Visitante: desafios em que a pessoa entrou. */
+  desafios?: DesafioConquista[];
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
@@ -388,6 +410,10 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
 
   // Fases do protocolo: chegou na intensificação; completou cada fase (N treinos nela e depois outra fase).
   for (const f of fasesConquistadas(e.sessoes)) out.push(nova(f.codigo, "1", f.data, f.sessaoId, f.texto));
+  for (const d of e.desafios ?? []) {
+    const p = progressoDesafio(d, concluidas);
+    if (p.concluidoEm) out.push(nova("desafio_concluido", d.id, p.concluidoEm.data, p.concluidoEm.sessaoId, `Você concluiu o ${d.nome}: ${d.metaTreinos} treinos no prazo.`, undefined, { meta: d.metaTreinos, campanha: d.id }));
+  }
 
   // Técnicas avançadas: 1, 2, 3, 4, 5, 7, 10 e todas as técnicas diferentes.
   const tecnicas = tecnicasFeitas(e.sessoes);

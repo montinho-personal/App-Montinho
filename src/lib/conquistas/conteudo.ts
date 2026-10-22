@@ -436,6 +436,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Converse com o Montinho sobre os objetivos do próximo ciclo.",
     fontes: ["sdt2025"],
   },
+  desafio_concluido: {
+    categoria: "pratica",
+    resumo: "Concluir um desafio do Montinho dentro do prazo.",
+    mensagem: "Desafio concluído! Você cumpriu o combinado.",
+    comoConquistar: "Entre num desafio do Montinho e conclua o número de treinos combinado até a data final.",
+    significado: "Você encaixou os treinos na rotina e chegou até o fim do desafio.",
+    importancia: "Metas com prazo curto e possível ajudam a transformar a intenção de treinar em hábito.",
+    explicacao: "Cada desafio tem um período e uma quantidade de treinos. Contam os treinos concluídos dentro do período, com pelo menos metade das séries planejadas.",
+    proximoPasso: "Quer continuar evoluindo com acompanhamento? Fale com o Montinho.",
+    fontes: ["sdt2025"],
+  },
   eu_voltei: {
     categoria: "retomada",
     resumo: "Treinar de novo depois de 14 dias ou mais sem treino.",

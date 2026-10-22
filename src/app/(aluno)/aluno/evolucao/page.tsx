@@ -16,6 +16,10 @@ import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
 import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
 import { SemanasBarras } from "@/components/graficos/SemanasBarras";
+import { FEATURES } from "@/lib/env";
+import { ehVisitante } from "@/lib/auth/guards";
+import { compararMeses } from "@/lib/visitante/evolucao";
+import { MesContraMes } from "@/components/visitante/MesContraMes";
 
 export const metadata = { title: "Evolução" };
 
@@ -34,6 +38,10 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   ]);
   const aluno = await getAluno(sessao.alunoId);
   const aderencia = aluno ? await aderenciaDoAluno(aluno) : null;
+  // Modo Visitante: comparação de meses e semana fraca sem culpa.
+  const visitante = FEATURES.modoVisitante && ehVisitante(sessao);
+  const ultimaFechada = aderencia?.semanas.filter((w) => !w.atual && !w.pausada && w.meta).at(-1);
+  const semanaFraca = Boolean(ultimaFechada && ultimaFechada.meta && ultimaFechada.pontos < ultimaFechada.meta);
   const comentario = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem" || i.tipo === "revisao_treino"));
 
   return (
@@ -63,6 +71,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
           </CardBody>
         </Card>
       ) : null}
+      {visitante ? <MesContraMes c={compararMeses(sessoes)} semanaFraca={semanaFraca} /> : null}
       <RelatorioEvolucao
         modo="aluno"
         dias={dias}

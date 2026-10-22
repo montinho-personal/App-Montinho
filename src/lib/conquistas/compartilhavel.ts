@@ -47,6 +47,7 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   completou_adaptacao: { frase: "Adaptação concluída. Base pronta.", porque: "Preparar o corpo com calma é o que permite evoluir com segurança." },
   completou_intensificacao: { frase: "Aguentei o tranco.", porque: "Passar pela fase mais puxada, com acompanhamento, é onde muita evolução acontece." },
   completou_consolidacao: { frase: "Ciclo fechado.", porque: "Consolidar os ganhos prepara o próximo ciclo de evolução." },
+  desafio_concluido: { frase: "Desafio concluído!", porque: "Cumprir o combinado dentro do prazo mostra que dá para encaixar o treino na rotina." },
   mestre_tecnicas: { frase: "Mestre das técnicas.", porque: "Fazer todas as técnicas avançadas é coisa de quem leva o treino a sério." },
 };
 

@@ -37,6 +37,7 @@ import { FEATURES } from "@/lib/env";
 import { ehVisitante } from "@/lib/auth/guards";
 import { perfilVisitante } from "@/lib/data/visitantes";
 import { podeRegistrar } from "@/lib/visitante/acesso";
+import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
 
 export const metadata = { title: "Início" };
 
@@ -171,6 +172,8 @@ export default async function AlunoHomePage() {
         </Card>
         )
       )}
+
+      {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
 
       {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
       <Link href="/aluno/vitorias" className="block">

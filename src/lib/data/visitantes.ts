@@ -67,3 +67,40 @@ export async function perfilVisitante(alunoId: string): Promise<PerfilVisitante 
   const { data } = await db.from("perfil_visitante").select("*").eq("aluno_id", alunoId).maybeSingle();
   return (data as PerfilVisitante | null) ?? null;
 }
+
+export type DesafioVisitante = { id: string; nome: string; descricao: string | null; regras: string | null; inicio: string | null; fim: string | null; metaTreinos: number };
+
+/** Demonstração: a Bia está no “Desafio 7 Dias Chalalá” (começou ontem). */
+function desafioDemo(): DesafioVisitante {
+  const hoje = new Date(Date.now() - 3 * 3_600_000);
+  const dia = (d: number) => new Date(hoje.getTime() + d * 86_400_000).toISOString().slice(0, 10);
+  return { id: "demo-desafio", nome: "Desafio 7 Dias Chalalá", descricao: "Três treinos em sete dias para começar com o pé direito.", regras: null, inicio: dia(-1), fim: dia(5), metaTreinos: 3 };
+}
+
+/** Desafio (campanha com meta de treinos) em que o visitante entrou pelo convite. */
+export async function desafiosDoAluno(alunoId: string): Promise<DesafioVisitante[]> {
+  if (isDemoMode()) return alunoId === "bia" ? [desafioDemo()] : [];
+  const db = await getDb();
+  const { data } = await db.from("acessos_visitante").select("campanha:campanhas(id, nome, descricao, regras, inicio, fim, meta_treinos)").eq("aluno_id", alunoId).maybeSingle();
+  const c = (data as { campanha: { id: string; nome: string; descricao: string | null; regras: string | null; inicio: string | null; fim: string | null; meta_treinos: number | null } | null } | null)?.campanha;
+  if (!c?.meta_treinos) return [];
+  return [{ id: c.id, nome: c.nome, descricao: c.descricao, regras: c.regras, inicio: c.inicio, fim: c.fim, metaTreinos: c.meta_treinos }];
+}
+
+export type DesafioPainel = { id: string; nome: string; descricao: string | null; inicio: string | null; fim: string | null; meta_treinos: number | null; ativa: boolean; participantes: number; concluidos: number };
+
+/** Painel do treinador: desafios com participantes e quantos concluíram (RLS: só treinador). */
+export async function listarDesafios(): Promise<DesafioPainel[]> {
+  if (isDemoMode()) {
+    const d = desafioDemo();
+    return [{ id: d.id, nome: d.nome, descricao: d.descricao, inicio: d.inicio, fim: d.fim, meta_treinos: d.metaTreinos, ativa: true, participantes: 1, concluidos: 0 }];
+  }
+  const db = await getDb();
+  const [{ data: campanhas }, { data: acessos }, { data: medalhas }] = await Promise.all([
+    db.from("campanhas").select("id, nome, descricao, inicio, fim, meta_treinos, ativa").order("created_at", { ascending: false }).limit(100),
+    db.from("acessos_visitante").select("campanha_id").not("campanha_id", "is", null),
+    db.from("conquistas_aluno").select("referencia").eq("codigo", "desafio_concluido"),
+  ]);
+  const conta = (xs: Array<Record<string, unknown>> | null, k: string, v: string) => (xs ?? []).filter((x) => x[k] === v).length;
+  return ((campanhas ?? []) as Array<Omit<DesafioPainel, "participantes" | "concluidos">>).map((c) => ({ ...c, participantes: conta(acessos, "campanha_id", c.id), concluidos: conta(medalhas, "referencia", c.id) }));
+}

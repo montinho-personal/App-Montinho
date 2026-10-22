@@ -6,9 +6,9 @@ const codigos = Object.keys(CATALOGO) as CodigoConquista[];
 const PROIBIDO = [/dopamina/i, /reprogram/i, /21 dias.*h[áa]bito|h[áa]bito.*21 dias/i, /garant/i, /neuroplastic/i, /circuito/i, /h[áa]bito (est[áa]|j[áa] est[áa]) formado/i, /permanente/i];
 
 describe("biblioteca editorial das conquistas", () => {
-  it("34 conquistas (32 únicas + 2 recorrentes), todas com o conteúdo completo", () => {
-    expect(codigos).toHaveLength(34);
-    expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["eu_voltei", "recorde"]);
+  it("35 conquistas (32 únicas + 3 recorrentes, uma delas por desafio), todas com o conteúdo completo", () => {
+    expect(codigos).toHaveLength(35);
+    expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["desafio_concluido", "eu_voltei", "recorde"]);
     for (const c of codigos) {
       const t = CONTEUDO[c];
       for (const campo of ["nome", "resumo", "criterio", "mensagem", "comoConquistar", "significado", "importancia", "explicacao", "proximoPasso"] as const) expect(t[campo].length, `${c}.${campo}`).toBeGreaterThan(campo === "nome" ? 3 : 10);

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
 import { BRAND } from "@/config/brand";
 
-type ConviteVisao = { id: string; codigo: string; prazo: string; usos: number; max_usos: number | null; ativo: boolean; valido_ate: string | null; origem: string | null };
+type ConviteVisao = { id: string; codigo: string; prazo: string; usos: number; max_usos: number | null; ativo: boolean; valido_ate: string | null; origem: string | null; desafio: string | null };
 
 const PRAZOS = [
   { valor: "7", rotulo: "7 dias" },
@@ -18,7 +18,7 @@ const PRAZOS = [
   { valor: "permanente", rotulo: "Sem prazo" },
 ];
 
-export function ConvitesClient({ convites, sugestao, base }: { convites: ConviteVisao[]; sugestao: string; base: string }) {
+export function ConvitesClient({ convites, sugestao, base, desafios }: { convites: ConviteVisao[]; sugestao: string; base: string; desafios: Array<{ id: string; nome: string }> }) {
   const linkDoConvite = (codigo: string) => `${base}/convite/${codigo}`;
   const mensagem = (codigo: string) => `Oi! Separei um acesso ao app do ${BRAND.name} para você registrar seus treinos, ver sua evolução e ganhar medalhas na Jornada do Chalalá. É só tocar no link e criar sua conta: ${linkDoConvite(codigo)}`;
   const router = useRouter();
@@ -28,6 +28,7 @@ export function ConvitesClient({ convites, sugestao, base }: { convites: Convite
   const [vagas, setVagas] = useState("");
   const [validoAte, setValidoAte] = useState("");
   const [origem, setOrigem] = useState("");
+  const [desafio, setDesafio] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export function ConvitesClient({ convites, sugestao, base }: { convites: Convite
         max_usos: vagas ? Number(vagas) : null,
         valido_ate: validoAte || null,
         origem: origem || null,
+        campanha_id: desafio || null,
       }),
     }).catch(() => null);
     const j = (await r?.json().catch(() => ({}))) as { error?: string } | undefined;
@@ -106,6 +108,17 @@ export function ConvitesClient({ convites, sugestao, base }: { convites: Convite
             <Label htmlFor="origem">Onde vai divulgar (opcional)</Label>
             <Input id="origem" value={origem} onChange={(e) => setOrigem(e.target.value)} placeholder="instagram, academia…" maxLength={60} />
           </div>
+          {desafios.length ? (
+            <div>
+              <Label htmlFor="desafio">Desafio (opcional)</Label>
+              <select id="desafio" value={desafio} onChange={(e) => setDesafio(e.target.value)} className="h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-fg">
+                <option value="">Sem desafio</option>
+                {desafios.map((d) => (
+                  <option key={d.id} value={d.id}>{d.nome}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <div className="md:col-span-3 flex flex-col gap-2">
             {erro ? <p className="text-sm text-danger" role="alert">{erro}</p> : null}
             <Button type="submit" disabled={enviando} className="md:w-fit">
@@ -124,6 +137,7 @@ export function ConvitesClient({ convites, sugestao, base }: { convites: Convite
                     {c.prazo} · {c.usos}
                     {c.max_usos ? ` de ${c.max_usos}` : ""} {c.usos === 1 ? "cadastro" : "cadastros"}
                     {c.valido_ate ? ` · aceita até ${c.valido_ate}` : ""}
+                    {c.desafio ? ` · ${c.desafio}` : ""}
                     {c.origem ? ` · ${c.origem}` : ""}
                     {c.ativo ? "" : " · pausado"}
                   </p>

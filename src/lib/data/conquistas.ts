@@ -13,7 +13,8 @@ import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes"
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
 import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
-import { CODIGOS_ALEM, CODIGOS_FASE, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
@@ -77,10 +78,10 @@ export async function listarConquistas(alunoId: string | null, opts: { desde?: s
  * Pode ser chamada quantas vezes for: nunca duplica.
  */
 export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: ConquistaRow[]; novas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
-  const [completas, aderencia, existentes, resumo] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id)]);
+  const [completas, aderencia, existentes, resumo, desafios] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => [])]);
   const sessoes = completas.map(paraConquista);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()) });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
@@ -98,11 +99,13 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const novasAlem = linhas.filter((l) => CODIGOS_ALEM.includes(l.codigo));
     const novasTecnica = linhas.filter((l) => CODIGOS_TECNICA.includes(l.codigo));
     const novasFase = linhas.filter((l) => CODIGOS_FASE.includes(l.codigo));
-    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo));
+    const novasDesafio = linhas.filter((l) => CODIGOS_DESAFIO.includes(l.codigo));
+    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo));
     if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasAlem.length) await db.from("conquistas_aluno").upsert(novasAlem, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasTecnica.length) await db.from("conquistas_aluno").upsert(novasTecnica, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasFase.length) await db.from("conquistas_aluno").upsert(novasFase, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasDesafio.length) await db.from("conquistas_aluno").upsert(novasDesafio, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
   }
   const todas = await listarConquistas(aluno.id);
   const novas = todas.filter((c) => !ja.has(chave(c)));

@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       // validade do código: até o fim do dia em Brasília
       valido_ate: body.valido_ate ? `${body.valido_ate}T23:59:59-03:00` : null,
       origem: body.origem || null,
+      campanha_id: body.campanha_id ?? null,
     })
     .select("*")
     .single();

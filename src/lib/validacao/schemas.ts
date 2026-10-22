@@ -502,6 +502,7 @@ export const conviteSchema = z
     max_usos: z.number().int().min(1).max(100000).nullable().optional(),
     valido_ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
     origem: z.string().trim().max(60).nullable().optional(),
+    campanha_id: z.string().uuid().nullable().optional(),
   })
   .refine((c) => c.tipo_acesso !== "dias" || c.dias != null, { message: "Informe quantos dias", path: ["dias"] })
   .refine((c) => c.tipo_acesso !== "ate_data" || c.acesso_ate, { message: "Informe a data final", path: ["acesso_ate"] });
@@ -542,3 +543,14 @@ export const treinoProprioSchema = z.object({
     .max(15, "Até 15 exercícios por treino"),
 });
 export type TreinoProprioInput = z.infer<typeof treinoProprioSchema>;
+
+// Modo Visitante, fases 4/5: desafio (campanha com meta de treinos) (0055)
+export const desafioSchema = z
+  .object({
+    nome: z.string().trim().min(2, "Dê um nome ao desafio").max(120),
+    descricao: z.string().trim().max(500).nullable().optional(),
+    inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de início inválida"),
+    fim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data final inválida"),
+    meta_treinos: z.number().int().min(1).max(100),
+  })
+  .refine((d) => d.fim >= d.inicio, { message: "A data final precisa ser depois do início", path: ["fim"] });

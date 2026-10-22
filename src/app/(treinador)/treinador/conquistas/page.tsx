@@ -28,8 +28,10 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
   const { dias: d, aluno: alunoParam, msg } = await searchParams;
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
   const desde = new Date(new Date().getTime() - dias * 86_400_000).toISOString();
-  const [alunos, conquistas, reconhecimentos, eventos, configCelular, push] = await Promise.all([listAlunos({ incluirVisitantes: true }), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null)]);
+  // Visitantes (Modo Visitante) não entram no "Celebrar": eles têm o painel próprio.
+  const [alunos, conquistasTodas, reconhecimentos, eventos, configCelular, push] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null)]);
   const nomes = Object.fromEntries(alunos.map((a) => [a.id, a.profile?.nome ?? "Aluno"]));
+  const conquistas = conquistasTodas.filter((c) => c.aluno_id in nomes);
   const ativos = alunos.filter((a) => a.status === "ativo");
   const ader = ativos.length ? await aderenciaDeTodos(ativos) : {};
   const semanasTurma = Object.values(ader).map((r) => r.semanas);

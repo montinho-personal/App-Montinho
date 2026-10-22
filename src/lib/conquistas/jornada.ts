@@ -29,7 +29,7 @@ export const CAPITULOS: Capitulo[] = [
 ];
 
 /** Em que capítulo cada medalha aparece (só visual). */
-export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "eu_voltei">, number> = {
+export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "eu_voltei" | "desafio_concluido">, number> = {
   primeiro_treino: 1,
   criando_raizes: 1,
   primeira_meta_semanal: 1,
@@ -177,6 +177,7 @@ export function linhaDoTempo(e: {
   for (const c of e.conquistas) {
     if (c.codigo === "recorde") add({ chave: `c:${c.id}`, data: c.conquistado_em, tipo: "recorde", titulo: "Novo recorde pessoal", detalhe: c.dados?.recordes?.length ? c.dados.recordes.map((r) => r.exercicio).join(", ") : c.descricao, codigo: c.codigo });
     else if (c.codigo === "eu_voltei") add({ chave: `c:${c.id}`, data: c.conquistado_em, tipo: "retomada", titulo: "Eu voltei", detalhe: c.dados?.diasAfastado ? `Retomada depois de ${c.dados.diasAfastado} dias.` : CONTEUDO.eu_voltei.mensagem, codigo: c.codigo });
+    else if (c.codigo === "desafio_concluido") add({ chave: `c:${c.id}`, data: c.conquistado_em, tipo: "medalha", titulo: c.titulo, detalhe: c.descricao ?? CONTEUDO.desafio_concluido.mensagem, codigo: c.codigo });
     else add({ chave: `m:${c.codigo}`, data: c.conquistado_em, tipo: "medalha", titulo: nomeDaConquista(c.codigo, c.titulo), detalhe: CONTEUDO[c.codigo as CodigoConquista]?.mensagem ?? c.descricao, codigo: c.codigo });
   }
   for (const w of e.semanas) {

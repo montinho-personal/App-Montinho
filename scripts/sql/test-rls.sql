@@ -1034,4 +1034,25 @@ begin
 end $$;
 select test_logout();
 \echo 'T33 OK: visitante monta só os próprios treinos'
+-- T34 — 0055: desafio do visitante (lê só a própria campanha) e medalha do desafio
+do $$
+declare cid uuid; outra uuid;
+begin
+  insert into campanhas (nome, inicio, fim, meta_treinos) values ('Desafio 7 Dias', current_date, current_date + 7, 5) returning id into cid;
+  insert into campanhas (nome) values ('Outra campanha') returning id into outra;
+  update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  update acessos_visitante set campanha_id = cid, fim = now() + interval '30 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  perform set_config('t34.cid', cid::text, false);
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int;
+begin
+  select count(*) into n from campanhas;
+  if n <> 1 then raise exception 'T34a: visitante deveria ver só a própria campanha (viu %)', n; end if;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'desafio_concluido', current_setting('t34.cid'), now(), 'Desafio concluído');
+end $$;
+select test_logout();
+update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+\echo 'T34 OK: desafio do visitante e medalha do desafio'
 \echo 'TODOS OS TESTES PASSARAM'

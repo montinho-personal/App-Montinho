@@ -14,6 +14,9 @@ import { calcularAderencia, dataLocal, somarDias, type CalendarioVigente, type E
 export type MetaSemanal = { id: string; aluno_id: string; meta: number; vigente_desde: string; observacao: string | null; created_at: string };
 export type Pausa = { id: string; aluno_id: string; inicio: string; fim: string | null; tipo: string; motivo: string | null; created_at: string };
 
+/** Demonstração: a visitante fictícia Bia treina 3×/semana. */
+const PERFIS_VISITANTE_DEMO: Bruto["perfisVisitante"] = [{ aluno_id: "bia", frequencia_semanal: 3, onboarding_concluido_em: "2026-10-20T12:00:00Z" }];
+
 /** Janela máxima carregada (o período completo é limitado a ~2 anos). */
 const DIAS_MAX = 730;
 
@@ -30,6 +33,8 @@ type Bruto = {
   pausas: Pausa[];
   versoes: Array<Pick<ProgramaVersao, "aluno_id" | "created_at" | "snapshot">>;
   programas: Array<{ aluno_id: string; created_at: string; frequencia: Record<string, number> | null; calendario: unknown }>;
+  /** Modo Visitante: a meta semanal é a frequência que o próprio visitante informou. */
+  perfisVisitante: Array<{ aluno_id: string; frequencia_semanal: number | null; onboarding_concluido_em: string | null }>;
 };
 
 const somaFrequencia = (f: Record<string, number> | null | undefined) => Math.round(Object.values(f ?? {}).reduce((a, b) => a + (Number(b) || 0), 0));
@@ -45,6 +50,7 @@ async function carregarBruto(alunoIds: string[] | null): Promise<Bruto> {
       pausas: filtro(demo().pausas),
       versoes: filtro(st.versoes),
       programas: filtro(st.programas ?? []).map((p) => ({ aluno_id: p.aluno_id, created_at: p.created_at, frequencia: p.frequencia as Record<string, number>, calendario: p.calendario })),
+      perfisVisitante: filtro(PERFIS_VISITANTE_DEMO),
     };
   }
   const db = await getDb();
@@ -53,20 +59,23 @@ async function carregarBruto(alunoIds: string[] | null): Promise<Bruto> {
   let qp = db.from("pausas_aluno").select("*").order("inicio");
   let qv = db.from("programa_versoes").select("aluno_id, created_at, snapshot").order("created_at").limit(2000);
   let qpr = db.from("programas").select("aluno_id, created_at, frequencia, calendario").eq("ativo", true);
+  let qpv = db.from("perfil_visitante").select("aluno_id, frequencia_semanal, onboarding_concluido_em");
   if (alunoIds) {
     qs = qs.in("aluno_id", alunoIds);
     qm = qm.in("aluno_id", alunoIds);
     qp = qp.in("aluno_id", alunoIds);
     qv = qv.in("aluno_id", alunoIds);
     qpr = qpr.in("aluno_id", alunoIds);
+    qpv = qpv.in("aluno_id", alunoIds);
   }
-  const [s, m, p, v, pr] = await Promise.all([qs, qm, qp, qv, qpr]);
+  const [s, m, p, v, pr, pv] = await Promise.all([qs, qm, qp, qv, qpr, qpv]);
   return {
     sessoes: (s.data ?? []) as unknown as SessaoAderencia[],
     metas: (m.data ?? []) as MetaSemanal[],
     pausas: (p.data ?? []) as Pausa[],
     versoes: (v.data ?? []) as Bruto["versoes"],
     programas: (pr.data ?? []) as Bruto["programas"],
+    perfisVisitante: (pv.data ?? []) as Bruto["perfisVisitante"],
   };
 }
 
@@ -78,6 +87,8 @@ function entradaDoAluno(alunoId: string, inicioAcompanhamento: string, b: Bruto,
   const calendarios: CalendarioVigente[] = versoes.map((v) => ({ desde: dataLocal(v.created_at), calendario: ((v.snapshot as { programa?: { calendario?: Calendario } })?.programa?.calendario ?? null) as Calendario | null }));
   const prog = b.programas.find((p) => p.aluno_id === alunoId);
   if (prog && !metasPrograma.length && somaFrequencia(prog.frequencia) > 0) metasPrograma.push({ desde: dataLocal(prog.created_at), meta: somaFrequencia(prog.frequencia), origem: "programa" });
+  const perfilVis = b.perfisVisitante.find((p) => p.aluno_id === alunoId);
+  if (!metasPrograma.length && perfilVis?.frequencia_semanal) metasPrograma.push({ desde: dataLocal(perfilVis.onboarding_concluido_em ?? inicioAcompanhamento), meta: perfilVis.frequencia_semanal, origem: "programa" });
   if (prog && !calendarios.length) calendarios.push({ desde: dataLocal(prog.created_at), calendario: (prog.calendario ?? null) as Calendario | null });
   const metasPersonal: MetaVigente[] = b.metas.filter((m) => m.aluno_id === alunoId).map((m) => ({ desde: m.vigente_desde, meta: m.meta, origem: "personal" }));
   // Histórico importado com conta_aderencia=false não entra na aderência.

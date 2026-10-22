@@ -4,7 +4,9 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { FEATURES } from "@/lib/env";
 import { requireTreinadorPage } from "@/lib/auth/session";
-import { listarConvites, listarVisitantes } from "@/lib/data/visitantes";
+import { listarConvites, listarDesafios, listarVisitantes } from "@/lib/data/visitantes";
+import { DesafiosClient } from "./DesafiosClient";
+import { dataLocal } from "@/lib/aderencia/calcular";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { dataBR, descreverPrazo, estadoDoAcesso, gerarCodigo } from "@/lib/visitante/acesso";
 import { ConvitesClient } from "./ConvitesClient";
@@ -17,7 +19,10 @@ const OBJETIVO: Record<string, string> = { hipertrofia: "Massa muscular", emagre
 export default async function VisitantesPage() {
   if (!FEATURES.modoVisitante) notFound();
   await requireTreinadorPage();
-  const [convites, visitantes] = await Promise.all([listarConvites(), listarVisitantes()]);
+  const [convites, visitantes, desafios] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios()]);
+  const nomeDesafio = new Map(desafios.map((d) => [d.id, d.nome]));
+  const curta = (d: string | null) => (d ? d.split("-").reverse().join("/") : null);
+  const hoje = dataLocal(new Date());
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "app-montinho.vercel.app";
   const base = `${h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")}://${host}`;
@@ -35,7 +40,13 @@ export default async function VisitantesPage() {
       <ConvitesClient
         sugestao={gerarCodigo("DESAFIO")}
         base={base}
-        convites={convites.map((c) => ({ id: c.id, codigo: c.codigo, prazo: descreverPrazo(c), usos: c.usos, max_usos: c.max_usos, ativo: c.ativo, valido_ate: c.valido_ate ? dataBR(c.valido_ate) : null, origem: c.origem }))}
+        desafios={desafios.filter((d) => d.ativa && d.meta_treinos).map((d) => ({ id: d.id, nome: d.nome }))}
+        convites={convites.map((c) => ({ id: c.id, codigo: c.codigo, prazo: descreverPrazo(c), usos: c.usos, max_usos: c.max_usos, ativo: c.ativo, valido_ate: c.valido_ate ? dataBR(c.valido_ate) : null, origem: c.origem, desafio: c.campanha_id ? (nomeDesafio.get(c.campanha_id) ?? null) : null }))}
+      />
+
+      <DesafiosClient
+        hoje={hoje}
+        desafios={desafios.map((d) => ({ id: d.id, nome: d.nome, periodo: d.inicio && d.fim ? `${curta(d.inicio)} a ${curta(d.fim)}` : "Sem período", meta: d.meta_treinos, participantes: d.participantes, concluidos: d.concluidos }))}
       />
 
       <Card>
