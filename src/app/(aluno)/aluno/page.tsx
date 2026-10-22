@@ -36,6 +36,7 @@ import { redirect } from "next/navigation";
 import { FEATURES } from "@/lib/env";
 import { ehVisitante } from "@/lib/auth/guards";
 import { perfilVisitante } from "@/lib/data/visitantes";
+import { podeRegistrar } from "@/lib/visitante/acesso";
 
 export const metadata = { title: "Início" };
 
@@ -137,6 +138,25 @@ export default async function AlunoHomePage() {
           </CardBody>
         </Card>
       ) : (
+        FEATURES.modoVisitante && ehVisitante(sessao) ? (
+          // Visitante: quem monta o treino é ele mesmo.
+          <Card className="border-accent/40">
+            <CardBody className="text-center py-8 space-y-3">
+              <Icon name="dumbbell" size={32} className="mx-auto text-accent" />
+              <h2 className="font-bold">Monte o seu primeiro treino</h2>
+              {podeRegistrar("visitante", sessao.acessoFim ?? null) ? (
+                <>
+                  <p className="text-sm text-fg-muted">Escolha os exercícios da biblioteca do {BRAND.name}, com vídeo de execução, e ajuste séries, repetições e descanso. Leva uns 2 minutos.</p>
+                  <Link href="/aluno/meus-treinos/novo" className="mx-auto flex min-h-12 max-w-xs items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-bg">
+                    <Icon name="plus" size={18} /> Montar meu treino
+                  </Link>
+                </>
+              ) : (
+                <p className="text-sm text-fg-muted">Seu acesso terminou. Para voltar a montar treinos, fale com o {BRAND.name}.</p>
+              )}
+            </CardBody>
+          </Card>
+        ) : (
         <Card className="border-dashed">
           <CardBody className="text-center py-8 space-y-2">
             <Icon name="dumbbell" size={32} className="mx-auto text-fg-subtle" />
@@ -149,6 +169,7 @@ export default async function AlunoHomePage() {
             ) : null}
           </CardBody>
         </Card>
+        )
       )}
 
       {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
