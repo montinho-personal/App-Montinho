@@ -100,7 +100,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["supino-inclinado-barra", "supino-inclinado-maquina", "supino-inclinado-smith"], est: ["ombro"],
   }),
   ex("supino-inclinado-maquina", "Supino inclinado na máquina", "peito", {
-    s: ["supino inclinado máquina", "incline chest press"],
+    s: ["supino inclinado máquina", "incline chest press", "supino máquina 45", "supino máquina 45°"],
     p: { ombro_anterior: 0.5, triceps: 0.5 }, pad: "empurrar_inclinado", art: EMP_H, eq: ["maquina"], t: "multi",
     exe: ["Ajuste o assento para a pegada ficar na parte alta do peito.", "Costas apoiadas e peito aberto.", "Empurre e retorne em 2–3 segundos."],
     err: ["Assento baixo, levando a força para o ombro.", "Encolher os ombros.", "Retorno sem controle."],
