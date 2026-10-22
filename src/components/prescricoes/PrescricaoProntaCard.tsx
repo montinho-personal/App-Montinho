@@ -80,7 +80,7 @@ export function PrescricaoProntaCard({ alunoId, prescricao, auditoria, pendencia
           <p className="text-xs text-success">Disponível no montador e no app da aluna. Para ajustar, use “Editar no montador”.</p>
         ) : (
           <button type="button" disabled={enviando} onClick={() => void cadastrar()} className="touch w-full rounded-lg bg-accent px-4 py-2.5 font-bold text-bg disabled:opacity-60">
-            {enviando ? "Cadastrando…" : "Cadastrar estes 4 treinos"}
+            {enviando ? "Cadastrando…" : `Cadastrar estes ${auditoria.length} treinos`}
           </button>
         )}
         <p className="text-[11px] text-fg-subtle">Cadastro pelo mesmo caminho do montador: cria uma versão nova do plano; treinos anteriores ficam arquivados (nada é apagado). Cargas não são preenchidas.</p>

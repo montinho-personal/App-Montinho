@@ -347,6 +347,14 @@ export async function salvarPlano(alunoId: string, autorId: string, input: Salva
     programa = data as Programa;
   }
 
+  // Arquiva primeiro: só pode haver um treino ativo por letra (idx_treinos_aluno_letra_ativo_unique),
+  // então o “A” antigo precisa sair de cena antes de o “A” novo ser criado.
+  for (const t of input.treinos) {
+    if (!t.id || t.ativo) continue;
+    const { error } = await db.from("treinos").update({ ativo: false }).eq("id", t.id).eq("aluno_id", alunoId);
+    if (error) throw new Error(`Falha ao arquivar treino ${t.letra}: ${error.message}`);
+  }
+
   const resultado: TreinoComExercicios[] = [];
   for (let ordem = 0; ordem < input.treinos.length; ordem++) {
     const t = input.treinos[ordem];
