@@ -6,6 +6,7 @@ import { requireTreinadorPage } from "@/lib/auth/session";
 
 const NAV = [
   { label: "Visão geral", href: "/treinador", icon: "home" },
+  { label: "Buscar", href: "/treinador/busca", icon: "search" },
   { label: "Alunos", href: "/treinador/alunos", icon: "users" },
   ...(FEATURES.modoVisitante ? [{ label: "Visitantes", href: "/treinador/visitantes", icon: "user" } as const] : []),
   { label: "Central de aderência", href: "/treinador/aderencia", icon: "chart" },

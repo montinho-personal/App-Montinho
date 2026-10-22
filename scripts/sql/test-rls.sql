@@ -1055,4 +1055,18 @@ end $$;
 select test_logout();
 update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 \echo 'T34 OK: desafio do visitante e medalha do desafio'
+-- T35 — 0057: eventos dos convites (CTA): visitante grava só os próprios
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  insert into cta_eventos (aluno_id, cta, tipo, tela) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'acesso_vencendo', 'exibido', 'inicio');
+  begin insert into cta_eventos (aluno_id, cta, tipo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'acesso_vencendo', 'clicado'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T35a: gravou evento de outro aluno'; end if;
+  ok := false;
+  begin insert into cta_eventos (aluno_id, cta, tipo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'acesso_vencendo', 'comprou'); exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T35b: tipo de evento inválido aceito'; end if;
+end $$;
+select test_logout();
+\echo 'T35 OK: eventos de CTA só do próprio aluno'
 \echo 'TODOS OS TESTES PASSARAM'
