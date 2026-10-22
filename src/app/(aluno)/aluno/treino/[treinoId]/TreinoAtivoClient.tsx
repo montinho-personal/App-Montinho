@@ -754,7 +754,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     });
   }
 
-  function marcarExercicio(seId: string, status: "pulado" | "nao_consegui" | "concluido", percepcao?: PercepcaoExercicio | null) {
+  function marcarExercicio(seId: string, status: "pendente" | "pulado" | "nao_consegui" | "concluido", percepcao?: PercepcaoExercicio | null) {
     if (!sessao || !storage) return;
     const patch = percepcao !== undefined ? { status, percepcao } : { status };
     enfileirar(storage, sessao.id, { tipo: "exercicio", sessionId: sessao.id, clientKey: `ex:${seId}:${status}:${percepcao ?? "-"}`, payload: { session_exercise_id: seId, patch } });
@@ -769,6 +769,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!sessao) return;
     marcarExercicio(seId, "concluido", percepcao);
     setPerguntandoEsforco(null);
+    abrirProximo(seId);
+  }
+
+  /** Fecha o exercício e abre o próximo ainda pendente (ou fecha tudo, se não houver). */
+  function abrirProximo(seId: string) {
+    if (!sessao) return;
     const ordem = sessao.exercicios.map((x) => x.id);
     const proximo = ordem.slice(ordem.indexOf(seId) + 1).find((id) => {
       const st = statusEx[id] ?? sessao.exercicios.find((x) => x.id === id)?.status;
@@ -778,6 +784,21 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (proximo) setTimeout(() => document.getElementById(`ex-${proximo}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
   }
 
+  /**
+   * "Pular hoje": antes o toque registrava, mas nada mudava na tela (o aviso
+   * ficava no cabeçalho, fora da vista, e a contagem de séries não descontava).
+   * Agora confirma, segue para o próximo e dá para desfazer abrindo o exercício.
+   */
+  function pularExercicio(seId: string, nome: string) {
+    marcarExercicio(seId, "pulado");
+    toast.success(`${nome}: pulado hoje. Para desfazer, toque nele de novo.`);
+    abrirProximo(seId);
+  }
+  function desfazerPulo(seId: string) {
+    marcarExercicio(seId, "pendente");
+    setAberto(seId);
+  }
+
   async function pedirAdaptacao(ex: ExercicioView, seId: string, motivo: "nao_consegui" | "desconforto" | "sem_equipamento", descricao: string) {
     try {
       if (presencial) {
@@ -785,6 +806,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         marcarExercicio(seId, "nao_consegui");
         setAdaptacaoAberta(null);
         toast.success("Marcado como não feito hoje.");
+        abrirProximo(seId);
         return;
       }
       const res = await fetch("/api/adaptacoes", { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ session_id: sessao?.id ?? null, session_exercise_id: seId, exercicio_id: ex.id, exercicio_nome: ex.nome, motivo, descricao: descricao || null }) });
@@ -792,6 +814,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       marcarExercicio(seId, "nao_consegui");
       toast.success(`Pedido enviado. O ${BRAND.name} vai revisar este exercício.`);
       setAdaptacaoAberta(null);
+      abrirProximo(seId);
     } catch {
       toast.error("Não foi possível enviar agora. Tente de novo quando a conexão voltar.");
     }
@@ -831,8 +854,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // ------------------------------------------------------------------------
   // Telas
   // ------------------------------------------------------------------------
-  const totalPlanejado = useMemo(() => Object.values(series).flat().filter((s) => s.tipo === "valida").length, [series]);
-  const totalFeito = useMemo(() => Object.values(series).flat().filter((s) => s.tipo === "valida" && s.concluida).length, [series]);
+  // Exercício pulado ou "não consegui" sai da conta de séries: senão o
+  // "X séries ainda sem marcar" não mudava depois de pular.
+  const fora = (seId: string) => { const st = statusEx[seId] ?? sessao?.exercicios.find((x) => x.id === seId)?.status; return st === "pulado" || st === "nao_consegui"; };
+  const seriesContadas = Object.entries(series).filter(([id]) => !fora(id)).flatMap(([, l]) => l);
+  const totalPlanejado = seriesContadas.filter((s) => s.tipo === "valida").length;
+  const totalFeito = seriesContadas.filter((s) => s.tipo === "valida" && s.concluida).length;
   // Plano de tempo congelado no início da sessão (snapshot); sem snapshot, usa o treino atual.
   // (o React Compiler memoriza estes cálculos)
   const snapshotSessao = sessao?.snapshot as { treino?: { tempos?: Partial<ParametrosTempo> }; exercicios?: ExercicioPrescrito[] } | null | undefined;
@@ -1228,6 +1255,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
                 {expandido ? (
                   <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+                    {statusAtual === "pulado" ? (
+                      <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-bg/60 px-3 py-2 text-xs">
+                        <span>Você pulou este exercício hoje. Ele não conta como pendente.</span>
+                        <button type="button" onClick={() => desfazerPulo(se.id)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                          Desfazer
+                        </button>
+                      </div>
+                    ) : null}
                     {troca ? (
                       <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
                         <span>⇄ Trocado hoje · no plano: <strong>{exPlano.nome}</strong></span>
@@ -1419,7 +1454,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       <button type="button" onClick={() => setAdaptacaoAberta(adaptacaoAberta === se.id ? null : se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                         Não consegui este exercício
                       </button>
-                      <button type="button" onClick={() => marcarExercicio(se.id, "pulado")} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-subtle hover:text-fg">
+                      <button type="button" onClick={() => pularExercicio(se.id, ex.nome)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-subtle hover:text-fg">
                         Pular hoje
                       </button>
                     </div>
