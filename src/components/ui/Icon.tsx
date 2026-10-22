@@ -1,9 +1,10 @@
 // Ícones inline (SVG, sem dependência). Decorativos por padrão (aria-hidden).
 export type IconName =
   | "home" | "dumbbell" | "chart" | "user" | "check" | "play" | "pause" | "timer" | "chevron" | "warning"
-  | "info" | "plus" | "minus" | "copy" | "trash" | "undo" | "redo" | "up" | "down" | "search" | "star" | "logout" | "menu" | "x" | "table" | "book" | "users" | "sparkles" | "bell" | "instagram" | "map" | "trophy";
+  | "info" | "plus" | "minus" | "copy" | "trash" | "undo" | "redo" | "up" | "down" | "search" | "star" | "logout" | "menu" | "x" | "table" | "book" | "users" | "sparkles" | "bell" | "instagram" | "map" | "trophy" | "lock";
 
 const PATHS: Record<IconName, string> = {
+  lock: "M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z",
   home: "M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z",
   dumbbell: "M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12",
   chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
