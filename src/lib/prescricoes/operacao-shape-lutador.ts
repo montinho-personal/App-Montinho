@@ -125,8 +125,8 @@ export const PRESCRICAO: SalvarPlanoInput = {
     nivel: "Iniciante",
     split: "Push/Pull/Legs/Costas/Legs",
     modo_semana: "rotativo",
-    frequencia: { A: 1.4, B: 1.4, C: 1.4, D: 1.4, E: 1.4 },
-    calendario: { modo: "rotativo", sequencia: ["A", "B", "C", "D", "E"], diasPorSemana: 7 },
+    frequencia: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+    calendario: { modo: "rotativo", sequencia: ["A", "B", "C", "D", "E"], diasPorSemana: 5 }, // 5 dias por semana (personal, 22/10)
     metas_volume: {},
     prioridades: ["abdomen", "costas", "ombros", "quadriceps"],
     equipamentos: [],
