@@ -418,7 +418,7 @@ export const estrategiaSchema = z.object({
   minutosPorTreino: z.number().int().min(10).max(300).nullable(),
   prioridades: listaTxt(60, 12),
   comoPriorizar: listaTxt(200),
-  divisao: txt(120),
+  divisao: txt(600), // pode vir o plano da semana inteira (“Seg: … Ter: …”)
   justificativaDivisao: txt(3000),
   adaptacoes: txt(3000),
   intensidade: txt(200),

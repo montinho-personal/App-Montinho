@@ -61,9 +61,48 @@ function diasPorNome(divisao: string): DiaModelo[] | null {
   return dias.length <= 6 ? dias : null;
 }
 
+// Divisão escrita por dia da semana: “Seg: Glúteos + Quadríceps Ter: Costas + Ombros …”.
+const DIA_SEMANA = /(?:^|[\s,;.|])(segunda|seg|ter[cç]a|ter|quarta|qua|quinta|qui|sexta|sex|s[aá]bado|s[aá]b|domingo|dom)(?:-feira)?\s*[:–—-]\s*/gi;
+const PALAVRA_GRUPO: Array<[RegExp, GrupoMuscular[]]> = [
+  [/gluteo/, ["gluteo", "abdutores"]],
+  [/quadriceps/, ["quadriceps", "adutores"]],
+  [/posterior/, ["posteriores"]],
+  [/panturrilha/, ["panturrilha"]],
+  [/\b(lower|inferior|inferiores|pernas?)\b/, PERNAS],
+  [/\b(upper|superior|superiores)\b/, SUPERIORES],
+  [/costas|dorsa/, ["costas", "trapezio"]],
+  [/peito|peitoral/, ["peito"]],
+  [/ombro|deltoide/, ["ombros", "ombro_lateral", "ombro_posterior"]],
+  [/biceps/, ["biceps"]],
+  [/triceps/, ["triceps"]],
+  [/\bbracos?\b/, ["biceps", "triceps"]],
+  [/abdom|abdominal|\bcore\b/, ["abdomen"]],
+];
+const SO_DESCANSO = /^(cardio|aerobico|descanso|off|folga|livre|caminhada|corrida)/;
+
+/** Dias de treino de uma divisão escrita por dia da semana (cardio e descanso ficam fora). */
+export function diasPorDiaDaSemana(divisao: string): DiaModelo[] | null {
+  const marcas = [...divisao.matchAll(DIA_SEMANA)];
+  if (marcas.length < 2) return null;
+  const dias: DiaModelo[] = [];
+  marcas.forEach((m, i) => {
+    const inicio = (m.index ?? 0) + m[0].length;
+    const fim = i + 1 < marcas.length ? (marcas[i + 1].index ?? divisao.length) : divisao.length;
+    const texto = divisao.slice(inicio, fim).trim().replace(/[\s,;.|]+$/, "");
+    const chave = semAcento(texto);
+    if (!texto || SO_DESCANSO.test(chave)) return;
+    const grupos: GrupoMuscular[] = [];
+    for (const [re, gs] of PALAVRA_GRUPO) if (re.test(chave)) for (const g of gs) if (!grupos.includes(g)) grupos.push(g);
+    dias.push({ nome: texto.slice(0, 80), grupos });
+  });
+  return dias.length >= 1 ? dias.slice(0, 6) : null;
+}
+
 /** Modelos pelo nome da divisão (sem acento, minúsculo, sem espaços). */
 export function modeloDaDivisao(divisao: string | null, dias: number | null): DiaModelo[] | null {
   if (!divisao) return null;
+  const porDiaDaSemana = diasPorDiaDaSemana(divisao);
+  if (porDiaDaSemana) return porDiaDaSemana;
   const porNome = diasPorNome(divisao);
   // Divisão curta (2–3 dias) com o dobro de dias disponíveis repete o ciclo (Upper/Lower 4×, PPL 6×).
   if (porNome) return porNome.length <= 3 && dias && dias >= porNome.length * 2 && porNome.length * 2 <= 6 ? [...porNome, ...porNome] : porNome;

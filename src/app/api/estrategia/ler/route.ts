@@ -39,7 +39,12 @@ export async function POST(request: Request) {
     }
     const lida = lerArquivoStrategy(dados);
     const ok = lida ? estrategiaSchema.safeParse(lida) : null;
-    if (!lida || !ok?.success) return NextResponse.json({ error: "Este arquivo não é do Montinho Strategy (ou está incompleto)." }, { status: 422 });
+    if (!lida) return NextResponse.json({ error: "Este arquivo não é do Montinho Strategy (ou está incompleto)." }, { status: 422 });
+    if (!ok?.success) {
+      // Diz qual campo não passou, para dar para corrigir sem adivinhar.
+      const campo = ok?.error.issues[0]?.path.join(".") || "desconhecido";
+      return NextResponse.json({ error: `O arquivo do Montinho Strategy tem um campo que o app não aceitou (“${campo}”). Mande o arquivo para o suporte do app.` }, { status: 422 });
+    }
     estrategia = ok.data as EstrategiaImportada;
     cadastro = cadastroDoArquivoStrategy(dados);
   }

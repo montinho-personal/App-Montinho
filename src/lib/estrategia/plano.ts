@@ -4,7 +4,7 @@
 import type { SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { TreinoLetra } from "@/lib/supabase/types-sessoes";
-import { diasDaEstrategia } from "./divisao";
+import { diasDaEstrategia, diasPorDiaDaSemana } from "./divisao";
 import { grupoDoRotulo, type EstrategiaImportada } from "./ler";
 
 const corta = (s: string | null | undefined, n: number) => (s ? (s.length > n ? `${s.slice(0, n - 1)}…` : s) : null);
@@ -47,7 +47,8 @@ export function planoDaEstrategia(e: EstrategiaImportada): SalvarPlanoInput | nu
       split: corta(e.divisao, 40),
       modo_semana: "rotativo",
       frequencia: Object.fromEntries(letras.map((l) => [l, 1])),
-      calendario: { modo: "rotativo", sequencia: letras, diasPorSemana: e.diasPorSemana ?? letras.length },
+      // Divisão por dia da semana: a meta é o número de dias de musculação (o dia de cardio não conta).
+      calendario: { modo: "rotativo", sequencia: letras, diasPorSemana: e.divisao && diasPorDiaDaSemana(e.divisao) ? letras.length : (e.diasPorSemana ?? letras.length) },
       metas_volume: metas,
       prioridades: prioridadesEmGrupos(e),
       equipamentos: [],

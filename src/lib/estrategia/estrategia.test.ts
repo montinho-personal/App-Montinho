@@ -154,3 +154,27 @@ describe("cadastro do arquivo do Strategy", () => {
     expect(salva.dataNascimento).toBeUndefined();
   });
 });
+
+describe("divisão escrita por dia da semana (arquivo da Naya, 22/10/2026)", () => {
+  const divisao = "Seg: Glúteos + Quadríceps Ter: Costas + Ombros + Bíceps Qua: Posterior de Coxa + Glúteos + Abdômen Qui: Peito + Costas + Tríceps Sex: Lower completo Sáb: Músculos pequenos — Tríceps, Bíceps, Panturrilhas e Abdômen Dom: Cardio";
+  it("vira 6 dias de musculação (domingo de cardio fica fora), com os músculos de cada dia", async () => {
+    const { diasPorDiaDaSemana } = await import("./divisao");
+    const d = diasPorDiaDaSemana(divisao)!;
+    expect(d.map((x) => x.nome)).toEqual(["Glúteos + Quadríceps", "Costas + Ombros + Bíceps", "Posterior de Coxa + Glúteos + Abdômen", "Peito + Costas + Tríceps", "Lower completo", "Músculos pequenos — Tríceps, Bíceps, Panturrilhas e Abdômen"]);
+    expect(d[0].grupos).toEqual(expect.arrayContaining(["gluteo", "quadriceps"]));
+    expect(d[4].grupos).toEqual(expect.arrayContaining(["quadriceps", "posteriores", "gluteo"]));
+    expect(d[5].grupos).toEqual(expect.arrayContaining(["triceps", "biceps", "panturrilha", "abdomen"]));
+  });
+
+  it("o arquivo passa na validação e o plano inicial tem 6 treinos com meta de 6 por semana", async () => {
+    const { lerArquivoStrategy } = await import("./ler");
+    const { estrategiaSchema } = await import("@/lib/validacao/schemas");
+    const { planoDaEstrategia } = await import("./plano");
+    const arq = { formato: "montinho-strategy", versaoFormato: 1, estrategia: { versao: 1, aluno: "Naya", titulo: "Montinho Training Strategy", data: "2026-10-22", objetivo: "Emagrecimento", objetivosSecundarios: null, experiencia: "Intermediário", diasPorSemana: 7, minutosPorTreino: null, prioridades: ["Glúteos"], comoPriorizar: [], divisao, justificativaDivisao: null, adaptacoes: null, intensidade: "Pirâmide crescente", volume: [], volumeTotal: null, frequencia: null, fases: [], preparacao: [], preparacaoMotivo: null, progressao: [], checkinSemanal: [], pontosFortes: [], pontosAtencao: [], frase: null, logicaExercicios: [], aerobico: null, encerramento: null } };
+    const lida = lerArquivoStrategy(arq)!;
+    expect(estrategiaSchema.safeParse(lida).success).toBe(true);
+    const plano = planoDaEstrategia(lida)!;
+    expect(plano.treinos.map((t) => t.letra)).toEqual(["A", "B", "C", "D", "E", "F"]);
+    expect((plano.programa.calendario as { diasPorSemana: number }).diasPorSemana).toBe(6);
+  });
+});
