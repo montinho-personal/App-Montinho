@@ -15,11 +15,14 @@
 //  • RIR não informado fica sem definição (null).
 //  • RIR 0 = zero repetições em reserva (não é “sem RIR”).
 //  • Cargas: nunca preenchidas.
+//  • Padrão de toda ficha (./regras, 22/10/2026): até a falha (RIR 0) e
+//    aquecimento no 1º exercício de cada treino.
 // ============================================================================
 
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
+import { comRegras } from "./regras";
 
 export const ID_PRESCRICAO = "miss-terracos-tambore-v1";
 /** Nome real da aluna no app; “Miss Terraços Tamboré” é o rótulo da ficha. */
@@ -102,7 +105,7 @@ const biA = (nome: string, reps: string[], bloco: string) => ex(nome, reps, 0, {
 const biB = (nome: string, reps: string[], bloco: string) => ex(nome, reps, null, { tecnica: "biset", bloco });
 const x4 = (r: string) => [r, r, r, r];
 
-const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[], observacoes: string | null = null): TreinoInput => ({ letra, nome, ativo: true, observacoes, exercicios });
+const treino = (letra: TreinoInput["letra"], nome: string, exercicios: ExercicioInput[], observacoes: string | null = null): TreinoInput => comRegras({ letra, nome, ativo: true, observacoes, exercicios });
 
 export const PRESCRICAO: SalvarPlanoInput = {
   programa: {
