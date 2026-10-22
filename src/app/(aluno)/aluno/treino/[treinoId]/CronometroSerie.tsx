@@ -25,13 +25,13 @@ export function CronometroSerie({ alvoSeg, onParar }: { alvoSeg: number | null; 
 
   if (inicio == null)
     return (
-      <button type="button" onClick={() => { avisou.current = false; const t = Date.now(); setInicio(t); setAgora(t); }} className="touch col-span-4 rounded-md border border-accent/60 px-3 py-2 text-xs font-bold text-accent">
+      <button type="button" onClick={() => { avisou.current = false; const t = Date.now(); setInicio(t); setAgora(t); }} className="touch col-span-full rounded-md border border-accent/60 px-3 py-2 text-xs font-bold text-accent">
         ⏱ Iniciar cronômetro{alvoSeg ? ` · meta ${formatarSegundos(alvoSeg)}` : ""}
       </button>
     );
   const chegou = !!alvoSeg && seg >= alvoSeg;
   return (
-    <div role="timer" aria-live="polite" className={`col-span-4 flex items-center justify-between gap-3 rounded-md border px-3 py-2 ${chegou ? "border-success/60 bg-success/10" : "border-accent/60 bg-accent/10"}`}>
+    <div role="timer" aria-live="polite" className={`col-span-full flex items-center justify-between gap-3 rounded-md border px-3 py-2 ${chegou ? "border-success/60 bg-success/10" : "border-accent/60 bg-accent/10"}`}>
       <span className="font-mono text-2xl font-black tabular-nums">{formatarSegundos(seg)}</span>
       <span className="text-xs text-fg-muted">{alvoSeg ? (chegou ? "Meta batida! Segura mais ou pare." : `meta ${formatarSegundos(alvoSeg)}`) : ""}</span>
       <button type="button" onClick={() => { onParar(seg); setInicio(null); }} className="touch rounded-md bg-accent px-3 py-2 text-xs font-bold text-bg">
