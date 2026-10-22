@@ -31,6 +31,9 @@ import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
 import { detalheRelatorio } from "@/lib/relatorios/detalhe";
 import { sessaoParaConquista } from "@/lib/conquistas/mapear";
 import { EvolucaoExercicioClient } from "./EvolucaoExercicioClient";
+import { EvolucaoGeral } from "./EvolucaoGeral";
+import { evolucaoPorMusculo, evolucaoPorTreino } from "@/lib/relatorios/evolucao-geral";
+import { relatorioPremium } from "@/lib/relatorios/premium";
 import type { TreinoComExercicios } from "@/lib/data/programas";
 
 type Props = {
@@ -199,6 +202,12 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
           </CardBody>
         </Card>
       ) : null}
+
+      {/* Evolução geral: cada treino e cada músculo (prioridades em destaque) */}
+      <EvolucaoGeral
+        treinos={evolucaoPorTreino(sessoes, desdeLocal, hojeLocal)}
+        musculos={evolucaoPorMusculo({ sessoes, inicio: desdeLocal, fim: hojeLocal, prioridades: programa?.prioridades ?? [], grupos: relatorioPremium({ sessoes, resumos: historicoResumo, inicio: desdeLocal, fim: hojeLocal }).grupos })}
+      />
 
       {/* NÍVEL 2 — Detalhes */}
       <h2 id="analise" className="scroll-mt-20 text-xs font-bold uppercase tracking-wider text-fg-muted pt-1">Análise completa</h2>

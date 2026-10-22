@@ -17,6 +17,7 @@ import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { listarHistoricoResumo } from "@/lib/data/historico";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { aderenciaDaJanela } from "@/lib/relatorios/calcular";
+import { evolucaoPorMusculo, evolucaoPorTreino } from "@/lib/relatorios/evolucao-geral";
 import { inicioDoPeriodo, PERIODOS_PREMIUM, relatorioPremium, type ExercicioPremium, type PeriodoPremium } from "@/lib/relatorios/premium";
 import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
@@ -118,6 +119,9 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   const mensagem = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem" || i.tipo === "revisao_treino"));
   const maxDestaque = Math.max(1, ...r.destaques.map((d) => d.atual.carga));
   const top = r.exercicios.slice(0, 12);
+  const porTreino = evolucaoPorTreino(sessoes, inicio, hoje);
+  const porMusculo = evolucaoPorMusculo({ sessoes, inicio, fim: hoje, prioridades: plano.programa?.prioridades ?? [], grupos: r.grupos });
+  const temMetades = porMusculo.some((m) => m.seriesSemanaAntes != null);
 
   // Paginação: capa, resumo, músculos (≈20 linhas por folha), gráficos (6 por folha), consistência, fechamento.
   const linhasGrupo: Array<{ tipo: "grupo"; g: (typeof r.grupos)[number] } | { tipo: "ex"; e: ExercicioPremium }> = [];
@@ -139,7 +143,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   }
   if (atualFolha.length) folhasGrupo.push(atualFolha);
   const folhasGraf = pedaco(top, 6);
-  const total = 2 + (r.semDados ? 0 : folhasGrupo.length + folhasGraf.length) + 2;
+  const total = 2 + (r.semDados ? 0 : (porTreino.length ? 1 : 0) + (porMusculo.length ? 1 : 0) + folhasGrupo.length + folhasGraf.length) + 2;
   let n = 0;
   const prox = () => ++n;
 
@@ -233,6 +237,72 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
         </Secao>
         <Rodape n={prox()} total={total} nome={nome} />
       </section>
+
+      {/* 2b — Evolução de cada treino */}
+      {r.semDados || !porTreino.length ? null : (
+        <section className="folha">
+          <Secao eyebrow="Evolução geral" titulo="Treino a treino">
+            <p className="text-[9.5pt] text-[#625c4f]">Para cada treino do plano: volume (carga × repetições) das primeiras vezes × das últimas vezes no período, e a variação típica da carga dos exercícios que se repetiram entre a primeira e a última vez.</p>
+            <table className="w-full border-collapse text-[9.5pt]">
+              <thead>
+                <tr className="text-left text-[7.5pt] uppercase tracking-[0.12em] text-[#8a8273]">
+                  <th className="py-1.5 font-bold">Treino</th>
+                  <th className="px-2 py-1.5 text-right font-bold">Vezes</th>
+                  <th className="px-2 py-1.5 text-right font-bold">Volume</th>
+                  <th className="px-2 py-1.5 text-right font-bold">Variação</th>
+                  <th className="px-2 py-1.5 text-right font-bold">Carga</th>
+                  <th className="py-1.5 pl-3 font-bold">Tendência</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porTreino.map((t) => (
+                  <tr key={t.letra} className="border-t border-[#e4dfd3]">
+                    <td className="py-2.5 pr-2"><span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#ba9e50] text-[10pt] font-extrabold text-[#0a0a0a]">{t.letra}</span><b>{t.nome}</b></td>
+                    <td className="num px-2 py-2.5 text-right">{t.sessoes.length}</td>
+                    <td className="num px-2 py-2.5 text-right whitespace-nowrap">{t.volumeInicial != null ? <>{br(t.volumeInicial / 1000)} t → <b>{br(t.volumeAtual! / 1000)} t</b></> : "—"}</td>
+                    <td className={`num px-2 py-2.5 text-right font-bold ${(t.volumePct ?? 0) > 0 ? "text-[#8a6f25]" : "text-[#625c4f]"}`}>{pctTxt(t.volumePct)}</td>
+                    <td className="num px-2 py-2.5 text-right">{pctTxt(t.cargaPct)}{t.exerciciosComparaveis ? <span className="block text-[7.5pt] text-[#8a8273]">subiu em {t.exerciciosSubiram} de {t.exerciciosComparaveis}</span> : null}</td>
+                    <td className="py-2.5 pl-3">{t.sessoes.length >= 2 ? <MiniLinha pontos={t.sessoes.map((x) => ({ data: x.data, cargaMax: x.tonelagem, e1rmMax: null, tonelagem: x.tonelagem, series: x.series, fonte: "app" as const }))} /> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[8.5pt] text-[#8a8273]">Com 4 ou mais vezes no período, compara a média das 2 primeiras com a das 2 últimas; com menos, a primeira com a última. Treino extra fica fora.</p>
+          </Secao>
+          <Rodape n={prox()} total={total} nome={nome} />
+        </section>
+      )}
+
+      {/* 2c — Evolução de cada músculo */}
+      {r.semDados || !porMusculo.length ? null : (
+        <section className="folha">
+          <Secao eyebrow="Evolução geral" titulo="Músculo a músculo: visão geral">
+            <p className="text-[9.5pt] text-[#625c4f]">{temMetades ? "Séries por semana na 1ª metade × 2ª metade do período" : "Séries feitas no período"}, volume e a variação típica da carga dos exercícios de cada músculo. As prioridades do programa aparecem em destaque.</p>
+            <table className="w-full border-collapse text-[9.5pt]">
+              <thead>
+                <tr className="text-left text-[7.5pt] uppercase tracking-[0.12em] text-[#8a8273]">
+                  <th className="py-1.5 font-bold">Músculo</th>
+                  <th className="py-1.5 text-right font-bold">{temMetades ? "Séries/semana" : "Séries"}</th>
+                  <th className="py-1.5 text-right font-bold">Volume</th>
+                  <th className="py-1.5 text-right font-bold">Carga típica</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porMusculo.map((m) => (
+                  <tr key={m.grupo} className={`border-t border-[#e4dfd3] ${m.prioridade ? "bg-[#ba9e50]/15" : ""}`}>
+                    <td className="py-2 pl-2 font-semibold">{m.prioridade ? <span className="mr-1.5 rounded bg-[#0a0a0a] px-1.5 py-0.5 text-[7pt] font-bold uppercase tracking-wider text-[#ba9e50]">Prioridade</span> : null}{m.rotulo}</td>
+                    <td className="num py-2 text-right">{m.seriesSemanaAntes != null ? <>{br(m.seriesSemanaAntes)} → <b>{br(m.seriesSemanaAgora!)}</b></> : br(m.series, 0)}</td>
+                    <td className="num py-2 text-right">{br(m.tonelagem / 1000)} t</td>
+                    <td className="num py-2 pr-2 text-right font-bold">{pctTxt(m.cargaPct)}{m.exercicios ? <span className="block text-[7.5pt] font-normal text-[#8a8273]">subiu em {m.exerciciosSubiram} de {m.exercicios}</span> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[8.5pt] text-[#8a8273]">Carga típica = mediana da variação de carga dos exercícios do músculo (primeiro × último treino do período). Séries contam só o músculo principal de cada exercício.</p>
+          </Secao>
+          <Rodape n={prox()} total={total} nome={nome} />
+        </section>
+      )}
 
       {/* 3 — Carga por grupo muscular */}
       {r.semDados ? null : folhasGrupo.map((linhas, fi) => (
