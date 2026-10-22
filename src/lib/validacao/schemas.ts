@@ -373,6 +373,14 @@ export const solicitarExtraSchema = z.object({
   mensagem: textoOpcional(300),
 });
 export const decidirExtraSchema = z.object({ id: z.string().min(1).max(64), status: z.enum(["aprovada", "recusada"]), resposta: textoOpcional(300) });
+/** Extra montado pelo app: as três respostas; iniciar=true começa a sessão. */
+export const montarExtraSchema = z.object({
+  foco: z.enum(["prioridade", "full_body", "pequenos"]),
+  tempo_min: z.coerce.number().int().refine((n) => [15, 20, 30, 45, 60].includes(n), "Tempo inválido"),
+  corpo: z.enum(["bem", "cansado", "dor"]),
+  iniciar: z.boolean().optional().default(false),
+  client_key: z.string().min(8).max(80).optional(),
+});
 export const registrarAtividadeExtraSchema = z.object({
   extra_id: z.string().min(1).max(64),
   client_key: z.string().min(8).max(80),
