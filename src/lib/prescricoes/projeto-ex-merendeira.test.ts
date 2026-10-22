@@ -19,7 +19,7 @@ describe("prescrição Projeto Ex-Merendeira (Natália) — conforme a ficha do 
     expect(PRESCRICAO.programa.modo_semana).toBe("rotativo");
     expect(frequenciaDoCalendario(PRESCRICAO.programa.calendario as Calendario)).toEqual({ A: 1, B: 1, C: 1, D: 1 });
     expect(T("A").itens.map((i) => i.nome)).toEqual(["Agachamento no Smith", "Leg press 45°", "Cadeira extensora", "Abdominal infra no banco declinado", "Abdominal supra na polia em pé"]);
-    expect(T("C").itens.map((i) => i.nome)).toEqual(["Mesa flexora", "Levantamento terra sumô", "Hip thrust com barra", "Cadeira abdutora", "Good morning", "Panturrilha no leg press 45°"]);
+    expect(T("C").itens.map((i) => i.nome)).toEqual(["Mesa flexora", "Levantamento terra sumô", "Hip thrust com barra", "Cadeira abdutora", "Bom dia no hack", "Panturrilha no leg press 45°"]);
   });
 
   it("séries por treino iguais à ficha (A 20 · B 24 · C 24 · D 24)", () => {

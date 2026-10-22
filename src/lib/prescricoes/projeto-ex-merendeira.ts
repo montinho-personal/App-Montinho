@@ -14,7 +14,7 @@
 // Correspondências: “Leg press 45” = Leg press 45°; “Remada polia baixa
 // triângulo” = Remada sentada na polia (triângulo); “Rosca direta banco 45°”
 // = Rosca inclinada com halteres (sinônimo “rosca direta banco inclinado”);
-// “Bom dia” = Good morning; “Elevação frontal alternada” = Elevação frontal
+// “Bom dia” = Bom dia no hack (0060, nome pedido pelo personal); “Elevação frontal alternada” = Elevação frontal
 // com halteres (alternada fica na observação); “Panturrilha leg 45°” =
 // Panturrilha no leg press 45° (criada em 0056); “Abdominal supra na polia”
 // = em pé (como na ficha do Denis); “Elevação pélvica” = Hip thrust com barra
@@ -48,7 +48,7 @@ export const BIBLIOTECA: Record<string, Lib> = {
   "Levantamento terra sumô": { id: "24c806bd-ea67-4d37-8791-ba280334ab30", nome: "Levantamento terra sumô", grupo: "gluteo" },
   "Hip thrust com barra": { id: "92cc0e3b-48ea-454a-b872-8bac4bc30d28", nome: "Hip thrust com barra", grupo: "gluteo" },
   "Cadeira abdutora": { id: "ffd14873-53a6-48f9-afc3-a743531ab9d0", nome: "Cadeira abdutora", grupo: "gluteo" },
-  "Good morning": { id: "d76feef9-19ce-435c-ad2a-af5a7715bd25", nome: "Good morning", grupo: "posteriores" },
+  "Bom dia no hack": { id: "5b1e8c3a-7d2f-4e6a-9b0c-2f4d6a8e1c60", nome: "Bom dia no hack", grupo: "posteriores" },
   "Panturrilha no leg press 45°": { id: "8f3c2d71-5a4e-4b9a-9c1d-6e2f7a8b0c45", nome: "Panturrilha no leg press 45°", grupo: "panturrilha" },
   "Crucifixo na máquina (peck deck)": { id: "07b7f78e-52ee-49ba-856b-2d6cc6c3c717", nome: "Crucifixo na máquina (peck deck)", grupo: "peito" },
   "Elevação frontal com halteres": { id: "79cc36a3-b65e-44e0-9b10-5ce393a0c167", nome: "Elevação frontal com halteres", grupo: "ombro_anterior" },
@@ -143,7 +143,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       ex("Levantamento terra sumô", x4("15"), null),
       biA("Hip thrust com barra", x4("10"), "C1", 3),
       biB("Cadeira abdutora", x4("20"), "C1", 3),
-      pir("Good morning", P20_12, 3),
+      pir("Bom dia no hack", P20_12, 3),
       ex("Panturrilha no leg press 45°", x4("20"), null, { rir: 3 }),
     ]),
     treino("D", "Upper — Peito, ombros, tríceps e panturrilha", [
