@@ -200,12 +200,12 @@ O ambiente já existe; estes três passos usam chaves ou telas da sua conta.
    navegador que o pediu; aberto dentro do app do Gmail/Outlook ou em outro navegador,
    falha (`AuthPKCECodeVerifierMissingError` no log `[auth/callback]`; o login mostra
    a mensagem “O link abriu em um navegador diferente…”). Em
-   **Authentication → Email Templates** troque `{{ .ConfirmationURL }}` por:
+   **Authentication → Email Templates** troque `{{ .ConfirmationURL }}` por (o link abre uma página com botão, para o Outlook/Hotmail e o WhatsApp não gastarem o link de uso único ao verificá-lo):
    - *Reset Password* (também usado por “Primeiro acesso? Criar minha senha”):
-     `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=recovery`
-   - *Magic Link*: `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=magiclink`
-   - *Invite user*: `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=invite`
-   - *Confirm signup*: `https://app-montinho.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=signup`
+     `https://app-montinho.vercel.app/auth/confirmar?token_hash={{ .TokenHash }}&type=recovery`
+   - *Magic Link*: `https://app-montinho.vercel.app/auth/confirmar?token_hash={{ .TokenHash }}&type=magiclink`
+   - *Invite user*: `https://app-montinho.vercel.app/auth/confirmar?token_hash={{ .TokenHash }}&type=invite`
+   - *Confirm signup*: `https://app-montinho.vercel.app/auth/confirmar?token_hash={{ .TokenHash }}&type=signup`
 5. **Limite de e-mails.** O envio padrão do Supabase (`noreply@mail.app.supabase.io`)
    tem limite baixo por hora para o projeto inteiro (erro `over_email_send_rate_limit`;
    o login mostra “Muitos e-mails pedidos em pouco tempo…”). Com muitos alunos fazendo

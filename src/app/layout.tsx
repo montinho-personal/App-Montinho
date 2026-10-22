@@ -13,7 +13,12 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+// Endereço público para as prévias de link (capa em app/opengraph-image.tsx).
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  openGraph: { type: "website", locale: "pt_BR", siteName: BRAND.fullName },
   title: { default: BRAND.fullName, template: `%s · ${BRAND.name}` },
   description: BRAND.description,
   applicationName: BRAND.fullName,
