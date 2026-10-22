@@ -35,6 +35,7 @@ export const VIDEOS_DEMO: Record<string, string> = {
   "panturrilha-leg-press": "vNtY4T2YJ_I",
   "prancha-frontal": "UtPAG70MJhU",
   "pulldown-bracos-estendidos": "zRX1-0ryH8c",
+  "rosca-inversa": "cIqScmVpqnc",
   "puxada-frontal-aberta": "yi0zkiKNQC0",
   "puxada-frontal-supinada": "VwDIgSmeN-4",
   "puxada-triangulo": "hzYgiHveL6Q",
