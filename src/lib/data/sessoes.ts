@@ -10,7 +10,7 @@ import { demoStore, uid } from "@/lib/mock/store";
 import { normalizarNome } from "@/lib/grupos";
 import { ultimaCargaDoResumo } from "@/lib/historico/resumo";
 import { listarHistoricoResumo } from "./historico";
-import type { SerieTipo, SessionExercise, SessionExerciseStatus, PercepcaoExercicio, SessionSet, TrainingSession, TreinoLetra } from "@/lib/supabase/types-sessoes";
+import type { SerieTipo, SessionExercise, SessionExerciseStatus, PercepcaoExercicio, SessionSet, TrainingSession, TreinoLetra , ExercicioPrescrito } from "@/lib/supabase/types-sessoes";
 import { getPlanoAtivo, getTreinoComExercicios } from "./programas";
 // Ciclo intencional (só chamadas em tempo de execução): extras usa listSessoes.
 import { exigirExtraLiberado } from "./extras";
@@ -281,9 +281,14 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     created_at: agora,
     updated_at: agora,
   };
-  const exercicios: SessionExercise[] = doDia.map((e, ordem) => ({
+  return gravarSessaoNova(alunoId, input.clientKey, sessao, exerciciosDaSessao(sessao.id, doDia, agora));
+}
+
+/** Linhas de session_exercises a partir da prescrição do dia. */
+export function exerciciosDaSessao(sessaoId: string, doDia: ExercicioPrescrito[], agora: string): SessionExercise[] {
+  return doDia.map((e, ordem) => ({
     id: uid(),
-    session_id: sessao.id,
+    session_id: sessaoId,
     exercicio_id: e.id,
     biblioteca_id: e.biblioteca_id ?? null,
     client_key: `ex:${e.id}`,
@@ -297,7 +302,10 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     observacao_aluno: null,
     created_at: agora,
   }));
+}
 
+/** Grava sessão + exercícios (idempotente pela client_key). */
+export async function gravarSessaoNova(alunoId: string, clientKey: string, sessao: TrainingSession, exercicios: SessionExercise[]): Promise<SessaoCompleta> {
   if (isDemoMode()) {
     const st = demoStore();
     st.sessions.push(sessao);
@@ -311,7 +319,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
   if (error) {
     // corrida: outra aba criou com a mesma client_key
     if (error.code === "23505") {
-      const { data } = await db.from("training_sessions").select("id").eq("aluno_id", alunoId).eq("client_key", input.clientKey).single();
+      const { data } = await db.from("training_sessions").select("id").eq("aluno_id", alunoId).eq("client_key", clientKey).single();
       return (await getSessao(alunoId, data!.id))!;
     }
     // Modo Visitante: a política pode_registrar() barra acesso vencido.

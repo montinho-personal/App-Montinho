@@ -17,7 +17,7 @@ import { listarConquistas, listarReconhecimentos } from "@/lib/data/conquistas";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { sessaoParaConquista } from "@/lib/conquistas/mapear";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
-import { getConfigExtra, listarExtras } from "@/lib/data/extras";
+import { getConfigExtra } from "@/lib/data/extras";
 import { estrategiaVigente } from "@/lib/data/estrategias";
 import { faseAtual, inicioDasFases } from "@/lib/estrategia/fases";
 import { dataLocal } from "@/lib/aderencia/calcular";
@@ -50,7 +50,7 @@ export default async function AlunoHomePage() {
     const perfil = await perfilVisitante(alunoId).catch(() => null);
     if (!perfil?.onboarding_concluido_em) redirect("/aluno/boas-vindas");
   }
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, extras, estrategia, conquistas, historicoResumo] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, estrategia, conquistas, historicoResumo] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
@@ -60,7 +60,6 @@ export default async function AlunoHomePage() {
     listDieta(alunoId),
     listarReconhecimentos(alunoId, 1),
     getConfigExtra(alunoId),
-    listarExtras(alunoId, true),
     estrategiaVigente(alunoId),
     listarConquistas(alunoId),
     listarHistoricoResumo(alunoId),
@@ -240,7 +239,7 @@ export default async function AlunoHomePage() {
       ) : null}
 
       {/* Treino extra: só aparece se o personal liberou (nunca empurra treino a mais) */}
-      {configExtra?.habilitado && extras.length && !emAndamento ? (
+      {configExtra?.habilitado && !emAndamento ? (
         <Link href="/aluno/extra" className="block">
           <Card className="hover:border-accent/40 transition-colors">
             <CardBody className="flex items-center gap-3 py-3">
