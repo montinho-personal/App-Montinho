@@ -78,7 +78,7 @@ export default async function AlunoHomePage() {
   const letras = treinos.map((t) => t.letra);
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, letras);
   const proximo = treinos.find((t) => t.letra === semana.proximaLetra) ?? treinos[0] ?? null;
-  const resumo30 = resumoPeriodo(sessoes, plano.programa?.frequencia, 30);
+  const resumo30 = resumoPeriodo(sessoes, plano.programa?.frequencia, 30, new Date(), aderencia);
   // Horário de São Paulo (o servidor roda em UTC).
   const saudacao = saudacaoSP();
   const duracaoEstimada = proximo?.duracao_estimada_min ?? estimarDuracao(sessoes, proximo?.letra ?? null);

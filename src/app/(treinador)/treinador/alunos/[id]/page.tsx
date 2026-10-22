@@ -16,7 +16,7 @@ import { normalizarNome } from "@/lib/grupos";
 import { VolumeAluno } from "@/components/montador/VolumeAluno";
 import { TreinoAcordeao } from "@/components/treinos/TreinoAcordeao";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
-import { dataLocal } from "@/lib/aderencia/calcular";
+import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
 import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
@@ -32,6 +32,8 @@ import { ComparadorMedidas } from "./ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
+import { ParaOPersonal } from "@/components/relatorios/ParaOPersonal";
+import { alertasDoAluno } from "@/lib/relatorios/calcular";
 import { assinaturaTreinos, prescricoesParaAluno } from "@/lib/prescricoes";
 import { auditarPrescricao } from "@/lib/prescricoes/auditar";
 import { PrescricaoProntaCard } from "@/components/prescricoes/PrescricaoProntaCard";
@@ -78,6 +80,19 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
   const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id)]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
+  // Mesmos alertas do painel inicial, agora também na ficha (topo da aba Evolução).
+  const seteDiasAtras = somarDias(hojeLocal, -6);
+  const alertas = alertasDoAluno({
+    alunoId: id,
+    alunoNome: aluno.profile?.nome ?? "Aluno",
+    status: aluno.status,
+    sessoes,
+    frequencia: plano.programa?.frequencia,
+    temPlano: plano.treinos.some((t) => t.ativo),
+    adaptacoesAbertas: adaptacoes.filter((x) => x.status === "aberta").length,
+    checkinsDorAlta: checkIns.filter((c) => (c.dor ?? 0) >= 7 && c.data.slice(0, 10) >= seteDiasAtras).length,
+    aderencia,
+  });
 
   const treinosAtivos = plano.treinos.filter((t) => t.ativo);
   // Mesmos dados que o montador usa: técnicas, secundários e pesos da biblioteca.
@@ -279,7 +294,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             key: "evolucao",
             label: "Evolução",
             content: (
+              <div className="space-y-5">
+              <ParaOPersonal alunoId={id} alertas={alertas} />
               <RelatorioEvolucao modo="treinador" dias={dias} basePath={`/treinador/alunos/${id}`} sessoes={sessoes} programa={plano.programa} treinos={plano.treinos} evolucao={evolucao as Evolucao[]} checkIns={checkIns} versoes={versoes} exportarHref={`/api/alunos/${id}/exportar`} historicoResumo={historicoResumo} aderencia={aderencia} inicioAcompanhamento={aluno.data_inicio ?? aluno.created_at.slice(0, 10)} pedidosExtra={pedidosExtra.slice(0, 15).map((p) => ({ titulo: tituloExtra[p.extra_id] ?? "Treino extra", status: p.status, data: p.created_at, resposta: p.resposta }))} />
+              </div>
             ),
           },
           {

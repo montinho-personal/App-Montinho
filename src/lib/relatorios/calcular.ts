@@ -14,6 +14,7 @@ import { normalizarNome } from "@/lib/grupos";
 import type { SessaoCompleta } from "@/lib/data/sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { Frequencia } from "@/lib/volume/calcular";
+import { indice, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 
 export type Periodo = { inicio: Date; fim: Date };
 
@@ -61,6 +62,8 @@ export type ResumoPeriodo = {
   sessoesPlanejadas: number;
   aderencia: number | null;        // %
   aderenciaAnterior: number | null;
+  /** De onde vem a aderência: janela da central (“últimas 4 semanas”) ou o período do relatório. */
+  aderenciaJanela: string | null;
   tendencia: "melhor" | "igual" | "pior" | "sem_comparacao";
   seriesFeitas: number;
   seriesPlanejadas: number;
@@ -74,7 +77,20 @@ export type Conquista = { tipo: "consistencia" | "carga" | "reps" | "volume" | "
 /** Histórico importado marcado para não contar fica fora de aderência, calendário e semana. */
 export const contaAderencia = (s: { conta_aderencia?: boolean | null }) => s.conta_aderencia !== false;
 
-export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia | null | undefined, dias: number, agora = new Date()): ResumoPeriodo {
+/**
+ * Aderência do relatório pela MESMA conta do card “Consistência” (meta do
+ * personal, pausas fora, treino parcial = 0,5), na janela de semanas mais
+ * próxima do período: 7 dias → esta semana; 30 → últimas 4 semanas fechadas;
+ * 90 → últimas 12. O “antes” é a janela de mesmo tamanho logo anterior.
+ */
+export function aderenciaDaJanela(r: ResultadoAderencia, dias: number): { pct: number | null; anterior: number | null; rotulo: string } {
+  const completas = r.semanas.filter((s) => !s.atual);
+  if (dias <= 7) return { pct: r.indices.semanaAtual.pct, anterior: indice(completas.slice(-1)).pct, rotulo: "esta semana" };
+  const n = dias <= 30 ? 4 : 12;
+  return { pct: indice(completas.slice(-n)).pct, anterior: indice(completas.slice(-2 * n, -n)).pct, rotulo: `últimas ${n} semanas` };
+}
+
+export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia | null | undefined, dias: number, agora = new Date(), central: ResultadoAderencia | null = null): ResumoPeriodo {
   const p = periodoDias(dias, agora);
   const ant = periodoAnterior(p);
   const contam = sessoes.filter(contaAderencia);
@@ -82,8 +98,16 @@ export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia 
   const feitasAnt = sessoesNoPeriodo(contam, ant).filter((s) => s.status === "concluida");
   const planejadas = sessoesPlanejadasNoPeriodo(frequencia, p);
   const planejadasAnt = sessoesPlanejadasNoPeriodo(frequencia, ant);
-  const aderencia = planejadas > 0 ? Math.min(100, Math.round((feitas.length / planejadas) * 100)) : null;
-  const aderenciaAnterior = planejadasAnt > 0 && feitasAnt.length > 0 ? Math.min(100, Math.round((feitasAnt.length / planejadasAnt) * 100)) : null;
+  let aderencia = planejadas > 0 ? Math.min(100, Math.round((feitas.length / planejadas) * 100)) : null;
+  let aderenciaAnterior = planejadasAnt > 0 && feitasAnt.length > 0 ? Math.min(100, Math.round((feitasAnt.length / planejadasAnt) * 100)) : null;
+  let aderenciaJanela: string | null = null;
+  // Com a central de aderência, o número é o mesmo do card “Consistência”.
+  const janela = central ? aderenciaDaJanela(central, dias) : null;
+  if (janela && janela.pct !== null) {
+    aderencia = Math.min(100, janela.pct);
+    aderenciaAnterior = janela.anterior !== null ? Math.min(100, janela.anterior) : null;
+    aderenciaJanela = janela.rotulo;
+  }
   let tendencia: ResumoPeriodo["tendencia"] = "sem_comparacao";
   if (aderencia !== null && aderenciaAnterior !== null) {
     tendencia = aderencia > aderenciaAnterior + 5 ? "melhor" : aderencia < aderenciaAnterior - 5 ? "pior" : "igual";
@@ -97,7 +121,7 @@ export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia 
   if (planejadas > 0 && feitas.length >= planejadas) {
     conquistas.push({ tipo: "consistencia", titulo: "Semana(s) completa(s)", detalhe: `${feitas.length} de ${planejadas} sessões planejadas no período.` });
   } else if (aderenciaAnterior !== null && aderencia !== null && aderencia > aderenciaAnterior) {
-    conquistas.push({ tipo: "frequencia", titulo: "Mais constante que no período anterior", detalhe: `Aderência ${aderencia}% contra ${aderenciaAnterior}% antes.` });
+    conquistas.push({ tipo: "frequencia", titulo: "Mais constante que no período anterior", detalhe: `Aderência ${aderencia}% contra ${aderenciaAnterior}% antes${aderenciaJanela ? ` (${aderenciaJanela})` : ""}.` });
   }
   const prs = recordesNoPeriodo(sessoes, p);
   for (const pr of prs.slice(0, 2)) {
@@ -119,6 +143,7 @@ export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia 
     sessoesPlanejadas: planejadas,
     aderencia,
     aderenciaAnterior,
+    aderenciaJanela,
     tendencia,
     seriesFeitas,
     seriesPlanejadas,
@@ -333,6 +358,8 @@ export function alertasDoAluno(input: {
   adaptacoesAbertas: number;
   checkinsDorAlta: number;
   agora?: Date;
+  /** Central de aderência: quando vem, o alerta usa a mesma conta do card “Consistência”. */
+  aderencia?: ResultadoAderencia | null;
 }): AlertaTreinador[] {
   const agora = input.agora ?? new Date();
   const out: AlertaTreinador[] = [];
@@ -343,7 +370,10 @@ export function alertasDoAluno(input: {
     return out;
   }
   const r14 = resumoPeriodo(input.sessoes, input.frequencia, 14, agora);
-  if (r14.sessoesPlanejadas > 0 && r14.sessoesFeitas / r14.sessoesPlanejadas < 0.5) {
+  const duas = input.aderencia ? indice(input.aderencia.semanas.filter((w) => !w.atual).slice(-2)) : null;
+  if (duas && duas.pct !== null) {
+    if (duas.pct < 50) out.push({ ...base, tipo: "aderencia", evidencia: `${String(duas.pontos).replace(".", ",")} de ${duas.meta} treinos da meta (${duas.pct}%)`, janela: "últimas 2 semanas fechadas", acao: "Conversar e ajustar frequência", prioridade: 1 });
+  } else if (r14.sessoesPlanejadas > 0 && r14.sessoesFeitas / r14.sessoesPlanejadas < 0.5) {
     out.push({ ...base, tipo: "aderencia", evidencia: `${r14.sessoesFeitas} de ${r14.sessoesPlanejadas} sessões planejadas`, janela: "últimas 2 semanas", acao: "Conversar e ajustar frequência", prioridade: 1 });
   }
   if (input.adaptacoesAbertas > 0) {

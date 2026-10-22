@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Tab = {
   key: string;
@@ -16,15 +16,26 @@ type TabsProps = {
 
 export function Tabs({ tabs, initial, className = "" }: TabsProps) {
   const [active, setActive] = useState(initial ?? tabs[0]?.key);
+  const caixa = useRef<HTMLDivElement>(null);
   // Abre a aba indicada no endereço (#chave) — links diretos, ex.: …#acompanhamento.
   useEffect(() => {
     const chave = window.location.hash.slice(1);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- o endereço só existe no navegador
     if (chave && tabs.some((t) => t.key === chave)) setActive(chave);
+    // Links internos (#acompanhamento, #checkins…) também trocam a aba.
+    const aoMudar = () => {
+      const k = window.location.hash.slice(1);
+      if (k && tabs.some((t) => t.key === k)) {
+        setActive(k);
+        caixa.current?.scrollIntoView({ block: "start" });
+      }
+    };
+    window.addEventListener("hashchange", aoMudar);
+    return () => window.removeEventListener("hashchange", aoMudar);
   }, [tabs]);
   const current = tabs.find((t) => t.key === active);
   return (
-    <div className={className}>
+    <div ref={caixa} className={`scroll-mt-4 ${className}`}>
       <div className="flex gap-1 border-b border-border overflow-x-auto">
         {tabs.map((tab) => (
           <button

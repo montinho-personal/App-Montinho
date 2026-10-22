@@ -24,6 +24,7 @@ export default async function TreinadorDashboardPage() {
 
   // Dados por aluno ativo (limitado para manter o painel rápido)
   const ativos = alunos.filter((a) => a.status === "ativo").slice(0, 40);
+  const aderencias = ativos.length ? await aderenciaDeTodos(ativos) : {};
   const porAluno = await Promise.all(
     ativos.map(async (a) => {
       const [sessoes, plano, checkins] = await Promise.all([listSessoes(a.id, { limite: 80 }), getPlanoAtivo(a.id), listCheckIns(a.id, 7)]);
@@ -36,6 +37,7 @@ export default async function TreinadorDashboardPage() {
         temPlano: plano.treinos.some((t) => t.ativo),
         adaptacoesAbertas: adaptacoes.filter((x) => x.aluno_id === a.id).length,
         checkinsDorAlta: checkins.filter((c) => (c.dor ?? 0) >= 7).length,
+        aderencia: aderencias[a.id] ?? null,
       });
       const r7 = resumoPeriodo(sessoes, plano.programa?.frequencia, 7);
       const ultima = sessoes[0] ?? null;
@@ -43,7 +45,6 @@ export default async function TreinadorDashboardPage() {
     })
   );
   // Consistência da turma: soma dos treinos válidos ÷ soma das metas, semana a semana.
-  const aderencias = ativos.length ? await aderenciaDeTodos(ativos) : {};
   const porSemana = new Map<string, { inicio: string; pontos: number; meta: number; atual: boolean; alunos: number; cumpriram: number }>();
   for (const r of Object.values(aderencias)) {
     for (const w of r.semanas.slice(-8)) {

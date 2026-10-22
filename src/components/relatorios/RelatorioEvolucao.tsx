@@ -63,7 +63,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   const det = detalheRelatorio(sessoes, desdeLocal, hojeLocal);
   const CHECKIN_ROT: Array<[keyof typeof det.checkin, string]> = [["muito_bem", "Muito bem"], ["normal", "Normal"], ["cansado", "Cansado"], ["desconforto", "Com desconforto"], ["prefiro_nao", "Prefiro não responder"], ["sem_resposta", "Sem resposta"]];
   const totalCheckin = Object.values(det.checkin).reduce((a, b) => a + b, 0);
-  const resumo = resumoPeriodo(sessoes, programa?.frequencia, dias);
+  const resumo = resumoPeriodo(sessoes, programa?.frequencia, dias, new Date(), aderencia);
   const periodo = periodoDias(dias);
   const noPeriodo = sessoesNoPeriodo(sessoes, periodo);
   const calendario = calendarioSessoes(sessoes, periodo);
@@ -109,7 +109,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
       {/* Período */}
       <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Período do relatório">
         {PERIODOS.map((p) => (
-          <Link key={p} href={`${basePath}?dias=${p}`} aria-current={dias === p ? "true" : undefined} className={`touch inline-flex items-center rounded-full border px-4 text-sm font-semibold ${dias === p ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}>
+          <Link key={p} href={`${basePath}?dias=${p}${modo === "treinador" ? "#evolucao" : ""}`} aria-current={dias === p ? "true" : undefined} className={`touch inline-flex items-center rounded-full border px-4 text-sm font-semibold ${dias === p ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}>
             {p} dias
           </Link>
         ))}
@@ -134,7 +134,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
           ) : (
             <div className="grid grid-cols-3 gap-3">
               <Metrica label="Sessões" valor={`${resumo.sessoesFeitas} / ${resumo.sessoesPlanejadas || "—"}`} hint="feitas / planejadas" />
-              <Metrica label="Aderência" valor={resumo.aderencia !== null ? `${resumo.aderencia}%` : "—"} hint={resumo.tendencia === "melhor" ? `▲ antes ${resumo.aderenciaAnterior}%` : resumo.tendencia === "pior" ? `▼ antes ${resumo.aderenciaAnterior}%` : resumo.tendencia === "igual" ? `≈ antes ${resumo.aderenciaAnterior}%` : "sem comparação"} tone={resumo.tendencia === "melhor" ? "success" : resumo.tendencia === "pior" ? "warning" : "neutral"} />
+              <Metrica label="Aderência" valor={resumo.aderencia !== null ? `${resumo.aderencia}%` : "—"} hint={`${resumo.aderenciaJanela ? `${resumo.aderenciaJanela} · ` : ""}${resumo.tendencia === "melhor" ? `▲ antes ${resumo.aderenciaAnterior}%` : resumo.tendencia === "pior" ? `▼ antes ${resumo.aderenciaAnterior}%` : resumo.tendencia === "igual" ? `≈ antes ${resumo.aderenciaAnterior}%` : "sem comparação"}`} tone={resumo.tendencia === "melhor" ? "success" : resumo.tendencia === "pior" ? "warning" : "neutral"} />
               <Metrica label="Séries" valor={`${resumo.seriesFeitas} / ${resumo.seriesPlanejadas}`} hint="feitas / propostas" />
             </div>
           )}

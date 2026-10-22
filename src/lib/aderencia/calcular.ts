@@ -146,7 +146,7 @@ function planejadoNoDia(cal: Calendario | null, d: string): string | null | unde
   return dia ? dia.letra : null;
 }
 
-function indice(semanas: Semana[]): Indice {
+export function indice(semanas: Semana[]): Indice {
   const validas = semanas.filter((s) => s.meta && !s.pausada);
   const meta = validas.reduce((n, s) => n + (s.meta ?? 0), 0);
   const pontos = validas.reduce((n, s) => n + s.pontos, 0);
