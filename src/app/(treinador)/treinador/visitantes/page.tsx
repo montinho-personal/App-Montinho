@@ -11,6 +11,8 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { dataBR, descreverPrazo, estadoDoAcesso, gerarCodigo } from "@/lib/visitante/acesso";
 import { ConvitesClient } from "./ConvitesClient";
 import { AcoesVisitante } from "./AcoesVisitante";
+import { BoasVindasWhatsapp } from "./BoasVindasWhatsapp";
+import { mensagemBoasVindas } from "@/lib/visitante/boas-vindas-whatsapp";
 
 export const metadata = { title: "Visitantes" };
 
@@ -73,6 +75,19 @@ export default async function VisitantesPage() {
                         {v.perfil?.onboarding_concluido_em ? "" : " · questionário pendente"}
                         {v.perfil?.interesse_desafios ? " · quer ser avisado de desafios" : ""}
                       </p>
+                      <div className="mt-2">
+                        <BoasVindasWhatsapp
+                          id={v.id}
+                          telefone={v.telefone ?? null}
+                          mensagem={mensagemBoasVindas({
+                            nome: v.profile?.nome ?? null,
+                            objetivo: v.perfil?.objetivo ?? null,
+                            frequenciaSemanal: v.perfil?.frequencia_semanal ?? null,
+                            acessoAte: e.estado === "permanente" || e.estado === "vencido" ? null : dataBR(e.fim),
+                            appUrl: base,
+                          })}
+                        />
+                      </div>
                     </div>
                     <AcoesVisitante id={v.id} vencido={e.estado === "vencido"} />
                   </li>

@@ -9,8 +9,8 @@ const DIA_MS = 86_400_000;
 
 /**
  * PATCH /api/treinador/visitantes/[id] — renovar o prazo, encerrar o acesso
- * (vira só leitura) ou converter em aluno da consultoria (nada se perde:
- * histórico, Jornada e medalhas continuam).
+ * (vira só leitura), converter em aluno da consultoria (nada se perde:
+ * histórico, Jornada e medalhas continuam) ou salvar o WhatsApp.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!FEATURES.modoVisitante) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
@@ -25,6 +25,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { data: aluno } = await db.from("alunos").select("id, modalidade").eq("id", id).maybeSingle();
   if (!aluno || aluno.modalidade !== "visitante") return NextResponse.json({ error: "Visitante não encontrado" }, { status: 404 });
   const agora = new Date();
+
+  if (body.acao === "whatsapp") {
+    // Número informado pelo personal (o visitante entrou antes do WhatsApp obrigatório).
+    const { error: e } = await db.from("alunos").update({ telefone: body.whatsapp }).eq("id", id);
+    if (e) return NextResponse.json({ error: "Não foi possível salvar o WhatsApp." }, { status: 500 });
+    return NextResponse.json({ ok: true, telefone: body.whatsapp });
+  }
 
   if (body.acao === "converter") {
     const { error: e } = await db.from("alunos").update({ modalidade: "consultoria", acesso_ate: null }).eq("id", id);

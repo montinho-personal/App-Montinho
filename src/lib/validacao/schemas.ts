@@ -546,6 +546,7 @@ export const acaoVisitanteSchema = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("renovar"), dias: z.number().int().min(1).max(365) }),
   z.object({ acao: z.literal("encerrar") }),
   z.object({ acao: z.literal("converter") }),
+  z.object({ acao: z.literal("whatsapp"), whatsapp: whatsappCampo }),
 ]);
 
 // Modo Visitante, fase 3: treino montado pelo próprio visitante (0054)

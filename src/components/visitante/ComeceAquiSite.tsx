@@ -3,10 +3,10 @@
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { eventoGa } from "@/components/analytics/ga";
+import { URL_COMECE_TREINO } from "@/lib/visitante/links";
 
 // Caminho gratuito “Como começar a treinar” do site do Montinho (5 passos).
 // UTM só com a origem e a tela — nada que identifique a pessoa.
-export const URL_COMECE_TREINO = "https://www.montinhopersonal.com.br/comece/treino";
 
 /** Box para o visitante que não sabe por onde começar a montar o treino. */
 export function ComeceAquiSite({ tela }: { tela: string }) {
