@@ -50,7 +50,9 @@ export async function GET(request: NextRequest) {
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
       if (error) return erro("link", `verify:${error.name}`);
       // Convite (1º acesso) ou recuperação: direto para criar a senha.
-      return NextResponse.redirect(new URL(type === "invite" || type === "signup" ? "/conta/senha?primeiro=1" : type === "recovery" ? "/conta/senha" : next, url.origin));
+      const destino =
+        type === "invite" || type === "signup" ? "/conta/senha?primeiro=1" : type === "recovery" ? (next.startsWith("/conta/senha") ? next : "/conta/senha") : next;
+      return NextResponse.redirect(new URL(destino, url.origin));
     }
   } catch (e) {
     return erro("link", `excecao:${e instanceof Error ? e.name : "desconhecida"}`);

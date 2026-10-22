@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linkWhatsApp, mensagemAcesso } from "./mensagem";
+import { linkWhatsApp, mensagemAcesso, mensagemLinkSenha } from "./mensagem";
 
 describe("mensagem de acesso do aluno", () => {
   it("leva endereço, e-mail e o passo a passo, sem senha", () => {
@@ -15,6 +15,16 @@ describe("mensagem de acesso do aluno", () => {
     expect(m.indexOf("Android")).toBeLessThan(m.indexOf("iPhone"));
     expect(m).toContain("iPhone (Safari)");
     expect(m).toContain("Adicionar à Tela de Início");
+  });
+  it("mensagem do link de criar senha: leva o link, o prazo e o e-mail", () => {
+    const link = "https://app-montinho.vercel.app/auth/callback?token_hash=abc&type=recovery";
+    const m = mensagemLinkSenha({ nome: "Aline de Souza", email: "aline@exemplo.com", link, urlApp: "https://app-montinho.vercel.app" });
+    expect(m).toContain("Oi, Aline!");
+    expect(m).toContain(link);
+    expect(m).toContain("1 hora");
+    expect(m).toContain("uma vez só");
+    expect(m).toContain("aline@exemplo.com");
+    expect(m).toContain("https://app-montinho.vercel.app/login");
   });
   it("WhatsApp com DDI do Brasil; sem número abre para escolher o contato", () => {
     expect(linkWhatsApp("(11) 98765-4321", "oi")).toBe("https://wa.me/5511987654321?text=oi");

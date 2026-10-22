@@ -161,7 +161,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   <span aria-hidden className="text-lg">✏️</span>
                   Editar
                 </EditarAlunoButton>
-                <EnviarAcessoButton nome={aluno.profile?.nome ?? ""} email={aluno.profile?.email ?? null} telefone={aluno.telefone ?? null} className={ATALHO} />
+                <EnviarAcessoButton alunoId={aluno.id} nome={aluno.profile?.nome ?? ""} email={aluno.profile?.email ?? null} telefone={aluno.telefone ?? null} className={ATALHO} />
               </div>
             </div>
             {aderencia.semanas.length >= 2 ? (

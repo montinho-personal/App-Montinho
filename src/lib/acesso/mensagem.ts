@@ -27,6 +27,31 @@ export function mensagemAcesso(e: { nome: string; email: string; urlApp: string 
   ].join("\n");
 }
 
+/**
+ * Mensagem com o LINK de criar a senha, gerado pelo personal no painel (não
+ * passa pelo e-mail, então não esbarra no limite de envios do Supabase).
+ * O link é pessoal: vale 1 hora e uma vez só, por isso a mensagem avisa.
+ */
+export function mensagemLinkSenha(e: { nome: string; email: string; link: string; urlApp: string }): string {
+  const primeiro = e.nome.trim().split(/\s+/)[0] || "";
+  const login = `${e.urlApp.replace(/\/+$/, "")}/login`;
+  return [
+    `Oi${primeiro ? `, ${primeiro}` : ""}! Aqui está o seu link para criar a senha do app do Montinho Personal Trainer 💪`,
+    "",
+    `🔑 Toque no link e crie a sua senha: ${e.link}`,
+    "",
+    "⏱ O link vale por 1 hora e funciona uma vez só. Se passar do prazo, me avise que eu mando outro.",
+    "",
+    `Depois, para entrar, abra ${login} e use o seu e-mail (${e.email}) e a senha que você criou.`,
+    "",
+    "📲 *Instale o app no celular*",
+    "🤖 Android (Chrome): toque nos 3 pontinhos (⋮) → “Instalar app” ou “Adicionar à tela inicial”",
+    "🍎 iPhone (Safari): toque em Compartilhar (quadrado com a setinha) → “Adicionar à Tela de Início” → “Adicionar”",
+    "",
+    "É impossível dar errado!",
+  ].join("\n");
+}
+
 /** wa.me com o número do aluno (Brasil: acrescenta 55 quando falta). Sem número: o WhatsApp pede o contato. */
 export function linkWhatsApp(telefone: string | null | undefined, texto: string): string {
   let d = (telefone ?? "").replace(/\D/g, "");
