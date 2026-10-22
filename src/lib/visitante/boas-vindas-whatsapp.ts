@@ -48,6 +48,7 @@ export function mensagemBoasVindas(d: DadosBoasVindas): string {
       "• iPhone: no Safari, toque em Compartilhar (quadrado com a seta) › “Adicionar à Tela de Início”.",
       "2️⃣ *Monte seus treinos* em “Meus treinos”: escolha os exercícios da biblioteca, todos com vídeo de execução, e ajuste séries, repetições e descanso.",
       "3️⃣ *Na academia, toque em “Começar treino”* e anote a carga e as repetições de cada série. No treino seguinte, o app já mostra o que você fez da última vez.",
+      "📶 *Academia sem sinal?* Comece o treino com internet e depois pode marcar tudo mesmo sem conexão: fica guardado no celular e vai sozinho quando a internet voltar.",
       "4️⃣ *Acompanhe sua evolução* na aba Evolução e ganhe medalhas na Jornada.",
       `5️⃣ *Não sabe por onde começar?* Faça o caminho grátis do site (uns 10 minutos): ${URL_COMECE_TREINO}`,
     ].join("\n"),

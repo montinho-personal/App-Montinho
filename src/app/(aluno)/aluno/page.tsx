@@ -41,6 +41,7 @@ import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { PedirWhatsapp } from "@/components/visitante/PedirWhatsapp";
 import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
+import { GuardarTreinosOffline } from "@/components/offline/GuardarTreinosOffline";
 
 export const metadata = { title: "Início" };
 
@@ -88,6 +89,8 @@ export default async function AlunoHomePage() {
 
   return (
     <div className="space-y-5">
+      {/* Treinos guardados no celular para abrir sem internet na academia. */}
+      <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento ? [`/aluno/treino/${emAndamento.treino_id}?sessao=${emAndamento.id}`] : [])]} />
       <header>
         <p className="text-xs text-fg-subtle uppercase tracking-wider">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1 className="text-2xl font-bold leading-tight mt-1">

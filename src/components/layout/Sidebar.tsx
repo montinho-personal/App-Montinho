@@ -6,6 +6,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { BrandLockup, FioMarca } from "@/components/brand/BrandLockup";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { apagarTelasGuardadas } from "@/lib/offline/paginas";
 
 type NavItem = { label: string; href: string; icon: IconName };
 
@@ -43,6 +44,7 @@ export function Sidebar({ items, usuario }: SidebarProps) {
   }
 
   async function sair() {
+    await apagarTelasGuardadas();
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     window.location.href = "/login";
   }

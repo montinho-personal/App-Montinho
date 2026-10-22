@@ -38,6 +38,7 @@ import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroP
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
 import { lerMeta, rotuloMeta } from "@/lib/treino/meta-reps";
+import { guardarTela } from "@/lib/offline/paginas";
 import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
@@ -431,6 +432,19 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (r.erro && r.restantes.length === 0) toast.warn(`Uma operação foi rejeitada pelo servidor: ${r.erro}`);
   }, [sessao, storage, enviar, online, toast]);
 
+  // Acabou de salvar tudo no servidor: atualiza a cópia do treino guardada no celular
+  // (a tela aberta com internet já é guardada pelo service worker; no máx. 1×/min).
+  const copiaRef = useRef<{ sync: EstadoSync; em: number }>({ sync: "sincronizado", em: 0 });
+  useEffect(() => {
+    const antes = copiaRef.current.sync;
+    copiaRef.current.sync = sync;
+    if (!sessao || presencial || !online || sync !== "sincronizado" || antes === "sincronizado") return;
+    const agora = Date.now();
+    if (agora - copiaRef.current.em < 60_000) return;
+    copiaRef.current.em = agora;
+    void guardarTela(window.location.pathname + window.location.search);
+  }, [sync, online, sessao, presencial]);
+
   // tenta drenar quando volta a conexão / a cada 20 s se houver pendências
   useEffect(() => {
     if (!sessao || !online || pendentes === 0) return;
@@ -455,8 +469,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       setSessao(data as SessaoCompleta);
       setAberto((data as SessaoCompleta).exercicios[0]?.id ?? null);
       window.history.replaceState(null, "", `?sessao=${(data as SessaoCompleta).id}`);
+      // Guarda no celular a tela do treino já começado (abre mesmo se a internet cair).
+      if (!presencial) void guardarTela(window.location.pathname + window.location.search);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Sem conexão para iniciar o treino. Tente de novo.");
+      toast.error(
+        typeof navigator !== "undefined" && !navigator.onLine
+          ? "Para começar, o app precisa de internet só por um instante. Depois de começar, pode marcar as séries mesmo sem conexão."
+          : e instanceof Error
+            ? e.message
+            : "Sem conexão para iniciar o treino. Tente de novo."
+      );
     } finally {
       setIniciando(false);
     }
@@ -1079,6 +1101,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                 ) : null}
               </fieldset>
             )}
+            {!presencial ? (
+              <p className="rounded-lg border border-border bg-bg/40 px-3 py-2 text-xs text-fg-muted">
+                📶 <span className="font-semibold text-fg">Academia sem sinal?</span> Comece o treino com internet (é só um instante). Depois, pode marcar tudo mesmo sem conexão: fica guardado no celular e vai sozinho quando a internet voltar.
+              </p>
+            ) : null}
             {bloqueado ? (
               <Button variant="secondary" size="lg" className="w-full touch" loading={iniciando} onClick={() => { setTempoDisp(null); setTempoOutro(""); void iniciar(); }}>
                 <Icon name="play" /> Fazer o treino completo mesmo assim
@@ -1134,6 +1161,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           ) : null}
         </p>
       </div>
+      {!online ? (
+        <div role="note" className="rounded-xl border border-warning/60 bg-warning/10 px-4 py-3">
+          <p className="text-sm font-bold">📶 Sem internet? Pode continuar marcando.</p>
+          <p className="mt-1 text-xs text-fg-muted">
+            Cada série fica guardada no seu celular e é enviada sozinha quando a internet voltar. Se puder, não feche o app até lá.
+          </p>
+        </div>
+      ) : null}
 
       <header className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center shrink-0" aria-hidden>
