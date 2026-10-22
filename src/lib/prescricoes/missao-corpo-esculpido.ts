@@ -185,6 +185,5 @@ export const PRESCRICAO: SalvarPlanoInput = {
 export const PENDENCIAS: string[] = [
   "Agachamento búlgaro está nos treinos C e E, mas a estratégia da Naya diz para evitar búlgaro, afundo e avanço. Mantive como na ficha — confirme.",
   "Na ficha, o Hip thrust (treino A) e a Cadeira abdutora (treino E) aparecem duas vezes; cadastrei uma vez cada (a ficha diz 6 e 5 exercícios).",
-  "“Pulldown barra” (treino D) cadastrado como Pulldown com braços estendidos (com barra). Se for a puxada frontal, troque no montador.",
   "“Rosca inversa barra W” (treino F) cadastrada como rosca inversa livre com barra W (não na polia).",
 ];
