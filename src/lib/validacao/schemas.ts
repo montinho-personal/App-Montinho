@@ -610,3 +610,6 @@ export const padraoCargaSchema = z
   .object({ anilhas: modoCarga.optional(), halteres: modoCarga.optional() })
   .strict()
   .refine((v) => v.anilhas !== undefined || v.halteres !== undefined, { message: "Escolha um padrão" });
+
+/** Ranking de troféus (0076): aparecer ou não para os outros alunos. */
+export const rankingVisivelSchema = z.object({ visivel: z.boolean() }).strict();

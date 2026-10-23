@@ -481,6 +481,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Converse com o Montinho sobre os objetivos do próximo ciclo.",
     fontes: ["sdt2025"],
   },
+  protocolo_completo: {
+    categoria: "fases",
+    resumo: "As três fases do protocolo em sequência, sem parar.",
+    mensagem: "Protocolo completo! Adaptação, intensificação e consolidação, do começo ao fim.",
+    comoConquistar: "Complete adaptação, intensificação e consolidação em sequência (pelo menos 4 treinos em cada), sem ficar 14 dias ou mais sem treinar no caminho.",
+    significado: "Você atravessou um ciclo inteiro de treino sem parar.",
+    importancia: "Passar pelas três fases em sequência é o que permite ao planejamento render tudo o que foi pensado para você.",
+    explicacao: "O personal organiza o acompanhamento em fases: adaptação (aprender e preparar o corpo), intensificação (mais esforço) e consolidação (firmar os ganhos). Completar as três sem interrupção mostra disciplina ao longo de meses.",
+    proximoPasso: "Converse com o Montinho sobre o próximo ciclo: agora é evoluir a partir de uma base completa.",
+    fontes: ["sdt2025"],
+  },
   desafio_concluido: {
     categoria: "pratica",
     resumo: "Concluir um desafio do Montinho dentro do prazo.",

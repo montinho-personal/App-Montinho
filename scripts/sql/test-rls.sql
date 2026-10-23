@@ -1291,4 +1291,49 @@ begin
 end $$;
 reset role;
 \echo 'T41 OK: acessos do dia — 1 por aluno por dia, só o personal lê'
+-- T42 — 0076: ranking de troféus (só primeiro nome + inicial; quem se esconde some para os outros)
+update profiles set nome = 'Ana Maria Souza' where id = '22222222-2222-2222-2222-222222222222';
+update profiles set nome = 'Bruno Lima' where id = '33333333-3333-3333-3333-333333333333';
+update alunos set status = 'ativo', ranking_visivel = true where id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_10', '1', now(), 'x'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_25', '1', now(), 'x'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_50', '1', now(), 'x'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'protocolo_completo', '1', now(), 'x') on conflict do nothing;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare r record; n int;
+begin
+  select count(*) into n from public.ranking_trofeus();
+  if n < 2 then raise exception 'T42a: ranking deveria ter os 2 alunos, tem %', n; end if;
+  select * into r from public.ranking_trofeus() where eu;
+  if r.nome <> 'Ana S.' then raise exception 'T42b: nome deveria vir abreviado (Ana S.), veio %', r.nome; end if;
+  select * into r from public.ranking_trofeus() where nome like 'Bruno%';
+  if r.posicao is null or r.nome <> 'Bruno L.' then raise exception 'T42c: Bruno deveria aparecer como “Bruno L.” (%, %)', r.posicao, r.nome; end if;
+  if (select count(*) from conquistas_aluno where aluno_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') <> 0 then raise exception 'T42d: aluno leu conquistas de outro'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if not public.definir_ranking_visivel(false) then raise exception 'T42e: não salvou a preferência'; end if;
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if exists (select 1 from public.ranking_trofeus() where nome like 'Bruno%') then raise exception 'T42f: quem se escondeu continua aparecendo'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  if not exists (select 1 from public.ranking_trofeus() where nome = 'Bruno Lima') then raise exception 'T42g: personal deveria ver todos com nome completo'; end if;
+end $$;
+select test_logout();
+set role anon;
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.ranking_trofeus(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T42h: anon executou ranking_trofeus()'; end if;
+end $$;
+reset role;
+\echo 'T42 OK: ranking — nome abreviado, esconder funciona, personal vê todos, anon não'
 \echo 'TODOS OS TESTES PASSARAM'

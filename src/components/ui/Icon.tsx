@@ -1,7 +1,7 @@
 // Ícones inline (SVG, sem dependência). Decorativos por padrão (aria-hidden).
 export type IconName =
   | "home" | "dumbbell" | "chart" | "user" | "check" | "play" | "pause" | "timer" | "chevron" | "warning"
-  | "info" | "plus" | "minus" | "copy" | "trash" | "undo" | "redo" | "up" | "down" | "search" | "star" | "logout" | "menu" | "x" | "table" | "book" | "users" | "sparkles" | "bell" | "instagram" | "map" | "trophy" | "lock";
+  | "info" | "plus" | "minus" | "copy" | "trash" | "undo" | "redo" | "up" | "down" | "search" | "star" | "logout" | "menu" | "x" | "table" | "book" | "users" | "sparkles" | "bell" | "instagram" | "map" | "trophy" | "lock" | "podium";
 
 const PATHS: Record<IconName, string> = {
   lock: "M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z",
@@ -35,6 +35,7 @@ const PATHS: Record<IconName, string> = {
   sparkles: "M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8",
   instagram: "M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17.5 6.5h.01",
   map: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14",
+  podium: "M3 21h18M5 21v-6h4v6M10 21V9h4v12M15 21v-9h4v9",
   trophy: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4",
   bell: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0",
 };

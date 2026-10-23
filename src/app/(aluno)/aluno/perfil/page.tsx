@@ -14,12 +14,14 @@ import { getPreferencias } from "@/lib/data/notificacoes";
 import { appMode } from "@/lib/env";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
 import { PadraoCargaPerfil } from "@/components/treinos/PadraoCarga";
+import { getRankingVisivel } from "@/lib/data/ranking";
+import { RankingVisivel } from "@/components/ranking/RankingVisivel";
 
 export const metadata = { title: "Perfil" };
 
 export default async function PerfilPage() {
   const sessao = await requireAlunoPage();
-  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga] = await Promise.all([
+  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga, rankingVisivel] = await Promise.all([
     getAluno(sessao.alunoId),
     getPlanoAtivo(sessao.alunoId),
     listAdaptacoes(sessao.alunoId),
@@ -27,6 +29,7 @@ export default async function PerfilPage() {
     listDieta(sessao.alunoId),
     getPreferencias(sessao.userId),
     getPadraoCarga(sessao.alunoId),
+    getRankingVisivel(sessao.alunoId).catch(() => true),
   ]);
   if (!aluno) return null;
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
@@ -45,6 +48,8 @@ export default async function PerfilPage() {
       <NotificacoesChalala inicial={prefsNotif} />
 
       <PadraoCargaPerfil inicial={padraoCarga} />
+
+      <RankingVisivel inicial={rankingVisivel} />
 
       <Card>
         <CardHeader>

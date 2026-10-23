@@ -15,6 +15,7 @@ const TABS = [
   { label: "Treinar", href: "/aluno/treinar", icon: "dumbbell" },
   { label: "Jornada", href: "/aluno/jornada", icon: "map" },
   { label: "Conquistas", href: "/aluno/conquistas", icon: "trophy" },
+  { label: "Ranking", href: "/aluno/ranking", icon: "podium" },
   { label: "Evolução", href: "/aluno/evolucao", icon: "chart" },
   { label: "Perfil", href: "/aluno/perfil", icon: "user" },
 ] as const;

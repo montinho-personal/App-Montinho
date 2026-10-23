@@ -63,6 +63,7 @@ export type CodigoConquista =
   | "completou_adaptacao"
   | "completou_intensificacao"
   | "completou_consolidacao"
+  | "protocolo_completo"
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -103,7 +104,9 @@ export const MARCOS_TECNICA: Array<[CodigoConquista, number]> = [["primeira_tecn
 export const CODIGOS_TECNICA: CodigoConquista[] = MARCOS_TECNICA.map(([c]) => c);
 
 /** Medalhas de fase (0044). Fase “completa” = pelo menos N treinos nela e o protocolo passou para outra fase. */
-export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "completou_adaptacao", "completou_intensificacao", "completou_consolidacao"];
+export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "completou_adaptacao", "completou_intensificacao", "completou_consolidacao", "protocolo_completo"];
+/** Protocolo completo: adaptação → intensificação → consolidação seguidas, sem parar (nenhum intervalo maior que isto entre treinos). */
+export const LIMITE_PROTOCOLO = { diasSemTreino: 14 } as const;
 export const LIMITES_FASE = { minTreinos: 4 } as const;
 
 /** Medalha de desafio (0055): gravada à parte, como as de fase. */
@@ -148,6 +151,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   chegou_intensificacao: { titulo: "Hora de intensificar", criterio: "Concluir o primeiro treino na fase de intensificação.", repete: false },
   completou_adaptacao: { titulo: "Adaptação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de adaptação e passar para a próxima fase definida pelo personal.`, repete: false },
   completou_intensificacao: { titulo: "Intensificação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de intensificação e passar para a próxima fase definida pelo personal.`, repete: false },
+  protocolo_completo: { titulo: "Protocolo completo", criterio: `Completar as três fases do protocolo em sequência — adaptação, intensificação e consolidação, com pelo menos ${LIMITES_FASE.minTreinos} treinos em cada — sem parar: nenhum intervalo de ${LIMITE_PROTOCOLO.diasSemTreino} dias ou mais sem treinar no caminho.`, repete: false },
   completou_consolidacao: { titulo: "Consolidação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de consolidação e começar um novo ciclo definido pelo personal.`, repete: false },
   mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
@@ -183,8 +187,15 @@ export function fasesConquistadas(sessoes: SessaoConquista[]): Array<{ codigo: C
   const ordenadas = [...sessoes].filter((s) => s.conta_aderencia !== false && s.origem !== "importado" && s.status === "concluida" && s.fase).sort((a, b) => (a.iniciado_em < b.iniciado_em ? -1 : 1));
   let atual: string | null = null;
   let treinos = 0;
+  // Protocolo completo: fases concluídas em ordem, sem parar.
+  const SEQUENCIA = ["adaptacao", "intensificacao", "consolidacao"];
+  let cadeia: string[] = [];
+  let anterior: string | null = null;
   for (const s of ordenadas) {
     const f = s.fase!;
+    // Pausa longa antes deste treino: a cadeia quebra (depois de fechar a fase anterior, que pode completar o protocolo).
+    const pausou = !!anterior && (Date.parse(s.iniciado_em) - Date.parse(anterior)) / 86_400_000 >= LIMITE_PROTOCOLO.diasSemTreino;
+    anterior = s.iniciado_em;
     if (f === "intensificacao" && !ja.has("chegou_intensificacao")) {
       ja.add("chegou_intensificacao");
       out.push({ codigo: "chegou_intensificacao", data: s.iniciado_em, sessaoId: s.id, texto: "Primeiro treino na fase de intensificação." });
@@ -195,9 +206,18 @@ export function fasesConquistadas(sessoes: SessaoConquista[]): Array<{ codigo: C
         ja.add(codigo);
         out.push({ codigo, data: s.iniciado_em, sessaoId: s.id, texto: `Fase de ${NOME_FASE[atual!]} concluída: ${treinos} treinos nela.` });
       }
+      // Fase fechada com treinos suficientes e na ordem certa continua a cadeia; senão, recomeça.
+      if (atual && treinos >= LIMITES_FASE.minTreinos && SEQUENCIA[cadeia.length] === atual) cadeia.push(atual);
+      else cadeia = atual === "adaptacao" && treinos >= LIMITES_FASE.minTreinos ? ["adaptacao"] : [];
+      if (cadeia.length === SEQUENCIA.length && !ja.has("protocolo_completo")) {
+        ja.add("protocolo_completo");
+        out.push({ codigo: "protocolo_completo", data: s.iniciado_em, sessaoId: s.id, texto: "Adaptação, intensificação e consolidação completas, em sequência e sem parar." });
+      }
+      if (cadeia.length === SEQUENCIA.length) cadeia = [];
       atual = f;
       treinos = 0;
     }
+    if (pausou) cadeia = [];
     treinos++;
   }
   return out;

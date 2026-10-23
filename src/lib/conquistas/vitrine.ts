@@ -73,7 +73,11 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "chegou_intensificacao", selo: "F2" },
   { codigo: "completou_intensificacao", selo: "F2✓" },
   { codigo: "completou_consolidacao", selo: "F3✓" },
+  { codigo: "protocolo_completo", selo: "Ciclo" },
 ];
+
+/** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -195,6 +199,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
           ? { atual: Math.min(naFase, LIMITES_FASE.minTreinos), alvo: LIMITES_FASE.minTreinos, falta: naFase < LIMITES_FASE.minTreinos ? `Faltam ${plural(LIMITES_FASE.minTreinos - naFase, "treino", "treinos")} nesta fase. A medalha sai quando o Montinho passar para a próxima.` : "Treinos da fase feitos! A medalha sai quando o Montinho passar para a próxima fase.", disponivel: true }
           : { atual: null, alvo: null, falta: "As fases são definidas pelo Montinho no seu protocolo. Conclua pelo menos 4 treinos na fase e a medalha sai quando ela mudar.", disponivel: true };
       }
+      case "protocolo_completo":
+        return { atual: null, alvo: null, falta: `Complete adaptação, intensificação e consolidação em sequência (${LIMITES_FASE.minTreinos}+ treinos em cada), sem ficar 14 dias ou mais sem treinar.`, disponivel: true };
       case "uma_a_mais":
         return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `Faltam ${plural(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
       default: return { atual: null, alvo: null, falta: null, disponivel: true };

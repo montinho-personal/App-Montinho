@@ -50,6 +50,7 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   chegou_intensificacao: { frase: "Hora de intensificar.", porque: "Chegar na intensificação mostra que a base foi bem construída." },
   completou_adaptacao: { frase: "Adaptação concluída. Base pronta.", porque: "Preparar o corpo com calma é o que permite evoluir com segurança." },
   completou_intensificacao: { frase: "Aguentei o tranco.", porque: "Passar pela fase mais puxada, com acompanhamento, é onde muita evolução acontece." },
+  protocolo_completo: { frase: "Protocolo completo. Do começo ao fim.", porque: "Adaptação, intensificação e consolidação em sequência, sem parar: disciplina de meses." },
   completou_consolidacao: { frase: "Ciclo fechado.", porque: "Consolidar os ganhos prepara o próximo ciclo de evolução." },
   desafio_concluido: { frase: "Desafio concluído!", porque: "Cumprir o combinado dentro do prazo mostra que dá para encaixar o treino na rotina." },
   mestre_tecnicas: { frase: "Mestre das técnicas.", porque: "Fazer todas as técnicas avançadas é coisa de quem leva o treino a sério." },
@@ -128,6 +129,8 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
       return "Fase de intensificação concluída";
     case "completou_consolidacao":
       return "Fase de consolidação concluída";
+    case "protocolo_completo":
+      return "Adaptação → intensificação → consolidação, sem parar";
     default:
       return null;
   }

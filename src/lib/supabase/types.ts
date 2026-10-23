@@ -33,6 +33,8 @@ export type Aluno = {
   ultimo_treino_em: string | null;
   /** 'consultoria' (padrão) ou 'visitante' (0052). */
   modalidade?: "consultoria" | "visitante";
+  /** 0076: aparece (para os outros alunos) no ranking de troféus. */
+  ranking_visivel?: boolean;
   created_at: string;
   updated_at: string;
 };

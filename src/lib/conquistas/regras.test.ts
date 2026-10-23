@@ -212,6 +212,18 @@ describe("medalhas das fases do protocolo", () => {
     expect(r.find((x) => x.codigo === "completou_adaptacao")?.data.slice(0, 10)).toBe("2026-09-10");
     expect(codigos(r)).not.toContain("completou_intensificacao");
   });
+  it("protocolo completo: as três fases em sequência, sem parar 14 dias", () => {
+    const fase = (inicio: number, nome: string) => [0, 2, 4, 7].map((d) => f(new Date(Date.UTC(2026, 6, inicio + d)).toISOString().slice(0, 10), nome));
+    const ciclo = [...fase(1, "adaptacao"), ...fase(10, "intensificacao"), ...fase(19, "consolidacao"), f("2026-07-30", "adaptacao")];
+    expect(codigos(detectar(ciclo))).toContain("protocolo_completo");
+    // Pausa de 20 dias no meio da intensificação: não vale.
+    const comPausa = [...fase(1, "adaptacao"), f("2026-07-10", "intensificacao"), f("2026-07-30", "intensificacao"), f("2026-08-01", "intensificacao"), f("2026-08-03", "intensificacao"), ...fase(5 + 31, "consolidacao"), f("2026-08-20", "adaptacao")];
+    expect(codigos(detectar(comPausa))).not.toContain("protocolo_completo");
+    // Fora de ordem (começou na intensificação): não vale.
+    const foraDeOrdem = [...fase(1, "intensificacao"), ...fase(10, "consolidacao"), f("2026-07-22", "adaptacao")];
+    expect(codigos(detectar(foraDeOrdem))).not.toContain("protocolo_completo");
+  });
+
   it("consolidação completa quando começa um novo ciclo", () => {
     const dias = ["01", "03", "05", "08"];
     const r = detectar([...dias.map((d) => f(`2026-09-${d}`, "consolidacao")), f("2026-09-12", "adaptacao")]);

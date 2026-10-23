@@ -4,8 +4,8 @@ import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
-import { vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
-import { CONTEUDO, CATEGORIA_ROTULO } from "@/lib/conquistas/conteudo";
+import { DESAFIADORAS, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
+import { CONTEUDO, CATEGORIA_ROTULO, type Categoria } from "@/lib/conquistas/conteudo";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -14,11 +14,18 @@ import { ColecaoVista } from "./ColecaoVista";
 export const metadata = { title: "Todas as minhas conquistas" };
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
-export default async function TodasConquistasPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+const ABAS = [
+  { id: "todas", rotulo: "Todas" },
+  { id: "temas", rotulo: "Por tema" },
+  { id: "desafiadores", rotulo: "Mais desafiadores" },
+] as const;
+
+export default async function TodasConquistasPage({ searchParams }: { searchParams: Promise<{ m?: string; aba?: string }> }) {
   const sessao = await requireAlunoPage();
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
-  const { m } = await searchParams;
+  const { m, aba: abaPedida } = await searchParams;
+  const aba = ABAS.some((a) => a.id === abaPedida) ? abaPedida! : "todas";
   const [{ conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()) });
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
@@ -41,7 +48,40 @@ export default async function TodasConquistasPage({ searchParams }: { searchPara
       </div>
       <p className="text-sm text-fg-muted">A ordem é uma jornada sugerida: cada medalha tem o seu critério e nenhuma depende de outra. <span className="font-semibold text-fg">{ganhas} de {medalhas.length}</span> conquistadas.</p>
 
-      <VitrineMedalhas medalhas={medalhas} nome={nome} reconhecimentos={porCodigo} inicial={medalhas.some((x) => x.codigo === m) ? m! : null} />
+      <nav className="flex gap-1.5 overflow-x-auto pb-1" aria-label="Organizar troféus">
+        {ABAS.map((a) => (
+          <Link key={a.id} href={`/aluno/conquistas/todas${a.id === "todas" ? "" : `?aba=${a.id}`}`} aria-current={aba === a.id ? "page" : undefined} className={`alvo shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold ${aba === a.id ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}>
+            {a.id === "desafiadores" ? "🔥 " : ""}{a.rotulo}
+          </Link>
+        ))}
+        <Link href="/aluno/ranking" className="alvo shrink-0 rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-fg-muted hover:text-fg">🏆 Ranking</Link>
+      </nav>
+
+      {aba === "temas" ? (
+        (Object.keys(CATEGORIA_ROTULO) as Categoria[]).map((cat) => {
+          const doTema = medalhas.filter((x) => CONTEUDO[x.codigo]?.categoria === cat);
+          if (!doTema.length) return null;
+          return (
+            <section key={cat} className="space-y-2" aria-labelledby={`tema-${cat}`}>
+              <h2 id={`tema-${cat}`} className="flex items-baseline justify-between gap-2 text-xs font-bold uppercase tracking-wider text-fg-muted">
+                <span>{CATEGORIA_ROTULO[cat]}</span>
+                <span className="font-mono normal-case tracking-normal text-fg-subtle">{doTema.filter((x) => x.conquistada).length}/{doTema.length}</span>
+              </h2>
+              <VitrineMedalhas medalhas={doTema} nome={nome} reconhecimentos={porCodigo} />
+            </section>
+          );
+        })
+      ) : aba === "desafiadores" ? (
+        <section className="space-y-3">
+          <div className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-3 text-sm">
+            <p className="font-bold text-[#f5c451]">Troféus de disciplina</p>
+            <p className="text-fg-muted">Só saem com meses de treino e constância. Poucas pessoas chegam aqui: cada um vale muito.</p>
+          </div>
+          <VitrineMedalhas medalhas={DESAFIADORAS.map((c) => medalhas.find((x) => x.codigo === c)).filter((x): x is (typeof medalhas)[number] => !!x)} nome={nome} reconhecimentos={porCodigo} />
+        </section>
+      ) : (
+        <VitrineMedalhas medalhas={medalhas} nome={nome} reconhecimentos={porCodigo} inicial={medalhas.some((x) => x.codigo === m) ? m! : null} />
+      )}
 
       <section className="space-y-2" aria-labelledby="rec-titulo">
         <h2 id="rec-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">{CONTEUDO.recorde.nome} · {CATEGORIA_ROTULO.desempenho}</h2>
