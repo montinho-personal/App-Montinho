@@ -1263,4 +1263,32 @@ begin
 end $$;
 select test_logout();
 \echo 'T40 OK: padrão de carga — cada aluno grava o próprio; personal lê'
+-- T41 — 0072: acessos do dia (1 por aluno por dia; só o personal lê; anon não registra)
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  if not public.registrar_acesso() then raise exception 'T41a: aluno não registrou o acesso'; end if;
+  perform public.registrar_acesso();
+  begin insert into acessos_diarios (aluno_id, dia) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', current_date); exception when others then ok := true; end;
+  if not ok then raise exception 'T41b: aluno gravou acesso de outro'; end if;
+  if (select count(*) from acessos_diarios) <> 0 then raise exception 'T41c: aluno lê a tabela de acessos'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  if public.registrar_acesso() then raise exception 'T41d: personal contou como acesso de aluno'; end if;
+  if (select count(*) from acessos_diarios where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') <> 1 then raise exception 'T41e: deveria haver 1 acesso no dia'; end if;
+end $$;
+select test_logout();
+set role anon;
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.registrar_acesso(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T41f: anon executou registrar_acesso()'; end if;
+end $$;
+reset role;
+\echo 'T41 OK: acessos do dia — 1 por aluno por dia, só o personal lê'
 \echo 'TODOS OS TESTES PASSARAM'

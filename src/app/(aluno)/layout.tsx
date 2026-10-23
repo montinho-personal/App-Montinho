@@ -8,6 +8,7 @@ import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { avatarDoUsuario } from "@/lib/data/perfil";
 import { AvisoAcessoVisitante } from "@/components/visitante/AvisoAcessoVisitante";
+import { RegistrarAcesso } from "@/components/aluno/RegistrarAcesso";
 
 const TABS = [
   { label: "Início", href: "/aluno", icon: "home" },
@@ -55,6 +56,7 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
         </div>
       </main>
       <MobileTabBar items={[...TABS]} />
+      <RegistrarAcesso id={sessao.alunoId} />
     </div>
   );
 }

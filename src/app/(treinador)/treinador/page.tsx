@@ -14,12 +14,14 @@ import { NovoAlunoButton } from "./alunos/NovoAlunoModal";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBarras";
 import { AnelPercentual } from "@/components/graficos/AnelPercentual";
+import { AcessosDoDia } from "@/components/painel/AcessosDoDia";
+import { resumoDeAcessos } from "@/lib/data/acessos";
 
 export const metadata = { title: "Visão geral" };
 
 export default async function TreinadorDashboardPage() {
   const sessao = await requireTreinadorPage();
-  const [m, alunos, adaptacoes] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true)]);
+  const [m, alunos, adaptacoes, acessos] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null)]);
   const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   // Dados por aluno ativo (limitado para manter o painel rápido)
@@ -88,6 +90,8 @@ export default async function TreinadorDashboardPage() {
         <StatCard label="Pedidos de adaptação" value={String(adaptacoes.length)} hint="aguardando resposta" tone={adaptacoes.length ? "gold" : "neutral"} />
         <StatCard label="Pendentes / pausados" value={`${m.pendentes} / ${m.pausados}`} hint="cadastro ou acesso" tone="neutral" />
       </div>
+
+      {acessos ? <AcessosDoDia r={acessos} /> : null}
 
       {turmaBarras.length >= 2 ? (
         <Card>
