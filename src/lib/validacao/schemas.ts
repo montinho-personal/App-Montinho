@@ -613,3 +613,38 @@ export const padraoCargaSchema = z
 
 /** Ranking de troféus (0076): aparecer ou não para os outros alunos. */
 export const rankingVisivelSchema = z.object({ visivel: z.boolean() }).strict();
+
+/** Medidas e avaliações (0078): todos os campos opcionais, dentro dos limites de CAMPOS_MEDIDA. */
+const medida = (min: number, max: number) => z.coerce.number().min(min).max(max).nullable().optional();
+export const medidasSchema = z
+  .object({
+    aluno_id: z.string().min(1).max(64),
+    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    peso_kg: medida(20, 350),
+    altura_cm: medida(100, 250),
+    gordura_pct: medida(2, 75),
+    massa_muscular_kg: medida(5, 150),
+    massa_magra_kg: medida(10, 200),
+    gordura_visceral: medida(1, 60),
+    agua_pct: medida(20, 80),
+    cintura_cm: medida(30, 250),
+    abdomen_cm: medida(30, 250),
+    quadril_cm: medida(40, 250),
+    peito_cm: medida(40, 250),
+    braco_cm: medida(10, 80),
+    coxa_cm: medida(20, 120),
+    panturrilha_cm: medida(15, 80),
+    observacoes: textoOpcional(500),
+  })
+  .strict();
+export const urlArquivoAvaliacaoSchema = z.object({
+  aluno_id: z.string().min(1).max(64),
+  tipo: z.enum(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]),
+  tamanho: z.coerce.number().int().min(1).max(15 * 1024 * 1024),
+});
+export const registrarArquivoAvaliacaoSchema = urlArquivoAvaliacaoSchema.extend({
+  caminho: z.string().min(5).max(300),
+  nome: z.string().trim().min(1).max(200),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  descricao: textoOpcional(300),
+});

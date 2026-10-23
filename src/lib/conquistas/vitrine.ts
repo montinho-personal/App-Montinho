@@ -10,7 +10,7 @@ import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/ade
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
 import type { CodigoConquista, SessaoConquista } from "./regras";
-import { LIMITES_ALEM, LIMITES_FASE, MARCOS_TECNICA, TECNICAS_MEDALHA, tecnicasFeitas, type FamiliaTecnica } from "./regras";
+import { exerciciosComCarga, LIMITES_ALEM, LIMITES_COMECO, LIMITES_FASE, MARCOS_TECNICA, TECNICAS_MEDALHA, tecnicasFeitas, type FamiliaTecnica } from "./regras";
 
 export type Medalha = {
   codigo: CodigoConquista;
@@ -34,9 +34,16 @@ export type Medalha = {
 
 /** Jornada sugerida (ordem visual). Critérios são independentes da ordem. */
 export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
+  // Começo
   { codigo: "primeiro_treino", selo: "1º" },
+  { codigo: "missao_cumprida", selo: "100%" },
+  { codigo: "cada_quilo_conta", selo: "kg" },
+  { codigo: "ponto_de_partida", selo: "Medida" },
   { codigo: "criando_raizes", selo: "Raiz" },
+  { codigo: "terceiro_especial", selo: "3×" },
   { codigo: "primeira_meta_semanal", selo: "Meta" },
+  { codigo: "olhar_de_aguia", selo: "Vídeo" },
+  { codigo: "voltei_pro_jogo", selo: "Volta" },
   { codigo: "relatorio_mensal", selo: "Eu" },
   { codigo: "treinos_10", selo: "10" },
   { codigo: "primeiro_mes", selo: "1 mês" },
@@ -201,6 +208,24 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       }
       case "protocolo_completo":
         return { atual: null, alvo: null, falta: `Complete adaptação, intensificação e consolidação em sequência (${LIMITES_FASE.minTreinos}+ treinos em cada), sem ficar 14 dias ou mais sem treinar.`, disponivel: true };
+      case "missao_cumprida": {
+        const melhor = daApp.filter((s) => classificarSessao(s) === "concluida" && s.series_planejadas > 0).reduce((m, s) => Math.max(m, Math.round((s.series_concluidas / s.series_planejadas) * 100)), 0);
+        return { atual: Math.min(melhor, 100), alvo: 100, falta: melhor ? `Seu melhor treino teve ${Math.min(melhor, 100)}% das séries. Faça todas as séries num treino.` : "Faça todas as séries propostas num treino.", disponivel: true };
+      }
+      case "cada_quilo_conta": {
+        const max = daApp.filter((s) => classificarSessao(s) === "concluida").reduce((m, s) => Math.max(m, exerciciosComCarga(s)), 0);
+        return { atual: Math.min(max, LIMITES_COMECO.exerciciosComCarga), alvo: LIMITES_COMECO.exerciciosComCarga, falta: `Anote a carga (kg) de ${LIMITES_COMECO.exerciciosComCarga} exercícios no mesmo treino${max ? ` — seu máximo até agora foi ${max}` : ""}.`, disponivel: true };
+      }
+      case "terceiro_especial": {
+        const bons = daApp.filter((s) => classificarSessao(s) === "concluida" && s.series_planejadas > 0 && s.series_concluidas / s.series_planejadas >= LIMITES_COMECO.pctSeries / 100).length;
+        return { atual: Math.min(bons, LIMITES_COMECO.treinosBons), alvo: LIMITES_COMECO.treinosBons, falta: `Faltam ${plural(Math.max(0, LIMITES_COMECO.treinosBons - bons), "treino", "treinos")} com ${LIMITES_COMECO.pctSeries}% ou mais das séries.`, disponivel: true };
+      }
+      case "ponto_de_partida":
+        return { atual: null, alvo: null, falta: null, disponivel: true }; // o “como conquistar” já explica (e o detalhe tem o botão)
+      case "olhar_de_aguia":
+        return { atual: null, alvo: null, falta: null, disponivel: true }; // idem: botão do WhatsApp no detalhe
+      case "voltei_pro_jogo":
+        return { atual: null, alvo: null, falta: "Só acontece no começo: se nos primeiros 30 dias você ficar de 7 a 13 dias sem treinar, volte e conclua um treino.", disponivel: false };
       case "uma_a_mais":
         return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `Faltam ${plural(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
       default: return { atual: null, alvo: null, falta: null, disponivel: true };

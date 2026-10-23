@@ -1,5 +1,6 @@
 import { saudacao as saudacaoSP } from "@/components/brand/BrandLockup";
-import { LENDARIAS } from "@/lib/conquistas/regras";
+import { CODIGOS_MANUAIS, LENDARIAS } from "@/lib/conquistas/regras";
+import { CelebrarAtivadas } from "@/components/conquistas/CelebrarAtivadas";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -98,6 +99,7 @@ export default async function AlunoHomePage() {
 
   return (
     <div className="space-y-5">
+      <CelebrarAtivadas conquistas={conquistas.filter((c) => CODIGOS_MANUAIS.includes(c.codigo) && !c.vista_em)} nome={primeiroNome} />
       {/* Treinos guardados no celular para abrir sem internet na academia. */}
       <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento ? [`/aluno/treino/${emAndamento.treino_id}?sessao=${emAndamento.id}`] : [])]} />
       <header>

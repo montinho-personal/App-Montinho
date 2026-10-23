@@ -1336,4 +1336,38 @@ begin
 end $$;
 reset role;
 \echo 'T42 OK: ranking — nome abreviado, esconder funciona, personal vê todos, anon não'
+-- T43 — 0078: medidas, arquivos de avaliação e Olhar de Águia (só o personal ativa)
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean;
+begin
+  insert into evolucao (aluno_id, data, peso_kg, altura_cm, massa_muscular_kg) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date, 70.5, 172, 31.2);
+  insert into avaliacoes_arquivos (aluno_id, caminho, nome_original, tipo_mime, tamanho_bytes) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/bio.pdf', 'bio.pdf', 'application/pdf', 1000);
+  ok := false;
+  begin insert into avaliacoes_arquivos (aluno_id, caminho, nome_original, tipo_mime, tamanho_bytes) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/x.pdf', 'x.pdf', 'application/pdf', 10); exception when others then ok := true; end;
+  if not ok then raise exception 'T43a: arquivo gravado com caminho de outro aluno'; end if;
+  ok := false;
+  begin insert into avaliacoes_arquivos (aluno_id, caminho, nome_original, tipo_mime, tamanho_bytes) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/x.exe', 'x.exe', 'application/x-msdownload', 10); exception when others then ok := true; end;
+  if not ok then raise exception 'T43b: tipo de arquivo não permitido aceito'; end if;
+  ok := false;
+  begin insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'olhar_de_aguia', '1', now(), 'x'); exception when others then ok := true; end;
+  if not ok then raise exception 'T43c: aluno se deu o Olhar de Águia'; end if;
+  if not public.salvar_minha_altura(172) then raise exception 'T43d: altura não salva'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if (select count(*) from avaliacoes_arquivos) <> 0 then raise exception 'T43e: aluno vê arquivo de outro'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'olhar_de_aguia', '1', now(), 'Olhar de Águia', 'personal');
+  if (select count(*) from avaliacoes_arquivos where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') <> 1 then raise exception 'T43f: personal não vê o arquivo do aluno'; end if;
+end $$;
+select test_logout();
+do $$ begin if (select altura_cm from alunos where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') <> 172 then raise exception 'T43g: altura não foi para o cadastro'; end if; end $$;
+\echo 'T43 OK: medidas, arquivos de avaliação e Olhar de Águia'
 \echo 'TODOS OS TESTES PASSARAM'

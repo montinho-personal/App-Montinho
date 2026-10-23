@@ -20,8 +20,8 @@ export const LIMITES = {
   vidaReal: { janela: 4, alvo: 3, folga: 4 },
   /** Constância de verdade: 8 de 12 semanas elegíveis seguidas, em no máximo 12 + 6 semanas de calendário. */
   verdade: { janela: 12, alvo: 8, folga: 6 },
-  /** Primeiro mês (critério v2): 4 treinos concluídos em 3 semanas, nos 35 primeiros dias, com 28+ dias passados. */
-  primeiroMes: { diasJanela: 35, diasMinimos: 28, treinos: 4, semanas: 3 },
+  /** A Jornada Começou (critério v3, 23/10/2026): 28 primeiros dias completos, com treinos em 3 semanas diferentes. */
+  primeiroMes: { diasJanela: 28, diasMinimos: 28, treinos: 3, semanas: 3 },
   /** Recomeço consistente: depois de 14+ dias parado, treinar em 2 semanas diferentes em até 21 dias. */
   recomeco: { diasPausa: 14, diasDepois: 21, semanas: 2 },
 } as const;

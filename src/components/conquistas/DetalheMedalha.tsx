@@ -5,6 +5,8 @@
 // tocar em “Entenda por que isso é importante”.
 import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MedalhaIcone } from "./MedalhaIcone";
 import { CATEGORIA_ROTULO, CONTEUDO, FONTES } from "@/lib/conquistas/conteudo";
 import type { Medalha } from "@/lib/conquistas/vitrine";
@@ -15,6 +17,7 @@ const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo"
 
 export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno, onFechar, rotuloEntender = "Entenda por que isso é importante", rotuloCard = "Gerar card desta medalha", className = "" }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; /** Personal: abre a comemoração (toque para abrir) como o aluno a vê. */ onVerComoAluno?: () => void; onFechar?: () => void; rotuloEntender?: string; rotuloCard?: string; className?: string }) {
   const [aberto, setAberto] = useState(false);
+  const ehAluno = (usePathname() ?? "").startsWith("/aluno");
   const t = CONTEUDO[m.codigo];
   const pct = m.alvo ? Math.round(((m.atual ?? 0) / m.alvo) * 100) : null;
 
@@ -51,6 +54,14 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
         </div>
       ) : !m.conquistada && m.falta ? (
         <p className="text-xs text-fg-muted">{m.falta}</p>
+      ) : null}
+      {!m.conquistada && ehAluno && m.codigo === "olhar_de_aguia" ? (
+        <a href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent("Olá, Montinho! Quero o Olhar de Águia: segue o vídeo de um exercício para você avaliar a minha execução.")}`} target="_blank" rel="noopener noreferrer" className="touch flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-bold text-black">
+          Enviar meu vídeo pelo WhatsApp
+        </a>
+      ) : null}
+      {!m.conquistada && ehAluno && m.codigo === "ponto_de_partida" ? (
+        <Link href="/aluno/medidas" className="touch flex items-center justify-center rounded-xl bg-accent px-4 py-3 text-sm font-bold text-bg">Registrar minhas medidas</Link>
       ) : null}
 
       {reconhecimento ? (

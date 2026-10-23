@@ -59,6 +59,10 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
           <span><span className="font-bold text-accent">Seu relatório completo de evolução</span><span className="block text-xs text-fg-muted">Carga músculo a músculo, marcas pessoais e constância. Dá para baixar em PDF.</span></span>
           <span aria-hidden className="text-accent">→</span>
         </Link>
+        <Link href="/aluno/medidas" className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
+          <span><span className="font-bold">📏 Medidas e avaliações</span><span className="block text-xs text-fg-muted">Peso, medidas, bioimpedância ou o arquivo (PDF/foto) da sua avaliação.</span></span>
+          <span aria-hidden className="text-accent">→</span>
+        </Link>
         <RegistrarRelatorio />
       </header>
       {aderencia ? (

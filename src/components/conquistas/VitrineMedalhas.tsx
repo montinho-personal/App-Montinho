@@ -13,6 +13,7 @@ import type { Medalha } from "@/lib/conquistas/vitrine";
 import type { DadosCard, ModeloId } from "@/lib/chalala/card";
 import { CelebracaoMedalha } from "@/components/chalala/CelebracaoMedalha";
 import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
+import { useMontado } from "@/lib/ui/montado";
 
 const EditorCard = dynamic(() => import("@/components/chalala/EditorCard"), { ssr: false });
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -36,7 +37,8 @@ function JanelaDetalhe({ onFechar, children }: { onFechar: () => void; children:
       document.body.style.overflow = prev;
     };
   }, [onFechar]);
-  if (typeof document === "undefined") return null;
+  const montado = useMontado();
+  if (!montado) return null;
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center">
       <button type="button" aria-label="Fechar" onClick={onFechar} className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />

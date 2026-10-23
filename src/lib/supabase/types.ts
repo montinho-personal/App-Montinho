@@ -107,9 +107,21 @@ export type Evolucao = {
   braco_cm: number | null;
   coxa_cm: number | null;
   peito_cm: number | null;
+  /** 0078: bioimpedância / avaliação e quem registrou. */
+  altura_cm?: number | null;
+  massa_muscular_kg?: number | null;
+  massa_magra_kg?: number | null;
+  gordura_visceral?: number | null;
+  agua_pct?: number | null;
+  abdomen_cm?: number | null;
+  panturrilha_cm?: number | null;
+  origem?: "aluno" | "personal" | "importado";
   observacoes: string | null;
   created_at: string;
 };
+
+/** 0078: arquivo de avaliação (PDF/foto/print) no armazenamento privado. */
+export type AvaliacaoArquivo = { id: string; aluno_id: string; caminho: string; nome_original: string; tipo_mime: string; tamanho_bytes: number; data_avaliacao: string; descricao: string | null; evolucao_id: string | null; created_at: string };
 
 export type AlimentoItem = {
   nome: string;

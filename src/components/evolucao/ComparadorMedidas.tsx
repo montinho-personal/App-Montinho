@@ -3,16 +3,10 @@
 import { useMemo, useState } from "react";
 import type { Evolucao } from "@/lib/supabase/types";
 import { dataBR } from "@/lib/format";
+import { CAMPOS_MEDIDA } from "@/lib/medidas/campos";
 
-const CAMPOS = [
-  ["peso_kg", "Peso", "kg"],
-  ["gordura_pct", "Gordura", "%"],
-  ["cintura_cm", "Cintura", "cm"],
-  ["quadril_cm", "Quadril", "cm"],
-  ["braco_cm", "Braço", "cm"],
-  ["coxa_cm", "Coxa", "cm"],
-  ["peito_cm", "Peito", "cm"],
-] as const;
+// Todas as medidas da avaliação (menos altura, que não muda), na ordem do formulário.
+const CAMPOS = CAMPOS_MEDIDA.filter((c) => c.chave !== "altura_cm").map((c) => [c.chave, c.rotulo, c.unidade] as const);
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null);
 const br = (v: number, casas = 1) => v.toLocaleString("pt-BR", { maximumFractionDigits: casas });

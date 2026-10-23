@@ -10,6 +10,7 @@ import { vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
 import { Card, CardBody } from "@/components/ui/Card";
+import { AtivarOlharDeAguia } from "@/components/conquistas/AtivarOlharDeAguia";
 
 export const metadata = { title: "Sala de troféus" };
 
@@ -58,6 +59,8 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </div>
+
+      <AtivarOlharDeAguia alunoId={id} ativo={conquistas.some((c) => c.codigo === "olhar_de_aguia")} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold">Medalhas</h2>

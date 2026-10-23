@@ -21,10 +21,25 @@ export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
 export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12"]);
 
+/** Começo (pedido do Montinho, 23/10/2026). */
+export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
+/** Troféus que só o personal ativa (ex.: vídeo de execução recebido pelo WhatsApp). */
+export const CODIGOS_MANUAIS: CodigoConquista[] = ["olhar_de_aguia"];
+/** Exercícios com carga registrada (série válida com kg > 0). */
+export function exerciciosComCarga(s: { exercicios?: Array<{ series: Array<{ tipo: string; carga_kg: number | null }> }> }): number {
+  return (s.exercicios ?? []).filter((e) => e.series.some((x) => x.tipo !== "aquecimento" && (x.carga_kg ?? 0) > 0)).length;
+}
+
 export type CodigoConquista =
   | "primeiro_treino"
   | "primeira_meta_semanal"
   | "primeiro_mes"
+  | "missao_cumprida"
+  | "cada_quilo_conta"
+  | "terceiro_especial"
+  | "voltei_pro_jogo"
+  | "ponto_de_partida"
+  | "olhar_de_aguia"
   | "treinos_10"
   | "treinos_25"
   | "treinos_50"
@@ -118,11 +133,17 @@ export type DesafioConquista = { id: string; nome: string; inicio: string | null
 // completos ficam na biblioteca editorial (conteudo.ts).
 export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: string; repete: boolean }> = {
   primeiro_treino: { titulo: "Primeiro passo", criterio: "Concluir o primeiro treino válido, com pelo menos metade das séries prescritas.", repete: false },
-  primeira_meta_semanal: { titulo: "Primeira meta", criterio: "Cumprir pela primeira vez a meta semanal definida pelo personal.", repete: false },
+  primeira_meta_semanal: { titulo: "Semana de Respeito", criterio: "Cumprir pela primeira vez 100% da meta semanal de treinos definida pelo personal.", repete: false },
+  missao_cumprida: { titulo: "Missão Cumprida", criterio: "Concluir o primeiro treino com 100% das séries propostas.", repete: false },
+  cada_quilo_conta: { titulo: "Cada Quilo Conta", criterio: `Registrar a carga de pelo menos ${LIMITES_COMECO.exerciciosComCarga} exercícios no mesmo treino.`, repete: false },
+  terceiro_especial: { titulo: "O Terceiro É Especial", criterio: `Concluir ${LIMITES_COMECO.treinosBons} treinos com pelo menos ${LIMITES_COMECO.pctSeries}% das séries propostas.`, repete: false },
+  voltei_pro_jogo: { titulo: "Voltei pro Jogo", criterio: `Nos primeiros ${LIMITES_COMECO.diasInicio} dias da jornada, voltar a treinar depois de ${LIMITES_COMECO.pausaMin} a ${LIMITES_COMECO.pausaMax} dias sem treino (14 dias ou mais vale o “Eu voltei”).`, repete: false },
+  ponto_de_partida: { titulo: "Ponto de Partida", criterio: "Registrar a primeira avaliação física ou as primeiras medidas corporais (ou enviar o arquivo de uma avaliação).", repete: false },
+  olhar_de_aguia: { titulo: "Olhar de Águia", criterio: "Enviar ao Montinho, pelo WhatsApp, o primeiro vídeo de execução para avaliação. O Montinho ativa o troféu.", repete: false },
   relatorio_mensal: { titulo: "Conhecendo minha evolução", criterio: "Abrir pela primeira vez a evolução completa.", repete: false },
   treinos_10: { titulo: "10 treinos", criterio: "Somar 10 treinos concluídos (treinos extras e parciais não entram).", repete: false },
   semanas_consistentes_4: { titulo: "Quatro semanas consistentes", criterio: "Cumprir a meta em 4 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
-  primeiro_mes: { titulo: "Primeiro mês de participação", criterio: "Concluir 4 treinos em 3 semanas diferentes nos primeiros 35 dias, com pelo menos 28 dias desde o primeiro treino.", repete: false },
+  primeiro_mes: { titulo: "A Jornada Começou", criterio: "Completar os primeiros 28 dias da jornada, com treinos registrados em pelo menos 3 semanas diferentes.", repete: false },
   treinos_25: { titulo: "25 treinos", criterio: "Somar 25 treinos concluídos (treinos extras e parciais não entram).", repete: false },
   semanas_consistentes_5: { titulo: "Cinco semanas consistentes", criterio: "Cumprir a meta em 5 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
   semanas_consistentes_6: { titulo: "Seis semanas consistentes", criterio: "Cumprir a meta em 6 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
@@ -160,7 +181,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
 };
 
 /** Versão do critério de cada conquista (gravada junto; mudar critério nunca apaga conquista antiga). */
-export const VERSAO_CRITERIO: Record<CodigoConquista, number> = Object.fromEntries(Object.keys(CATALOGO).map((k) => [k, k === "primeiro_mes" ? 2 : 1])) as Record<CodigoConquista, number>;
+export const VERSAO_CRITERIO: Record<CodigoConquista, number> = Object.fromEntries(Object.keys(CATALOGO).map((k) => [k, k === "primeiro_mes" ? 3 : 1])) as Record<CodigoConquista, number>;
 
 export const REGRAS_CONQUISTAS = { diasRetomada: 14, registrosParaRecorde: 2, diasPrimeiroMes: 28, treinosPrimeiroMes: 4 };
 
@@ -288,6 +309,8 @@ export type EntradaConquistas = {
   baseCarga?: BaseCarga[];
   /** AAAA-MM-DD (padrão: hoje em São Paulo). */
   hoje?: string;
+  /** Primeira avaliação/medida registrada (ISO) — “Ponto de Partida”. */
+  primeiraAvaliacao?: string | null;
   /** Modo Visitante: desafios em que a pessoa entrou. */
   desafios?: DesafioConquista[];
 };
@@ -359,6 +382,32 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   const validas = ordenadas.filter((s) => ["concluida", "parcial"].includes(classificarSessao(s)));
 
   if (concluidas[0]) out.push(nova("primeiro_treino", "1", concluidas[0].iniciado_em, concluidas[0].id, "Você concluiu seu primeiro treino no app."));
+  // Começo (23/10/2026): pequenas atitudes do início.
+  const ehDoApp = (s: SessaoConquista) => s.origem !== "importado";
+  const doApp = concluidas.filter(ehDoApp);
+  const pct = (s: SessaoConquista) => (s.series_planejadas ? s.series_concluidas / s.series_planejadas : 0);
+  const completo = doApp.find((s) => s.series_planejadas > 0 && s.series_concluidas >= s.series_planejadas);
+  if (completo) out.push(nova("missao_cumprida", "1", completo.iniciado_em, completo.id, "Primeiro treino com todas as séries feitas."));
+  const bons = doApp.filter((s) => pct(s) >= LIMITES_COMECO.pctSeries / 100);
+  const terceiro = bons[LIMITES_COMECO.treinosBons - 1];
+  if (terceiro) out.push(nova("terceiro_especial", "1", terceiro.iniciado_em, terceiro.id, `${LIMITES_COMECO.treinosBons} treinos com ${LIMITES_COMECO.pctSeries}% ou mais das séries.`));
+  const comCargas = doApp.find((s) => exerciciosComCarga(s) >= LIMITES_COMECO.exerciciosComCarga);
+  if (comCargas) out.push(nova("cada_quilo_conta", "1", comCargas.iniciado_em, comCargas.id, `Cargas anotadas em ${exerciciosComCarga(comCargas)} exercícios no mesmo treino.`));
+  if (e.primeiraAvaliacao) out.push(nova("ponto_de_partida", "1", e.primeiraAvaliacao, null, "Primeira avaliação registrada: o ponto de partida da sua evolução."));
+  const validasDoApp = validas.filter(ehDoApp);
+  if (validasDoApp[0]) {
+    const d0 = dataLocal(validasDoApp[0].iniciado_em);
+    for (let i = 1; i < validasDoApp.length; i++) {
+      const b = dataLocal(validasDoApp[i].iniciado_em);
+      if (dias(d0, b) > LIMITES_COMECO.diasInicio) break;
+      const gap = dias(dataLocal(validasDoApp[i - 1].iniciado_em), b);
+      if (gap >= LIMITES_COMECO.pausaMin && gap <= LIMITES_COMECO.pausaMax) {
+        out.push(nova("voltei_pro_jogo", "1", validasDoApp[i].iniciado_em, validasDoApp[i].id, `De volta depois de ${gap} dias.`, { diasAfastado: gap }));
+        break;
+      }
+    }
+  }
+
   for (const n of [10, 25, 50] as const) {
     const s = concluidas[n - 1];
     if (s) out.push(nova(`treinos_${n}`, "1", s.iniciado_em, s.id, `Você chegou a ${n} treinos concluídos.`));

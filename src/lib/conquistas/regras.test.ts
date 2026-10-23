@@ -47,6 +47,30 @@ describe("conquistas — marcos de treinos", () => {
   });
 });
 
+describe("conquistas — Começo (23/10/2026)", () => {
+  it("Missão Cumprida (100% das séries) e O Terceiro É Especial (3 treinos com 80%+)", () => {
+    const r = detectar([s("2026-09-01", { series_concluidas: 6 }), s("2026-09-03", { series_concluidas: 8 }), s("2026-09-05", { series_concluidas: 9 }), s("2026-09-08")]);
+    expect(r.find((x) => x.codigo === "missao_cumprida")?.data.slice(0, 10)).toBe("2026-09-08");
+    expect(r.find((x) => x.codigo === "terceiro_especial")?.data.slice(0, 10)).toBe("2026-09-08");
+    expect(codigos(detectar([s("2026-09-01", { series_concluidas: 9 })]))).not.toContain("missao_cumprida");
+  });
+  it("Cada Quilo Conta: carga em 3 exercícios no mesmo treino", () => {
+    const ex = (nome: string, kg: number | null) => ({ exercicio_id: nome, nome, series: [{ tipo: "valida", carga_kg: kg, reps: 10 }] });
+    expect(codigos(detectar([s("2026-09-01", { exercicios: [ex("A", 20), ex("B", 30), ex("C", null)] })]))).not.toContain("cada_quilo_conta");
+    expect(codigos(detectar([s("2026-09-01", { exercicios: [ex("A", 20), ex("B", 30), ex("C", 5)] })]))).toContain("cada_quilo_conta");
+  });
+  it("Voltei pro Jogo: 7 a 13 dias parado, nos 30 primeiros dias; 14+ continua sendo “Eu voltei”", () => {
+    expect(codigos(detectar([s("2026-09-01"), s("2026-09-10")]))).toContain("voltei_pro_jogo");
+    const longo = codigos(detectar([s("2026-09-01"), s("2026-09-16")]));
+    expect(longo).not.toContain("voltei_pro_jogo");
+    expect(longo).toContain("eu_voltei");
+    expect(codigos(detectar([s("2026-08-01"), s("2026-08-05"), s("2026-09-10"), s("2026-09-18")]))).not.toContain("voltei_pro_jogo");
+  });
+  it("Ponto de Partida: primeira avaliação registrada", () => {
+    expect(codigos(detectarConquistas({ sessoes: [], aderencia: calcularAderencia({ inicio: "2026-08-03", hoje: "2026-10-21", metas, sessoes: [] }), primeiraAvaliacao: "2026-10-01T12:00:00Z" }))).toContain("ponto_de_partida");
+  });
+});
+
 describe("conquistas — semanas", () => {
   it("primeira meta semanal e 4 semanas seguidas (pausa não quebra)", () => {
     const xs = ["2026-09-07", "2026-09-08", "2026-09-14", "2026-09-15", "2026-09-21", "2026-09-22", "2026-09-28", "2026-09-29"].map((d) => s(d));

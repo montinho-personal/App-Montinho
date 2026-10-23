@@ -175,6 +175,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   <span aria-hidden className="text-lg">📄</span>
                   Relatório
                 </Link>
+                <Link href={`/treinador/alunos/${id}/medidas`} className={ATALHO}>
+                  <span aria-hidden className="text-lg">📏</span>
+                  Medidas
+                </Link>
                 <AtribuirTreinoButton alunoId={id} templates={templates} className={ATALHO}>
                   <span aria-hidden className="text-lg">📋</span>
                   Template

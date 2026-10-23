@@ -20,10 +20,10 @@ function jornadaDe(sessoes: SessaoConquista[], hoje: string, inicio = "2026-08-0
 const semanaCumprida = (seg: string) => [s(seg), s(somarDias(seg, 1))];
 
 describe("Minha Jornada — mapa", () => {
-  it("todas as 37 medalhas aparecem uma vez, em 4 capítulos + continuação", () => {
-    expect(Object.keys(CAPITULO_DA_MEDALHA)).toHaveLength(37);
+  it("todas as 43 medalhas aparecem uma vez, em 4 capítulos + continuação", () => {
+    expect(Object.keys(CAPITULO_DA_MEDALHA)).toHaveLength(43);
     const { j } = jornadaDe([], "2026-08-05");
-    expect(j.nos.filter((x) => x.tipo === "medalha")).toHaveLength(37);
+    expect(j.nos.filter((x) => x.tipo === "medalha")).toHaveLength(43);
     expect(j.capitulos.map((c) => c.numero)).toEqual([1, 2, 3, 4, 5]);
     expect(j.nos.filter((x) => x.tipo === "recorrente").map((x) => x.id)).toEqual(["recorde", "eu_voltei"]);
   });
@@ -36,7 +36,10 @@ describe("Minha Jornada — mapa", () => {
   it("iniciante: depois do primeiro passo e de Criando raízes", () => {
     const { j } = jornadaDe([s("2026-08-04"), s("2026-08-12")], "2026-08-13");
     const ids = j.nos.map((x) => x.id);
-    expect(j.posicao).toBe(ids.indexOf("criando_raizes") + 1);
+    // O marcador fica no último marco alcançado (Criando raízes já veio, e outros do Começo também).
+    expect(j.nos[ids.indexOf("criando_raizes")].alcancado).toBe(true);
+    expect(j.posicao).toBeGreaterThanOrEqual(ids.indexOf("criando_raizes") + 1);
+    expect(j.nos[j.posicao - 1].alcancado).toBe(true);
   });
   it("posição considera o tipo de medalha (constância, prática…), e recorde só acende sem empurrar o marcador", () => {
     const { j } = jornadaDe([s("2026-08-04")], "2026-08-05");

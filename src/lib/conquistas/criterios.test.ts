@@ -62,20 +62,20 @@ describe("Constância na vida real (3 de 4) e de verdade (8 de 12)", () => {
   });
 });
 
-describe("Primeiro mês de participação (critério v2)", () => {
-  const xs = () => [s("2026-09-01"), s("2026-09-08"), s("2026-09-15"), s("2026-09-16")];
-  it("4 treinos em 3 semanas; só depois de 28 dias do primeiro treino", () => {
+describe("A Jornada Começou (primeiro_mes, critério v3)", () => {
+  const xs = () => [s("2026-09-01"), s("2026-09-08"), s("2026-09-15")];
+  it("treinos em 3 semanas diferentes; só depois dos 28 primeiros dias", () => {
     expect(tem(detectar(xs(), "2026-09-20"), "primeiro_mes")).toBe(false);
     const r = detectar(xs(), "2026-10-21").find((x) => x.codigo === "primeiro_mes")!;
     expect(r.data).toBe("2026-09-29T15:00:00Z");
     expect(r.sessaoId).toBeNull();
-    expect(r.versao).toBe(2);
-    expect(VERSAO_CRITERIO.primeiro_mes).toBe(2);
+    expect(r.versao).toBe(3);
+    expect(VERSAO_CRITERIO.primeiro_mes).toBe(3);
   });
-  it("só 2 semanas diferentes, treino parcial ou fora dos 35 dias não contam", () => {
+  it("só 2 semanas diferentes, treino parcial ou fora dos 28 dias não contam", () => {
     expect(tem(detectar([s("2026-09-01"), s("2026-09-02"), s("2026-09-08"), s("2026-09-09")]), "primeiro_mes")).toBe(false);
-    expect(tem(detectar([s("2026-09-01"), s("2026-09-08"), s("2026-09-15"), s("2026-09-16", { series_concluidas: 2 })]), "primeiro_mes")).toBe(false);
-    expect(tem(detectar([s("2026-09-01"), s("2026-09-08"), s("2026-09-15"), s("2026-10-10")]), "primeiro_mes")).toBe(false);
+    expect(tem(detectar([s("2026-09-01"), s("2026-09-08"), s("2026-09-15", { series_concluidas: 2 })]), "primeiro_mes")).toBe(false);
+    expect(tem(detectar([s("2026-09-01"), s("2026-09-08"), s("2026-09-29")]), "primeiro_mes")).toBe(false);
   });
 });
 
