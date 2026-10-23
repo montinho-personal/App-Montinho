@@ -8,7 +8,7 @@ import { AQUECIMENTO, FALHA } from "./regras";
 
 const T = (l: string) => PRESCRICAO.treinos.find((t) => t.letra === l)!;
 const E = (l: string, nome: string) => T(l).exercicios.find((x) => x.nome === nome)!;
-const HYROX = ["Empurrar o trenó (sled push)", "Corda naval (battle rope)", "Caminhada do fazendeiro", "Puxar o trenó (sled pull)", "Remo ergômetro (rower)"];
+const HYROX = ["Sled Push", "Battle Rope", "Farmers Carry", "Sled Pull", "Rower"];
 
 describe("prescrição Operação Dublin Hybrid Queen (Ana) — conforme os prints do personal", () => {
   it("passa na validação do montador (zod) e na auditoria", () => {
@@ -17,10 +17,10 @@ describe("prescrição Operação Dublin Hybrid Queen (Ana) — conforme os prin
     expect(auditarPrescricao(PRESCRICAO).map((t) => t.letra)).toEqual(["A", "B", "C", "D"]);
   });
   it("exercícios na ordem da ficha", () => {
-    expect(T("A").exercicios.map((e) => e.nome)).toEqual(["Prancha frontal", "Agachamento no Smith", "Leg press 45°", "Cadeira extensora", "Passada andando", "Stiff com halteres", "Empurrar o trenó (sled push)", "Abdominal supra na polia em pé"]);
-    expect(T("B").exercicios.map((e) => e.nome)).toEqual(["Supino inclinado com halteres", "Puxada frontal aberta (pulley)", "Elevação lateral com halteres", "Corda naval (battle rope)", "Rosca martelo", "Caminhada do fazendeiro"]);
-    expect(T("C").exercicios.map((e) => e.nome)).toEqual(["Prancha frontal", "Cadeira flexora", "Stiff com barra", "Hip thrust com barra", "Puxar o trenó (sled pull)", "Agachamento sumô", "Subida no banco (step-up)"]);
-    expect(T("D").exercicios.map((e) => e.nome)).toEqual(["Crucifixo na máquina (peck deck)", "Remada sentada pegada aberta", "Tríceps francês com halter", "Remo ergômetro (rower)", "Crucifixo inclinado com halteres", "Thruster"]);
+    expect(T("A").exercicios.map((e) => e.nome)).toEqual(["Prancha frontal", "Agachamento no Smith", "Leg press 45°", "Cadeira extensora", "Walking Lunges", "Stiff com halteres", "Sled Push", "Abdominal supra na polia em pé"]);
+    expect(T("B").exercicios.map((e) => e.nome)).toEqual(["Supino inclinado com halteres", "Puxada frontal aberta (pulley)", "Elevação lateral com halteres", "Battle Rope", "Rosca martelo", "Farmers Carry"]);
+    expect(T("C").exercicios.map((e) => e.nome)).toEqual(["Prancha frontal", "Cadeira flexora", "Stiff com barra", "Hip thrust com barra", "Sled Pull", "Agachamento sumô", "Subida no banco (step-up)"]);
+    expect(T("D").exercicios.map((e) => e.nome)).toEqual(["Crucifixo na máquina (peck deck)", "Remada sentada pegada aberta", "Tríceps francês com halter", "Rower", "Crucifixo inclinado com halteres", "Ram Thrusters"]);
   });
   it("pirâmides, bi-sets e reps como na ficha", () => {
     expect(E("A", "Agachamento no Smith")).toMatchObject({ tecnica: "piramide", reps: "15/12/10/8" });
@@ -30,7 +30,7 @@ describe("prescrição Operação Dublin Hybrid Queen (Ana) — conforme os prin
     expect(E("C", "Stiff com barra")).toMatchObject({ tecnica: "normal", reps: "12/12/10/10" });
     expect(E("D", "Crucifixo na máquina (peck deck)").reps).toBe("15/12/10/10");
     expect(E("B", "Rosca martelo")).toMatchObject({ bloco: "B2", series: 4, reps: "10", descanso_seg: 0 });
-    expect(E("D", "Thruster")).toMatchObject({ bloco: "D2", series: 4, reps: "10" });
+    expect(E("D", "Ram Thrusters")).toMatchObject({ bloco: "D2", series: 4, reps: "10" });
     expect(E("C", "Subida no banco (step-up)").observacoes).toContain("sandbag");
     expect(E("C", "Agachamento sumô").observacoes).not.toContain("sandbag");
   });
@@ -48,7 +48,7 @@ describe("prescrição Operação Dublin Hybrid Queen (Ana) — conforme os prin
     expect(E("B", "Supino inclinado com halteres").observacoes).toContain(AQUECIMENTO);
     expect(E("C", "Cadeira flexora").observacoes).toContain(AQUECIMENTO);
     expect(E("D", "Crucifixo na máquina (peck deck)").observacoes).toContain(AQUECIMENTO);
-    expect(E("D", "Thruster").rir).toBe(0);
+    expect(E("D", "Ram Thrusters").rir).toBe(0);
     expect(E("B", "Puxada frontal aberta (pulley)").observacoes).toContain("barra no peito");
   });
   it("mantém o programa que o personal já tinha para a Ana e deixa a pendência do thruster", () => {
