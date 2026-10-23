@@ -36,7 +36,8 @@ export type Recuperacao = keyof typeof RECUPERACAO;
 
 /** Dor leve ou moderada: pode fazer, com precaução. */
 export const ehDorLeveOuModerada = (r: string | null | undefined) => r === "dor_leve" || r === "dor_moderada";
-export const AVISO_DOR_LEVE = "Com dor leve ou moderada: faça com precaução — carga mais leve, longe da falha, evite o movimento que dói e pare se a dor aumentar.";
+/** Texto do Montinho (23/10/2026). */
+export const AVISO_DOR_LEVE = "Com dor leve ou moderada: faça com precaução — carga mais leve, trabalhe mais a cadência e a amplitude do movimento e evite exercícios e movimentos que causam essa dor. Se algum exercício causar dor, troque imediatamente.";
 export const MOTIVO_DOR_FORTE = "Dor forte: hoje não faça treino extra. Converse com o personal antes de treinar mais.";
 
 export type ConfigExtra = {

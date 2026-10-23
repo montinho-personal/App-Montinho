@@ -23,6 +23,7 @@
 import type { ExercicioPrescrito } from "@/lib/supabase/types-sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { GRUPO_LABEL } from "@/lib/grupos";
+import { AVISO_DOR_LEVE } from "@/lib/treino/extra";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 
@@ -39,7 +40,7 @@ export type FocoExtra = keyof typeof FOCOS_EXTRA;
 /** Dor forte (“dor”) = sem extra; dor leve ou moderada = extra mais curto, com precaução. */
 export type CorpoExtra = "bem" | "cansado" | "dor_leve" | "dor_moderada" | "dor";
 const comDorLeve = (c: CorpoExtra) => c === "dor_leve" || c === "dor_moderada";
-const AVISO_DOR = "Com dor leve ou moderada: faça com precaução — carga mais leve, evite o movimento que dói e pare se a dor aumentar.";
+const AVISO_DOR = AVISO_DOR_LEVE;
 const MOTIVO_DOR_FORTE = "Com dor forte, hoje não tem extra. Converse com o Montinho sobre o que está sentindo: ele ajusta com você.";
 
 export const REGRAS_EXTRA_GERADO = {
