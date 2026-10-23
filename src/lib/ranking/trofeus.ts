@@ -32,3 +32,6 @@ export function fraseDoRanking(linhas: LinhaRanking[]): string {
   const onde = p ? `Você está no ${eu.posicao}º lugar: ${PODIO[p].rotulo.toLowerCase()}!` : `Você está em ${eu.posicao}º lugar.`;
   return prox ? `${onde} Faltam ${prox.faltam} ${prox.faltam === 1 ? "troféu" : "troféus"} para chegar ao ${prox.posicao}º lugar.` : onde;
 }
+
+/** Conquistas que se repetem e ficam em seções próprias: não contam como troféu no ranking (igual à sala de troféus). Espelho de 0077. */
+export const FORA_DO_RANKING = ["recorde", "eu_voltei", "desafio_concluido"] as const;

@@ -3,6 +3,7 @@
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import type { LinhaRanking } from "@/lib/ranking/trofeus";
+import { sincronizarConquistas } from "@/lib/data/conquistas";
 
 // Demonstração: pessoas fictícias.
 const DEMO: Array<{ id: string; nome: string; trofeus: number; visitante?: boolean }> = [
@@ -39,4 +40,16 @@ export async function definirRankingVisivel(visivel: boolean): Promise<void> {
   const db = await getDb();
   const { error } = await db.rpc("definir_ranking_visivel", { p_visivel: visivel });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Atualiza os troféus antes de mostrar o ranking: as conquistas só são gravadas
+ * quando a pessoa abre certas telas, então o número podia ficar atrasado.
+ * O personal atualiza todos os ativos; o aluno, só os dele.
+ */
+export async function atualizarTrofeus(alunos: Array<{ id: string; data_inicio: string | null; created_at: string; status?: string | null }>): Promise<void> {
+  const ativos = alunos.filter((a) => !a.status || a.status === "ativo");
+  for (let i = 0; i < ativos.length; i += 4) {
+    await Promise.all(ativos.slice(i, i + 4).map((a) => sincronizarConquistas(a).catch(() => null)));
+  }
 }

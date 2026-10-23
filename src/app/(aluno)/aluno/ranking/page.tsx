@@ -1,7 +1,8 @@
 // Ranking de troféus dos alunos e visitantes (0076).
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
-import { getRanking } from "@/lib/data/ranking";
+import { atualizarTrofeus, getRanking } from "@/lib/data/ranking";
+import { getAluno } from "@/lib/db";
 import { fraseDoRanking, podioDaPosicao, PODIO } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
 
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 
 export default async function RankingPage() {
   const sessao = await requireAlunoPage();
+  const aluno = await getAluno(sessao.alunoId);
+  if (aluno) await atualizarTrofeus([aluno]);
   const linhas = await getRanking(sessao.alunoId).catch(() => []);
   const eu = linhas.find((l) => l.eu);
   const p = eu ? podioDaPosicao(eu.posicao) : null;

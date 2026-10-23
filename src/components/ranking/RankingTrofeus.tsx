@@ -39,7 +39,7 @@ export function RankingTrofeus({ linhas, nomeCompleto = false }: { linhas: Linha
           const p = podioDaPosicao(l.posicao);
           return (
             <li key={`${l.posicao}-${l.nome}-${i}`} aria-current={l.eu ? "true" : undefined} className={`flex items-center gap-3 px-3 py-2.5 ${l.eu ? "bg-accent/10" : ""}`}>
-              <span className="w-8 shrink-0 text-center font-mono text-sm font-bold" style={p ? { color: PODIO[p].cor } : undefined}>{p ? PODIO[p].emoji : `${l.posicao}º`}</span>
+              <span className="w-12 shrink-0 text-center font-mono text-sm font-bold" style={p ? { color: PODIO[p].cor } : undefined}>{p ? <>{PODIO[p].emoji} {l.posicao}º</> : `${l.posicao}º`}</span>
               <span className={`min-w-0 flex-1 truncate text-sm ${l.eu ? "font-bold text-accent" : "font-semibold"}`}>
                 {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
                 {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
