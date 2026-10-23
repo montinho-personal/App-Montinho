@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { headers } from "next/headers";
+import { ofertaDoConvite } from "@/lib/visitante/mensagem-convite";
 import { notFound } from "next/navigation";
 import { FEATURES } from "@/lib/env";
 import { requireTreinadorPage } from "@/lib/auth/session";
@@ -45,7 +46,7 @@ export default async function VisitantesPage() {
         sugestao={gerarCodigo("DESAFIO")}
         base={base}
         desafios={desafios.filter((d) => d.ativa && d.meta_treinos).map((d) => ({ id: d.id, nome: d.nome }))}
-        convites={convites.map((c) => ({ id: c.id, codigo: c.codigo, prazo: descreverPrazo(c), usos: c.usos, max_usos: c.max_usos, ativo: c.ativo, valido_ate: c.valido_ate ? dataBR(c.valido_ate) : null, origem: c.origem, desafio: c.campanha_id ? (nomeDesafio.get(c.campanha_id) ?? null) : null }))}
+        convites={convites.map((c) => ({ id: c.id, codigo: c.codigo, prazo: descreverPrazo(c), oferta: ofertaDoConvite(c), usos: c.usos, max_usos: c.max_usos, ativo: c.ativo, valido_ate: c.valido_ate ? dataBR(c.valido_ate) : null, origem: c.origem, desafio: c.campanha_id ? (nomeDesafio.get(c.campanha_id) ?? null) : null }))}
       />
 
       <DesafiosClient
