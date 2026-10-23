@@ -699,3 +699,20 @@ export const salvarPlanoVisitanteSchema = z
 
 // Ditado inteligente com IA (personal, aluno e visitante).
 export const ditadoIASchema = z.object({ fala: z.string().trim().min(3).max(4000) }).strict();
+
+// Treino livre (freestyle) do visitante: exercícios entram na hora.
+const TECNICAS_LIVRE_IDS = ["normal", "dropset", "rest_pause", "biset", "triset", "superset", "piramide", "piramide_decrescente", "myo_reps", "cluster", "tres_sete", "negativo", "super_slow", "isometria", "unilateral"] as const;
+export const livreIniciarSchema = z.object({ client_key: z.string().min(4).max(80) });
+export const livreExercicioSchema = z
+  .object({
+    client_key: z.string().min(4).max(80),
+    biblioteca_id: z.string().min(1).max(80).nullable().optional(),
+    nome_livre: z.string().trim().min(2, "Dê um nome ao exercício").max(60).nullable().optional(),
+    tecnica: z.enum(TECNICAS_LIVRE_IDS).default("normal"),
+  })
+  .refine((e) => Boolean(e.biblioteca_id) !== Boolean(e.nome_livre), "Escolha um exercício da biblioteca ou escreva o nome dele");
+export const livreAjusteSchema = z.object({
+  tecnica: z.enum(TECNICAS_LIVRE_IDS).optional(),
+  /** Sem o campo = não mexe na anotação; vazio = apaga. */
+  observacao: z.string().trim().max(300).nullable().optional(),
+});

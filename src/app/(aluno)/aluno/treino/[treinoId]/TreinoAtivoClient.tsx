@@ -1081,7 +1081,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
             {outraSessao ? (
               <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
                 {presencial ? `${presencial.nomeAluno} tem` : "Você tem"} um treino em andamento ({outraSessao.nome}).{" "}
-                <Link href={presencial ? `${presencial.voltarHref}/aula/${outraSessao.treinoId}?sessao=${outraSessao.id}` : `/aluno/treino/${outraSessao.treinoId}?sessao=${outraSessao.id}`} className="text-accent underline">
+                <Link href={presencial ? `${presencial.voltarHref}/aula/${outraSessao.treinoId}?sessao=${outraSessao.id}` : outraSessao.treinoId ? `/aluno/treino/${outraSessao.treinoId}?sessao=${outraSessao.id}` : `/aluno/livre/${outraSessao.id}`} className="text-accent underline">
                   Continuar aquele
                 </Link>{" "}
                 ou comece este agora.

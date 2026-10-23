@@ -11,6 +11,7 @@ import { FEATURES } from "@/lib/env";
 import { ehVisitante } from "@/lib/auth/guards";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { contextoExtraGerado } from "@/lib/data/extra-gerado";
+import { hrefDaSessao } from "@/lib/treino/livre";
 
 export const metadata = { title: "Treinar" };
 
@@ -35,19 +36,26 @@ export default async function TreinarPage() {
       </header>
 
       {emAndamento ? (
-        <Link href={`/aluno/treino/${emAndamento.treino_id}?sessao=${emAndamento.id}`} className="block">
+        <Link href={hrefDaSessao(emAndamento)} className="block">
           <Card className="border-accent/50 bg-accent-soft">
             <CardBody className="flex items-center gap-3">
               <Icon name="play" className="text-accent" />
               <div className="flex-1">
                 <p className="font-bold text-sm">Continuar: {emAndamento.nome_treino}</p>
                 <p className="text-xs text-fg-muted">
-                  {emAndamento.series_concluidas}/{emAndamento.series_planejadas} séries registradas
+                  {emAndamento.series_planejadas ? `${emAndamento.series_concluidas}/${emAndamento.series_planejadas}` : emAndamento.series_concluidas} séries registradas
                 </p>
               </div>
               <Icon name="chevron" className="text-fg-subtle" />
             </CardBody>
           </Card>
+        </Link>
+      ) : null}
+
+      {podeMontar && !emAndamento ? (
+        <Link href="/aluno/livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+          <span className="text-2xl" aria-hidden>🎲</span>
+          <span><span className="block font-bold">Treino livre</span><span className="block text-xs text-fg-muted">Sem ficha: decida cada exercício na hora e anote tudo.</span></span>
         </Link>
       ) : null}
 

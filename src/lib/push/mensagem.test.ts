@@ -14,6 +14,7 @@ describe("notificação de treino em aberto", () => {
     const m = mensagemTreinoAberto({ sessao_id: "s2", treino_id: null, nome_treino: null, series_feitas: 0, series_planejadas: 0 });
     expect(m.titulo).toBe("Seu treino ainda está em aberto");
     expect(m.corpo).toBe("Toque para conferir e finalizar.");
-    expect(m.url).toBe("/aluno");
+    // Sem treino de origem = treino livre (a tela manda para o início se não for).
+    expect(m.url).toBe("/aluno/livre/s2");
   });
 });

@@ -342,7 +342,8 @@ export async function gravarSessaoNova(alunoId: string, clientKey: string, sessa
     if (error.code === "42501") throw new Error("Seu acesso ao app terminou. Seus treinos e medalhas continuam aqui para você ver; para voltar a treinar, fale com o Montinho.");
     throw new Error(`Não foi possível iniciar a sessão: ${error.message}`);
   }
-  const { error: exErr } = await db.from("session_exercises").insert(
+  // Treino livre começa sem exercícios (entram um a um durante o treino).
+  const { error: exErr } = !exercicios.length ? { error: null } : await db.from("session_exercises").insert(
     exercicios.map(({ id: _i, created_at: _cc, nome_normalizado: _n, ...e }) => {
       void _i; void _cc; void _n;
       return { ...e, session_id: criada.id };

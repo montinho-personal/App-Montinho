@@ -49,7 +49,7 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
               </Link>
             </>
           ) : ctx.emAndamento ? (
-            <Link href={`/aluno/treino/${ctx.emAndamento.treinoId}?sessao=${ctx.emAndamento.id}`} className="touch inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
+            <Link href={ctx.emAndamento.treinoId ? `/aluno/treino/${ctx.emAndamento.treinoId}?sessao=${ctx.emAndamento.id}` : `/aluno/livre/${ctx.emAndamento.id}`} className="touch inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
               Voltar ao treino em andamento
             </Link>
           ) : null}

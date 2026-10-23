@@ -48,6 +48,7 @@ import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { conviteLiberado, linkOferta } from "@/lib/visitante/campanhas";
 import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
 import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
+import { hrefDaSessao } from "@/lib/treino/livre";
 
 export const metadata = { title: "Início" };
 
@@ -101,7 +102,7 @@ export default async function AlunoHomePage() {
     <div className="space-y-5">
       <CelebrarAtivadas conquistas={conquistas.filter((c) => CODIGOS_MANUAIS.includes(c.codigo) && !c.vista_em)} nome={primeiroNome} />
       {/* Treinos guardados no celular para abrir sem internet na academia. */}
-      <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento ? [`/aluno/treino/${emAndamento.treino_id}?sessao=${emAndamento.id}`] : [])]} />
+      <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento && emAndamento.treino_id ? [hrefDaSessao(emAndamento)] : [])]} />
       <header>
         <p className="text-xs text-fg-subtle uppercase tracking-wider">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1 className="text-2xl font-bold leading-tight mt-1">
@@ -123,9 +124,9 @@ export default async function AlunoHomePage() {
               {emAndamento.nome_treino}
             </h2>
             <p className="text-sm text-fg-muted">
-              {emAndamento.series_concluidas} de {emAndamento.series_planejadas} séries registradas · iniciado {tempoRelativo(emAndamento.iniciado_em)}
+              {emAndamento.series_planejadas ? `${emAndamento.series_concluidas} de ${emAndamento.series_planejadas}` : emAndamento.series_concluidas} séries registradas · iniciado {tempoRelativo(emAndamento.iniciado_em)}
             </p>
-            <Link href={`/aluno/treino/${emAndamento.treino_id}?sessao=${emAndamento.id}`} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
+            <Link href={hrefDaSessao(emAndamento)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
               <Icon name="play" /> Continuar treino
             </Link>
           </CardBody>

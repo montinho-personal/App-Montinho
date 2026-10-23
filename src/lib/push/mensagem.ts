@@ -19,7 +19,7 @@ export function mensagemTreinoAberto(l: LembreteDevido): MensagemPush {
   return {
     titulo: `${nome} ainda está em aberto`,
     corpo: [progresso, "Toque para conferir e finalizar."].filter(Boolean).join(" "),
-    url: l.treino_id ? `/aluno/treino/${l.treino_id}?sessao=${l.sessao_id}` : "/aluno",
+    url: l.treino_id ? `/aluno/treino/${l.treino_id}?sessao=${l.sessao_id}` : `/aluno/livre/${l.sessao_id}`,
     tag: `treino-aberto-${l.sessao_id}`,
   };
 }
