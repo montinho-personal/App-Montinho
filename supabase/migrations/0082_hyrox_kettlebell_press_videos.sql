@@ -42,3 +42,11 @@ update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'e7-4Z3TSrhQ',
     thumbnail_url = 'https://i.ytimg.com/vi/e7-4Z3TSrhQ/hqdefault.jpg', video_validado = true
 where slug = 'sled-push' and video_id is distinct from 'e7-4Z3TSrhQ';
+
+-- Vídeos do puxar o trenó (sled pull), remo ergômetro (rower) e thruster (ram thrusters), enviados pelo personal.
+update exercicios_biblioteca set video_provider = 'youtube', video_id = 'UFBoWh4GFgQ', thumbnail_url = 'https://i.ytimg.com/vi/UFBoWh4GFgQ/hqdefault.jpg', video_validado = true
+where slug = 'sled-pull' and video_id is distinct from 'UFBoWh4GFgQ';
+update exercicios_biblioteca set video_provider = 'youtube', video_id = 'soveq2xBNpo', thumbnail_url = 'https://i.ytimg.com/vi/soveq2xBNpo/hqdefault.jpg', video_validado = true
+where slug = 'remo-ergometro' and video_id is distinct from 'soveq2xBNpo';
+update exercicios_biblioteca set video_provider = 'youtube', video_id = 'E6_KMuR87p0', thumbnail_url = 'https://i.ytimg.com/vi/E6_KMuR87p0/hqdefault.jpg', video_validado = true
+where slug = 'thruster' and video_id is distinct from 'E6_KMuR87p0';
