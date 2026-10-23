@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOGO } from "@/lib/biblioteca/catalogo";
-import { gerarOpcoes, minutosDoTreino, normalizarParametros, POOLS } from "./gerar-treino";
+import { comLocalPermitido, gerarOpcoes, minutosDoTreino, normalizarParametros, POOLS } from "./gerar-treino";
 
 const TODOS = CATALOGO.map((e) => e.slug);
 
@@ -46,5 +46,12 @@ describe("gerador de treinos do visitante", () => {
   });
   it("estimativa de minutos", () => {
     expect(minutosDoTreino([{ series: 3, descansoSeg: 60 }])).toBe(11);
+  });
+});
+
+describe("treinos em casa desligados", () => {
+  it("pedido em casa vira academia; academia fica igual", () => {
+    expect(comLocalPermitido(normalizarParametros({ local: "casa" })).local).toBe("academia");
+    expect(comLocalPermitido(normalizarParametros({ local: "academia", dias: 4 }))).toMatchObject({ local: "academia", dias: 4 });
   });
 });

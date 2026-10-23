@@ -16,8 +16,10 @@ describe("treinos prontos", () => {
   it("slugs e nomes únicos; só aprovados aparecem fora da demonstração", () => {
     expect(new Set(TREINOS_PRONTOS.map((t) => t.slug)).size).toBe(TREINOS_PRONTOS.length);
     expect(new Set(TREINOS_PRONTOS.map((t) => t.nome)).size).toBe(TREINOS_PRONTOS.length);
-    expect(prontosVisiveis(true)).toHaveLength(TREINOS_PRONTOS.length);
+    // Na demonstração aparecem todos, menos os de casa enquanto estiverem desligados.
+    expect(prontosVisiveis(true)).toHaveLength(TREINOS_PRONTOS.filter((t) => t.parametros.local !== "casa").length);
     expect(prontosVisiveis(false).every((t) => t.aprovado)).toBe(true);
+    expect(prontosVisiveis(true).some((t) => t.slug === "em-casa-sem-desculpa")).toBe(false);
   });
   it("marca nas observações identifica o pronto (desafio)", () => {
     const t = TREINOS_PRONTOS[0];

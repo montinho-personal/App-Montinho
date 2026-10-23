@@ -3,7 +3,7 @@
 // (src/lib/visitante/gerar-treino.ts), então segue sempre o mesmo método.
 // `aprovado`: só aparece no app real depois que o Montinho aprova o nome
 // (na demonstração aparecem todos, para ele ver).
-import { gerarOpcoes, gerarPlanoPersonalizado, normalizarParametros, type Nivel, type OpcaoPlano, type ParametrosPlano, type PlanoPersonalizado, type Publico } from "./gerar-treino";
+import { TREINO_EM_CASA_LIGADO, gerarOpcoes, gerarPlanoPersonalizado, normalizarParametros, type Nivel, type OpcaoPlano, type ParametrosPlano, type PlanoPersonalizado, type Publico } from "./gerar-treino";
 
 export type TreinoPronto = {
   slug: string;
@@ -56,6 +56,7 @@ export const TREINOS_PRONTOS: TreinoPronto[] = [
   T("perna-de-aco", "Pernas de Aço", "🦵", "Quadríceps, posteriores e panturrilha", "Pernas como prioridade, com um dia só de quadríceps e outro de glúteo e posteriores.", { nivel: "intermediario", dias: 4, minutos: 60, foco: "pernas" }, "B", 28, true),
   T("peitoral-de-respeito", "Peitoral de Respeito", "🛡️", "Peito em destaque, sem esquecer o resto", "Quatro treinos diferentes, com um dia de peito, ombros e tríceps bem completo.", { nivel: "intermediario", dias: 4, minutos: 55, foco: "peito" }, "B", 28, true),
   T("missao-braco-de-respeito", "Missão Braço de Respeito", "💪", "Bíceps e tríceps em destaque", "Superiores e inferiores 2× na semana, com braços como prioridade nos dias de cima.", { nivel: "intermediario", dias: 4, minutos: 55, foco: "bracos" }, "A", 28, true),
+  // Fora do ar enquanto os treinos em casa estão desligados (TREINO_EM_CASA_LIGADO).
   T("em-casa-sem-desculpa", "Em Casa, Sem Desculpa", "🏠", "Treino com halteres e peso do corpo", "Três treinos para fazer em casa, com halteres, elástico e o peso do corpo.", { nivel: "iniciante", dias: 3, minutos: 40, foco: "geral", local: "casa" }, "A", 21, true),
 
   // Inspirados em ícones do fitness e heróis (nomes que lembram, sem citar a pessoa/personagem)
@@ -130,7 +131,7 @@ export const TREINOS_PRONTOS: TreinoPronto[] = [
   T("costas-em-v-de-vitoria", "Costas em V de Vitória", "🦅", "Largura e espessura nas costas", "Puxadas e remadas em primeiro lugar, 2× na semana.", { nivel: "intermediario", dias: 4, minutos: 55, foco: "costas" }, "A", 28),
 ];
 
-export const prontosVisiveis = (demo: boolean) => TREINOS_PRONTOS.filter((t) => demo || t.aprovado);
+export const prontosVisiveis = (demo: boolean) => TREINOS_PRONTOS.filter((t) => (demo || t.aprovado) && (TREINO_EM_CASA_LIGADO || t.parametros.local !== "casa"));
 export const prontoPorSlug = (slug: string) => TREINOS_PRONTOS.find((t) => t.slug === slug) ?? null;
 
 /** O plano do treino pronto (os treinos A, B, C… com os exercícios da biblioteca). */

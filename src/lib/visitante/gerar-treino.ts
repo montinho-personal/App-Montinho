@@ -35,6 +35,16 @@ export const FONTES_DO_PLANO = ["acsm2026", "currier2023", "schoenfeld2016freque
 export const AVISO_RESPONSABILIDADE =
   "Treinos montados com base em estudos científicos sobre treinamento de força e nos exercícios da biblioteca do Montinho. São sugestões gerais, não uma prescrição individual: não substituem a avaliação e o acompanhamento feitos por um profissional, que é o mais importante. Respeite seus limites; com dor, lesão, gestação ou alguma condição de saúde, procure um profissional antes de começar. Quer um treino feito para você? Fale com o Montinho.";
 
+/**
+ * Treinos em casa desligados (23/10/2026): a biblioteca ainda não tem os
+ * exercícios de casa com vídeo. Quando o Montinho cadastrar, religar aqui
+ * (volta o pronto “Em Casa, Sem Desculpa” e a opção “Em casa” do Monte com IA).
+ */
+export const TREINO_EM_CASA_LIGADO = false;
+export const AVISO_CASA = "Treinos para fazer em casa estão chegando. Por enquanto, montamos para a academia.";
+/** Pedido de treino em casa vira academia enquanto os treinos em casa estiverem desligados. */
+export const comLocalPermitido = <T extends { local: Local }>(p: T): T => (TREINO_EM_CASA_LIGADO || p.local !== "casa" ? p : { ...p, local: "academia" });
+
 export const LIMITES_PLANO = { diasMin: 2, diasMax: 6, minutosMin: 25, minutosMax: 90, exerciciosMin: 4, exerciciosMax: 9 };
 
 export const ROTULO_FOCO: Record<Foco, string> = {

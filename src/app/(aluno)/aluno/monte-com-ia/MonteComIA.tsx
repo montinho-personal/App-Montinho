@@ -10,18 +10,18 @@ import { Button } from "@/components/ui/Button";
 import { BRAND } from "@/config/brand";
 import { OpcaoPlanoCard } from "@/components/visitante/OpcaoPlanoCard";
 import type { OpcaoVista } from "@/lib/data/plano-visitante";
-import { ROTULO_FOCO, ROTULO_NIVEL, type Foco, type Nivel, type ParametrosPlano } from "@/lib/visitante/gerar-treino";
+import { ROTULO_FOCO, ROTULO_NIVEL, TREINO_EM_CASA_LIGADO, type Foco, type Nivel, type ParametrosPlano } from "@/lib/visitante/gerar-treino";
 
 const EXEMPLOS = [
   "Sou iniciante, 3 dias por semana, 45 minutos",
   "Quero focar em glúteo, 4 dias, 1 hora",
-  "Treino em casa, 3x na semana, meia hora",
+  TREINO_EM_CASA_LIGADO ? "Treino em casa, 3x na semana, meia hora" : "Treino curto, 3x na semana, meia hora",
   "Já treino, 5 dias, quero braço e peito",
 ];
 
 type Resposta =
   | { bloqueio: "saude"; mensagem: string }
-  | { bloqueio?: undefined; parametros: ParametrosPlano; resumo: string; usouIA: boolean; opcoes: OpcaoVista[]; parecidos: Array<{ slug: string; nome: string; emoji: string; chamada: string }> };
+  | { bloqueio?: undefined; parametros: ParametrosPlano; resumo: string; usouIA: boolean; aviso?: string | null; opcoes: OpcaoVista[]; parecidos: Array<{ slug: string; nome: string; emoji: string; chamada: string }> };
 
 
 export function MonteComIA({ temTreinos }: { temTreinos: boolean }) {
@@ -92,6 +92,7 @@ export function MonteComIA({ temTreinos }: { temTreinos: boolean }) {
           <section className="space-y-2 rounded-xl border border-border bg-surface p-3" aria-label="O que entendi">
             <p className="text-xs font-bold uppercase tracking-wider text-fg-muted">Entendi assim · confira</p>
             <p className="text-sm font-semibold">{resposta.resumo}</p>
+            {resposta.aviso ? <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">🏠 {resposta.aviso}</p> : null}
             <div className="flex flex-wrap gap-2">
               <select aria-label="Nível" className={chip} value={p.nivel} onChange={(e) => void pedir({ ...p, nivel: e.target.value as Nivel })}>
                 {(Object.keys(ROTULO_NIVEL) as Nivel[]).map((n) => <option key={n} value={n}>{ROTULO_NIVEL[n]}</option>)}
@@ -107,7 +108,7 @@ export function MonteComIA({ temTreinos }: { temTreinos: boolean }) {
               </select>
               <select aria-label="Local" className={chip} value={p.local} onChange={(e) => void pedir({ ...p, local: e.target.value as ParametrosPlano["local"] })}>
                 <option value="academia">Academia</option>
-                <option value="casa">Em casa</option>
+                {TREINO_EM_CASA_LIGADO ? <option value="casa">Em casa</option> : null}
               </select>
             </div>
           </section>

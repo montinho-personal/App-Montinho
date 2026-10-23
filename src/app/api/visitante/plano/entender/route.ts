@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { FEATURES, isDemoMode } from "@/lib/env";
 import { entenderPedidoComIA } from "@/lib/ia/entender-pedido";
 import { opcaoParaTela, opcoesParaVisitante, padraoDoVisitante } from "@/lib/data/plano-visitante";
-import { normalizarParametros } from "@/lib/visitante/gerar-treino";
+import { AVISO_CASA, comLocalPermitido, normalizarParametros } from "@/lib/visitante/gerar-treino";
 import { lerPedido, MENSAGEM_SAUDE, resumoDoPedido } from "@/lib/visitante/pedido-treino";
 import { nomeVisivel, prontosParecidos, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
 import { requireVisitanteEmDiaApi } from "@/lib/visitante/guarda-api";
@@ -33,8 +33,10 @@ export async function POST(request: Request) {
       usouIA = true;
     }
   }
-  const p = normalizarParametros({ ...parametros, ...(data.ajuste ?? {}) });
+  const pedido = normalizarParametros({ ...parametros, ...(data.ajuste ?? {}) });
+  const p = comLocalPermitido(pedido);
+  const aviso = pedido.local !== p.local ? AVISO_CASA : null;
   const { biblioteca, opcoes } = await opcoesParaVisitante(p);
   const parecidos = prontosParecidos(p, prontosVisiveis(isDemoMode())).map((t) => ({ slug: t.slug, nome: nomeVisivel(t), emoji: t.emoji, chamada: t.chamada }));
-  return NextResponse.json({ parametros: p, resumo: resumoDoPedido(p), usouIA, opcoes: opcoes.map((o) => opcaoParaTela(o, biblioteca)), parecidos });
+  return NextResponse.json({ parametros: p, resumo: resumoDoPedido(p), usouIA, aviso, opcoes: opcoes.map((o) => opcaoParaTela(o, biblioteca)), parecidos });
 }
