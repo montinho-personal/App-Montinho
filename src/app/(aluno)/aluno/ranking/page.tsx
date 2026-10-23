@@ -5,6 +5,7 @@ import { atualizarTrofeus, getRanking } from "@/lib/data/ranking";
 import { getAluno } from "@/lib/db";
 import { fraseDoRanking, podioDaPosicao, PODIO } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
+import { NarrativaRanking } from "@/components/ranking/NarrativaRanking";
 
 export const metadata = { title: "Ranking de troféus" };
 export const dynamic = "force-dynamic";
@@ -18,11 +19,7 @@ export default async function RankingPage() {
   const p = eu ? podioDaPosicao(eu.posicao) : null;
   return (
     <div className="space-y-5">
-      <header>
-        <p className="text-xs font-bold uppercase tracking-wider text-accent">Gamificação</p>
-        <h1 className="text-2xl font-bold">Ranking de troféus</h1>
-        <p className="mt-1 text-sm text-fg-muted">Quem tem mais troféus diferentes na turma do Montinho. Empatou em troféus? Vence a constância (veja o * no fim).</p>
-      </header>
+      <NarrativaRanking />
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
         {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} {eu.trofeus === 1 ? "troféu" : "troféus"}</span></p> : null}
         <p className="text-sm font-semibold">{fraseDoRanking(linhas)}</p>
