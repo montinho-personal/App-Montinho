@@ -54,3 +54,17 @@ describe("ler o treino inteiro", () => {
     expect(lerTreinoEscrito("Pernas:\nLeg press 4x10\nDia 2\nRosca direta 3x10", BIB).map((t) => t.nome)).toEqual(["Pernas", "Treino 2"]);
   });
 });
+
+describe("fala corrida (microfone, sem vírgula)", () => {
+  it("separa os exercícios depois das séries/carga", () => {
+    const t = lerTreinoEscrito("supino reto 4 de 10 com 30 quilos leg press 3 de 12 aquele de puxar três séries de doze", BIB);
+    expect(t[0].exercicios.map((e) => [e.nome, e.series, e.reps, e.cargaKg])).toEqual([
+      ["Supino reto", 4, "10", 30],
+      ["Leg press", 3, "12", null],
+      ["Aquele de puxar", 3, "12", null],
+    ]);
+  });
+  it("“4x10” e “3 séries” seguidos de outro exercício", () => {
+    expect(lerTreinoEscrito("rosca direta 3x12 elevação lateral 4 séries de 15 descanso 60 puxada frente", BIB)[0].exercicios.map((e) => e.nome)).toEqual(["Rosca direta", "Elevação lateral", "Puxada frente"]);
+  });
+});

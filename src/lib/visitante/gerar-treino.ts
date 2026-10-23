@@ -27,7 +27,7 @@ export type ParametrosPlano = { nivel: Nivel; dias: number; minutos: number; foc
 export const FONTES_DO_PLANO = ["acsm2026", "currier2023", "schoenfeld2016frequencia", "schoenfeld2017cargas", "grgic2022falha", "schoenfeld2016descanso", "haugen2023"] as const;
 
 export const AVISO_RESPONSABILIDADE =
-  "Treinos montados com base em estudos científicos sobre treinamento de força e nos exercícios da biblioteca do Montinho. São sugestões gerais, não uma prescrição individual: não substituem a avaliação e o acompanhamento de um profissional de Educação Física, que é o mais importante. Respeite seus limites; com dor, lesão, gestação ou alguma condição de saúde, procure um profissional antes de começar. Quer um treino feito para você? Fale com o Montinho.";
+  "Treinos montados com base em estudos científicos sobre treinamento de força e nos exercícios da biblioteca do Montinho. São sugestões gerais, não uma prescrição individual: não substituem a avaliação e o acompanhamento feitos por um profissional, que é o mais importante. Respeite seus limites; com dor, lesão, gestação ou alguma condição de saúde, procure um profissional antes de começar. Quer um treino feito para você? Fale com o Montinho.";
 
 export const LIMITES_PLANO = { diasMin: 2, diasMax: 6, minutosMin: 25, minutosMax: 90, exerciciosMin: 4, exerciciosMax: 9 };
 

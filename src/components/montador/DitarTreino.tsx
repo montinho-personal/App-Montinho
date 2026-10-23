@@ -10,6 +10,8 @@ import { METODOS } from "@/lib/volume/tecnicas";
 import { GRUPO_COR } from "@/lib/grupos";
 import { configDaLinha, interpretarDitado, juntarFala, metodoFinal, resumoSeries, type LinhaDitada } from "@/lib/treino/ditado";
 import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
+import { ditadoDaIA } from "@/lib/treino/ditado-ia";
+import { useDitadoIA } from "@/components/voz/useDitadoIA";
 
 export type { LinhaDitada };
 
@@ -70,7 +72,17 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
   }, [aberto]);
 
   const fala = texto.trim();
-  const ditado = useMemo(() => interpretarDitado(fala, itens, { favoritos, uso }), [fala, itens, favoritos, uso]);
+  const local = useMemo(() => interpretarDitado(fala, itens, { favoritos, uso }), [fala, itens, favoritos, uso]);
+  // Ditado inteligente: quando a pessoa para de falar/digitar, a IA organiza a fala.
+  const ia = useDitadoIA();
+  const resIA = ia.resultadoPara(fala);
+  const ditado = useMemo(() => (resIA ? ditadoDaIA(resIA, itens, { favoritos, uso }) : local), [resIA, local, itens, favoritos, uso]);
+  const { organizar, disponivel: iaDisponivel } = ia;
+  useEffect(() => {
+    if (!aberto || ouvindo || !iaDisponivel || fala.length < 3) return;
+    const id = window.setTimeout(() => void organizar(fala), 900);
+    return () => window.clearTimeout(id);
+  }, [aberto, ouvindo, fala, iaDisponivel, organizar]);
   const trocas = trocasDe.fala === fala ? trocasDe.trocas : {};
   const removidos = trocasDe.fala === fala ? trocasDe.removidos : new Set<number>();
   const setTrocas = (fn: (t: Record<number, string>) => Record<number, string>) => setTrocasDe({ fala, trocas: fn(trocas), removidos });
@@ -219,6 +231,11 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
                     className="w-full rounded-xl border border-border bg-bg p-3 text-sm outline-none focus:border-accent"
                   />
                   {!temMic ? <p className="mt-1 text-[11px] text-fg-subtle">Dica: use o microfone do teclado do celular para ditar aqui.</p> : null}
+                  {ia.disponivel && fala ? (
+                    <p className="mt-1 text-[11px] font-semibold" role="status">
+                      {ia.lendo ? <span className="text-accent">✨ Organizando com IA…</span> : resIA ? <span className="text-accent">✨ Organizado pela IA · confira e ajuste</span> : ia.falhou ? <span className="text-warning">A IA não conseguiu agora; usei a leitura simples.</span> : null}
+                    </p>
+                  ) : null}
 
                   {ditado.metodoGeral ? (
                     <p className="mt-3 text-xs font-semibold text-accent">Todos em {ROTULO_METODO.get(ditado.metodoGeral) ?? ditado.metodoGeral}</p>
@@ -285,7 +302,7 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
                       Substituir os {existentes} exercício(s) que já estão no treino {letra} (senão, entram no fim)
                     </label>
                   ) : null}
-                  <button type="button" disabled={!validas.length} onClick={aplicar} className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-bg disabled:opacity-40">
+                  <button type="button" disabled={!validas.length || ia.lendo} onClick={aplicar} className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-bg disabled:opacity-40">
                     Aplicar {validas.length || ""} exercício(s) no treino {letra}
                   </button>
                 </div>

@@ -696,3 +696,6 @@ export const salvarPlanoVisitanteSchema = z
     substituir: z.boolean(),
   })
   .strict();
+
+// Ditado inteligente com IA (personal, aluno e visitante).
+export const ditadoIASchema = z.object({ fala: z.string().trim().min(3).max(4000) }).strict();

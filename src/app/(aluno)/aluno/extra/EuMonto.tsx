@@ -6,6 +6,8 @@
 import { useState } from "react";
 import { useDitado } from "@/components/voz/useDitado";
 import { interpretarDitado } from "@/lib/treino/ditado";
+import { ditadoDaIA } from "@/lib/treino/ditado-ia";
+import type { ResultadoInterpretacao } from "@/lib/ia/interpretar-treino";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { LIMITES_EXTRA_LIVRE } from "@/lib/treino/extra-gerado";
 
@@ -18,20 +20,27 @@ const novaChave = () => Math.random().toString(36).slice(2, 10);
 export function EuMonto({ itens, setItens, biblioteca, atalhos, seriesDisponiveis }: { itens: ItemEscolhido[]; setItens: (f: (a: ItemEscolhido[]) => ItemEscolhido[]) => void; biblioteca: ItemBiblioteca[]; atalhos: Atalho[]; seriesDisponiveis: number }) {
   const voz = useDitado();
   const [naoEntendi, setNaoEntendi] = useState<string[]>([]);
+  const [organizando, setOrganizando] = useState(false);
   const total = itens.reduce((n, i) => n + i.series, 0);
   const cheio = itens.length >= L.maxExercicios;
 
   function adicionar(novos: Array<Omit<ItemEscolhido, "chave">>) {
     setItens((a) => [...a, ...novos.map((n) => ({ ...n, chave: novaChave() }))].slice(0, L.maxExercicios));
   }
-  function usarFala() {
+  async function usarFala() {
     voz.parar();
     const fala = voz.texto.trim();
     if (!fala) return;
-    const d = interpretarDitado(fala, biblioteca);
-    const achados = d.exercicios.filter((x) => x.escolhido);
+    // Ditado inteligente (IA) quando ligado; senão, a leitura simples.
+    setOrganizando(true);
+    const resp = await fetch("/api/ia/ditado", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fala: fala.slice(0, 4000) }) }).catch(() => null);
+    const j = (await resp?.json().catch(() => null)) as { resultado?: ResultadoInterpretacao | null } | null;
+    setOrganizando(false);
+    const d = j?.resultado ? ditadoDaIA(j.resultado, biblioteca) : interpretarDitado(fala, biblioteca);
+    // Com IA: só entra o que ela achou na biblioteca; o resto aparece em “não entendi”.
+    const achados = d.exercicios.filter((x) => x.escolhido && (!j?.resultado || x.confianca === "alta"));
     adicionar(achados.map((x) => ({ nome: x.escolhido!.nome, biblioteca_id: x.escolhido!.id, series: Math.min(L.maxSeries, x.series ?? L.seriesPadrao), reps: x.reps ?? L.repsPadrao })));
-    setNaoEntendi([...d.exercicios.filter((x) => !x.escolhido).map((x) => x.falado), ...d.naoEntendido].filter(Boolean));
+    setNaoEntendi([...d.exercicios.filter((x) => !achados.includes(x)).map((x) => x.falado), ...d.naoEntendido].filter(Boolean));
     voz.setTexto("");
   }
   const mudar = (chave: string, patch: Partial<ItemEscolhido>) => setItens((a) => a.map((i) => (i.chave === chave ? { ...i, ...patch } : i)));
@@ -55,8 +64,8 @@ export function EuMonto({ itens, setItens, biblioteca, atalhos, seriesDisponivei
         )}
         {voz.erroMic ? <p className="text-xs text-warning">{voz.erroMic}</p> : null}
         <textarea value={voz.texto} onChange={(e) => voz.setTexto(e.target.value)} rows={2} placeholder="Ex.: rosca direta 3 de 12, elevação lateral 3 de 15" aria-label="O que você quer treinar" className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm" />
-        <button type="button" disabled={!voz.texto.trim() || cheio} onClick={usarFala} className="touch w-full rounded-lg border border-accent/60 px-4 py-2 text-sm font-bold text-accent disabled:opacity-50">
-          Adicionar à lista
+        <button type="button" disabled={!voz.texto.trim() || cheio || organizando} onClick={() => void usarFala()} className="touch w-full rounded-lg border border-accent/60 px-4 py-2 text-sm font-bold text-accent disabled:opacity-50">
+          {organizando ? "✨ Organizando…" : "Adicionar à lista"}
         </button>
         {naoEntendi.length ? <p className="text-xs text-warning">Não reconheci: {naoEntendi.join(", ")}. Tente o nome como aparece no seu treino.</p> : null}
       </div>

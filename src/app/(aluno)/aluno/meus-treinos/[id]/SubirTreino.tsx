@@ -5,7 +5,9 @@
 // arquivo vai para o Montinho montar). O resultado vira rascunho no montador.
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { lerTreinoEscrito, type ItemParaCasar, type TreinoLido } from "@/lib/visitante/importar-treino";
+import { lerTreinoEscrito, PADRAO_LIDO, type ItemParaCasar, type TreinoLido } from "@/lib/visitante/importar-treino";
+import type { ResultadoInterpretacao } from "@/lib/ia/interpretar-treino";
+import { useDitado } from "@/components/voz/useDitado";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const EXEMPLO = "Treino A - Peito e tríceps\nSupino reto 4x10 30kg\nCrucifixo 3x12\nTríceps corda 3 séries de 12\n\nTreino B - Pernas\nLeg press 4x12\nAquele de esticar a perna 3x15";
@@ -33,17 +35,56 @@ async function base64DoArquivo(f: File): Promise<string> {
   return btoa(bin);
 }
 
+/** “12/10/8” → “8-12” (o montador do visitante usa número ou faixa). */
+function repsSimples(r: string | null): string {
+  const n = (r ?? "").match(/\d{1,3}/g)?.map(Number).filter((x) => x > 0 && x <= 100) ?? [];
+  if (!n.length) return PADRAO_LIDO.reps;
+  const [a, b] = [Math.min(...n), Math.max(...n)];
+  return a === b ? String(a) : `${a}-${b}`;
+}
+
+/** Resultado do ditado inteligente → treinos lidos (mesmo formato do leitor sem IA). */
+function lidosDaIA(res: ResultadoInterpretacao, itens: ItemParaCasar[]): TreinoLido[] {
+  const porId = new Map(itens.map((i) => [i.id, i]));
+  return res.treinos.map((t, k) => ({
+    nome: t.nome ?? (res.treinos.length > 1 ? `Treino ${String.fromCharCode(65 + k)}` : "Meu treino"),
+    exercicios: t.exercicios.map((e) => {
+      const item = e.bibliotecaId ? porId.get(e.bibliotecaId) : undefined;
+      return {
+        texto: e.falado,
+        nome: item?.nome ?? e.nomeLivre ?? e.falado.slice(0, 60),
+        series: e.series ?? PADRAO_LIDO.series,
+        reps: repsSimples(e.reps),
+        cargaKg: e.cargaKg,
+        descansoSeg: e.descansoSeg,
+        bibliotecaId: item?.id ?? null,
+        confianca: item ? ("certeza" as const) : ("nenhuma" as const),
+      };
+    }),
+  })).filter((t) => t.exercicios.length);
+}
+
 const tipoDe = (f: File) => f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : /\.hei[cf]$/i.test(f.name) ? "image/heic" : "");
 
 export function SubirTreino({ itens, onLido, demo }: { itens: ItemParaCasar[]; onLido: (treinos: TreinoLido[]) => void; demo: boolean }) {
   const [modo, setModo] = useState<Modo>("escolher");
-  const [texto, setTexto] = useState("");
+  const voz = useDitado();
+  const texto = voz.texto;
+  const setTexto = voz.setTexto;
+  const [organizando, setOrganizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [estado, setEstado] = useState<EstadoArquivo>({ fase: "livre" });
 
-  function montarDoTexto(t: string): boolean {
-    const lidos = lerTreinoEscrito(t, itens);
+  /** Ditado inteligente (IA) quando ligado; senão, o leitor sem IA. */
+  async function montarDoTexto(t: string): Promise<boolean> {
+    voz.parar();
+    setOrganizando(true);
+    const r = await fetch("/api/ia/ditado", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fala: t.slice(0, 4000) }) }).catch(() => null);
+    const j = (await r?.json().catch(() => null)) as { resultado?: ResultadoInterpretacao | null } | null;
+    setOrganizando(false);
+    const daIA = j?.resultado ? lidosDaIA(j.resultado, itens) : [];
+    const lidos = daIA.length ? daIA : lerTreinoEscrito(t, itens);
     if (!lidos.length) return false;
     onLido(lidos);
     return true;
@@ -65,7 +106,7 @@ export function SubirTreino({ itens, onLido, demo }: { itens: ItemParaCasar[]; o
       const j = (await r.json().catch(() => ({}))) as { ia?: boolean; texto?: string | null; error?: string };
       if (!r.ok) return setEstado({ fase: "sem_leitura", motivo: j.error ?? "Não foi possível ler agora." });
       if (!j.ia) return setEstado({ fase: "sem_leitura", motivo: "A leitura automática ainda não está ligada." });
-      if (j.texto && montarDoTexto(j.texto)) return setEstado({ fase: "livre" });
+      if (j.texto && (await montarDoTexto(j.texto))) return setEstado({ fase: "livre" });
       setEstado({ fase: "sem_leitura", motivo: "Não consegui ler o treino nesse arquivo." });
     } catch {
       setEstado({ fase: "sem_leitura", motivo: "Não consegui abrir esse arquivo." });
@@ -119,11 +160,17 @@ export function SubirTreino({ itens, onLido, demo }: { itens: ItemParaCasar[]; o
       {modo === "escrever" ? (
         <div className="space-y-2">
           <label htmlFor="treino-escrito" className="block text-sm font-semibold">Escreva um exercício por linha</label>
+          {voz.temMic ? (
+            <button type="button" onClick={voz.alternar} aria-pressed={voz.ouvindo} className={`touch flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold ${voz.ouvindo ? "animate-pulse bg-danger text-white" : "bg-accent text-bg"}`}>
+              {voz.ouvindo ? "● Ouvindo… toque para parar" : "🎤 Toque e fale o seu treino"}
+            </button>
+          ) : null}
+          {voz.erroMic ? <p className="text-xs text-warning">{voz.erroMic}</p> : null}
           <textarea id="treino-escrito" value={texto} onChange={(e) => setTexto(e.target.value.slice(0, 6000))} rows={9} placeholder={EXEMPLO} className="block w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm" />
-          <p className="text-xs text-fg-subtle">Vale do jeito que você fala: “supino 4x10 30kg”, “puxada três séries de doze”. Não sabe o nome? Escreva do seu jeito (“aquele de puxar”). Para ditar, toque no 🎤 do teclado. Vários treinos? Comece cada um com “Treino A”, “Treino B”…</p>
+          <p className="text-xs text-fg-subtle">Vale do jeito que você fala: “supino 4 de 10 com 30 quilos, puxada três séries de doze”. Não sabe o nome? Fale do seu jeito (“aquele de puxar”). Pode falar tudo seguido, sem pausa. Vários treinos? Diga “treino A … treino B …”.</p>
           {erro ? <p className="text-sm text-danger" role="alert">{erro}</p> : null}
           <div className="flex gap-2">
-            <Button type="button" className="flex-1" onClick={() => (montarDoTexto(texto) ? undefined : setErro("Não encontrei exercícios. Escreva um por linha, ex.: “Supino 4x10”."))}>Montar a lista</Button>
+            <Button type="button" className="flex-1" disabled={organizando || !texto.trim()} onClick={() => void montarDoTexto(texto).then((ok) => (ok ? undefined : setErro("Não encontrei exercícios. Ex.: “Supino 4 de 10, leg press 3 de 12”.")))}>{organizando ? "✨ Organizando…" : "Montar a lista"}</Button>
             <Button type="button" variant="ghost" onClick={() => { setModo("escolher"); setErro(null); }}>Voltar</Button>
           </div>
         </div>

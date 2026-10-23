@@ -108,6 +108,7 @@ export function lerLinha(original: string): Omit<ExercicioLido, "bibliotecaId" |
     }
   };
   // Descanso: “descanso 60s”, “60 seg”, “1 min”, “1’30”.
+  tirar(/\b(?:descanso|intervalo|pausa)\s*(?:de\s*)?(\d{2,3})\b(?!\s*(?:s|seg|segundos?|min|minutos?)\b)/, (m) => (descanso = Number(m[1])));
   tirar(/\b(?:descanso|intervalo|pausa)?\s*(\d{1,3})\s*(s|seg|segundos?)\b/, (m) => (descanso = Number(m[1])));
   tirar(/\b(?:descanso|intervalo|pausa)?\s*(\d)\s*(?:min|minutos?)(?:\s*e?\s*(\d{1,2})\s*(?:s|seg)?)?\b/, (m) => (descanso = Number(m[1]) * 60 + Number(m[2] ?? 0)));
   // Carga: “30kg”, “30 quilos”, “12,5 kg”.
@@ -171,7 +172,21 @@ function nomeOriginal(original: string, nomeNorm: string): string {
 }
 
 /** Separa “supino 4x10, puxada 3x12” (voz/WhatsApp) em itens, sem quebrar nomes com vírgula. */
-function quebrarItens(linha: string): string[] {
+// Número em dígito ou por extenso (como sai do microfone).
+const N = "(?:\\d{1,3}|um|uma|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezoito|vinte)";
+// Fim de um exercício falado: “4 de 10”, “4x10”, “3 séries de 12”, “8 a 12”, “com 30 quilos”, “descanso 60”.
+const FIM_DE_ITEM = new RegExp(
+  `(\\b${N}\\s*(?:x|×|de|por)\\s*${N}(?:\\s*(?:a|-|até)\\s*${N})?(?:\\s*repeti[cç](?:ão|ões|oes))?|\\b${N}\\s*s[eé]ries?(?:\\s*(?:de|com)\\s*${N}(?:\\s*(?:a|-|até)\\s*${N})?)?(?:\\s*repeti[cç](?:ão|ões|oes))?)((?:\\s*(?:com\\s*)?\\d{1,3}(?:[.,]\\d{1,2})?\\s*(?:kg|quilos?|kilos?))?(?:\\s*(?:e\\s*)?descanso\\s*(?:de\\s*)?\\d{1,3}\\s*(?:s|seg|segundos?|min|minutos?)?)?)(?=\\s+[a-zà-ú]|\\s*$)`,
+  "gi"
+);
+
+/** Fala corrida (sem vírgula): separa depois de cada “4 de 10”, “três séries de doze”, “30 quilos”… */
+export function separarFalaCorrida(linha: string): string {
+  return linha.replace(FIM_DE_ITEM, "$1$2;");
+}
+
+function quebrarItens(linhaOriginal: string): string[] {
+  const linha = separarFalaCorrida(linhaOriginal);
   const partes = linha.split(/\s*;\s*|\s+(?:e depois|depois|e em seguida|em seguida)\s+/i);
   const out: string[] = [];
   for (const p of partes) {

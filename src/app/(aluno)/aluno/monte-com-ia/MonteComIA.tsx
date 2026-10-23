@@ -4,7 +4,8 @@
 // que o app entendeu, escolhe a opção A ou B e os treinos já entram em
 // Meus treinos, editáveis.
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useDitado } from "@/components/voz/useDitado";
 import { Button } from "@/components/ui/Button";
 import { BRAND } from "@/config/brand";
 import { OpcaoPlanoCard } from "@/components/visitante/OpcaoPlanoCard";
@@ -22,51 +23,19 @@ type Resposta =
   | { bloqueio: "saude"; mensagem: string }
   | { bloqueio?: undefined; parametros: ParametrosPlano; resumo: string; usouIA: boolean; opcoes: OpcaoVista[]; parecidos: Array<{ slug: string; nome: string; emoji: string; chamada: string }> };
 
-type Reconhecimento = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void; onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
 
 export function MonteComIA({ temTreinos }: { temTreinos: boolean }) {
-  const [texto, setTexto] = useState("");
+  const voz = useDitado();
+  const texto = voz.texto;
+  const setTexto = voz.setTexto;
   const [carregando, setCarregando] = useState(false);
   const [resposta, setResposta] = useState<Resposta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [substituir, setSubstituir] = useState(true);
   const [salvando, setSalvando] = useState<"A" | "B" | null>(null);
-  const [ouvindo, setOuvindo] = useState(false);
-  const [vozDisponivel, setVozDisponivel] = useState(false);
-  const rec = useRef<Reconhecimento | null>(null);
-
-  useEffect(() => {
-    const w = window as unknown as { SpeechRecognition?: new () => Reconhecimento; webkitSpeechRecognition?: new () => Reconhecimento };
-    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) return;
-    const r = new Ctor();
-    r.lang = "pt-BR";
-    r.interimResults = false;
-    r.continuous = false;
-    r.onresult = (e) => {
-      const falado = Array.from(e.results).map((x) => x[0]?.transcript ?? "").join(" ").trim();
-      if (falado) setTexto((t) => (t ? `${t} ${falado}` : falado));
-    };
-    r.onend = () => setOuvindo(false);
-    r.onerror = () => setOuvindo(false);
-    rec.current = r;
-    const id = window.setTimeout(() => setVozDisponivel(true), 0);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  function falar() {
-    if (!rec.current) return;
-    if (ouvindo) return rec.current.stop();
-    setOuvindo(true);
-    try {
-      rec.current.start();
-    } catch {
-      setOuvindo(false);
-    }
-  }
-
   async function pedir(ajuste?: Partial<ParametrosPlano>) {
     setErro(null);
+    voz.parar();
     if (texto.trim().length < 3) return setErro("Conte o treino que você quer. Ex.: “iniciante, 3 dias, 45 minutos”.");
     setCarregando(true);
     const r = await fetch("/api/visitante/plano/entender", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: texto.trim(), ...(ajuste ? { ajuste } : {}) }) }).catch(() => null);
@@ -95,13 +64,13 @@ export function MonteComIA({ temTreinos }: { temTreinos: boolean }) {
         <label htmlFor="pedido" className="block text-sm font-semibold">Diga o treino que você quer</label>
         <div className="relative">
           <textarea id="pedido" value={texto} onChange={(e) => setTexto(e.target.value.slice(0, 600))} rows={3} placeholder="Ex.: sou iniciante, 3 dias por semana, 45 minutos, quero focar em glúteo" className="block w-full rounded-xl border border-border bg-bg px-3 py-2 pr-14 text-base" />
-          {vozDisponivel ? (
-            <button type="button" onClick={falar} aria-pressed={ouvindo} aria-label={ouvindo ? "Parar de ouvir" : "Falar o pedido"} className={`absolute bottom-2 right-2 grid h-10 w-10 place-items-center rounded-full text-lg ${ouvindo ? "animate-pulse bg-danger text-white" : "bg-accent text-bg"}`}>
+          {voz.temMic ? (
+            <button type="button" onClick={voz.alternar} aria-pressed={voz.ouvindo} aria-label={voz.ouvindo ? "Parar de ouvir" : "Falar o pedido"} className={`absolute bottom-2 right-2 grid h-10 w-10 place-items-center rounded-full text-lg ${voz.ouvindo ? "animate-pulse bg-danger text-white" : "bg-accent text-bg"}`}>
               🎤
             </button>
           ) : null}
         </div>
-        <p className="text-[11px] text-fg-subtle">{vozDisponivel ? "Toque no 🎤 e fale, ou escreva." : "Para falar, toque no 🎤 do teclado do celular."} Conte quantos dias, quanto tempo, seu nível e o que quer focar.</p>
+        <p className="text-[11px] text-fg-subtle">{voz.temMic ? (voz.ouvindo ? "Ouvindo… fale à vontade e toque no 🎤 para parar." : "Toque no 🎤 e fale, ou escreva.") : "Para falar, toque no 🎤 do teclado do celular."} Conte quantos dias, quanto tempo, seu nível e o que quer focar.</p>
         <div className="flex flex-wrap gap-1.5">
           {EXEMPLOS.map((e) => (
             <button key={e} type="button" onClick={() => setTexto(e)} className="rounded-full border border-border px-3 py-1.5 text-xs text-fg-muted hover:border-accent/60">{e}</button>
