@@ -9,7 +9,7 @@ import { dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { CONFIG_EXTRA_PADRAO } from "@/lib/treino/extra";
 import type { ComponentProps } from "react";
 import { ExtrasClient } from "./ExtrasClient";
-import { opcoesExtraParaPersonal } from "@/lib/data/extra-gerado";
+import { faixasDoPersonal, opcoesExtraParaPersonal } from "@/lib/data/extra-gerado";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
 
@@ -28,7 +28,7 @@ export default async function TreinosExtrasPage({ searchParams }: { searchParams
   let detalhe: ComponentProps<typeof ExtrasClient>["detalhe"] = null;
   if (alunoId) {
     const [config, extras, plano, sessoes, sugestao, biblioteca] = await Promise.all([getConfigExtra(alunoId), listarExtras(alunoId), getPlanoAtivo(alunoId), listSessoes(alunoId, { limite: 60 }), sugestaoExtraDoAluno(alunoId), listarBiblioteca()]);
-    const opcoes = await opcoesExtraParaPersonal(alunoId, sugestao.sugestao).catch(() => []);
+    const [opcoes, faixas] = await Promise.all([opcoesExtraParaPersonal(alunoId, sugestao.sugestao).catch(() => []), faixasDoPersonal().catch(() => [])]);
     const semana = inicioDaSemana(dataLocal(new Date()));
     const extrasFeitos = sessoes.filter((s) => s.modo === "extra").slice(0, 12);
     const seriesSemana = extrasFeitos.filter((s) => dataLocal(s.iniciado_em) >= semana).reduce((n, s) => n + (sessaoRecente(s).series_extra ?? 0), 0);
@@ -41,6 +41,7 @@ export default async function TreinosExtrasPage({ searchParams }: { searchParams
       feitos: extrasFeitos.map((s) => ({ id: s.id, titulo: s.nome_treino ?? "Treino extra", data: s.iniciado_em, duracaoMin: s.duracao_seg ? Math.round(s.duracao_seg / 60) : null, series: s.series_concluidas })),
       seriesSemana,
       opcoes,
+      faixas,
       motivoSemOpcoes: plano.treinos.some((t) => t.ativo) ? sugestao.motivo : "Monte o treino do aluno primeiro: as opções de extra usam os exercícios do plano dele.",
       biblioteca: biblioteca.filter((b) => b.contaVolume !== false && b.grupo !== "cardio").map((b) => ({ id: b.id, nome: b.nome, grupo: b.grupo, busca: normalizarNome([b.nome, ...(b.sinonimos ?? [])].join(" ")) })),
     };

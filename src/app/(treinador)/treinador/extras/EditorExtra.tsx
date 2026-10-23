@@ -12,10 +12,12 @@ export type ItemBibliotecaLeve = { id: string; nome: string; grupo: string; busc
 
 const inp = "h-9 rounded-md border border-border bg-bg px-2";
 
-export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, salvando, rotuloBotao, onAprovar, onCancelar }: {
+export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, faixas = [], salvando, rotuloBotao, onAprovar, onCancelar }: {
   tituloInicial: string;
   itensIniciais: ItemExtraAprovado[];
   biblioteca: ItemBibliotecaLeve[];
+  /** Faixas de repetições para tocar (as mais usadas + o padrão). */
+  faixas?: string[];
   salvando: boolean;
   rotuloBotao: string;
   onAprovar: (titulo: string, itens: ItemExtraAprovado[]) => void;
@@ -26,6 +28,8 @@ export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, salvando
   // null = fechado; -1 = adicionar; i = trocar o exercício i.
   const [buscando, setBuscando] = useState<number | null>(null);
   const [q, setQ] = useState("");
+  // Linha com as faixas de repetições abertas (ao tocar no campo de reps).
+  const [faixasDe, setFaixasDe] = useState<number | null>(null);
   const achados = useMemo(() => {
     const t = normalizarNome(q);
     if (t.length < 2) return [];
@@ -81,9 +85,27 @@ export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, salvando
                 ))}
               </select>
               séries ×
-              <input value={x.reps} onChange={(e) => mudar(i, { reps: e.target.value.slice(0, 20) })} aria-label={`Repetições de ${x.nome}`} className={`${inp} w-20 text-center`} />
+              <input value={x.reps} onFocus={() => setFaixasDe(i)} onBlur={() => setTimeout(() => setFaixasDe((f) => (f === i ? null : f)), 150)} onChange={(e) => mudar(i, { reps: e.target.value.slice(0, 20) })} aria-label={`Repetições de ${x.nome}`} className={`${inp} w-28 text-center`} />
               reps
             </div>
+            {faixasDe === i && faixas.length ? (
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Faixas de repetições para ${x.nome}`}>
+                {faixas.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      mudar(i, { reps: f });
+                      setFaixasDe(null);
+                    }}
+                    className={`alvo rounded-full border px-2.5 py-1 font-mono text-xs ${x.reps === f ? "border-accent bg-accent/20 text-accent" : "border-border text-fg-muted hover:border-accent/60 hover:text-fg"}`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>

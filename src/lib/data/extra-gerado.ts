@@ -5,7 +5,10 @@ import { getAluno } from "@/lib/db";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { getSessaoEmAndamento, gravarSessaoNova, exerciciosDaSessao, listSessoes, type SessaoCompleta } from "@/lib/data/sessoes";
 import { exigirExtraLiberado, getConfigExtra, sessaoRecente } from "@/lib/data/extras";
-import { juntarOpcoes, type OpcaoExtra } from "@/lib/treino/extra-opcoes";
+import { faixasSugeridas, juntarOpcoes, type OpcaoExtra } from "@/lib/treino/extra-opcoes";
+import { isDemoMode } from "@/lib/env";
+import { getDb } from "@/lib/supabase/rls";
+import { demoStore } from "@/lib/mock/store";
 import type { ItemExtraAprovado, Recuperacao } from "@/lib/treino/extra";
 import type { SugestaoExtra } from "@/lib/treino/sugestao-extra";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
@@ -247,4 +250,12 @@ export async function atalhosDoPlano(alunoId: string): Promise<Array<{ nome: str
   return exs
     .filter((x) => x.conta_volume !== false && x.grupo_muscular && x.grupo_muscular !== "cardio" && !vistos.has(normalizarNome(x.nome)) && vistos.add(normalizarNome(x.nome)))
     .map((x) => ({ nome: x.nome, biblioteca_id: x.biblioteca_id ?? null, grupo: x.grupo_muscular }));
+}
+
+/** Faixas de repetições para o editor de extras: as mais usadas nas fichas do personal + o padrão. */
+export async function faixasDoPersonal(): Promise<string[]> {
+  if (isDemoMode()) return faixasSugeridas(demoStore().exercicios.map((e) => e.reps));
+  const db = await getDb();
+  const { data } = await db.from("exercicios").select("reps").is("removido_em", null).limit(5000);
+  return faixasSugeridas((data ?? []).map((r) => String(r.reps ?? "")));
 }

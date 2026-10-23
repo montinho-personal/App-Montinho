@@ -24,3 +24,16 @@ describe("opções de treino extra", () => {
     expect(descricaoDosItens([item("Cadeira extensora")])).toBe("Cadeira extensora: 4 × 10-12.");
   });
 });
+
+import { faixasSugeridas } from "./extra-opcoes";
+describe("faixas de repetições sugeridas", () => {
+  it("as mais usadas primeiro, depois o padrão, sem repetir nem lixo", () => {
+    const h = [...Array(5).fill("20/15/12/10"), ...Array(3).fill("8-12"), "12", "12", "/", "60s", "60s", "7"];
+    const r = faixasSugeridas(h);
+    expect(r.slice(0, 3)).toEqual(["20/15/12/10", "8-12", "12"]);
+    expect(r).toContain("10-12");
+    expect(r).not.toContain("/");
+    expect(r).not.toContain("7"); // usado 1 vez só
+    expect(new Set(r).size).toBe(r.length);
+  });
+});

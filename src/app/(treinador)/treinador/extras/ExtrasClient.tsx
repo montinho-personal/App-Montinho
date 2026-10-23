@@ -16,7 +16,7 @@ import { DitarExtra } from "./DitarExtra";
 type Pendente = { id: string; aluno: string; titulo: string; classificacao: string; motivos: string[]; recuperacao: Recuperacao | null; tempo: number | null; data: string };
 type Config = { habilitado: boolean; requer_aprovacao: boolean; aprovacao_so_intensos: boolean; max_por_semana: number; dias_permitidos: number[]; limite_series_semana: number; intervalo_min_horas: number; observacao: string | null };
 type Extra = { id: string; modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number; ativo: boolean; exercicios: ItemExtraAprovado[] | null };
-type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number; opcoes: OpcaoExtra[]; motivoSemOpcoes: string; biblioteca: ItemBibliotecaLeve[] } | null;
+type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number; opcoes: OpcaoExtra[]; faixas: string[]; motivoSemOpcoes: string; biblioteca: ItemBibliotecaLeve[] } | null;
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const CLASSE: Record<string, string> = { liberado: "dentro das regras", aprovacao: "precisa da sua aprovação", nao_recomendado: "o app não recomendou" };
@@ -142,6 +142,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                         tituloInicial={o.titulo}
                         itensIniciais={o.itens}
                         biblioteca={detalhe.biblioteca}
+                        faixas={detalhe.faixas}
                         salvando={salvando}
                         rotuloBotao="Aprovar e liberar"
                         onAprovar={async (titulo, itens) => {
@@ -269,6 +270,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                     tituloInicial={editandoPronto.titulo}
                     itensIniciais={editandoPronto.exercicios ?? []}
                     biblioteca={detalhe.biblioteca}
+                        faixas={detalhe.faixas}
                     salvando={salvando}
                     rotuloBotao="Salvar alterações"
                     onCancelar={() => setEditandoPronto(null)}

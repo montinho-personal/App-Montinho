@@ -47,3 +47,21 @@ export function juntarOpcoes(candidatas: Array<OpcaoExtra | null>): OpcaoExtra[]
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Faixas de repetições sugeridas (toque rápido no editor): primeiro as que o
+// personal mais usa nas fichas, depois o padrão do Montinho.
+// ---------------------------------------------------------------------------
+export const FAIXAS_PADRAO = ["20/15/12/10", "20", "15", "12", "10", "10-12", "12-15", "8-10", "8-12", "15-20"] as const;
+const FAIXA_VALIDA = /^(\d{1,2}(-\d{1,2})?)(\/\d{1,2}(-\d{1,2})?)*$/;
+
+export function faixasSugeridas(historico: string[], max = 12): string[] {
+  const conta = new Map<string, number>();
+  for (const r of historico) {
+    const f = (r ?? "").replace(/\s+/g, "").replace(/–/g, "-");
+    if (f.length > 20 || !FAIXA_VALIDA.test(f)) continue;
+    conta.set(f, (conta.get(f) ?? 0) + 1);
+  }
+  const usadas = [...conta.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).map(([f]) => f);
+  return [...new Set([...usadas.slice(0, 6), ...FAIXAS_PADRAO])].slice(0, max);
+}
