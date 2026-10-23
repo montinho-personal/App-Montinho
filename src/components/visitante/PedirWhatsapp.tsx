@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
-import { whatsappBR } from "@/lib/visitante/whatsapp";
+import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
 
 /** Aviso no início para o visitante que entrou antes do WhatsApp obrigatório. Some depois de salvar. */
 export function PedirWhatsapp() {
@@ -15,7 +15,7 @@ export function PedirWhatsapp() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
-    if (!whatsappBR(numero)) return setErro("Digite seu WhatsApp com DDD, ex.: (11) 98765-4321.");
+    if (!whatsappBR(numero)) return setErro(MSG_WHATSAPP);
     setEstado("enviando");
     const r = await fetch("/api/visitante/whatsapp", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ whatsapp: numero.trim() }) }).catch(() => null);
     if (!r?.ok) {
@@ -44,8 +44,8 @@ export function PedirWhatsapp() {
             <h2 className="mt-1 font-bold leading-tight">Qual é o seu WhatsApp?</h2>
           </div>
           <div>
-            <Label htmlFor="whatsapp-visitante">WhatsApp com DDD</Label>
-            <Input id="whatsapp-visitante" type="tel" inputMode="tel" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="(11) 98765-4321" autoComplete="tel-national" required />
+            <Label htmlFor="whatsapp-visitante">WhatsApp com DDD (fora do Brasil: + código do país)</Label>
+            <Input id="whatsapp-visitante" type="tel" inputMode="tel" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="(11) 98765-4321" autoComplete="tel" required />
             <FieldHint>Para o Montinho falar com você sobre o seu acesso e os desafios.</FieldHint>
           </div>
           {erro ? (

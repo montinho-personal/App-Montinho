@@ -1,6 +1,6 @@
 // Validação de entrada no servidor (zod). Mensagens em PT-BR.
 import { z } from "zod";
-import { whatsappBR } from "@/lib/visitante/whatsapp";
+import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
 
 export const GRUPOS = [
   "peito", "costas", "ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio",
@@ -509,7 +509,7 @@ const whatsappCampo = z
   .string()
   .trim()
   .max(30)
-  .refine((v) => whatsappBR(v) != null, "Digite seu WhatsApp com DDD, ex.: (11) 98765-4321")
+  .refine((v) => whatsappBR(v) != null, MSG_WHATSAPP)
   .transform((v) => whatsappBR(v)!);
 
 /** Visitante que entrou antes do WhatsApp obrigatório informa o número (0063). */

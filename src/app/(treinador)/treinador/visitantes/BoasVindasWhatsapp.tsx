@@ -11,9 +11,9 @@ export function BoasVindasWhatsapp({ id, telefone, mensagem }: { id: string; tel
   const [copiado, setCopiado] = useState(false);
   const [salvando, setSalvando] = useState(false);
   async function salvarNumero() {
-    const digitado = window.prompt("WhatsApp com DDD (ex.: 11 98765-4321):", telefone ?? "");
+    const digitado = window.prompt("WhatsApp com DDD (ex.: 11 98765-4321). Fora do Brasil: + código do país (ex.: +351 912 345 678):", telefone ?? "");
     if (digitado == null) return;
-    if (!whatsappBR(digitado)) return window.alert("Número inválido. Use o DDD, ex.: 11 98765-4321.");
+    if (!whatsappBR(digitado)) return window.alert("Número inválido. Use o DDD (ex.: 11 98765-4321) ou, fora do Brasil, + código do país (ex.: +351 912 345 678).");
     setSalvando(true);
     const r = await fetch(`/api/treinador/visitantes/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "whatsapp", whatsapp: digitado }) }).catch(() => null);
     setSalvando(false);

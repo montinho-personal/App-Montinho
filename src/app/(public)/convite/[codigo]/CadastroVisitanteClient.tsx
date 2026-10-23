@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { eventoGa } from "@/components/analytics/ga";
-import { whatsappBR } from "@/lib/visitante/whatsapp";
+import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
 
 export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
   const [nome, setNome] = useState("");
@@ -22,7 +22,7 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
     setErro(null);
     if (nome.trim().length < 2) return setErro("Digite seu nome.");
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErro("Digite um e-mail válido.");
-    if (!whatsappBR(whatsapp)) return setErro("Digite seu WhatsApp com DDD, ex.: (11) 98765-4321.");
+    if (!whatsappBR(whatsapp)) return setErro(MSG_WHATSAPP);
     if (senha.length < 8) return setErro("A senha precisa de pelo menos 8 caracteres.");
     if (!aceite) return setErro("Para continuar, aceite a política de privacidade.");
     setEnviando(true);
@@ -58,8 +58,8 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
         <Input id="email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" autoComplete="email" required />
       </div>
       <div>
-        <Label htmlFor="whatsapp">WhatsApp com DDD</Label>
-        <Input id="whatsapp" type="tel" inputMode="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 98765-4321" autoComplete="tel-national" required />
+        <Label htmlFor="whatsapp">WhatsApp com DDD (fora do Brasil: + código do país)</Label>
+        <Input id="whatsapp" type="tel" inputMode="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 98765-4321" autoComplete="tel" required />
         <FieldHint>Para o Montinho falar com você sobre o seu acesso e os desafios.</FieldHint>
       </div>
       <div>

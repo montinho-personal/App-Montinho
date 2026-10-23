@@ -52,10 +52,11 @@ export function mensagemLinkSenha(e: { nome: string; email: string; link: string
   ].join("\n");
 }
 
-/** wa.me com o número do aluno (Brasil: acrescenta 55 quando falta). Sem número: o WhatsApp pede o contato. */
+/** wa.me com o número do aluno (Brasil: acrescenta 55 quando falta; com “+”, número de outro país). Sem número: o WhatsApp pede o contato. */
 export function linkWhatsApp(telefone: string | null | undefined, texto: string): string {
+  const internacional = (telefone ?? "").trim().startsWith("+");
   let d = (telefone ?? "").replace(/\D/g, "");
-  if (d.length === 10 || d.length === 11) d = `55${d}`;
-  const alvo = d.length >= 12 && d.length <= 13 ? d : "";
+  if (!internacional && (d.length === 10 || d.length === 11)) d = `55${d}`;
+  const alvo = internacional ? (d.length >= 8 && d.length <= 15 ? d : "") : d.length >= 12 && d.length <= 13 ? d : "";
   return `https://wa.me/${alvo}?text=${encodeURIComponent(texto)}`;
 }

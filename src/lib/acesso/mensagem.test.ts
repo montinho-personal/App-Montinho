@@ -29,6 +29,8 @@ describe("mensagem de acesso do aluno", () => {
   it("WhatsApp com DDI do Brasil; sem número abre para escolher o contato", () => {
     expect(linkWhatsApp("(11) 98765-4321", "oi")).toBe("https://wa.me/5511987654321?text=oi");
     expect(linkWhatsApp("+55 11 98765-4321", "oi")).toBe("https://wa.me/5511987654321?text=oi");
+    expect(linkWhatsApp("+258838489986", "oi")).toBe("https://wa.me/258838489986?text=oi");
+    expect(linkWhatsApp("+13055550123", "oi")).toBe("https://wa.me/13055550123?text=oi");
     expect(linkWhatsApp(null, "a b")).toBe("https://wa.me/?text=a%20b");
     expect(linkWhatsApp("123", "x")).toBe("https://wa.me/?text=x");
   });
