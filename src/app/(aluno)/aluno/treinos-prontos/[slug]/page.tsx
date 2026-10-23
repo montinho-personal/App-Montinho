@@ -10,7 +10,7 @@ import { getPlanoAtivo } from "@/lib/data/programas";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { opcaoParaTela } from "@/lib/data/plano-visitante";
 import { podeRegistrar } from "@/lib/visitante/acesso";
-import { planoDoPronto, prontoPorSlug, progressoDesafio } from "@/lib/visitante/treinos-prontos";
+import { nomeVisivel, planoDoPronto, prontoPorSlug, progressoDesafio } from "@/lib/visitante/treinos-prontos";
 import { ROTULO_NIVEL } from "@/lib/visitante/gerar-treino";
 import { AvisoBaseCientifica } from "@/components/visitante/AvisoBaseCientifica";
 import { OpcaoPlanoCard } from "@/components/visitante/OpcaoPlanoCard";
@@ -34,9 +34,10 @@ export default async function TreinoProntoPage({ params }: { params: Promise<{ s
       <Link href="/aluno/treinos-prontos" className="alvo text-sm text-fg-muted hover:text-fg">← Treinos prontos</Link>
       <header className="rounded-2xl border border-accent/40 bg-grain-strong p-5">
         <p className="text-5xl" aria-hidden>{t.emoji}</p>
-        <h1 className="mt-2 text-2xl font-black leading-tight">{t.nome}</h1>
+        <h1 className="mt-2 text-2xl font-black leading-tight">{nomeVisivel(t)}</h1>
         <p className="font-semibold text-accent">{t.chamada}</p>
         <p className="mt-2 text-sm text-fg-muted">{t.descricao}</p>
+        {t.inspiracao ? <p className="mt-2 rounded-lg bg-bg/50 px-3 py-2 text-xs text-fg-muted">💡 {t.inspiracao}</p> : null}
         <p className="mt-2 text-xs text-fg-subtle">{ROTULO_NIVEL[t.parametros.nivel]} · {t.parametros.dias} treinos por semana · ~{t.parametros.minutos} min{t.parametros.local === "casa" ? " · em casa" : ""}</p>
       </header>
       <section className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">

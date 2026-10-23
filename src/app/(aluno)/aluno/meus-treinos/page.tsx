@@ -15,7 +15,7 @@ import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
 import { meusEnviosPendentes } from "@/lib/data/treinos-enviados";
 import { listSessoes } from "@/lib/data/sessoes";
 import { dataLocal } from "@/lib/aderencia/calcular";
-import { progressoDesafio, prontoDaMarca, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
+import { nomeVisivel, progressoDesafio, prontoDaMarca, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
 import { BRAND } from "@/config/brand";
 
 export const metadata = { title: "Meus treinos" };
@@ -62,14 +62,14 @@ export default async function MeusTreinosPage() {
           {vitrine.length ? (
             <Link href="/aluno/treinos-prontos" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
               <span className="text-2xl" aria-hidden>🔥</span>
-              <span><span className="block font-bold">Treinos prontos do Montinho</span><span className="block text-xs text-fg-muted">{vitrine.slice(0, 2).map((t) => t.nome).join(", ")} e mais. Com desafio.</span></span>
+              <span><span className="block font-bold">Treinos prontos do Montinho</span><span className="block text-xs text-fg-muted">{vitrine.slice(0, 2).map((t) => nomeVisivel(t)).join(", ")} e mais. Com desafio.</span></span>
             </Link>
           ) : null}
         </div>
       ) : null}
       {pronto && desafio ? (
         <section className="space-y-2 rounded-xl border border-accent/40 bg-grain-strong px-4 py-3" aria-label="Desafio">
-          <p className="text-xs font-bold uppercase tracking-wider text-accent">{pronto.emoji} Desafio {pronto.desafioDias} dias · {pronto.nome}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-accent">{pronto.emoji} Desafio {pronto.desafioDias} dias · {nomeVisivel(pronto)}</p>
           {desafio.concluido ? (
             <p className="text-sm font-semibold">🏆 Desafio concluído! {desafio.feitos} treinos. Isso é constância de verdade.</p>
           ) : desafio.terminou ? (
@@ -79,7 +79,7 @@ export default async function MeusTreinosPage() {
           )}
           <div className="h-2 overflow-hidden rounded-full bg-bg/60" aria-hidden><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, Math.round((desafio.feitos / Math.max(1, desafio.meta)) * 100))}%` }} /></div>
           {desafio.concluido || desafio.terminou ? (
-            <a href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(`Olá, Montinho! Terminei o desafio ${pronto.nome} e quero um treino feito para mim. [APP-DESAFIO-PRONTO]`)}`} target="_blank" rel="noopener noreferrer" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Quero o próximo passo com o Montinho →</a>
+            <a href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(`Olá, Montinho! Terminei o desafio ${nomeVisivel(pronto)} e quero um treino feito para mim. [APP-DESAFIO-PRONTO]`)}`} target="_blank" rel="noopener noreferrer" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Quero o próximo passo com o Montinho →</a>
           ) : null}
         </section>
       ) : null}

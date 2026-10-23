@@ -7,7 +7,7 @@ import { entenderPedidoComIA } from "@/lib/ia/entender-pedido";
 import { opcaoParaTela, opcoesParaVisitante, padraoDoVisitante } from "@/lib/data/plano-visitante";
 import { normalizarParametros } from "@/lib/visitante/gerar-treino";
 import { lerPedido, MENSAGEM_SAUDE, resumoDoPedido } from "@/lib/visitante/pedido-treino";
-import { prontosParecidos, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
+import { nomeVisivel, prontosParecidos, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
 import { requireVisitanteEmDiaApi } from "@/lib/visitante/guarda-api";
 import { entenderPedidoSchema, lerJson } from "@/lib/validacao/schemas";
 
@@ -35,6 +35,6 @@ export async function POST(request: Request) {
   }
   const p = normalizarParametros({ ...parametros, ...(data.ajuste ?? {}) });
   const { biblioteca, opcoes } = await opcoesParaVisitante(p);
-  const parecidos = prontosParecidos(p, prontosVisiveis(isDemoMode())).map((t) => ({ slug: t.slug, nome: t.nome, emoji: t.emoji, chamada: t.chamada }));
+  const parecidos = prontosParecidos(p, prontosVisiveis(isDemoMode())).map((t) => ({ slug: t.slug, nome: nomeVisivel(t), emoji: t.emoji, chamada: t.chamada }));
   return NextResponse.json({ parametros: p, resumo: resumoDoPedido(p), usouIA, opcoes: opcoes.map((o) => opcaoParaTela(o, biblioteca)), parecidos });
 }
