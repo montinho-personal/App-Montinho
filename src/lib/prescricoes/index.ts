@@ -7,6 +7,7 @@ import * as mrBellagio from "./missao-mr-bellagio";
 import * as exMerendeira from "./projeto-ex-merendeira";
 import * as corpoEsculpido from "./missao-corpo-esculpido";
 import * as shapeLutador from "./operacao-shape-lutador";
+import * as dublinHybrid from "./operacao-dublin-hybrid-queen";
 
 export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[] };
 
@@ -16,6 +17,7 @@ export const PRESCRICOES: PrescricaoPronta[] = [
   { id: exMerendeira.ID_PRESCRICAO, titulo: `${exMerendeira.ROTULO} — Upper/Lower em sequência`, alunoNome: exMerendeira.NOME_ALUNA, plano: exMerendeira.PRESCRICAO, pendencias: exMerendeira.PENDENCIAS },
   { id: corpoEsculpido.ID_PRESCRICAO, titulo: `${corpoEsculpido.ROTULO} — 6 treinos (Seg a Sáb) + cardio no domingo`, alunoNome: corpoEsculpido.NOME_ALUNA, plano: corpoEsculpido.PRESCRICAO, pendencias: corpoEsculpido.PENDENCIAS },
   { id: shapeLutador.ID_PRESCRICAO, titulo: `${shapeLutador.ROTULO} — 5 treinos em sequência (A → E)`, alunoNome: shapeLutador.NOME_ALUNO, plano: shapeLutador.PRESCRICAO, pendencias: shapeLutador.PENDENCIAS },
+  { id: dublinHybrid.ID_PRESCRICAO, titulo: `${dublinHybrid.ROTULO} — Inferiores/Superiores 4×/semana, com HYROX em bi-set`, alunoNome: dublinHybrid.NOME_ALUNA, plano: dublinHybrid.PRESCRICAO, pendencias: dublinHybrid.PENDENCIAS },
 ];
 
 export function prescricoesParaAluno(nome: string | null | undefined): PrescricaoPronta[] {
