@@ -6,8 +6,9 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
 import { BRAND } from "@/config/brand";
+import { mensagemDoConvite } from "@/lib/visitante/mensagem-convite";
 
-type ConviteVisao = { id: string; codigo: string; prazo: string; usos: number; max_usos: number | null; ativo: boolean; valido_ate: string | null; origem: string | null; desafio: string | null };
+type ConviteVisao = { id: string; codigo: string; prazo: string; oferta: string; usos: number; max_usos: number | null; ativo: boolean; valido_ate: string | null; origem: string | null; desafio: string | null };
 
 const PRAZOS = [
   { valor: "7", rotulo: "7 dias" },
@@ -20,7 +21,7 @@ const PRAZOS = [
 
 export function ConvitesClient({ convites, sugestao, base, desafios }: { convites: ConviteVisao[]; sugestao: string; base: string; desafios: Array<{ id: string; nome: string }> }) {
   const linkDoConvite = (codigo: string) => `${base}/convite/${codigo}`;
-  const mensagem = (codigo: string) => `Oi! Separei um acesso ao app do ${BRAND.name} para você registrar seus treinos, ver sua evolução e ganhar medalhas na Jornada do Chalalá. É só tocar no link e criar sua conta: ${linkDoConvite(codigo)}`;
+  const mensagem = (c: ConviteVisao) => mensagemDoConvite(c.oferta, linkDoConvite(c.codigo), BRAND.name);
   const router = useRouter();
   const [codigo, setCodigo] = useState(sugestao);
   const [prazo, setPrazo] = useState("30");
@@ -143,7 +144,7 @@ export function ConvitesClient({ convites, sugestao, base, desafios }: { convite
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <a className="alvo inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm hover:border-white/40" href={`https://wa.me/?text=${encodeURIComponent(mensagem(c.codigo))}`} target="_blank" rel="noopener noreferrer">
+                  <a className="alvo inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm hover:border-white/40" href={`https://wa.me/?text=${encodeURIComponent(mensagem(c))}`} target="_blank" rel="noopener noreferrer">
                     Mandar no WhatsApp
                   </a>
                   <button type="button" onClick={() => void copiar(c)} className="alvo min-h-11 rounded-lg border border-border px-3 text-sm hover:border-white/40">
