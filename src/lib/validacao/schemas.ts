@@ -720,3 +720,7 @@ export const livreAjusteSchema = z.object({
   /** Sem o campo = não mexe na anotação; vazio = apaga. */
   observacao: z.string().trim().max(300).nullable().optional(),
 });
+/** Foto do aparelho (treino livre): JPEG reduzido pelo navegador. */
+export const livreFotoAparelhoSchema = z
+  .object({ base64: z.string().min(100).max(2_000_000).regex(/^[A-Za-z0-9+/=]+$/, "Imagem inválida") })
+  .strict();

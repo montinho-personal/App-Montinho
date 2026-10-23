@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { SCHEMA as PEDIDO } from "./entender-pedido";
 import { SCHEMA as DITADO } from "./interpretar-treino";
+import { SCHEMA as APARELHO } from "./reconhecer-aparelho";
 
 function problemas(no: unknown, caminho = "$"): string[] {
   if (!no || typeof no !== "object") return [];
@@ -15,5 +16,6 @@ describe("formato pedido à IA", () => {
   it("nenhum enum junto de type em lista", () => {
     expect(problemas(PEDIDO)).toEqual([]);
     expect(problemas(DITADO)).toEqual([]);
+    expect(problemas(APARELHO)).toEqual([]);
   });
 });

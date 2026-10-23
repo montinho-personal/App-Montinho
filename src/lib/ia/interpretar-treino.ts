@@ -101,7 +101,7 @@ Para cada exercício falado:
 - Vários treinos ("treino A … treino B …", "dia 1 … dia 2 …"): separe em treinos com nome. Um treino só: um item com nome null.
 - Não invente exercícios que não foram falados. Mantenha a ordem da fala. Use null para o que não foi dito.`;
 
-function listaBiblioteca(itens: ItemParaIA[]): string {
+export function listaBiblioteca(itens: ItemParaIA[]): string {
   return itens.map((i, k) => `${k + 1} | ${i.nome}${i.sinonimos.length ? ` | ${i.sinonimos.slice(0, 6).join("; ")}` : ""}`).join("\n");
 }
 
