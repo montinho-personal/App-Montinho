@@ -2,6 +2,7 @@
 
 // Quiz → feedback imediato → níveis 1, 2 e 3 (divulgação progressiva).
 // Errar não tira nada; responder não concede medalha.
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { CATEGORIAS, type ConteudoConhecimento } from "@/lib/desbloqueia/tipos";
@@ -20,7 +21,7 @@ async function postar(url: string, body: unknown) {
   }
 }
 
-export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoInicial, origem }: { conteudo: ConteudoConhecimento; fontes: Fonte[]; respostaAnterior: string | null; salvoInicial: boolean; origem: Origem | null }) {
+export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoInicial, origem, proximaHref }: { conteudo: ConteudoConhecimento; fontes: Fonte[]; respostaAnterior: string | null; salvoInicial: boolean; origem: Origem | null; proximaHref: string | null }) {
   const [resposta, setResposta] = useState<string | null>(respostaAnterior);
   const [nivel, setNivel] = useState<1 | 2 | 3>(1);
   const [salvo, setSalvo] = useState(salvoInicial);
@@ -140,6 +141,11 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
             <Button variant="secondary" onClick={alternarSalvo} aria-pressed={salvo}>{salvo ? "★ Salva" : "☆ Salvar"}</Button>
             <Button variant="gold" onClick={() => setCard(true)}>Compartilhar</Button>
           </div>
+          {proximaHref ? (
+            <Link href={proximaHref} className="alvo flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 font-semibold text-bg">Próxima pergunta →</Link>
+          ) : (
+            <Link href="/aluno/descobertas" className="alvo flex min-h-12 items-center justify-center rounded-xl border border-border px-4 font-semibold">Voltar ao álbum</Link>
+          )}
           {resultado ? (
             <button type="button" onClick={() => setResposta(null)} className="alvo text-sm text-fg-muted underline underline-offset-4 hover:text-fg">Refazer o quiz</button>
           ) : null}

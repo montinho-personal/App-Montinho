@@ -203,3 +203,16 @@ export function eventosDasDescobertas(itens: ItemAlbum[]): Array<{ chave: string
     .filter((i) => i.exploradoEm)
     .map((i) => ({ chave: `d:${i.conteudo.id}`, data: `${i.exploradoEm}T15:00:00Z`, tipo: "descoberta" as const, titulo: `Descoberta: ${i.conteudo.titulo}`, detalhe: `${i.conteudo.pergunta} — ${i.conteudo.veredito}.` }));
 }
+
+/**
+ * Próxima pergunta depois de ler uma descoberta: a próxima em número que a
+ * pessoa ainda não explorou (dando a volta no álbum); se já explorou todas,
+ * simplesmente a seguinte. Pelo álbum só valem as liberadas; pela biblioteca,
+ * todas (a biblioteca é aberta). null = não há outra.
+ */
+export function proximaDescoberta(itens: Array<Pick<ItemAlbum, "estado"> & { conteudo: Pick<ConteudoConhecimento, "id" | "numero"> }>, atualId: string, biblioteca: boolean): string | null {
+  const ordem = [...itens].filter((i) => biblioteca || i.estado !== "futuro").sort((a, b) => a.conteudo.numero - b.conteudo.numero);
+  const k = ordem.findIndex((i) => i.conteudo.id === atualId);
+  const depois = [...ordem.slice(k + 1), ...ordem.slice(0, Math.max(0, k))].filter((i) => i.conteudo.id !== atualId);
+  return (depois.find((i) => i.estado !== "explorado") ?? depois[0])?.conteudo.id ?? null;
+}
