@@ -1370,4 +1370,41 @@ end $$;
 select test_logout();
 do $$ begin if (select altura_cm from alunos where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') <> 172 then raise exception 'T43g: altura não foi para o cadastro'; end if; end $$;
 \echo 'T43 OK: medidas, arquivos de avaliação e Olhar de Águia'
+-- T44 — 0079: desempate do ranking (só o personal grava; o aluno não vê a aderência dos outros)
+select test_logout();
+update alunos set ranking_visivel = true where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+delete from conquistas_aluno where aluno_id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') and codigo not in ('recorde', 'eu_voltei', 'desafio_concluido');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'treinos_10', '1', now() - interval '1 day', 'x'), ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'treinos_25', '1', now() - interval '1 day', 'x'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_10', '1', now() - interval '9 days', 'x'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_25', '1', now() - interval '9 days', 'x');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into ranking_desempate (aluno_id, pct_semana) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100); exception when others then ok := true; end;
+  if not ok then raise exception 'T44a: aluno gravou a própria nota de desempate'; end if;
+  -- Sem números de desempate: empata em troféus e quem chegou primeiro (Bruno, 9 dias atrás) fica na frente.
+  if (select posicao from public.ranking_trofeus_v2() where eu) <> 2 then raise exception 'T44b: sem desempate, quem chegou primeiro deveria vir antes'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into ranking_desempate (aluno_id, pct_semana, semanas_seguidas, pct_4sem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 1, 70), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 75, 5, 95)
+  on conflict (aluno_id) do update set pct_semana = excluded.pct_semana, semanas_seguidas = excluded.semanas_seguidas, pct_4sem = excluded.pct_4sem;
+do $$
+begin
+  if (select aderencia_semana from public.ranking_trofeus_v2() where nome = 'Bruno Lima') <> 75 then raise exception 'T44c: personal deveria ver a aderência de todos'; end if;
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare r record;
+begin
+  select * into r from public.ranking_trofeus_v2() where eu;
+  if r.posicao <> 1 or r.aderencia_semana <> 100 then raise exception 'T44d: aderência da semana (100%% × 75%%) deveria desempatar a favor da Ana (%, %)', r.posicao, r.aderencia_semana; end if;
+  select * into r from public.ranking_trofeus_v2() where nome like 'Bruno%';
+  if r.posicao <> 2 or r.aderencia_semana is not null or not r.mesmo_total_acima then raise exception 'T44e: Bruno deveria ficar em 2º, sem a aderência exposta e marcado como empate em troféus'; end if;
+  if exists (select 1 from ranking_desempate) then raise exception 'T44f: aluno leu a tabela de desempate'; end if;
+end $$;
+select test_logout();
+\echo 'T44 OK: desempate — só o personal grava, aderência decide, aluno não vê a dos outros'
 \echo 'TODOS OS TESTES PASSARAM'

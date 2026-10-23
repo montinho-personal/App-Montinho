@@ -12,6 +12,7 @@ import { alertasDoAluno, resumoPeriodo, type AlertaTreinador } from "@/lib/relat
 import { tempoRelativo, dataBR } from "@/lib/format";
 import { NovoAlunoButton } from "./alunos/NovoAlunoModal";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
+import { salvarDesempate } from "@/lib/data/ranking";
 import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBarras";
 import { AnelPercentual } from "@/components/graficos/AnelPercentual";
 import { AcessosDoDia } from "@/components/painel/AcessosDoDia";
@@ -27,6 +28,8 @@ export default async function TreinadorDashboardPage() {
   // Dados por aluno ativo (limitado para manter o painel rápido)
   const ativos = alunos.filter((a) => a.status === "ativo").slice(0, 40);
   const aderencias = ativos.length ? await aderenciaDeTodos(ativos) : {};
+  // Desempate do ranking (0079): aproveita a conta da aderência já feita aqui.
+  await salvarDesempate(aderencias).catch(() => undefined);
   const porAluno = await Promise.all(
     ativos.map(async (a) => {
       const [sessoes, plano, checkins] = await Promise.all([listSessoes(a.id, { limite: 80 }), getPlanoAtivo(a.id), listCheckIns(a.id, 7)]);

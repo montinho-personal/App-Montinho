@@ -21,7 +21,7 @@ export default async function RankingPage() {
       <header>
         <p className="text-xs font-bold uppercase tracking-wider text-accent">Gamificação</p>
         <h1 className="text-2xl font-bold">Ranking de troféus</h1>
-        <p className="mt-1 text-sm text-fg-muted">Quem tem mais troféus diferentes na turma do Montinho. Empate divide o lugar.</p>
+        <p className="mt-1 text-sm text-fg-muted">Quem tem mais troféus diferentes na turma do Montinho. Empatou em troféus? Vence a constância (veja o * no fim).</p>
       </header>
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
         {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} troféus</span></p> : null}

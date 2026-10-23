@@ -1,7 +1,37 @@
-// Ranking de troféus (0076): quem tem mais troféus diferentes. Empate divide a
-// posição. 1º, 2º e 3º lugares = ouro, prata e bronze. Contas puras.
+// Ranking de troféus (0076/0079): quem tem mais troféus diferentes; empate em
+// troféus é decidido pela constância (DESEMPATE). 1º, 2º e 3º lugares = ouro,
+// prata e bronze. Contas puras.
+import type { ResultadoAderencia } from "@/lib/aderencia/calcular";
 
-export type LinhaRanking = { posicao: number; nome: string; trofeus: number; eu: boolean; visitante: boolean };
+export type LinhaRanking = {
+  posicao: number;
+  nome: string;
+  trofeus: number;
+  eu: boolean;
+  visitante: boolean;
+  /** Aderência da última semana fechada (só o personal e a própria pessoa recebem). */
+  aderenciaSemana?: number | null;
+  /** Mesmo número de troféus de quem está logo acima (ficou atrás no desempate). */
+  mesmoTotalAcima?: boolean;
+};
+
+/** Critérios de desempate, na ordem (texto do asterisco embaixo do ranking). */
+export const DESEMPATE =
+  "* Empate em troféus? Fica na frente quem teve a maior aderência na última semana completa (treinos feitos ÷ meta da semana, até 100%; semana de pausa não conta). Depois: mais semanas seguidas com a meta cumprida, maior aderência nas últimas 4 semanas e quem chegou primeiro ao número de troféus.";
+
+export type Desempate = { pctSemana: number | null; semanaInicio: string | null; semanasSeguidas: number; pct4Semanas: number | null };
+
+/** Números de desempate a partir da aderência (mesma conta da tela Evolução). */
+export function desempateDaAderencia(r: Pick<ResultadoAderencia, "semanas" | "sequencia" | "indices">): Desempate {
+  const fechada = r.semanas.filter((s) => !s.atual && !s.pausada && s.meta).at(-1) ?? null;
+  const pct = (v: number | null) => (v == null ? null : Math.max(0, Math.min(100, Math.round(v))));
+  return {
+    pctSemana: fechada && fechada.meta ? pct((fechada.pontos / fechada.meta) * 100) : null,
+    semanaInicio: fechada?.inicio ?? null,
+    semanasSeguidas: Math.max(0, r.sequencia.atual),
+    pct4Semanas: pct(r.indices.d28.pct),
+  };
+}
 export type Podio = "ouro" | "prata" | "bronze";
 
 export const PODIO: Record<Podio, { emoji: string; rotulo: string; cor: string }> = {
@@ -18,9 +48,9 @@ export function podioDaPosicao(posicao: number): Podio | null {
 export function proximoDegrau(linhas: LinhaRanking[]): { posicao: number; faltam: number } | null {
   const eu = linhas.find((l) => l.eu);
   if (!eu || eu.posicao === 1) return null;
-  const acima = linhas.filter((l) => l.posicao === eu.posicao - 1)[0];
+  const acima = linhas.filter((l) => l.posicao < eu.posicao).at(-1);
   if (!acima) return null;
-  return { posicao: acima.posicao, faltam: Math.max(1, acima.trofeus - eu.trofeus) };
+  return { posicao: acima.posicao, faltam: Math.max(0, acima.trofeus - eu.trofeus) };
 }
 
 export function fraseDoRanking(linhas: LinhaRanking[]): string {
@@ -30,6 +60,7 @@ export function fraseDoRanking(linhas: LinhaRanking[]): string {
   const prox = proximoDegrau(linhas);
   if (eu.posicao === 1) return "Você está no topo! Cada troféu novo ajuda a manter o ouro.";
   const onde = p ? `Você está no ${eu.posicao}º lugar: ${PODIO[p].rotulo.toLowerCase()}!` : `Você está em ${eu.posicao}º lugar.`;
+  if (prox && prox.faltam === 0) return `${onde} Você tem os mesmos troféus de quem está no ${prox.posicao}º lugar: cumpra a sua meta desta semana para passar na frente no desempate.`;
   return prox ? `${onde} Faltam ${prox.faltam} ${prox.faltam === 1 ? "troféu" : "troféus"} para chegar ao ${prox.posicao}º lugar.` : onde;
 }
 

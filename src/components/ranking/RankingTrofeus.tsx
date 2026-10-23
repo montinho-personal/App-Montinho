@@ -1,6 +1,6 @@
 // Ranking de troféus: pódio (ouro, prata, bronze) + lista. Mostra só o nome
 // que a função do banco devolve (primeiro nome e inicial para os alunos).
-import { PODIO, podioDaPosicao, type LinhaRanking } from "@/lib/ranking/trofeus";
+import { DESEMPATE, PODIO, podioDaPosicao, type LinhaRanking } from "@/lib/ranking/trofeus";
 
 const ALTURA: Record<number, string> = { 1: "h-28", 2: "h-20", 3: "h-14" };
 
@@ -44,11 +44,15 @@ export function RankingTrofeus({ linhas, nomeCompleto = false }: { linhas: Linha
                 {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
                 {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
               </span>
-              <span className="shrink-0 font-mono text-sm">{l.trofeus} <span aria-label="troféus">🏆</span></span>
+              <span className="shrink-0 text-right">
+                <span className="block font-mono text-sm">{l.trofeus}{l.mesmoTotalAcima ? <span className="text-fg-subtle" title="Empate em troféus: decidido pelo desempate">*</span> : null} <span aria-label="troféus">🏆</span></span>
+                {l.aderenciaSemana != null ? <span className="block text-[10px] text-fg-subtle">semana {l.aderenciaSemana}%</span> : null}
+              </span>
             </li>
           );
         })}
       </ol>
+      <p className="text-[11px] leading-relaxed text-fg-subtle">{DESEMPATE}</p>
     </div>
   );
 }
