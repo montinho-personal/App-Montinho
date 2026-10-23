@@ -3,7 +3,7 @@
 // (src/lib/visitante/gerar-treino.ts), então segue sempre o mesmo método.
 // `aprovado`: só aparece no app real depois que o Montinho aprova o nome
 // (na demonstração aparecem todos, para ele ver).
-import { gerarOpcoes, gerarPlanoPersonalizado, normalizarParametros, type OpcaoPlano, type ParametrosPlano, type PlanoPersonalizado } from "./gerar-treino";
+import { gerarOpcoes, gerarPlanoPersonalizado, normalizarParametros, type Nivel, type OpcaoPlano, type ParametrosPlano, type PlanoPersonalizado, type Publico } from "./gerar-treino";
 
 export type TreinoPronto = {
   slug: string;
@@ -20,6 +20,8 @@ export type TreinoPronto = {
   opcao: "A" | "B";
   /** Divisão e jeito próprios (estilos clássicos); sem isto, usa a opção A/B do gerador. */
   personalizado?: PlanoPersonalizado;
+  /** Aba da vitrine: feminino, masculino ou para todos (aparece nas duas). */
+  publico: Publico | "todos";
   /** Desafio sugerido: N dias seguindo o treino. */
   desafioDias: number;
   aprovado: boolean;
@@ -30,9 +32,22 @@ export const USAR_NOMES_REAIS = false;
 export const nomeVisivel = (t: Pick<TreinoPronto, "nome" | "nomeReal">) => (USAR_NOMES_REAIS && t.nomeReal ? t.nomeReal : t.nome);
 
 type Extra = Partial<Pick<TreinoPronto, "nomeReal" | "inspiracao" | "personalizado">>;
-const T = (slug: string, nome: string, emoji: string, chamada: string, descricao: string, p: Partial<ParametrosPlano>, opcao: "A" | "B", desafioDias: number, aprovado = false, extra: Extra = {}): TreinoPronto => ({
-  slug, nome, emoji, chamada, descricao, parametros: normalizarParametros({ ...p, ...(extra.personalizado ? { dias: extra.personalizado.sessoes.length } : {}) }), opcao, desafioDias, aprovado, ...extra,
-});
+/** Público de cada treino pronto (abas Feminino e Masculino da vitrine). Fora daqui = para todos. */
+const PUBLICO: Partial<Record<string, Publico>> = {
+  "operacao-musa-do-bumbum": "feminino", "rainha-das-pernas": "feminino", "deusa-guerreira": "feminino", "rainha-do-agachamento": "feminino", "musa-da-bulgaria": "feminino",
+  "iniciante-feminino": "feminino", "feminino-depois-do-comeco": "feminino", "projeto-calca-apertada": "feminino",
+  "peitoral-de-respeito": "masculino", "missao-braco-de-respeito": "masculino", "peitoral-era-de-ouro": "masculino", "rotina-era-de-ouro": "masculino", "projeto-fera": "masculino",
+  "missao-super-heroi": "masculino", "martelo-do-trovao": "masculino", "fisico-classico": "masculino", "rei-do-supino": "masculino",
+  "iniciante-masculino": "masculino", "masculino-depois-do-comeco": "masculino", "costas-em-v-de-vitoria": "masculino",
+};
+
+const T = (slug: string, nome: string, emoji: string, chamada: string, descricao: string, p: Partial<ParametrosPlano>, opcao: "A" | "B", desafioDias: number, aprovado = false, extra: Extra = {}): TreinoPronto => {
+  const publico = PUBLICO[slug] ?? "todos";
+  const personalizado = extra.personalizado && publico !== "todos" ? { ...extra.personalizado, publico } : extra.personalizado;
+  return {
+    slug, nome, emoji, chamada, descricao, parametros: normalizarParametros({ ...p, ...(extra.personalizado ? { dias: extra.personalizado.sessoes.length } : {}) }), opcao, desafioDias, aprovado, ...extra, personalizado, publico,
+  };
+};
 
 export const TREINOS_PRONTOS: TreinoPronto[] = [
   // Aprovados pelo Montinho em 23/10/2026
@@ -121,7 +136,7 @@ export const prontoPorSlug = (slug: string) => TREINOS_PRONTOS.find((t) => t.slu
 /** O plano do treino pronto (os treinos A, B, C… com os exercícios da biblioteca). */
 export function planoDoPronto(t: TreinoPronto, disponiveis: Iterable<string>): OpcaoPlano | null {
   if (t.personalizado) return gerarPlanoPersonalizado(t.parametros, t.personalizado, disponiveis);
-  return gerarOpcoes(t.parametros, disponiveis).find((o) => o.id === t.opcao) ?? null;
+  return gerarOpcoes(t.parametros, disponiveis, { publico: t.publico === "todos" ? undefined : t.publico }).find((o) => o.id === t.opcao) ?? null;
 }
 
 /** Marca guardada nas observações dos treinos criados a partir do pronto (para o desafio). */
@@ -151,3 +166,18 @@ export function progressoDesafio(t: Pick<TreinoPronto, "desafioDias" | "parametr
 
 /** Marca dos treinos salvos pelo “Monte com IA” (para contar quantos usam). */
 export const MARCA_MONTE_IA = "Montado no Monte com IA do Montinho.";
+
+/** Abas e filtros da vitrine. */
+export type AbaPublico = Publico | "todos";
+export type FiltroNivel = Nivel | "todos";
+export const ABAS_PUBLICO: Array<{ id: AbaPublico; rotulo: string }> = [
+  { id: "feminino", rotulo: "👩 Feminino" },
+  { id: "masculino", rotulo: "🧔 Masculino" },
+  { id: "todos", rotulo: "Todos" },
+];
+/** Feminino/Masculino mostram os do público + os para todos; “Todos” mostra tudo. */
+export function filtrarVitrine(lista: TreinoPronto[], aba: AbaPublico, nivel: FiltroNivel): TreinoPronto[] {
+  return lista.filter((t) => (aba === "todos" || t.publico === aba || t.publico === "todos") && (nivel === "todos" || t.parametros.nivel === nivel));
+}
+/** Aba inicial pelo sexo do cadastro (sem sexo = Todos). */
+export const abaDoSexo = (sexo: string | null | undefined): AbaPublico => (sexo === "F" ? "feminino" : sexo === "M" ? "masculino" : "todos");

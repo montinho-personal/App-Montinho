@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOGO } from "@/lib/biblioteca/catalogo";
-import { marcaDoPronto, planoDoPronto, progressoDesafio, prontoDaMarca, prontosParecidos, prontosVisiveis, TREINOS_PRONTOS } from "./treinos-prontos";
+import { abaDoSexo, filtrarVitrine, marcaDoPronto, planoDoPronto, progressoDesafio, prontoDaMarca, prontosParecidos, prontosVisiveis, TREINOS_PRONTOS } from "./treinos-prontos";
 
 const TODOS = CATALOGO.map((e) => e.slug);
 
@@ -60,5 +60,33 @@ describe("Musa da Bulgária e divisões por público", () => {
       expect(p.treinos.length).toBe(t.parametros.dias);
       for (const tr of p.treinos) expect(tr.minutos).toBeLessThanOrEqual(t.parametros.minutos);
     }
+  });
+});
+
+describe("vitrine por público e nível", () => {
+  const slugs = CATALOGO.map((c) => c.slug);
+  it("feminino mostra os femininos e os para todos; nunca os masculinos", () => {
+    const f = filtrarVitrine(TREINOS_PRONTOS, "feminino", "todos").map((t) => t.slug);
+    expect(f).toEqual(expect.arrayContaining(["rainha-do-agachamento", "musa-da-bulgaria", "iniciante-feminino", "em-casa-sem-desculpa"]));
+    expect(f).not.toContain("rei-do-supino");
+    const m = filtrarVitrine(TREINOS_PRONTOS, "masculino", "todos").map((t) => t.slug);
+    expect(m).toEqual(expect.arrayContaining(["rei-do-supino", "iniciante-masculino", "em-casa-sem-desculpa"]));
+    expect(m).not.toContain("musa-da-bulgaria");
+    expect(filtrarVitrine(TREINOS_PRONTOS, "todos", "todos")).toHaveLength(TREINOS_PRONTOS.length);
+  });
+  it("filtro de nível", () => {
+    const ini = filtrarVitrine(TREINOS_PRONTOS, "masculino", "iniciante");
+    expect(ini.length).toBeGreaterThan(0);
+    expect(ini.every((t) => t.parametros.nivel === "iniciante")).toBe(true);
+  });
+  it("aba inicial pelo sexo do cadastro", () => {
+    expect([abaDoSexo("F"), abaDoSexo("M"), abaDoSexo(null), abaDoSexo("NI")]).toEqual(["feminino", "masculino", "todos", "todos"]);
+  });
+  it("feminino: descanso de até 90 s nos multiarticulares (mulheres se recuperam mais rápido)", () => {
+    const fem = planoDoPronto(TREINOS_PRONTOS.find((t) => t.slug === "feminino-depois-do-comeco")!, slugs)!;
+    const masc = planoDoPronto(TREINOS_PRONTOS.find((t) => t.slug === "masculino-depois-do-comeco")!, slugs)!;
+    const multis = (p: typeof fem) => p.treinos.flatMap((t) => t.exercicios.filter((e) => e.multi));
+    expect(multis(fem).every((e) => e.descansoSeg <= 90)).toBe(true);
+    expect(multis(masc).some((e) => e.descansoSeg > 90)).toBe(true);
   });
 });

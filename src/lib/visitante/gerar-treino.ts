@@ -11,6 +11,10 @@
 //     hipertrofia parecida quando a série vai perto da falha.
 //   • Grgic 2022 (falha): até a falha ou perto dela, resultados parecidos.
 //   • Schoenfeld 2016 (descanso): intervalos maiores nos multiarticulares.
+//   • Roberts 2020 (sexo): homens e mulheres ganham massa parecida; o que
+//     muda nos treinos por público são as prioridades (glúteo/pernas ×
+//     parte de cima). Hunter 2014 (fadiga): mulheres costumam resistir mais
+//     à fadiga — descanso um pouco menor nos multiarticulares do feminino.
 //   • Haugen 2023 (livre × máquina): hipertrofia parecida; por isso as
 //     máquinas vêm primeiro para iniciantes (mais simples de aprender).
 // Exercícios só da biblioteca do Montinho (slugs do catálogo). Sem técnica
@@ -22,9 +26,11 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 export type Nivel = "iniciante" | "intermediario" | "avancado";
 export type Foco = "geral" | "gluteo" | "pernas" | "peito" | "costas" | "bracos" | "ombros" | "abdomen" | "superiores";
 export type Local = "academia" | "casa";
+/** Público do treino: muda as prioridades e, no feminino, o descanso dos multiarticulares. */
+export type Publico = "feminino" | "masculino";
 export type ParametrosPlano = { nivel: Nivel; dias: number; minutos: number; foco: Foco; local: Local };
 
-export const FONTES_DO_PLANO = ["acsm2026", "currier2023", "schoenfeld2016frequencia", "schoenfeld2017cargas", "grgic2022falha", "schoenfeld2016descanso", "haugen2023"] as const;
+export const FONTES_DO_PLANO = ["acsm2026", "currier2023", "schoenfeld2016frequencia", "schoenfeld2017cargas", "grgic2022falha", "schoenfeld2016descanso", "haugen2023", "roberts2020", "hunter2014"] as const;
 
 export const AVISO_RESPONSABILIDADE =
   "Treinos montados com base em estudos científicos sobre treinamento de força e nos exercícios da biblioteca do Montinho. São sugestões gerais, não uma prescrição individual: não substituem a avaliação e o acompanhamento feitos por um profissional, que é o mais importante. Respeite seus limites; com dor, lesão, gestação ou alguma condição de saúde, procure um profissional antes de começar. Quer um treino feito para você? Fale com o Montinho.";
@@ -139,9 +145,16 @@ const LETRAS = ["A", "B", "C", "D", "E", "F"];
 /** Estilo do treino: padrão (pelo nível), força (pesado, poucas repetições) ou volume (mais séries). */
 export type Estilo = "padrao" | "forca" | "volume";
 /** Treino com divisão e jeito próprios (treinos prontos com inspiração). */
-export type PlanoPersonalizado = { titulo: string; sessoes: TipoSessao[]; estilo?: Estilo; preferidos?: string[] };
+export type PlanoPersonalizado = { titulo: string; sessoes: TipoSessao[]; estilo?: Estilo; preferidos?: string[]; publico?: Publico };
 
-function prescricao(nivel: Nivel, multi: boolean, estilo: Estilo = "padrao"): { series: number; reps: string; descansoSeg: number } {
+function prescricao(nivel: Nivel, multi: boolean, estilo: Estilo = "padrao", publico?: Publico): { series: number; reps: string; descansoSeg: number } {
+  const base = prescricaoBase(nivel, multi, estilo);
+  // Feminino: mulheres costumam resistir mais à fadiga (Hunter 2014) → até 90 s nos multiarticulares (menos no estilo força).
+  if (publico === "feminino" && multi && estilo !== "forca" && base.descansoSeg > 90) return { ...base, descansoSeg: 90 };
+  return base;
+}
+
+function prescricaoBase(nivel: Nivel, multi: boolean, estilo: Estilo): { series: number; reps: string; descansoSeg: number } {
   // Força: cargas altas favorecem a força (Schoenfeld 2017; Currier 2023); descanso maior nos básicos (Schoenfeld 2016).
   if (estilo === "forca" && nivel !== "iniciante") return multi ? { series: 4, reps: "5-8", descansoSeg: 150 } : { series: 3, reps: "8-12", descansoSeg: 90 };
   if (estilo === "volume" && nivel !== "iniciante") return multi ? { series: 4, reps: "8-12", descansoSeg: 90 } : { series: 4, reps: "10-15", descansoSeg: 60 };
@@ -162,7 +175,7 @@ export function normalizarParametros(p: Partial<ParametrosPlano>): ParametrosPla
   return { nivel: p.nivel ?? "iniciante", dias, minutos, foco: p.foco ?? "geral", local: p.local ?? "academia" };
 }
 
-function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis: Set<string>, extra: { estilo?: Estilo; preferidos?: string[] } = {}): OpcaoPlano {
+function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis: Set<string>, extra: { estilo?: Estilo; preferidos?: string[]; publico?: Publico } = {}): OpcaoPlano {
   const prioridade = PRIORIDADE[p.foco];
   const preferidos = extra.preferidos ?? [];
   const usos = new Map<string, number>(); // rodízio de exercícios entre os dias
@@ -200,7 +213,7 @@ function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis:
       if (!slug) continue;
       usados.add(slug);
       const pool = POOLS[chave];
-      ex.push({ slug, grupo: pool.grupo, multi: pool.multi, prioridade: prioridade.includes(chave), ...(FIXOS.has(chave) ? { fixo: true } : {}), ...prescricao(p.nivel, pool.multi, extra.estilo) });
+      ex.push({ slug, grupo: pool.grupo, multi: pool.multi, prioridade: prioridade.includes(chave), ...(FIXOS.has(chave) ? { fixo: true } : {}), ...prescricao(p.nivel, pool.multi, extra.estilo, extra.publico) });
     }
     // Cabe no tempo: primeiro corta exercícios do fim (menos prioritários); depois uma série dos isolados.
     while (minutosDoTreino(ex) > p.minutos && ex.length > LIMITES_PLANO.exerciciosMin) {
@@ -247,17 +260,17 @@ function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis:
 }
 
 /** As duas opções (A e B) para os parâmetros. `disponiveis` = slugs que existem na biblioteca. */
-export function gerarOpcoes(parametros: Partial<ParametrosPlano>, disponiveis: Iterable<string>): OpcaoPlano[] {
+export function gerarOpcoes(parametros: Partial<ParametrosPlano>, disponiveis: Iterable<string>, opts: { publico?: Publico } = {}): OpcaoPlano[] {
   const p = normalizarParametros(parametros);
   const set = new Set(disponiveis);
   const [a, b] = divisoes(p.dias, p.foco);
-  return [montarOpcao("A", a, p, set), montarOpcao("B", b, p, set)].filter((o) => o.treinos.every((t) => t.exercicios.length >= 3));
+  return [montarOpcao("A", a, p, set, opts), montarOpcao("B", b, p, set, opts)].filter((o) => o.treinos.every((t) => t.exercicios.length >= 3));
 }
 
 /** Plano com divisão própria (treinos prontos inspirados em estilos clássicos). */
 export function gerarPlanoPersonalizado(parametros: Partial<ParametrosPlano>, plano: PlanoPersonalizado, disponiveis: Iterable<string>): OpcaoPlano | null {
   // Divisão já pensada para o estilo: o foco não reordena os dias (só serve para a vitrine).
   const p = normalizarParametros({ ...parametros, dias: plano.sessoes.length, foco: "geral" });
-  const o = montarOpcao("A", { titulo: plano.titulo, sessoes: plano.sessoes }, p, new Set(disponiveis), { estilo: plano.estilo, preferidos: plano.preferidos });
+  const o = montarOpcao("A", { titulo: plano.titulo, sessoes: plano.sessoes }, p, new Set(disponiveis), { estilo: plano.estilo, preferidos: plano.preferidos, publico: plano.publico });
   return o.treinos.every((t) => t.exercicios.length >= 3) ? o : null;
 }
