@@ -46,18 +46,28 @@ export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, salvando
       <input value={titulo} onChange={(e) => setTitulo(e.target.value.slice(0, 80))} aria-label="Nome do treino extra" className={`${inp} w-full font-semibold`} />
       <ul className="space-y-1.5">
         {itens.map((x, i) => (
-          <li key={`${x.nome}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-md border border-border px-2 py-1.5">
-            <button type="button" onClick={() => { setBuscando(i); setQ(""); }} className="alvo min-w-0 flex-1 text-left text-sm font-semibold underline-offset-2 hover:underline" title="Trocar exercício">
-              {x.nome} <span className="text-[11px] font-normal text-accent">trocar</span>
-            </button>
-            <label className="flex items-center gap-1 text-xs text-fg-muted">
-              <input inputMode="numeric" value={x.series} onChange={(e) => mudar(i, { series: Math.min(LIMITES_OPCOES.maxSeries, Math.max(1, Number(e.target.value.replace(/\D/g, "")) || 1)) })} aria-label={`Séries de ${x.nome}`} className={`${inp} w-11 text-center`} />
-              ×
+          <li key={`${x.nome}-${i}`} className="space-y-1.5 rounded-md border border-border px-2 py-1.5">
+            <div className="flex items-start gap-2">
+              <button type="button" onClick={() => { setBuscando(i); setQ(""); }} className="alvo min-w-0 flex-1 text-left text-sm font-semibold" title="Trocar exercício">
+                {x.nome} <span className="ml-1 whitespace-nowrap text-[11px] font-normal text-accent underline-offset-2 hover:underline">trocar</span>
+              </button>
+              <button type="button" onClick={() => setItens((l) => l.filter((_, k) => k !== i))} aria-label={`Tirar ${x.nome}`} className="alvo px-1 text-fg-subtle hover:text-red">
+                ✕
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-fg-muted">
+              {/* Lista de 1 a 5: digitar no celular apagava e juntava os números. */}
+              <select value={x.series} onChange={(e) => mudar(i, { series: Number(e.target.value) })} aria-label={`Séries de ${x.nome}`} className={`${inp} w-16 text-center`}>
+                {Array.from({ length: LIMITES_OPCOES.maxSeries }, (_, k) => k + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              séries ×
               <input value={x.reps} onChange={(e) => mudar(i, { reps: e.target.value.slice(0, 20) })} aria-label={`Repetições de ${x.nome}`} className={`${inp} w-20 text-center`} />
-            </label>
-            <button type="button" onClick={() => setItens((l) => l.filter((_, k) => k !== i))} aria-label={`Tirar ${x.nome}`} className="alvo px-1 text-fg-subtle hover:text-red">
-              ✕
-            </button>
+              reps
+            </div>
           </li>
         ))}
       </ul>
