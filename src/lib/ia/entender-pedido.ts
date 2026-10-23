@@ -7,16 +7,16 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { ParametrosPlano } from "@/lib/visitante/gerar-treino";
 
-const SCHEMA = {
+export const SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["nivel", "dias", "minutos", "foco", "local", "saude"],
   properties: {
-    nivel: { type: ["string", "null"], enum: ["iniciante", "intermediario", "avancado", null] },
+    nivel: { anyOf: [{ type: "string", enum: ["iniciante", "intermediario", "avancado"] }, { type: "null" }] },
     dias: { type: ["integer", "null"], description: "Dias de treino por semana" },
     minutos: { type: ["integer", "null"], description: "Minutos por treino" },
-    foco: { type: ["string", "null"], enum: ["geral", "gluteo", "pernas", "peito", "costas", "bracos", "ombros", "abdomen", "superiores", null] },
-    local: { type: ["string", "null"], enum: ["academia", "casa", null] },
+    foco: { anyOf: [{ type: "string", enum: ["geral", "gluteo", "pernas", "peito", "costas", "bracos", "ombros", "abdomen", "superiores"] }, { type: "null" }] },
+    local: { anyOf: [{ type: "string", enum: ["academia", "casa"] }, { type: "null" }] },
     saude: { type: "boolean", description: "true se o pedido cita dor, lesão, cirurgia, gestação ou doença" },
   },
 } as const;

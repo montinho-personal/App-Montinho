@@ -29,12 +29,12 @@ export type ExercicioInterpretado = {
 export type TreinoInterpretado = { nome: string | null; exercicios: ExercicioInterpretado[] };
 export type ResultadoInterpretacao = { treinos: TreinoInterpretado[]; metodoGeral: MetodoIA | null };
 
-const SCHEMA = {
+export const SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["treinos", "metodo_geral"],
   properties: {
-    metodo_geral: { type: ["string", "null"], enum: [...METODOS_IA, null], description: "Método que vale para todos (ex.: “todos em pirâmide”)" },
+    metodo_geral: { anyOf: [{ type: "string", enum: [...METODOS_IA] }, { type: "null" }], description: "Método que vale para todos (ex.: “todos em pirâmide”)" },
     treinos: {
       type: "array",
       items: {
@@ -57,7 +57,7 @@ const SCHEMA = {
                 reps: { type: ["string", "null"], description: "Número (10), faixa (8-12) ou sequência (12/10/8)" },
                 descanso_seg: { type: ["integer", "null"] },
                 carga_kg: { type: ["number", "null"] },
-                metodo: { type: ["string", "null"], enum: [...METODOS_IA, null] },
+                metodo: { anyOf: [{ type: "string", enum: [...METODOS_IA] }, { type: "null" }] },
                 bloco: { type: ["integer", "null"], description: "Exercícios do mesmo bi-set/tri-set têm o mesmo número" },
               },
             },
