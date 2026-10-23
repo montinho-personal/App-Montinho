@@ -41,7 +41,7 @@ const P = (grupo: GrupoMuscular, multi: boolean, academia: string[], casa: strin
 
 /** Grupos de exercícios intercambiáveis (ordem = preferência; máquinas primeiro). */
 export const POOLS = {
-  quad_multi: P("quadriceps", true, ["leg-press-45", "agachamento-smith", "hack-machine", "agachamento-goblet", "agachamento-livre"], ["agachamento-goblet", "agachamento-bulgaro", "afundo-halteres"]),
+  quad_multi: P("quadriceps", true, ["leg-press-45", "agachamento-smith", "hack-machine", "agachamento-goblet", "agachamento-livre", "agachamento-frontal", "agachamento-pendulo", "agachamento-maquina-v"], ["agachamento-goblet", "agachamento-bulgaro", "afundo-halteres"]),
   quad_mono: P("quadriceps", false, ["cadeira-extensora", "cadeira-extensora-unilateral"], ["afundo-halteres", "subida-no-banco"]),
   gluteo_multi: P("gluteo", true, ["hip-thrust-maquina", "hip-thrust-barra", "elevacao-pelvica-solo"], ["elevacao-pelvica-solo", "elevacao-pelvica-unilateral"]),
   gluteo_extra: P("gluteo", true, ["agachamento-sumo", "agachamento-bulgaro"], ["agachamento-sumo", "agachamento-bulgaro"]),
@@ -50,7 +50,7 @@ export const POOLS = {
   post_mono: P("posteriores", false, ["cadeira-flexora", "mesa-flexora"], ["stiff-unilateral"]),
   adutor: P("adutores", false, ["cadeira-adutora"], []),
   panturrilha: P("panturrilha", false, ["panturrilha-em-pe-maquina", "panturrilha-sentado", "panturrilha-leg-press"], ["panturrilha-unilateral-degrau"]),
-  peito_multi: P("peito", true, ["supino-reto-maquina", "supino-reto-halteres", "supino-reto-barra"], ["flexao-de-bracos", "supino-reto-halteres"]),
+  peito_multi: P("peito", true, ["supino-reto-maquina", "supino-reto-halteres", "supino-reto-barra", "supino-reto-smith", "supino-declinado-barra"], ["flexao-de-bracos", "supino-reto-halteres"]),
   peito_inc: P("peito", true, ["supino-inclinado-halteres", "supino-inclinado-maquina", "supino-inclinado-smith", "supino-inclinado-barra"], ["supino-inclinado-halteres"]),
   peito_mono: P("peito", false, ["crucifixo-maquina", "crossover-polia-media", "crucifixo-reto-halteres"], ["crucifixo-reto-halteres"]),
   costas_vert: P("costas", true, ["puxada-frontal-aberta", "puxada-triangulo", "puxada-frontal-supinada", "barra-fixa-graviton", "barra-fixa-pronada", "pullover-halter"], ["pullover-halter"]),
@@ -59,13 +59,13 @@ export const POOLS = {
   ombro_lat: P("ombro_lateral", false, ["elevacao-lateral-halteres", "elevacao-lateral-maquina", "elevacao-lateral-polia"], ["elevacao-lateral-halteres"]),
   ombro_post: P("ombro_posterior", false, ["crucifixo-invertido-maquina", "face-pull", "crucifixo-invertido-halteres"], ["crucifixo-invertido-halteres"]),
   biceps: P("biceps", false, ["rosca-direta-barra-w", "rosca-alternada-halteres", "rosca-martelo", "rosca-scott-maquina"], ["rosca-alternada-halteres", "rosca-martelo", "rosca-concentrada"]),
-  triceps: P("triceps", false, ["triceps-corda", "triceps-barra-polia", "triceps-frances-halter", "triceps-testa-barra-w"], ["triceps-frances-halter", "triceps-coice-halter", "mergulho-banco"]),
+  triceps: P("triceps", false, ["triceps-corda", "triceps-barra-polia", "triceps-frances-halter", "triceps-testa-barra-w", "supino-fechado"], ["triceps-frances-halter", "triceps-coice-halter", "mergulho-banco"]),
   abdomen: P("abdomen", false, ["abdominal-supra", "abdominal-infra", "abdominal-polia"], ["abdominal-supra", "abdominal-infra"]),
   core: P("core", false, ["dead-bug", "perdigueiro", "pallof-press"], ["dead-bug", "perdigueiro"]),
 } satisfies Record<string, Pool>;
 export type ChavePool = keyof typeof POOLS;
 
-export type TipoSessao = "FULL" | "INF" | "SUP" | "PUSH" | "PULL" | "GLUTEO" | "QUAD" | "PEITO_COSTAS" | "OMBRO_BRACO";
+export type TipoSessao = "FULL" | "INF" | "SUP" | "PUSH" | "PULL" | "GLUTEO" | "QUAD" | "PEITO_COSTAS" | "OMBRO_BRACO" | "AGACHAMENTOS" | "SUPINOS";
 const SESSOES: Record<TipoSessao, { nome: string; slots: ChavePool[] }> = {
   FULL: { nome: "Corpo todo", slots: ["quad_multi", "peito_multi", "costas_rem", "gluteo_multi", "ombro_multi", "post_mono", "costas_vert", "ombro_lat", "core"] },
   INF: { nome: "Inferiores", slots: ["quad_multi", "gluteo_multi", "post_hinge", "quad_mono", "post_mono", "gluteo_mono", "panturrilha", "abdomen"] },
@@ -76,6 +76,8 @@ const SESSOES: Record<TipoSessao, { nome: string; slots: ChavePool[] }> = {
   QUAD: { nome: "Quadríceps e panturrilha", slots: ["quad_multi", "quad_multi", "quad_mono", "post_mono", "panturrilha", "core"] },
   PEITO_COSTAS: { nome: "Peito e costas", slots: ["peito_multi", "costas_vert", "peito_inc", "costas_rem", "peito_mono", "costas_vert", "abdomen"] },
   OMBRO_BRACO: { nome: "Ombros e braços", slots: ["ombro_multi", "ombro_lat", "ombro_post", "biceps", "triceps", "biceps", "triceps"] },
+  AGACHAMENTOS: { nome: "Agachamentos", slots: ["quad_multi", "gluteo_extra", "quad_multi", "gluteo_extra", "post_mono", "panturrilha"] },
+  SUPINOS: { nome: "Supinos", slots: ["peito_multi", "peito_inc", "peito_multi", "ombro_multi", "triceps", "ombro_lat"] },
 };
 
 /** Exercício a mais (variação) no dia que já trabalha a região do foco. */
@@ -174,7 +176,10 @@ function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis:
     if (prioridade.length) {
       const tem = prioridade.filter((c) => slots.includes(c));
       if (tem.length) {
-        slots = [...tem, ...slots.filter((c) => !tem.includes(c))];
+        // Move a 1ª ocorrência de cada prioridade para o início; repetidos continuam (ex.: dois agachamentos).
+        const resto = [...slots];
+        for (const c of tem) resto.splice(resto.indexOf(c), 1);
+        slots = [...tem, ...resto];
         const extra = EXTRA[p.foco];
         if (extra && !slots.includes(extra)) slots.splice(Math.min(2, slots.length), 0, extra);
       }
@@ -239,7 +244,8 @@ export function gerarOpcoes(parametros: Partial<ParametrosPlano>, disponiveis: I
 
 /** Plano com divisão própria (treinos prontos inspirados em estilos clássicos). */
 export function gerarPlanoPersonalizado(parametros: Partial<ParametrosPlano>, plano: PlanoPersonalizado, disponiveis: Iterable<string>): OpcaoPlano | null {
-  const p = normalizarParametros({ ...parametros, dias: plano.sessoes.length });
+  // Divisão já pensada para o estilo: o foco não reordena os dias (só serve para a vitrine).
+  const p = normalizarParametros({ ...parametros, dias: plano.sessoes.length, foco: "geral" });
   const o = montarOpcao("A", { titulo: plano.titulo, sessoes: plano.sessoes }, p, new Set(disponiveis), { estilo: plano.estilo, preferidos: plano.preferidos });
   return o.treinos.every((t) => t.exercicios.length >= 3) ? o : null;
 }

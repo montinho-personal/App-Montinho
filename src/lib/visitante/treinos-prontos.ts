@@ -79,6 +79,15 @@ export const TREINOS_PRONTOS: TreinoPronto[] = [
     inspiracao: "Inspirado na categoria Classic Physique do fisiculturismo, que premia proporção: costas em V, ombros largos e cintura fina.",
   }),
 
+  T("rainha-do-agachamento", "Rainha do Agachamento", "🏋️‍♀️", "Um agachamento diferente em cada série de pernas", "Dois dias de pernas por semana só com variações de agachamento: livre, sumô, búlgaro, hack, frontal, Smith e goblet, alternando entre os dias.", { nivel: "intermediario", minutos: 60, foco: "pernas" }, "A", 28, true, {
+    inspiracao: "Inspirado em quem faz do agachamento o centro do treino de pernas: várias versões do mesmo movimento para trabalhar quadríceps e glúteo de ângulos diferentes.",
+    personalizado: { titulo: "Agachamentos 2× na semana", sessoes: ["AGACHAMENTOS", "SUP", "AGACHAMENTOS", "SUP"], preferidos: ["agachamento-livre", "agachamento-sumo", "hack-machine", "agachamento-bulgaro", "agachamento-frontal", "agachamento-smith", "agachamento-goblet", "agachamento-pendulo"] },
+  }),
+  T("rei-do-supino", "Rei do Supino", "🤴", "Supino reto, inclinado, declinado e fechado", "Dois dias de peito por semana com variações de supino, carga pesada nos principais e ombros e tríceps para sustentar.", { nivel: "intermediario", minutos: 70, foco: "peito" }, "A", 28, true, {
+    inspiracao: "Inspirado nos amantes do supino: o mesmo movimento em versões diferentes (barra, halteres, Smith, inclinado, declinado e fechado), com cargas altas para ganhar força.",
+    personalizado: { titulo: "Supinos 2× na semana", sessoes: ["SUPINOS", "INF", "SUPINOS", "PULL"], estilo: "forca", preferidos: ["supino-reto-barra", "supino-inclinado-barra", "supino-reto-halteres", "supino-inclinado-halteres", "supino-declinado-barra", "supino-reto-smith", "supino-fechado"] },
+  }),
+
   // Aguardando aprovação do Montinho (só na demonstração)
   T("projeto-calca-apertada", "Projeto Calça Apertada", "👖", "Pernas e glúteo para quem está começando", "Três treinos por semana, dois focados em pernas e glúteo, com máquinas fáceis de aprender.", { nivel: "iniciante", dias: 3, minutos: 45, foco: "gluteo" }, "B", 21),
   T("comeco-sem-medo", "Começo Sem Medo", "🌱", "O primeiro treino de quem nunca treinou", "Corpo todo 3× na semana, exercícios simples e poucos aparelhos. O jeito mais seguro de começar.", { nivel: "iniciante", dias: 3, minutos: 45, foco: "geral" }, "A", 21),
