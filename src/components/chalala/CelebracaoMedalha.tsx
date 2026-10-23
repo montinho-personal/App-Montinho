@@ -12,8 +12,11 @@ import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } f
 import type { ConquistaRow } from "@/lib/data/conquistas";
 import { gerarImagemMedalha } from "./cardMedalha";
 import { enviarEvento } from "./evento";
+import { LENDARIAS } from "@/lib/conquistas/regras";
 
 const CORES = ["#e3cd8a", "#ba9e50", "#4ade80", "#f3e6bd", "#ffffff", "#f59e0b"];
+// Troféu lendário: confete de fogo e ouro, em dobro.
+const CORES_LENDARIAS = ["#ffe9a8", "#f59e0b", "#ef4444", "#f5c451", "#ffffff", "#fb923c"];
 
 function baixar(f: File) {
   const url = URL.createObjectURL(f);
@@ -35,7 +38,11 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
   const [aviso, setAviso] = useState<string | null>(null);
   const atual = conquistas[i];
   // Confete com posições fixas por medalha (sem Math.random no render).
-  const confete = useMemo(() => Array.from({ length: 36 }, (_, k) => ({ left: `${(k * 37) % 100}%`, dx: `${((k * 53) % 120) - 60}px`, delay: `${(k % 9) * 0.09}s`, cor: CORES[k % CORES.length] })), []);
+  const lendaria = !!atual && LENDARIAS.has(atual.codigo);
+  const confete = useMemo(
+    () => Array.from({ length: lendaria ? 90 : 36 }, (_, k) => ({ left: `${(k * 37) % 100}%`, dx: `${((k * 53) % 160) - 80}px`, delay: `${(k % 15) * (lendaria ? 0.12 : 0.06)}s`, cor: (lendaria ? CORES_LENDARIAS : CORES)[k % 6] })),
+    [lendaria]
+  );
   if (!atual || typeof document === "undefined") return null;
   const primeiroNome = (nome ?? "").split(" ")[0];
   const card = cardDaMedalha(atual, nome ?? "");
@@ -58,7 +65,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
   function abrir() {
     setAberta(true);
     try {
-      if (animacoes) navigator.vibrate?.([80, 60, 160]);
+      if (animacoes) navigator.vibrate?.(lendaria ? [120, 60, 120, 60, 120, 80, 500] : [80, 60, 160]);
     } catch {
       // vibração é opcional
     }
@@ -73,7 +80,8 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
   }
 
   return createPortal(
-    <div className={`fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-black/85 px-6 backdrop-blur-sm ${animacoes ? "" : "sem-animacao"}`} role="dialog" aria-modal="true" aria-label="Nova medalha">
+    <div className={`fixed inset-0 z-[90] flex items-center justify-center overflow-hidden px-6 backdrop-blur-sm ${lendaria ? "bg-[radial-gradient(circle_at_50%_40%,rgba(120,40,8,0.92),rgba(0,0,0,0.95)_70%)]" : "bg-black/85"} ${animacoes ? "" : "sem-animacao"}`} role="dialog" aria-modal="true" aria-label={lendaria ? "Troféu lendário" : "Nova medalha"}>
+      {lendaria ? <div aria-hidden className="raios-lendarios pointer-events-none absolute left-1/2 top-[42%] h-[180vmax] w-[180vmax] -translate-x-1/2 -translate-y-1/2" /> : null}
       {aberta ? (
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {confete.map((c, k) => (
@@ -89,21 +97,32 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
         {conquistas.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">Medalha {i + 1} de {conquistas.length}</p> : null}
         {!aberta ? (
           <button type="button" onClick={abrir} className="mx-auto flex flex-col items-center gap-4 rounded-3xl p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" aria-label="Abrir a medalha">
-            <span className="medalha-chamar relative grid h-40 w-40 place-items-center rounded-full border-4 border-dashed border-accent/70 bg-accent/10 text-6xl shadow-[0_0_60px_rgba(186,158,80,0.45)]">🏅</span>
-            <span className="text-xl font-extrabold">{primeiroNome ? `${primeiroNome}, você` : "Você"} desbloqueou uma medalha!</span>
+            {lendaria ? (
+              <>
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-[#f5c451]">Conquista lendária</span>
+                <span className="medalha-chamar relative grid h-44 w-44 place-items-center rounded-full border-4 border-[#f59e0b] bg-[#f59e0b]/15 text-7xl shadow-[0_0_90px_rgba(245,158,11,0.7)]">🏆</span>
+                <span className="text-2xl font-black">{primeiroNome ? `${primeiroNome}, você` : "Você"} conquistou um troféu lendário!</span>
+              </>
+            ) : (
+              <>
+                <span className="medalha-chamar relative grid h-40 w-40 place-items-center rounded-full border-4 border-dashed border-accent/70 bg-accent/10 text-6xl shadow-[0_0_60px_rgba(186,158,80,0.45)]">🏅</span>
+                <span className="text-xl font-extrabold">{primeiroNome ? `${primeiroNome}, você` : "Você"} desbloqueou uma medalha!</span>
+              </>
+            )}
             <span className="animate-pulse rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-bg">Toque para abrir</span>
           </button>
         ) : (
           <div className="flex flex-col items-center gap-3">
             <div className="medalha-revelar relative">
-              <span aria-hidden className="chalala-brilho absolute inset-0 rounded-full bg-accent/50" />
-              <MedalhaIcone selo={card.selo} conquistada atual={null} alvo={null} tamanho={150} />
+              <span aria-hidden className={`chalala-brilho absolute inset-0 rounded-full ${lendaria ? "bg-[#f59e0b]/70" : "bg-accent/50"}`} />
+              <MedalhaIcone selo={card.selo} conquistada atual={null} alvo={null} tamanho={lendaria ? 190 : 150} lendaria={lendaria} />
             </div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">Nova medalha</p>
+            <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${lendaria ? "text-[#f5c451]" : "text-accent"}`}>{lendaria ? "Troféu lendário" : "Nova medalha"}</p>
             <h2 className="text-2xl font-extrabold leading-tight">{card.titulo}</h2>
             {card.destaque ? <p className="text-sm font-semibold text-accent">{card.destaque}</p> : null}
             <p className="mt-1 text-lg font-bold leading-snug">“{card.frase}”</p>
             {card.porque ? <p className="text-xs text-fg-muted">{card.porque}</p> : null}
+            {lendaria ? <p className="rounded-full border border-[#f59e0b]/60 bg-[#f59e0b]/10 px-3 py-1 text-[11px] font-bold text-[#f5c451]">Só quem cumpre a meta 12 semanas seguidas chega aqui.</p> : null}
             <button type="button" onClick={() => void compartilhar()} disabled={enviando} className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-bg disabled:opacity-60">
               {enviando ? "Preparando a imagem…" : "📲 Compartilhar no Story / WhatsApp"}
             </button>

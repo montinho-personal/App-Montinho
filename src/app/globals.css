@@ -142,6 +142,15 @@
 .medalha-chamar { animation: medalha-chamar 1.4s ease-in-out infinite; }
 .medalha-revelar { animation: medalha-revelar 900ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
 .confete { position: absolute; top: 0; width: 8px; height: 14px; border-radius: 2px; animation: confete-cair 2.6s ease-in forwards; }
+/* Troféu lendário (Guerreiro das 12 semanas): raios girando atrás da medalha. */
+@keyframes raios-girar { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.raios-lendarios {
+  background: repeating-conic-gradient(from 0deg, rgba(245, 158, 11, 0.16) 0deg 9deg, transparent 9deg 22deg);
+  mask-image: radial-gradient(circle, #000 0%, transparent 45%);
+  animation: raios-girar 18s linear infinite;
+}
+.sem-animacao .raios-lendarios { animation: none; }
+@media (prefers-reduced-motion: reduce) { .raios-lendarios { animation: none; } }
 .sem-animacao .medalha-chamar,
 .sem-animacao .medalha-revelar { animation: none; }
 .sem-animacao .confete { display: none; }

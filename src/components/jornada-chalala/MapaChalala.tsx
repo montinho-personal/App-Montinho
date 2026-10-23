@@ -8,6 +8,7 @@
 // aqui nada é concedido — só desenhado.
 // ============================================================================
 
+import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
 import type { Jornada, NoJornada } from "@/lib/conquistas/jornada";
@@ -177,7 +178,7 @@ function No({ no, x, y, lado, revelado, onAbrir }: { no: NoJornada; x: number; y
         {no.tipo === "medalha" && no.proxima ? <span className="absolute inset-0 -m-1.5 rounded-full border-2 border-accent/70 motion-safe:animate-pulse" aria-hidden /> : null}
         <span className="block drop-shadow-[0_6px_8px_rgba(0,0,0,0.55)]">
           {no.tipo === "medalha" ? (
-            <MedalhaIcone selo={no.medalha.selo} conquistada={no.medalha.conquistada} atual={no.medalha.atual} alvo={no.medalha.alvo} tamanho={66} />
+            <MedalhaIcone selo={no.medalha.selo} conquistada={no.medalha.conquistada} atual={no.medalha.atual} alvo={no.medalha.alvo} tamanho={66} lendaria={LENDARIAS.has(no.medalha.codigo)} />
           ) : no.tipo === "recorrente" ? (
             <MedalhaIcone selo={no.codigo === "recorde" ? "Rec" : "↺"} conquistada={no.alcancado} atual={null} alvo={null} tamanho={58} />
           ) : (

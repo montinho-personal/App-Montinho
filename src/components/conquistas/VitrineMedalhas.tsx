@@ -2,6 +2,7 @@
 
 // Grade de medalhas (destaque ou coleção completa) + detalhe educativo e
 // card de compartilhamento. Só medalhas conquistadas geram card.
+import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
@@ -58,7 +59,7 @@ export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial 
           <li key={m.codigo}>
             <button type="button" onClick={() => setAberta(aberta === m.codigo ? null : m.codigo)} aria-expanded={aberta === m.codigo} className={`relative flex w-full flex-col items-center gap-1 rounded-xl border p-2 text-center transition-colors ${aberta === m.codigo ? "border-accent/60 bg-card" : "border-transparent hover:bg-card"} ${!m.conquistada && !m.disponivel ? "opacity-60" : ""}`}>
               {m.nova ? <span className="absolute right-1 top-1 rounded-full bg-accent px-1.5 text-[9px] font-bold uppercase text-bg">Nova</span> : null}
-              <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} nova={m.nova} />
+              <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} nova={m.nova} lendaria={LENDARIAS.has(m.codigo)} />
               <span className={`text-[11px] font-semibold leading-tight ${m.conquistada ? "text-fg" : "text-fg-muted"}`}>{m.titulo}</span>
               <span className="text-[10px] text-fg-subtle">{m.conquistada && m.data ? fmtData.format(new Date(m.data)) : m.alvo ? `${m.atual ?? 0}/${m.alvo}` : m.disponivel ? "a conquistar" : "momento próprio"}</span>
             </button>

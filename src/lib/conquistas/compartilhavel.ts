@@ -9,7 +9,7 @@
 // Mesmas proibições da biblioteca editorial (teste automático).
 // ============================================================================
 
-import type { CodigoConquista, ItemRecorde } from "./regras";
+import { LENDARIAS, type CodigoConquista, type ItemRecorde } from "./regras";
 import { CONTEUDO, nomeDaConquista } from "./conteudo";
 import { ORDEM } from "./vitrine";
 
@@ -24,6 +24,10 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   semanas_consistentes_4: { frase: "4 semanas sem deixar para depois.", porque: "A evolução vem de estímulo e recuperação repetidos semana após semana." },
   treinos_25: { frase: "25 treinos. Já é uma história.", porque: "Cada sessão soma prática, força e conhecimento sobre o próprio corpo." },
   semanas_consistentes_8: { frase: "8 semanas firmes.", porque: "Dois meses de frequência é o tipo de constância que sustenta resultados." },
+  semanas_consistentes_5: { frase: "5 semanas sem falhar.", porque: "Mais de um mês cumprindo a meta: a rotina está tomando forma." },
+  semanas_consistentes_6: { frase: "6 semanas no ritmo.", porque: "Um mês e meio de meta cumprida é constância de verdade." },
+  semanas_consistentes_10: { frase: "10 semanas. Poucos chegam aqui.", porque: "Dez semanas seguidas de meta cumprida mostram compromisso com o processo." },
+  semanas_consistentes_12: { frase: "12 semanas. Nenhuma meta perdida.", porque: "Três meses cumprindo todos os treinos da semana: um feito de guerreiro." },
   acompanhamento_12_semanas: { frase: "12 semanas na jornada.", porque: "Continuar mesmo quando a semana não sai perfeita é o que faz a diferença." },
   constancia_verdade: { frase: "Constância de verdade.", porque: "Metas cumpridas ao longo de meses mostram que o treino virou parte da rotina." },
   treinos_50: { frase: "50 treinos. Isso já é quem eu sou.", porque: "Uma marca de quem fez do treino parte da própria vida." },
@@ -72,8 +76,13 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
       return "50 treinos concluídos";
     case "semanas_consistentes_4":
       return "4 semanas seguidas com a meta cumprida";
+    case "semanas_consistentes_5":
+    case "semanas_consistentes_6":
     case "semanas_consistentes_8":
-      return "8 semanas seguidas com a meta cumprida";
+    case "semanas_consistentes_10":
+      return `${c.codigo.split("_").at(-1)} semanas seguidas com a meta cumprida`;
+    case "semanas_consistentes_12":
+      return "12 semanas seguidas · 3 meses sem perder a meta";
     case "constancia_vida_real":
       return "3 de 4 semanas com a meta cumprida";
     case "constancia_verdade":
@@ -124,7 +133,7 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
   }
 }
 
-export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string };
+export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string; /** Troféu lendário (Guerreiro): visual de fogo. */ lendaria?: boolean };
 
 const SELO_EXTRA: Record<string, string> = { recorde: "★", eu_voltei: "↺" };
 export const seloDaConquista = (codigo: string) => ORDEM.find((o) => o.codigo === codigo)?.selo ?? SELO_EXTRA[codigo] ?? "★";
@@ -143,6 +152,7 @@ export function cardDaMedalha(c: { codigo: string; titulo?: string | null; descr
     porque: t.porque,
     nome: nome.trim().split(/\s+/)[0] ?? "",
     data: dataBR,
-    legenda: `${t.frase} 🏅 ${titulo} — treinando com @montinho_personal`,
+    legenda: `${t.frase} ${LENDARIAS.has(c.codigo) ? "🏆" : "🏅"} ${titulo} — treinando com @montinho_personal`,
+    lendaria: LENDARIAS.has(c.codigo),
   };
 }

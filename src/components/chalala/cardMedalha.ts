@@ -100,9 +100,10 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
   ctx.fill();
   ctx.restore();
   const anel = ctx.createLinearGradient(0, cy - r, 0, cy + r);
-  anel.addColorStop(0, OURO_CLARO);
-  anel.addColorStop(0.5, OURO);
-  anel.addColorStop(1, OURO_ESCURO);
+  // Lendária: anel de fogo (ouro → laranja → vermelho).
+  anel.addColorStop(0, card.lendaria ? "#ffe9a8" : OURO_CLARO);
+  anel.addColorStop(0.5, card.lendaria ? "#f59e0b" : OURO);
+  anel.addColorStop(1, card.lendaria ? "#b91c1c" : OURO_ESCURO);
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.lineWidth = 34;
@@ -123,7 +124,7 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
 
   // Textos
   let y = 1035;
-  y = bloco(ctx, "NOVA MEDALHA", y, { tamanho: 34, peso: 700, cor: OURO, familia, espacamento: 10, maxLinhas: 1 });
+  y = bloco(ctx, card.lendaria ? "TROFÉU LENDÁRIO" : "NOVA MEDALHA", y, { tamanho: 34, peso: 700, cor: card.lendaria ? "#f59e0b" : OURO, familia, espacamento: 10, maxLinhas: 1 });
   y = bloco(ctx, card.titulo, y + 92, { tamanho: 80, peso: 800, cor: "#ffffff", familia, maxLinhas: 2 });
   if (card.destaque) y = bloco(ctx, card.destaque, y + 68, { tamanho: 40, peso: 700, cor: OURO_CLARO, familia, maxLinhas: 2 });
   ctx.fillStyle = OURO;

@@ -20,10 +20,10 @@ function jornadaDe(sessoes: SessaoConquista[], hoje: string, inicio = "2026-08-0
 const semanaCumprida = (seg: string) => [s(seg), s(somarDias(seg, 1))];
 
 describe("Minha Jornada — mapa", () => {
-  it("todas as 32 medalhas aparecem uma vez, em 4 capítulos + continuação", () => {
-    expect(Object.keys(CAPITULO_DA_MEDALHA)).toHaveLength(32);
+  it("todas as 36 medalhas aparecem uma vez, em 4 capítulos + continuação", () => {
+    expect(Object.keys(CAPITULO_DA_MEDALHA)).toHaveLength(36);
     const { j } = jornadaDe([], "2026-08-05");
-    expect(j.nos.filter((x) => x.tipo === "medalha")).toHaveLength(32);
+    expect(j.nos.filter((x) => x.tipo === "medalha")).toHaveLength(36);
     expect(j.capitulos.map((c) => c.numero)).toEqual([1, 2, 3, 4, 5]);
     expect(j.nos.filter((x) => x.tipo === "recorrente").map((x) => x.id)).toEqual(["recorde", "eu_voltei"]);
   });

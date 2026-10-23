@@ -16,6 +16,11 @@ import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
+/** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
+export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12] as const;
+/** Troféus lendários: visual e celebração especiais (conquista muito rara). */
+export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12"]);
+
 export type CodigoConquista =
   | "primeiro_treino"
   | "primeira_meta_semanal"
@@ -24,7 +29,11 @@ export type CodigoConquista =
   | "treinos_25"
   | "treinos_50"
   | "semanas_consistentes_4"
+  | "semanas_consistentes_5"
+  | "semanas_consistentes_6"
   | "semanas_consistentes_8"
+  | "semanas_consistentes_10"
+  | "semanas_consistentes_12"
   | "acompanhamento_12_semanas"
   | "recorde"
   | "relatorio_mensal"
@@ -112,7 +121,11 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   semanas_consistentes_4: { titulo: "Quatro semanas consistentes", criterio: "Cumprir a meta em 4 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
   primeiro_mes: { titulo: "Primeiro mês de participação", criterio: "Concluir 4 treinos em 3 semanas diferentes nos primeiros 35 dias, com pelo menos 28 dias desde o primeiro treino.", repete: false },
   treinos_25: { titulo: "25 treinos", criterio: "Somar 25 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  semanas_consistentes_5: { titulo: "Cinco semanas consistentes", criterio: "Cumprir a meta em 5 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_6: { titulo: "Seis semanas consistentes", criterio: "Cumprir a meta em 6 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
   semanas_consistentes_8: { titulo: "Oito semanas consistentes", criterio: "Cumprir a meta em 8 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_10: { titulo: "Dez semanas consistentes", criterio: "Cumprir a meta em 10 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_12: { titulo: "Guerreiro das 12 semanas", criterio: "Cumprir a meta em 12 semanas elegíveis seguidas — três meses sem perder um treino da semana (pausas combinadas não quebram nem somam).", repete: false },
   acompanhamento_12_semanas: { titulo: "Doze semanas de acompanhamento", criterio: "Completar 12 semanas com treino prescrito e pelo menos um treino registrado em cada uma (não precisam ser seguidas).", repete: false },
   treinos_50: { titulo: "50 treinos", criterio: "Somar 50 treinos concluídos (treinos extras e parciais não entram).", repete: false },
   criando_raizes: { titulo: "Criando raízes", criterio: `Treinar em ${LIMITES.raizes.alvo} semanas diferentes dentro das ${LIMITES.raizes.semanas} primeiras semanas de acompanhamento (pausas combinadas estendem o prazo, até ${LIMITES.raizes.maxCalendario} semanas).`, repete: false },
@@ -353,7 +366,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
         primeiraMeta = true;
         out.push(nova("primeira_meta_semanal", "1", s.iniciado_em, s.id, `Meta de ${w.meta} treino(s) cumprida na semana de ${w.inicio.slice(8, 10)}/${w.inicio.slice(5, 7)}.`, { meta: w.meta ?? undefined }));
       }
-      for (const n of [4, 8] as const) {
+      for (const n of MARCOS_SEMANAS) {
         if (seq === n && !marcos.has(n) && s) {
           marcos.add(n);
           out.push(nova(`semanas_consistentes_${n}`, "1", s.iniciado_em, s.id, `${n} semanas seguidas cumprindo a meta.`));

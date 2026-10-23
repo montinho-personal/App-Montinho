@@ -56,6 +56,20 @@ describe("conquistas — semanas", () => {
     expect(codigos(r)).not.toContain("semanas_consistentes_8");
   });
 
+  it("12 semanas seguidas: 4, 5, 6, 8, 10 e o Guerreiro das 12; semana falhada zera e recomeça", () => {
+    const seg = (k: number) => new Date(Date.UTC(2026, 7, 3 + 7 * k)).toISOString().slice(0, 10);
+    const ter = (k: number) => new Date(Date.UTC(2026, 7, 4 + 7 * k)).toISOString().slice(0, 10);
+    const doze = Array.from({ length: 12 }, (_, k) => [s(seg(k)), s(ter(k))]).flat();
+    const c = codigos(detectar(doze));
+    for (const n of [4, 5, 6, 8, 10, 12]) expect(c).toContain(`semanas_consistentes_${n}`);
+    // Semana 6 com 1 treino só (meta 2): a sequência volta a zero e só chega a 6 de novo.
+    const falha = Array.from({ length: 12 }, (_, k) => (k === 5 ? [s(seg(k))] : [s(seg(k)), s(ter(k))])).flat();
+    const c2 = codigos(detectar(falha));
+    expect(c2).toContain("semanas_consistentes_6");
+    expect(c2).not.toContain("semanas_consistentes_8");
+    expect(c2).not.toContain("semanas_consistentes_12");
+  });
+
   it("semana sem treino quebra a sequência", () => {
     const xs = ["2026-09-07", "2026-09-08", "2026-09-14", "2026-09-15", "2026-09-28", "2026-09-29", "2026-10-05", "2026-10-06"].map((d) => s(d));
     expect(codigos(detectar(xs))).not.toContain("semanas_consistentes_4");

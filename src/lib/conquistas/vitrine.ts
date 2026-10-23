@@ -42,8 +42,12 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "primeiro_mes", selo: "1 mês" },
   { codigo: "constancia_vida_real", selo: "3/4" },
   { codigo: "semanas_consistentes_4", selo: "4 sem" },
+  { codigo: "semanas_consistentes_5", selo: "5 sem" },
+  { codigo: "semanas_consistentes_6", selo: "6 sem" },
   { codigo: "treinos_25", selo: "25" },
   { codigo: "semanas_consistentes_8", selo: "8 sem" },
+  { codigo: "semanas_consistentes_10", selo: "10 sem" },
+  { codigo: "semanas_consistentes_12", selo: "12" },
   { codigo: "acompanhamento_12_semanas", selo: "12 sem" },
   { codigo: "constancia_verdade", selo: "8/12" },
   { codigo: "treinos_50", selo: "50" },
@@ -117,7 +121,11 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "treinos_25": return treinos(25);
       case "treinos_50": return treinos(50);
       case "semanas_consistentes_4": return semanas(4);
+      case "semanas_consistentes_5": return semanas(5);
+      case "semanas_consistentes_6": return semanas(6);
       case "semanas_consistentes_8": return semanas(8);
+      case "semanas_consistentes_10": return semanas(10);
+      case "semanas_consistentes_12": return semanas(12);
       case "acompanhamento_12_semanas": return { atual: Math.min(participando, 12), alvo: 12, falta: `Treine em 12 semanas do acompanhamento (não precisam ser seguidas) — você está em ${Math.min(participando, 12)}.`, disponivel: true };
       case "criando_raizes": {
         const a = avaliarRaizes(e.aderencia.semanas, validas, e.hoje);

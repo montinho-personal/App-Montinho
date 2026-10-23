@@ -1,4 +1,5 @@
 import { saudacao as saudacaoSP } from "@/components/brand/BrandLockup";
+import { LENDARIAS } from "@/lib/conquistas/regras";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -221,7 +222,7 @@ export default async function AlunoHomePage() {
         <Link href="/aluno/jornada" className="block">
           <Card className="transition-colors hover:border-accent/40">
             <CardBody className="flex items-center gap-3 py-3">
-              <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} />
+              <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} lendaria={LENDARIAS.has(proximaMed.codigo)} />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Sua próxima medalha · {ganhas} de {medalhas.length}</p>
                 <p className="font-semibold leading-tight">{proximaMed.titulo}</p>

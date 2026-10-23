@@ -1,5 +1,6 @@
 "use client";
 
+import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
@@ -50,7 +51,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">{novasMedalhas.length > 1 ? "Novas conquistas" : "Nova conquista"}</p>
           {novasMedalhas.map((m) => (
             <div key={m.codigo} className="flex items-center gap-3">
-              <MedalhaIcone selo={m.selo} conquistada atual={null} alvo={null} tamanho={48} nova />
+              <MedalhaIcone selo={m.selo} conquistada atual={null} alvo={null} tamanho={48} nova lendaria={LENDARIAS.has(m.codigo)} />
               <div className="min-w-0 flex-1">
                 <p className="font-bold leading-tight">{m.titulo}</p>
                 <p className="text-sm text-fg-muted">{CONTEUDO[m.codigo].mensagem}</p>
@@ -72,7 +73,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
           <Card className="border-accent/40">
             <CardBody className="space-y-2 py-3">
               <div className="flex items-center gap-3">
-                <MedalhaIcone selo={proximas[0].selo} conquistada={false} atual={proximas[0].atual} alvo={proximas[0].alvo} tamanho={56} />
+                <MedalhaIcone selo={proximas[0].selo} conquistada={false} atual={proximas[0].atual} alvo={proximas[0].alvo} tamanho={56} lendaria={LENDARIAS.has(proximas[0].codigo)} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua próxima medalha</p>
                   <p className="font-bold leading-tight">{proximas[0].titulo}</p>

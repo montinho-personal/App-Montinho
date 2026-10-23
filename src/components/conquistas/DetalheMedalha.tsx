@@ -3,6 +3,7 @@
 // Detalhe educativo de uma medalha (divulgação progressiva): primeiro a
 // mensagem curta, estado e progresso; o conteúdo completo só abre se o aluno
 // tocar em “Entenda por que isso é importante”.
+import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useState } from "react";
 import { MedalhaIcone } from "./MedalhaIcone";
 import { CATEGORIA_ROTULO, CONTEUDO, FONTES } from "@/lib/conquistas/conteudo";
@@ -25,7 +26,7 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
   return (
     <section className={`space-y-3 rounded-xl border border-accent/40 bg-card p-4 text-sm ${className}`} aria-label={`Medalha ${t.nome}`}>
       <div className="flex items-start gap-3">
-        <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} tamanho={64} />
+        <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} tamanho={64} lendaria={LENDARIAS.has(m.codigo)} />
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">{CATEGORIA_ROTULO[t.categoria]}</p>
           <p className="text-base font-bold leading-tight">{t.nome}</p>
