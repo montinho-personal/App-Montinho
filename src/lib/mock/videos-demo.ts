@@ -38,6 +38,7 @@ export const VIDEOS_DEMO: Record<string, string> = {
   "rosca-inversa": "cIqScmVpqnc",
   "supino-inclinado-maquina": "lk6sql0-sZI",
   "barra-fixa-pronada": "Uyn3uxEgYvI",
+  "hip-thrust-maquina": "m8g9VogoxMo",
   "puxada-frontal-aberta": "yi0zkiKNQC0",
   "puxada-frontal-supinada": "VwDIgSmeN-4",
   "puxada-triangulo": "hzYgiHveL6Q",

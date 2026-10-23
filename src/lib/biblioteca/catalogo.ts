@@ -888,7 +888,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["hip-thrust-maquina", "elevacao-pelvica-solo", "elevacao-pelvica-unilateral"],
   }),
   ex("hip-thrust-maquina", "Hip thrust na máquina", "gluteo", {
-    s: ["elevação pélvica máquina", "glute drive"],
+    s: ["elevação pélvica máquina", "glute drive", "hip thrust máquina", "reptrust na máquina"],
     p: { posteriores: 0.25 }, pad: "extensao_quadril", art: ["quadril"], t: "mono", eq: ["maquina"],
     exe: ["Ajuste o cinto sobre o quadril.", "Eleve o quadril até alinhar com o tronco.", "Desça devagar."],
     err: ["Arquear a lombar.", "Amplitude curta.", "Retorno rápido."],
