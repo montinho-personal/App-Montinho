@@ -19,7 +19,12 @@ export default async function RankingTreinadorPage() {
       <header>
         <p className="text-xs font-bold uppercase tracking-wider text-accent">Gamificação</p>
         <h1 className="text-2xl font-bold">Ranking de troféus</h1>
-        <p className="mt-1 text-sm text-fg-muted">Alunos e visitantes ativos, por troféus diferentes conquistados — o mesmo número da sala de troféus de cada um (recordes e retomadas ficam de fora, porque se repetem). Empate em troféus é decidido pela constância (*); a aderência da semana aparece só para você e para a própria pessoa. Os alunos veem só o primeiro nome e a inicial; quem desligou “Aparecer no ranking” no Perfil não aparece para os outros (aqui você vê todos).</p>
+        <p className="mt-1 text-sm text-fg-muted">Quem tem mais troféus fica na frente.</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg-muted">
+          <li>Empatou? Fica na frente quem treinou com mais constância (*).</li>
+          <li>Os alunos veem só o primeiro nome e a inicial do sobrenome. Você vê o nome completo.</li>
+          <li>Quem escolheu não aparecer no ranking some para os outros alunos, mas aqui você vê todo mundo.</li>
+        </ul>
       </header>
       <RankingTrofeus linhas={linhas} nomeCompleto />
     </div>
