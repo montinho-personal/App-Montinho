@@ -60,12 +60,17 @@ export const POOLS = {
   ombro_post: P("ombro_posterior", false, ["crucifixo-invertido-maquina", "face-pull", "crucifixo-invertido-halteres"], ["crucifixo-invertido-halteres"]),
   biceps: P("biceps", false, ["rosca-direta-barra-w", "rosca-alternada-halteres", "rosca-martelo", "rosca-scott-maquina"], ["rosca-alternada-halteres", "rosca-martelo", "rosca-concentrada"]),
   triceps: P("triceps", false, ["triceps-corda", "triceps-barra-polia", "triceps-frances-halter", "triceps-testa-barra-w", "supino-fechado"], ["triceps-frances-halter", "triceps-coice-halter", "mergulho-banco"]),
+  // Abre e fecha o dia da Musa da Bulgária (sem o Smith na biblioteca, vale o búlgaro comum).
+  bulgaro_abre: P("quadriceps", true, ["agachamento-bulgaro-smith", "agachamento-bulgaro"], ["agachamento-bulgaro"]),
+  bulgaro_fecha: P("gluteo", true, ["agachamento-bulgaro"], ["agachamento-bulgaro"]),
   abdomen: P("abdomen", false, ["abdominal-supra", "abdominal-infra", "abdominal-polia"], ["abdominal-supra", "abdominal-infra"]),
   core: P("core", false, ["dead-bug", "perdigueiro", "pallof-press"], ["dead-bug", "perdigueiro"]),
 } satisfies Record<string, Pool>;
 export type ChavePool = keyof typeof POOLS;
+/** Exercícios que nunca saem para caber no tempo (o começo e o fim combinados). */
+const FIXOS = new Set<ChavePool>(["bulgaro_abre", "bulgaro_fecha"]);
 
-export type TipoSessao = "FULL" | "INF" | "SUP" | "PUSH" | "PULL" | "GLUTEO" | "QUAD" | "PEITO_COSTAS" | "OMBRO_BRACO" | "AGACHAMENTOS" | "SUPINOS";
+export type TipoSessao = "FULL" | "INF" | "SUP" | "PUSH" | "PULL" | "GLUTEO" | "QUAD" | "PEITO_COSTAS" | "OMBRO_BRACO" | "AGACHAMENTOS" | "SUPINOS" | "BULGARA";
 const SESSOES: Record<TipoSessao, { nome: string; slots: ChavePool[] }> = {
   FULL: { nome: "Corpo todo", slots: ["quad_multi", "peito_multi", "costas_rem", "gluteo_multi", "ombro_multi", "post_mono", "costas_vert", "ombro_lat", "core"] },
   INF: { nome: "Inferiores", slots: ["quad_multi", "gluteo_multi", "post_hinge", "quad_mono", "post_mono", "gluteo_mono", "panturrilha", "abdomen"] },
@@ -78,6 +83,8 @@ const SESSOES: Record<TipoSessao, { nome: string; slots: ChavePool[] }> = {
   OMBRO_BRACO: { nome: "Ombros e braços", slots: ["ombro_multi", "ombro_lat", "ombro_post", "biceps", "triceps", "biceps", "triceps"] },
   AGACHAMENTOS: { nome: "Agachamentos", slots: ["quad_multi", "gluteo_extra", "quad_multi", "gluteo_extra", "post_mono", "panturrilha"] },
   SUPINOS: { nome: "Supinos", slots: ["peito_multi", "peito_inc", "peito_multi", "ombro_multi", "triceps", "ombro_lat"] },
+  // Começa no búlgaro no Smith e termina no búlgaro com halteres.
+  BULGARA: { nome: "Pernas e glúteo (búlgaro)", slots: ["bulgaro_abre", "gluteo_multi", "post_hinge", "quad_mono", "gluteo_mono", "post_mono", "bulgaro_fecha"] },
 };
 
 /** Exercício a mais (variação) no dia que já trabalha a região do foco. */
@@ -123,7 +130,7 @@ function divisoes(dias: number, foco: Foco): [Divisao, Divisao] {
   }
 }
 
-export type ExercicioPlano = { slug: string; grupo: GrupoMuscular; series: number; reps: string; descansoSeg: number; multi: boolean; prioridade: boolean };
+export type ExercicioPlano = { slug: string; grupo: GrupoMuscular; series: number; reps: string; descansoSeg: number; multi: boolean; prioridade: boolean; fixo?: boolean };
 export type TreinoPlano = { letra: string; nome: string; exercicios: ExercicioPlano[]; minutos: number };
 export type OpcaoPlano = { id: "A" | "B"; titulo: string; treinos: TreinoPlano[]; seriesPorGrupo: Array<{ grupo: GrupoMuscular; series: number }>; dicas: string[] };
 
@@ -166,6 +173,7 @@ function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis:
     const lista = [...base.filter((s) => preferidos.includes(s)).sort((a, b) => preferidos.indexOf(a) - preferidos.indexOf(b)), ...corte.filter((s) => !preferidos.includes(s))];
     const candidatos = lista.filter((s) => !usadosNoDia.has(s));
     if (!candidatos.length) return null;
+    if (FIXOS.has(chave)) return candidatos[0]; // começo e fim combinados: sem rodízio
     const n = usos.get(chave) ?? 0;
     usos.set(chave, n + 1);
     return candidatos[n % candidatos.length];
@@ -192,11 +200,11 @@ function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis:
       if (!slug) continue;
       usados.add(slug);
       const pool = POOLS[chave];
-      ex.push({ slug, grupo: pool.grupo, multi: pool.multi, prioridade: prioridade.includes(chave), ...prescricao(p.nivel, pool.multi, extra.estilo) });
+      ex.push({ slug, grupo: pool.grupo, multi: pool.multi, prioridade: prioridade.includes(chave), ...(FIXOS.has(chave) ? { fixo: true } : {}), ...prescricao(p.nivel, pool.multi, extra.estilo) });
     }
     // Cabe no tempo: primeiro corta exercícios do fim (menos prioritários); depois uma série dos isolados.
     while (minutosDoTreino(ex) > p.minutos && ex.length > LIMITES_PLANO.exerciciosMin) {
-      const idx = [...ex.keys()].reverse().find((k) => !ex[k].prioridade) ?? ex.length - 1;
+      const idx = [...ex.keys()].reverse().find((k) => !ex[k].prioridade && !ex[k].fixo) ?? [...ex.keys()].reverse().find((k) => !ex[k].fixo) ?? ex.length - 1;
       ex = ex.filter((_, k) => k !== idx);
     }
     const passos: Array<(e: ExercicioPlano) => ExercicioPlano | null> = [
@@ -208,7 +216,11 @@ function montarOpcao(id: "A" | "B", d: Divisao, p: ParametrosPlano, disponiveis:
       for (let k = ex.length - 1; k >= 0 && minutosDoTreino(ex) > p.minutos; k--) ex[k] = passo(ex[k]) ?? ex[k];
     }
     // Treino bem curto: fica com 3 exercícios (os primeiros, que são os principais).
-    while (minutosDoTreino(ex) > p.minutos && ex.length > 3) ex = ex.slice(0, -1);
+    while (minutosDoTreino(ex) > p.minutos && ex.length > 3) {
+      const k = [...ex.keys()].reverse().find((i) => !ex[i].fixo);
+      if (k == null) break;
+      ex = ex.filter((_, i) => i !== k);
+    }
     const nome = SESSOES[tipo].nome;
     return { letra: LETRAS[i], nome, exercicios: ex, minutos: minutosDoTreino(ex) };
   });

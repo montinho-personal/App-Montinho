@@ -88,6 +88,25 @@ export const TREINOS_PRONTOS: TreinoPronto[] = [
     personalizado: { titulo: "Supinos 2× na semana", sessoes: ["SUPINOS", "INF", "SUPINOS", "PULL"], estilo: "forca", preferidos: ["supino-reto-barra", "supino-inclinado-barra", "supino-reto-halteres", "supino-inclinado-halteres", "supino-declinado-barra", "supino-reto-smith", "supino-fechado"] },
   }),
 
+  T("musa-da-bulgaria", "Musa da Bulgária", "🇧🇬", "Começa e termina no agachamento búlgaro", "Dois dias de pernas e glúteo por semana: abre com o búlgaro no Smith e fecha com o búlgaro com halteres. No meio, hip thrust, stiff, cadeiras e abdutora.", { nivel: "intermediario", minutos: 60, foco: "gluteo" }, "A", 28, true, {
+    inspiracao: "Inspirado no agachamento búlgaro, um dos exercícios mais completos para glúteo e quadríceps: uma perna de cada vez, com o pé de trás apoiado no banco.",
+    personalizado: { titulo: "Búlgaro no começo e no fim, 2× na semana", sessoes: ["BULGARA", "SUP", "BULGARA", "SUP"], preferidos: ["hip-thrust-barra", "stiff-barra", "cadeira-abdutora"] },
+  }),
+
+  // Divisões por público (pedido do Montinho em 23/10/2026)
+  T("iniciante-masculino", "Iniciante Masculino", "🧔", "Para quem está começando: peito, costas e braços 2× na semana", "Três treinos por semana com máquinas fáceis de aprender: dois dias com parte de cima e dois com pernas (um deles é corpo todo).", { nivel: "iniciante", minutos: 50, foco: "superiores" }, "A", 21, true, {
+    personalizado: { titulo: "Superiores, inferiores e corpo todo", sessoes: ["SUP", "INF", "FULL"] },
+  }),
+  T("iniciante-feminino", "Iniciante Feminino", "👩", "Para quem está começando: pernas e glúteo em destaque", "Três treinos por semana com máquinas fáceis de aprender: glúteo, corpo todo e pernas, com a parte de cima no dia do meio.", { nivel: "iniciante", minutos: 50, foco: "gluteo" }, "A", 21, true, {
+    personalizado: { titulo: "Glúteo, corpo todo e inferiores", sessoes: ["GLUTEO", "FULL", "INF"] },
+  }),
+  T("masculino-depois-do-comeco", "Masculino", "🧔‍♂️", "Para quem já passou do começo: 5 dias, parte de cima em destaque", "Peito e costas, ombros e braços, pernas 2× na semana e um dia de superiores. Para quem já treina há alguns meses.", { nivel: "intermediario", minutos: 60, foco: "superiores" }, "A", 28, true, {
+    personalizado: { titulo: "Peito e costas, pernas, ombros e braços, superiores e pernas", sessoes: ["PEITO_COSTAS", "INF", "OMBRO_BRACO", "SUP", "QUAD"] },
+  }),
+  T("feminino-depois-do-comeco", "Feminino", "👩‍🦰", "Para quem já passou do começo: glúteo e pernas 3× na semana", "Glúteo e posteriores, superiores, quadríceps e um dia de corpo todo. Para quem já treina há alguns meses.", { nivel: "intermediario", minutos: 60, foco: "gluteo" }, "A", 28, true, {
+    personalizado: { titulo: "Glúteo, superiores, quadríceps e corpo todo", sessoes: ["GLUTEO", "SUP", "QUAD", "FULL"] },
+  }),
+
   // Aguardando aprovação do Montinho (só na demonstração)
   T("projeto-calca-apertada", "Projeto Calça Apertada", "👖", "Pernas e glúteo para quem está começando", "Três treinos por semana, dois focados em pernas e glúteo, com máquinas fáceis de aprender.", { nivel: "iniciante", dias: 3, minutos: 45, foco: "gluteo" }, "B", 21),
   T("comeco-sem-medo", "Começo Sem Medo", "🌱", "O primeiro treino de quem nunca treinou", "Corpo todo 3× na semana, exercícios simples e poucos aparelhos. O jeito mais seguro de começar.", { nivel: "iniciante", dias: 3, minutos: 45, foco: "geral" }, "A", 21),
@@ -129,3 +148,6 @@ export function progressoDesafio(t: Pick<TreinoPronto, "desafioDias" | "parametr
   const meta = Math.round((t.desafioDias / 7) * t.parametros.dias);
   return { feitos, meta, diaAtual: Math.min(diaAtual, t.desafioDias), terminou: diaAtual > t.desafioDias, concluido: feitos >= meta };
 }
+
+/** Marca dos treinos salvos pelo “Monte com IA” (para contar quantos usam). */
+export const MARCA_MONTE_IA = "Montado no Monte com IA do Montinho.";

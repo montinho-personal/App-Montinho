@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { headers } from "next/headers";
 import { ofertaDoConvite } from "@/lib/visitante/mensagem-convite";
 import { notFound } from "next/navigation";
-import { FEATURES } from "@/lib/env";
+import { FEATURES, isDemoMode } from "@/lib/env";
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { listarConvites, listarDesafios, listarVisitantes } from "@/lib/data/visitantes";
 import { DesafiosClient } from "./DesafiosClient";
@@ -17,6 +17,8 @@ import { mensagemBoasVindas } from "@/lib/visitante/boas-vindas-whatsapp";
 import { indicacoesPorVisitante } from "@/lib/data/campanhas";
 import { treinosParaMontar } from "@/lib/data/treinos-enviados";
 import { TreinosParaMontar } from "./TreinosParaMontar";
+import { usoDosTreinosProntos } from "@/lib/data/uso-prontos";
+import { UsoTreinosProntos } from "./UsoTreinosProntos";
 
 export const metadata = { title: "Visitantes" };
 
@@ -25,7 +27,7 @@ const OBJETIVO: Record<string, string> = { hipertrofia: "Massa muscular", emagre
 export default async function VisitantesPage() {
   if (!FEATURES.modoVisitante) notFound();
   await requireTreinadorPage();
-  const [convites, visitantes, desafios, indicacoes, paraMontar] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios(), indicacoesPorVisitante().catch(() => new Map()), treinosParaMontar().catch(() => [])]);
+  const [convites, visitantes, desafios, indicacoes, paraMontar, usoProntos] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios(), indicacoesPorVisitante().catch(() => new Map()), treinosParaMontar().catch(() => []), usoDosTreinosProntos().catch(() => [])]);
   const nomeVisitante = new Map(visitantes.map((v) => [v.id, (v.profile?.nome ?? "").split(" ")[0]]));
   const nomeDesafio = new Map(desafios.map((d) => [d.id, d.nome]));
   const curta = (d: string | null) => (d ? d.split("-").reverse().join("/") : null);
@@ -64,6 +66,8 @@ export default async function VisitantesPage() {
         hoje={hoje}
         desafios={desafios.map((d) => ({ id: d.id, nome: d.nome, periodo: d.inicio && d.fim ? `${curta(d.inicio)} a ${curta(d.fim)}` : "Sem período", meta: d.meta_treinos, participantes: d.participantes, concluidos: d.concluidos }))}
       />
+
+      <UsoTreinosProntos uso={usoProntos} demo={isDemoMode()} />
 
       <Card>
         <CardHeader>

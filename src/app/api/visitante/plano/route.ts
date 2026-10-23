@@ -5,7 +5,7 @@ import { isDemoMode } from "@/lib/env";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { opcoesParaVisitante } from "@/lib/data/plano-visitante";
 import { salvarPlanoProprio } from "@/lib/data/meus-treinos";
-import { marcaDoPronto, planoDoPronto, prontoPorSlug } from "@/lib/visitante/treinos-prontos";
+import { MARCA_MONTE_IA, marcaDoPronto, planoDoPronto, prontoPorSlug } from "@/lib/visitante/treinos-prontos";
 import { requireVisitanteEmDiaApi } from "@/lib/visitante/guarda-api";
 import { lerJson, salvarPlanoVisitanteSchema } from "@/lib/validacao/schemas";
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const { biblioteca, opcoes } = await opcoesParaVisitante(origem.parametros);
     const plano = opcoes.find((o) => o.id === origem.opcao);
     if (!plano) return NextResponse.json({ error: "Opção não encontrada. Peça o treino de novo." }, { status: 404 });
-    const r = await salvarPlanoProprio(sessao.alunoId, plano, biblioteca, { substituir: data.substituir, ativosAtuais: atuais });
+    const r = await salvarPlanoProprio(sessao.alunoId, plano, biblioteca, { observacoes: MARCA_MONTE_IA, substituir: data.substituir, ativosAtuais: atuais });
     return NextResponse.json({ ok: true, ...r }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível salvar agora.";

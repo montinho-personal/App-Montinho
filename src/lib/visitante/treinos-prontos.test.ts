@@ -32,6 +32,33 @@ describe("treinos prontos", () => {
   });
   it("parecidos com o pedido", () => {
     const r = prontosParecidos({ nivel: "iniciante", dias: 3, minutos: 45, foco: "gluteo", local: "academia" }, TREINOS_PRONTOS);
-    expect(r.map((t) => t.slug)).toEqual(["projeto-calca-apertada", "operacao-musa-do-bumbum"]);
+    expect(r.map((t) => t.slug)).toEqual(["iniciante-feminino", "projeto-calca-apertada"]);
+  });
+});
+
+describe("Musa da Bulgária e divisões por público", () => {
+  const slugs = [...CATALOGO.map((c) => c.slug), "agachamento-bulgaro-smith"];
+  it("dias de pernas começam no búlgaro no Smith e terminam no búlgaro com halteres", () => {
+    const p = planoDoPronto(TREINOS_PRONTOS.find((t) => t.slug === "musa-da-bulgaria")!, slugs)!;
+    const pernas = p.treinos.filter((t) => t.nome.startsWith("Pernas e glúteo"));
+    expect(pernas).toHaveLength(2);
+    for (const t of pernas) {
+      expect(t.exercicios[0].slug).toBe("agachamento-bulgaro-smith");
+      expect(t.exercicios.at(-1)!.slug).toBe("agachamento-bulgaro");
+      expect(t.minutos).toBeLessThanOrEqual(60);
+    }
+  });
+  it("sem o búlgaro no Smith na biblioteca, abre com o búlgaro comum", () => {
+    const p = planoDoPronto(TREINOS_PRONTOS.find((t) => t.slug === "musa-da-bulgaria")!, CATALOGO.map((c) => c.slug))!;
+    expect(p.treinos[0].exercicios[0].slug).toBe("agachamento-bulgaro");
+  });
+  it("iniciantes, masculino e feminino montam e cabem no tempo", () => {
+    for (const slug of ["iniciante-masculino", "iniciante-feminino", "masculino-depois-do-comeco", "feminino-depois-do-comeco"]) {
+      const t = TREINOS_PRONTOS.find((x) => x.slug === slug)!;
+      expect(t.aprovado).toBe(true);
+      const p = planoDoPronto(t, slugs)!;
+      expect(p.treinos.length).toBe(t.parametros.dias);
+      for (const tr of p.treinos) expect(tr.minutos).toBeLessThanOrEqual(t.parametros.minutos);
+    }
   });
 });
