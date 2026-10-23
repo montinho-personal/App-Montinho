@@ -14,6 +14,7 @@ import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import type { Treino, TreinoLetra } from "@/lib/supabase/types";
 import type { ExercicioPrescrito } from "@/lib/supabase/types-sessoes";
 import type { TreinoProprioInput } from "@/lib/validacao/schemas";
+import type { OpcaoPlano } from "@/lib/visitante/gerar-treino";
 
 export const LETRAS: TreinoLetra[] = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
@@ -43,7 +44,7 @@ function camposDoExercicio(e: TreinoProprioInput["exercicios"][number], item: It
   };
 }
 
-export async function salvarTreinoProprio(alunoId: string, input: TreinoProprioInput, biblioteca: ItemBiblioteca[]): Promise<{ id: string }> {
+export async function salvarTreinoProprio(alunoId: string, input: TreinoProprioInput, biblioteca: ItemBiblioteca[], opts: { observacoes?: string | null } = {}): Promise<{ id: string }> {
   const porId = new Map(biblioteca.map((i) => [i.id, i]));
   const itens = input.exercicios.map((e) => {
     if (!e.biblioteca_id) return { e, item: null };
@@ -60,7 +61,7 @@ export async function salvarTreinoProprio(alunoId: string, input: TreinoProprioI
     if (!treino) {
       const letra = letraLivre(s.treinos.filter((t) => t.aluno_id === alunoId && t.ativo).map((t) => t.letra));
       if (!letra) throw new Error("Você já tem 8 treinos ativos. Arquive um para criar outro.");
-      treino = { id: uid(), aluno_id: alunoId, letra, nome: input.nome, observacoes: null, ordem: LETRAS.indexOf(letra), ativo: true, autoria: "proprio", versao: 1, programa_id: null, created_at: agora, updated_at: agora };
+      treino = { id: uid(), aluno_id: alunoId, letra, nome: input.nome, observacoes: opts.observacoes ?? null, ordem: LETRAS.indexOf(letra), ativo: true, autoria: "proprio", versao: 1, programa_id: null, created_at: agora, updated_at: agora };
       s.treinos.push(treino);
     } else Object.assign(treino, { nome: input.nome, versao: (treino.versao ?? 1) + 1, updated_at: agora });
     const tid = treino.id;
@@ -93,7 +94,7 @@ export async function salvarTreinoProprio(alunoId: string, input: TreinoProprioI
     const { data: ativos } = await db.from("treinos").select("letra").eq("aluno_id", alunoId).eq("ativo", true);
     const letra = letraLivre((ativos ?? []).map((t) => t.letra as string));
     if (!letra) throw new Error("Você já tem 8 treinos ativos. Arquive um para criar outro.");
-    const { data, error } = await db.from("treinos").insert({ aluno_id: alunoId, letra, nome: input.nome, ordem: LETRAS.indexOf(letra), ativo: true, autoria: "proprio", versao: 1 }).select("id").single();
+    const { data, error } = await db.from("treinos").insert({ aluno_id: alunoId, letra, nome: input.nome, ordem: LETRAS.indexOf(letra), ativo: true, autoria: "proprio", versao: 1, observacoes: opts.observacoes ?? null }).select("id").single();
     if (error || !data) throw new Error(`Não foi possível criar o treino: ${error?.message ?? ""}`);
     treinoId = data.id;
   }
@@ -132,3 +133,27 @@ export async function arquivarTreinoProprio(alunoId: string, treinoId: string): 
 }
 
 export type TreinoProprioResumo = Pick<Treino, "id" | "letra" | "nome"> & { exercicios: Array<Pick<ExercicioPrescrito, "id" | "nome" | "series" | "reps" | "descanso_seg" | "biblioteca_id" | "grupo_muscular">> };
+
+/**
+ * Salva um plano inteiro (opção do “Monte com IA” ou treino pronto) como
+ * treinos próprios A, B, C… O plano é montado no servidor (gerador), nunca
+ * vem pronto do navegador. Com `substituir`, os treinos próprios atuais saem
+ * da lista antes (ativo=false; o histórico continua).
+ */
+export async function salvarPlanoProprio(alunoId: string, plano: OpcaoPlano, biblioteca: ItemBiblioteca[], opts: { prefixo?: string | null; observacoes?: string | null; substituir: boolean; ativosAtuais: Array<{ id: string }> }): Promise<{ ids: string[] }> {
+  if (opts.substituir) for (const t of opts.ativosAtuais) await arquivarTreinoProprio(alunoId, t.id);
+  else if (opts.ativosAtuais.length + plano.treinos.length > LETRAS.length) throw new Error(`Você já tem ${opts.ativosAtuais.length} treinos. Marque “trocar meus treinos atuais” ou arquive alguns antes.`);
+  const porSlug = new Map(biblioteca.map((i) => [i.slug, i]));
+  const ids: string[] = [];
+  for (const t of plano.treinos) {
+    const exercicios = t.exercicios.flatMap((e) => {
+      const item = porSlug.get(e.slug);
+      return item ? [{ id: null, biblioteca_id: item.id, nome_livre: null, series: e.series, reps: e.reps, descanso_seg: e.descansoSeg, carga_kg: null }] : [];
+    });
+    if (!exercicios.length) continue;
+    const nome = (opts.prefixo ? `${opts.prefixo} · ${t.nome}` : t.nome).slice(0, 60);
+    const r = await salvarTreinoProprio(alunoId, { id: null, nome, exercicios }, biblioteca, { observacoes: opts.observacoes ?? null });
+    ids.push(r.id);
+  }
+  return { ids };
+}

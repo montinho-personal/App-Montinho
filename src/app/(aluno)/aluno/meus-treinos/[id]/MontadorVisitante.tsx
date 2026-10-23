@@ -184,6 +184,12 @@ export function MontadorVisitante({ itens, inicial, iniciante, copia = false, de
         <p className="mt-1 text-sm text-fg-muted">{copia ? "É uma cópia: troque o nome e os exercícios que quiser e salve como um treino novo." : "Escolha os exercícios e ajuste séries, repetições e descanso."}</p>
       </header>
 
+      {mostrarSubir ? (
+        <a href="/aluno/monte-com-ia" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+          <span className="text-2xl" aria-hidden>✨</span>
+          <span><span className="block text-sm font-semibold">Prefere que o app monte para você?</span><span className="block text-xs text-fg-muted">Monte com IA: diga dias, tempo e foco e receba duas opções.</span></span>
+        </a>
+      ) : null}
       {mostrarSubir ? <SubirTreino itens={itens} onLido={aoLer} demo={demo} /> : null}
 
       <div>

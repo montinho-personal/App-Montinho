@@ -673,3 +673,26 @@ export const registrarTreinoEnviadoSchema = z
   })
   .strict();
 export const resolverTreinoEnviadoSchema = z.object({ status: z.enum(["montado", "descartado"]) }).strict();
+
+// “Monte com IA” e treinos prontos do visitante (gerador com base científica).
+const parametrosPlanoSchema = z
+  .object({
+    nivel: z.enum(["iniciante", "intermediario", "avancado"]),
+    dias: z.number().int().min(1).max(7),
+    minutos: z.number().int().min(10).max(180),
+    foco: z.enum(["geral", "gluteo", "pernas", "peito", "costas", "bracos", "ombros", "abdomen", "superiores"]),
+    local: z.enum(["academia", "casa"]),
+  })
+  .strict();
+export const entenderPedidoSchema = z
+  .object({ texto: z.string().trim().min(3, "Conte o treino que você quer").max(600), ajuste: parametrosPlanoSchema.partial().optional() })
+  .strict();
+export const salvarPlanoVisitanteSchema = z
+  .object({
+    origem: z.discriminatedUnion("tipo", [
+      z.object({ tipo: z.literal("pronto"), slug: z.string().regex(/^[a-z0-9-]{3,80}$/) }).strict(),
+      z.object({ tipo: z.literal("pedido"), parametros: parametrosPlanoSchema, opcao: z.enum(["A", "B"]) }).strict(),
+    ]),
+    substituir: z.boolean(),
+  })
+  .strict();

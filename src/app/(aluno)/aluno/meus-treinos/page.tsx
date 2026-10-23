@@ -13,6 +13,10 @@ import { ArquivarTreino } from "./ArquivarTreino";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
 import { meusEnviosPendentes } from "@/lib/data/treinos-enviados";
+import { listSessoes } from "@/lib/data/sessoes";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { progressoDesafio, prontoDaMarca, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
+import { BRAND } from "@/config/brand";
 
 export const metadata = { title: "Meus treinos" };
 
@@ -24,6 +28,19 @@ export default async function MeusTreinosPage() {
   const meus = plano.treinos.filter((t) => t.ativo && t.autoria === "proprio");
   const pode = podeRegistrar("visitante", sessao.acessoFim ?? null);
   const enviados = await meusEnviosPendentes(sessao.alunoId).catch(() => []);
+  const vitrine = prontosVisiveis(isDemoMode());
+
+  // Desafio do treino pronto em andamento (treinos criados a partir dele).
+  const doPronto = meus.map((t) => ({ t, pronto: prontoDaMarca(t.observacoes) })).filter((x) => x.pronto);
+  const pronto = doPronto[0]?.pronto ?? null;
+  let desafio: ReturnType<typeof progressoDesafio> | null = null;
+  if (pronto) {
+    const ids = new Set(doPronto.filter((x) => x.pronto?.slug === pronto.slug).map((x) => x.t.id));
+    const inicio = doPronto.map((x) => dataLocal(x.t.created_at)).sort()[0];
+    const sessoes = await listSessoes(sessao.alunoId, { limite: 200, status: "todas" }).catch(() => []);
+    const datas = sessoes.filter((x) => x.treino_id && ids.has(x.treino_id) && x.status !== "em_andamento" && (x.series_concluidas ?? 0) > 0).map((x) => dataLocal(x.iniciado_em));
+    desafio = progressoDesafio(pronto, inicio, dataLocal(new Date()), datas);
+  }
 
   return (
     <div className="space-y-5">
@@ -35,6 +52,36 @@ export default async function MeusTreinosPage() {
         <Link href="/aluno/meus-treinos/novo" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-bg">
           <Icon name="plus" size={18} /> Montar ou subir um treino
         </Link>
+      ) : null}
+      {pode ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Link href="/aluno/monte-com-ia" className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3">
+            <span className="text-2xl" aria-hidden>✨</span>
+            <span><span className="block font-bold">Monte com IA</span><span className="block text-xs text-fg-muted">Fale ou escreva o treino que você quer: duas opções na hora.</span></span>
+          </Link>
+          {vitrine.length ? (
+            <Link href="/aluno/treinos-prontos" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+              <span className="text-2xl" aria-hidden>🔥</span>
+              <span><span className="block font-bold">Treinos prontos do Montinho</span><span className="block text-xs text-fg-muted">{vitrine.slice(0, 2).map((t) => t.nome).join(", ")} e mais. Com desafio.</span></span>
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {pronto && desafio ? (
+        <section className="space-y-2 rounded-xl border border-accent/40 bg-grain-strong px-4 py-3" aria-label="Desafio">
+          <p className="text-xs font-bold uppercase tracking-wider text-accent">{pronto.emoji} Desafio {pronto.desafioDias} dias · {pronto.nome}</p>
+          {desafio.concluido ? (
+            <p className="text-sm font-semibold">🏆 Desafio concluído! {desafio.feitos} treinos. Isso é constância de verdade.</p>
+          ) : desafio.terminou ? (
+            <p className="text-sm">O desafio terminou com {desafio.feitos} de {desafio.meta} treinos. Bora de novo? Cada treino conta.</p>
+          ) : (
+            <p className="text-sm">Dia {desafio.diaAtual} de {pronto.desafioDias} · <span className="font-bold">{desafio.feitos} de {desafio.meta} treinos</span></p>
+          )}
+          <div className="h-2 overflow-hidden rounded-full bg-bg/60" aria-hidden><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, Math.round((desafio.feitos / Math.max(1, desafio.meta)) * 100))}%` }} /></div>
+          {desafio.concluido || desafio.terminou ? (
+            <a href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(`Olá, Montinho! Terminei o desafio ${pronto.nome} e quero um treino feito para mim. [APP-DESAFIO-PRONTO]`)}`} target="_blank" rel="noopener noreferrer" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Quero o próximo passo com o Montinho →</a>
+          ) : null}
+        </section>
       ) : null}
       {enviados.length ? (
         <p className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm" role="status">
