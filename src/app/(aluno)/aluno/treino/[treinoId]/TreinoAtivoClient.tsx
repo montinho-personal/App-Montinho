@@ -67,6 +67,7 @@ import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarCo
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
+import { PRAZO_LEITURA_MS, fetchComPrazo } from "@/lib/sync/rede";
 import { PADRAO_CARGA_VAZIO, anotaCarga, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
 import { EscolherPadraoCarga, LembreteAparelho, salvarPadraoCarga } from "@/components/treinos/PadraoCarga";
 
@@ -444,11 +445,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     try {
       let res: Response;
       if (op.tipo === "serie") {
-        res = await fetch(`/api/sessoes/${op.sessionId}/series`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ ...op.payload, client_key: op.clientKey }) });
+        res = await fetchComPrazo(`/api/sessoes/${op.sessionId}/series`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ ...op.payload, client_key: op.clientKey }) });
       } else if (op.tipo === "exercicio") {
-        res = await fetch(`/api/sessoes/${op.sessionId}/exercicios/${op.payload.session_exercise_id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(op.payload.patch) });
+        res = await fetchComPrazo(`/api/sessoes/${op.sessionId}/exercicios/${op.payload.session_exercise_id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(op.payload.patch) });
       } else {
-        res = await fetch(`/api/sessoes/${op.sessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(op.payload) });
+        res = await fetchComPrazo(`/api/sessoes/${op.sessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(op.payload) });
       }
       if (res.ok) return { ok: true as const };
       const body = await res.json().catch(() => ({}));
@@ -898,7 +899,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     setFinalizando(true);
     enfileirar(storage, sessao.id, { tipo: "finalizar", sessionId: sessao.id, clientKey: `fim:${sessao.id}`, payload: { status, feedback_percepcao: feedback, pausado_seg: Math.round((pausas.totalMs + (pausas.desde ? new Date().getTime() + offsetMs - pausas.desde : 0)) / 1000) } });
     setPendentes((n) => n + 1);
-    const r = await drenar(storage, sessao.id, enviar);
+    // Nada aqui pode deixar o botão girando para sempre: cada envio tem prazo
+    // (fetchComPrazo) e qualquer falha devolve o botão ao aluno.
+    let r: Awaited<ReturnType<typeof drenar>>;
+    try {
+      r = await drenar(storage, sessao.id, enviar);
+    } catch {
+      r = { confirmadas: 0, restantes: lerFila(storage, sessao.id), erro: "sem conexão" };
+    }
     setPendentes(r.restantes.length);
     if (r.restantes.length) {
       setSync(online ? "erro" : "offline");
@@ -907,8 +915,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       return;
     }
     limparRascunho(storage, sessao.id);
-    const res = await fetch(`/api/sessoes/${sessao.id}`, { headers: cab });
-    const data = (await res.json().catch(() => null)) as SessaoCompleta | null;
+    // O treino já está salvo; o resumo do servidor é só um extra (sem ele, usa o daqui).
+    const data = await fetchComPrazo(`/api/sessoes/${sessao.id}`, { headers: cab }, PRAZO_LEITURA_MS)
+      .then((res) => (res.ok ? (res.json() as Promise<SessaoCompleta>) : null))
+      .catch(() => null);
     setConcluida(data ?? { ...sessao, status });
     if (!presencial) {
       const parcial = status === "abandonada" || (totalPlanejado > 0 && totalFeito / totalPlanejado < FRACAO_CONCLUSAO);
