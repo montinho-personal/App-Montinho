@@ -13,7 +13,7 @@ import { BRAND } from "@/config/brand";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { EuMonto, type ItemEscolhido } from "./EuMonto";
 
-const CORPO: Record<CorpoExtra, string> = { bem: "Bem recuperado", cansado: "Um pouco cansado", dor: "Com dor ou desconforto" };
+const CORPO: Record<CorpoExtra, string> = { bem: "Bem recuperado", cansado: "Um pouco cansado", dor_leve: "Dor leve", dor_moderada: "Dor moderada", dor: "Dor forte" };
 const chip = (on: boolean) => `touch rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`;
 const chave = () => `extra-gerado:${new Date().toISOString().slice(0, 10)}:${Math.random().toString(36).slice(2, 10)}`;
 
@@ -174,7 +174,7 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
                 Montar com {FOCOS_EXTRA[previa.sugerirFoco].rotulo.toLowerCase()}
               </button>
             ) : null}
-            {corpo === "dor" ? <p className="text-xs text-fg-muted">Fale com o {BRAND.name} pelo WhatsApp antes de treinar mais.</p> : null}
+            {corpo === "dor" ? <p className="text-xs text-fg-muted">Converse com o {BRAND.name} pelo WhatsApp antes de treinar mais.</p> : null}
           </div>
         )}
       </CardBody>

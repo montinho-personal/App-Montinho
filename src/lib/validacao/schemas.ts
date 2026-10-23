@@ -120,7 +120,7 @@ export const iniciarSessaoSchema = z.object({
   tempo_disponivel_min: z.coerce.number().int().min(10).max(240).nullable().optional(),
   descanso_reduzido: z.boolean().optional(),
   extra_id: z.string().min(1).max(64).nullable().optional(),
-  recuperacao: z.enum(["bem", "cansado", "dor", "prefiro_nao"]).nullable().optional(),
+  recuperacao: z.enum(["bem", "cansado", "dor_leve", "dor_moderada", "dor", "prefiro_nao"]).nullable().optional(),
 });
 
 export const serieSchema = z.object({
@@ -343,7 +343,7 @@ export const reconhecimentoSchema = z.object({
 
 // Treino extra
 export const MODALIDADES_EXTRA = ["cardio_leve", "cardio_moderado", "tecnica", "mobilidade", "atividade_geral", "complementar", "resistido"] as const;
-const recuperacaoSchema = z.enum(["bem", "cansado", "dor", "prefiro_nao"]).nullable().optional();
+const recuperacaoSchema = z.enum(["bem", "cansado", "dor_leve", "dor_moderada", "dor", "prefiro_nao"]).nullable().optional();
 export const configExtraSchema = z.object({
   habilitado: z.boolean(),
   requer_aprovacao: z.boolean(),
@@ -383,7 +383,7 @@ export const solicitarExtraSchema = z.object({
 });
 export const decidirExtraSchema = z.object({ id: z.string().min(1).max(64), status: z.enum(["aprovada", "recusada"]), resposta: textoOpcional(300) });
 /** Extra: "app" (as três respostas) ou "livre" (o aluno escolhe); iniciar=true começa a sessão. */
-const baseMontar = { corpo: z.enum(["bem", "cansado", "dor"]), iniciar: z.boolean().optional().default(false), client_key: z.string().min(8).max(80).optional() };
+const baseMontar = { corpo: z.enum(["bem", "cansado", "dor_leve", "dor_moderada", "dor"]), iniciar: z.boolean().optional().default(false), client_key: z.string().min(8).max(80).optional() };
 export const montarExtraSchema = z.discriminatedUnion("modo", [
   z.object({ modo: z.literal("app"), foco: z.enum(["prioridade", "full_body", "pequenos"]), tempo_min: z.coerce.number().int().refine((n) => [15, 20, 30, 45, 60].includes(n), "Tempo inválido"), ...baseMontar }),
   z.object({

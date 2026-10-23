@@ -80,6 +80,8 @@ describe("extra montado pelo app", () => {
     const c = montarExtraGerado({ ...base, foco: "pequenos", corpo: "cansado" });
     expect(c.ok && c.extra.exercicios.every((x) => x.series === 2)).toBe(true);
     expect(montarExtraGerado({ ...base, corpo: "dor" }).ok).toBe(false);
+    const leve = montarExtraGerado({ ...base, corpo: "dor_moderada" });
+    expect(leve.ok && leve.extra.exercicios.every((x) => x.series <= 2) && leve.extra.avisos.some((t) => /precaução/.test(t))).toBe(true);
     expect(montarExtraGerado({ ...base, seriesDisponiveis: 0 }).ok).toBe(false);
   });
 

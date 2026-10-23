@@ -131,7 +131,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       confianca={confianca}
       campanha={campanha}
       padraoCarga={padraoCarga}
-      extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
+      extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor_leve", "dor_moderada", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );
 }

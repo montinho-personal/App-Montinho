@@ -115,7 +115,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
         <section className="space-y-2" aria-labelledby="opcoes-extra">
           <div>
             <h2 id="opcoes-extra" className="text-[11px] font-bold uppercase tracking-wider text-accent">Opções de treino extra para aprovar</h2>
-            <p className="text-xs text-fg-muted">O app monta com o plano do aluno. Troque, tire ou ponha exercícios, ajuste séries e repetições e aprove: o aluno passa a ver o treino pronto em “Quero fazer um treino extra” e marca série por série. Continuam valendo as regras abaixo (dor, 48 h, dias e limites).</p>
+            <p className="text-xs text-fg-muted">O app monta com o plano do aluno. Troque, tire ou ponha exercícios, ajuste séries e repetições e aprove: o aluno passa a ver o treino pronto em “Quero fazer um treino extra” e marca série por série. Continuam valendo as regras abaixo (nível de dor, 48 h, dias e limites).</p>
           </div>
           {detalhe.opcoes.length ? (
             <div className="grid gap-3 lg:grid-cols-3">
@@ -208,7 +208,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                 </div>
               </fieldset>
               <p className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[11px] text-fg-muted"><strong className="text-fg">Extra montado pelo app:</strong> só aparece depois que o aluno faz todos os treinos programados da semana. Ele escolhe tempo (15 a 60 min), foco (músculos prioridade, full body leve ou músculos pequenos) e como está o corpo; o app monta com exercícios do plano, com 2 repetições sobrando, e sai liberado direto, respeitando o máximo por semana, as séries extras e os dias acima.</p>
-              <p className="text-[11px] text-fg-subtle">Sempre bloqueados pelo app: dor ou desconforto relatado, mesmo grupo muscular treinado há menos de 48 h (extra intenso), limite da semana atingido. Sem resposta de recuperação, extra intenso vira pedido para você.</p>
+              <p className="text-[11px] text-fg-subtle">Dor: o aluno escolhe o nível. Dor forte bloqueia o extra e pede para conversar com você; dor leve ou moderada libera com aviso de precaução (carga mais leve, parar se piorar). Também bloqueados: mesmo grupo muscular treinado há menos de 48 h (extra intenso) e limite da semana atingido. Sem resposta de recuperação, segue pelas regras.</p>
               <button type="button" disabled={salvando} onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PUT", cfg, "Regras salvas.")} className="touch rounded-lg bg-accent px-4 py-2 font-bold text-bg disabled:opacity-60">
                 Salvar regras
               </button>

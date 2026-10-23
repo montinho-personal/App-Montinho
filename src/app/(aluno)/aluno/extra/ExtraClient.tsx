@@ -106,7 +106,7 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
               ))}
             </div>
           </fieldset>
-          <p className="text-[11px] text-fg-subtle">Isso não é avaliação de saúde. Com dor ou desconforto, fale com o {BRAND.name} antes de treinar.</p>
+          <p className="text-[11px] text-fg-subtle">Isso não é avaliação de saúde. Dor leve ou moderada: treine com precaução e pare se piorar. Dor forte: converse com o {BRAND.name} antes de treinar.</p>
         </CardBody>
       </Card>
 

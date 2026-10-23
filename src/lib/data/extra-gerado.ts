@@ -169,7 +169,7 @@ export async function iniciarExtraAprovado(alunoId: string, input: { extraId: st
   if (c.ctx.emAndamento) throw new Error("Extra não disponível agora: você tem um treino em andamento. Termine ele primeiro.");
   const itens = await resolverEscolhas(c, extra.exercicios);
   if ("erro" in itens) throw new Error(`Extra não disponível agora: ${itens.erro}`);
-  const corpo: CorpoExtra = input.recuperacao === "cansado" ? "cansado" : "bem";
+  const corpo: CorpoExtra = input.recuperacao === "cansado" || input.recuperacao === "dor_leve" || input.recuperacao === "dor_moderada" ? input.recuperacao : "bem";
   // O personal já aprovou a lista: 48 h e limites são conferidos pela avaliação do extra.
   const g = montarExtraLivre({ itens, corpo, recentes48h: [], seriesDisponiveis: 40, tempos: c.tempos });
   if (!g.ok) throw new Error(`Extra não disponível agora: ${g.motivo}`);
@@ -219,7 +219,7 @@ async function gravarExtra(alunoId: string, c: Carga, ex: ExtraGerado, o: { clie
     series_planejadas: ex.series,
     tempo_estimado_seg: estimarPrescricao(ex.exercicios, c.tempos).totalSeg || null,
     pausado_seg: 0,
-    checkin_pre: r.corpo === "cansado" ? "cansado" : "muito_bem",
+    checkin_pre: r.corpo === "cansado" ? "cansado" : r.corpo === "dor_leve" || r.corpo === "dor_moderada" ? "desconforto" : "muito_bem",
     checkin_pre_nota: null,
     modo: "extra",
     tempo_disponivel_min: o.tempoMin,

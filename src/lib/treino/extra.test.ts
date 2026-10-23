@@ -40,10 +40,20 @@ describe("treino extra", () => {
     expect(r.motivos[0]).toMatch(/biceps foi treinado/);
   });
 
-  it("sem resposta de recuperação, extra intenso pede aprovação (falta de dado ≠ seguro)", () => {
-    const r = classificarExtra({ ...base, recuperacao: null, config: cfg, extra: bracos });
-    expect(r.classe).toBe("aprovacao");
-    expect(classificarExtra({ ...base, recuperacao: null, config: cfg, extra: bracos, aprovadoHoje: true }).classe).toBe("liberado");
+  it("sem resposta de recuperação, segue pelas regras (não vira pedido) — Montinho, 23/10/2026", () => {
+    expect(classificarExtra({ ...base, recuperacao: null, config: cfg, extra: bracos }).classe).toBe("liberado");
+    expect(classificarExtra({ ...base, recuperacao: "prefiro_nao", config: cfg, extra: bracos }).classe).toBe("liberado");
+  });
+
+  it("dor leve ou moderada: pode fazer, com precaução; dor forte: não faz e conversa com o personal", () => {
+    for (const r of ["dor_leve", "dor_moderada"] as const) {
+      const c = classificarExtra({ ...base, recuperacao: r, config: cfg, extra: bracos });
+      expect(c.classe).toBe("liberado");
+      expect(c.motivos[0]).toMatch(/precaução/);
+    }
+    const forte = classificarExtra({ ...base, recuperacao: "dor", config: cfg, extra: bracos, aprovadoHoje: true });
+    expect(forte.classe).toBe("nao_recomendado");
+    expect(forte.motivos[0]).toMatch(/Dor forte.*Converse com o personal/);
   });
 
   it("dor relatada agora ou recentemente: não recomendado", () => {

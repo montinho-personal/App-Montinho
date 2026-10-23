@@ -36,7 +36,11 @@ export const FOCOS_EXTRA = {
 } as const;
 export type FocoExtra = keyof typeof FOCOS_EXTRA;
 
-export type CorpoExtra = "bem" | "cansado" | "dor";
+/** Dor forte (“dor”) = sem extra; dor leve ou moderada = extra mais curto, com precaução. */
+export type CorpoExtra = "bem" | "cansado" | "dor_leve" | "dor_moderada" | "dor";
+const comDorLeve = (c: CorpoExtra) => c === "dor_leve" || c === "dor_moderada";
+const AVISO_DOR = "Com dor leve ou moderada: faça com precaução — carga mais leve, evite o movimento que dói e pare se a dor aumentar.";
+const MOTIVO_DOR_FORTE = "Com dor forte, hoje não tem extra. Converse com o Montinho sobre o que está sentindo: ele ajusta com você.";
 
 export const REGRAS_EXTRA_GERADO = {
   horasRecuperacao: 48,
@@ -119,7 +123,7 @@ export function versaoExtra(e: ExercicioPrescrito, series: number): ExercicioPre
 
 export function montarExtraGerado(e: EntradaExtraGerado): ResultadoExtraGerado {
   const R = REGRAS_EXTRA_GERADO;
-  if (e.corpo === "dor") return { ok: false, motivo: "Com dor ou desconforto, hoje não tem extra. Conte para o Montinho o que está sentindo: ele ajusta com você." };
+  if (e.corpo === "dor") return { ok: false, motivo: MOTIVO_DOR_FORTE };
   if (e.seriesDisponiveis <= 0) return { ok: false, motivo: "Você já fez todas as séries extras combinadas para esta semana. Recuperação também faz parte do treino." };
 
   const fora = new Set<GrupoMuscular>([...e.recentes48h, ...e.proximoTreino]);
@@ -168,7 +172,7 @@ export function montarExtraGerado(e: EntradaExtraGerado): ResultadoExtraGerado {
   if (doProximo.length) avisos.push(`Também de fora: ${lista(doProximo)}, que estão no seu próximo treino.`);
 
   // Séries por exercício e corte pelo tempo e pelo teto da semana.
-  const porEx = e.corpo === "cansado" ? R.seriesPorExercicioCansado : R.seriesPorExercicio;
+  const porEx = e.corpo === "cansado" || comDorLeve(e.corpo) ? R.seriesPorExercicioCansado : R.seriesPorExercicio;
   let restantes = e.seriesDisponiveis;
   let montado: ExercicioPrescrito[] = [];
   for (const x of escolhidos) {
@@ -183,6 +187,7 @@ export function montarExtraGerado(e: EntradaExtraGerado): ResultadoExtraGerado {
   // Até no tempo mínimo cabe pelo menos 1 exercício; se nem ele cabe, encurta as séries.
   while (montado.length === 1 && estimarPrescricao(montado, e.tempos).totalSeg > e.tempoMin * 60 && montado[0].series > 1) montado = [versaoExtra(escolhidos[0], montado[0].series - 1)];
   if (e.corpo === "cansado") avisos.push("Você está um pouco cansado: o extra veio com menos séries.");
+  if (comDorLeve(e.corpo)) avisos.push(`${AVISO_DOR} O extra veio com menos séries.`);
 
   const series = montado.reduce((n, x) => n + x.series, 0);
   const duracaoMin = Math.max(5, Math.round(estimarPrescricao(montado, e.tempos).totalSeg / 60));
@@ -212,7 +217,7 @@ export type ItemExtraLivre = {
 
 export function montarExtraLivre(e: { itens: ItemExtraLivre[]; corpo: CorpoExtra; recentes48h: GrupoMuscular[]; seriesDisponiveis: number; tempos?: Partial<ParametrosTempo> | null }): ResultadoExtraGerado {
   const L = LIMITES_EXTRA_LIVRE;
-  if (e.corpo === "dor") return { ok: false, motivo: "Com dor ou desconforto, hoje não tem extra. Conte para o Montinho o que está sentindo: ele ajusta com você." };
+  if (e.corpo === "dor") return { ok: false, motivo: MOTIVO_DOR_FORTE };
   if (!e.itens.length) return { ok: false, motivo: "Escolha pelo menos um exercício." };
   if (e.itens.length > L.maxExercicios) return { ok: false, motivo: `No máximo ${L.maxExercicios} exercícios no extra.` };
   const descansando = e.itens.filter((i) => i.exercicio.grupo_muscular && e.recentes48h.includes(i.exercicio.grupo_muscular));
@@ -222,7 +227,7 @@ export function montarExtraLivre(e: { itens: ItemExtraLivre[]; corpo: CorpoExtra
   const total = e.itens.reduce((n, i) => n + i.series, 0);
   if (total > e.seriesDisponiveis) return { ok: false, motivo: `Seu extra tem ${total} séries e o limite desta semana é ${e.seriesDisponiveis}. Tire ${total - e.seriesDisponiveis} série${total - e.seriesDisponiveis > 1 ? "s" : ""} ou um exercício.` };
   const exercicios = e.itens.map((i) => ({ ...versaoExtra(i.exercicio, Math.min(L.maxSeries, Math.max(1, Math.round(i.series)))), reps: (i.reps || L.repsPadrao).slice(0, 20) }));
-  const avisos = e.corpo === "cansado" ? ["Você marcou que está um pouco cansado: se pesar, faça menos séries. O descanso também conta."] : [];
+  const avisos = e.corpo === "cansado" ? ["Você marcou que está um pouco cansado: se pesar, faça menos séries. O descanso também conta."] : comDorLeve(e.corpo) ? [AVISO_DOR] : [];
   const grupos = [...new Set(exercicios.map((x) => x.grupo_muscular).filter(Boolean))] as GrupoMuscular[];
   return { ok: true, extra: { titulo: "Extra: do meu jeito", exercicios, series: total, duracaoMin: Math.max(5, Math.round(estimarPrescricao(exercicios, e.tempos).totalSeg / 60)), grupos, avisos } };
 }

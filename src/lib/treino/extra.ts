@@ -5,8 +5,9 @@
 //   • liberado          — dentro das regras que o personal configurou;
 //   • aprovacao         — só com OK manual do personal;
 //   • nao_recomendado   — não fazer agora (e por quê).
-// Falta de informação nunca vira “seguro”: sem configuração do personal não
-// há extra; sem resposta de recuperação, treino resistido pede aprovação.
+// Sem configuração do personal não há extra. Dor (pedido do Montinho, 23/10/2026):
+// forte = não faz e conversa com ele; leve ou moderada = faz, com precaução.
+// Sem resposta de recuperação, segue pelas regras (não vira pedido).
 // Motivação sozinha nunca libera nada.
 // ============================================================================
 
@@ -26,10 +27,17 @@ export type Modalidade = keyof typeof MODALIDADES;
 export const RECUPERACAO = {
   bem: "Bem recuperado",
   cansado: "Um pouco cansado",
-  dor: "Com dor ou desconforto",
+  dor_leve: "Dor leve",
+  dor_moderada: "Dor moderada",
+  dor: "Dor forte",
   prefiro_nao: "Prefiro não responder",
 } as const;
 export type Recuperacao = keyof typeof RECUPERACAO;
+
+/** Dor leve ou moderada: pode fazer, com precaução. */
+export const ehDorLeveOuModerada = (r: string | null | undefined) => r === "dor_leve" || r === "dor_moderada";
+export const AVISO_DOR_LEVE = "Com dor leve ou moderada: faça com precaução — carga mais leve, longe da falha, evite o movimento que dói e pare se a dor aumentar.";
+export const MOTIVO_DOR_FORTE = "Dor forte: hoje não faça treino extra. Converse com o personal antes de treinar mais.";
 
 export type ConfigExtra = {
   habilitado: boolean;
@@ -107,7 +115,7 @@ export function classificarExtra(e: {
   const validas = e.sessoes.filter((s) => s.status !== "em_andamento" && s.series_concluidas > 0);
   const intenso = MODALIDADES[x.modalidade].intenso;
 
-  if (e.recuperacao === "dor") return absoluto("Você relatou dor ou desconforto. Fale com o personal antes de treinar mais.");
+  if (e.recuperacao === "dor") return absoluto(MOTIVO_DOR_FORTE);
   const desconfortoRecente = validas.some((s) => (s.checkin_pre === "desconforto" || s.feedback_percepcao === "dor") && horas(s.finalizado_em ?? s.iniciado_em) < REGRAS_EXTRA.horasDesconforto);
   if (desconfortoRecente && x.modalidade !== "mobilidade") return nao("Você relatou desconforto ou dor num treino recente. O personal precisa avaliar antes de um extra.");
 
@@ -125,7 +133,6 @@ export function classificarExtra(e: {
     const seriesSemana = extrasSemana.reduce((n, s) => n + (s.series_extra ?? 0), 0);
     if (seriesSemana + x.series_estimadas > c.limite_series_semana) return nao(`Somaria ${seriesSemana + x.series_estimadas} séries extras na semana — acima do limite combinado (${c.limite_series_semana}).`);
     if (e.recuperacao === "cansado") return nao("Você está um pouco cansado: hoje o descanso tende a render mais que um treino intenso extra.");
-    if (!e.recuperacao || e.recuperacao === "prefiro_nao") pedeAprovacao.push("Sem a resposta sobre recuperação, um extra intenso precisa do OK do personal.");
     const ultima = validas.map((s) => s.finalizado_em ?? s.iniciado_em).sort().at(-1);
     if (ultima && horas(ultima) < c.intervalo_min_horas) pedeAprovacao.push(`Seu último treino foi há menos de ${c.intervalo_min_horas} h.`);
   } else if (x.modalidade === "cardio_moderado" && e.recuperacao === "cansado") {
@@ -134,5 +141,5 @@ export function classificarExtra(e: {
   if (c.requer_aprovacao && !(c.aprovacao_so_intensos && !intenso)) pedeAprovacao.push(c.aprovacao_so_intensos ? "O personal pediu para aprovar cada treino extra de musculação." : "O personal pediu para aprovar cada treino extra.");
 
   if (pedeAprovacao.length && !e.aprovadoHoje) return { classe: "aprovacao", motivos: pedeAprovacao };
-  return { classe: "liberado", motivos: [e.aprovadoHoje ? "Aprovado pelo personal para hoje." : "Dentro das regras que o personal configurou para você.", "Treino extra não conta na meta semanal; ele aparece separado no seu histórico."] };
+  return { classe: "liberado", motivos: [...(ehDorLeveOuModerada(e.recuperacao) ? [AVISO_DOR_LEVE] : []), e.aprovadoHoje ? "Aprovado pelo personal para hoje." : "Dentro das regras que o personal configurou para você.", "Treino extra não conta na meta semanal; ele aparece separado no seu histórico."] };
 }
