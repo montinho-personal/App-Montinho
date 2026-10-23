@@ -56,7 +56,12 @@ export type ExtraLiberado = {
   grupos: string[];
   series_estimadas: number;
   ativo: boolean;
+  /** 0073: exercícios do extra aprovado pelo personal (o aluno registra série por série). */
+  exercicios?: ItemExtraAprovado[] | null;
 };
+
+/** Um exercício do treino extra pronto (biblioteca, séries, repetições). */
+export type ItemExtraAprovado = { biblioteca_id: string | null; nome: string; series: number; reps: string };
 
 export type SessaoRecente = {
   iniciado_em: string;

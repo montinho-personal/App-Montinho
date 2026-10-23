@@ -363,7 +363,15 @@ export const extraLiberadoSchema = z.object({
   treino_id: z.string().min(1).max(64).nullable().optional(),
   grupos: z.array(z.enum(GRUPOS)).max(10).default([]),
   series_estimadas: z.coerce.number().int().min(0).max(40).default(0),
+  /** 0073: exercícios do extra pronto (o aluno registra série por série). */
+  exercicios: z
+    .array(z.object({ biblioteca_id: z.string().max(64).nullable().optional().transform((v) => v ?? null), nome: z.string().trim().min(1).max(80), series: z.coerce.number().int().min(1).max(5), reps: z.string().trim().min(1).max(20) }))
+    .min(1)
+    .max(8)
+    .nullable()
+    .optional(),
 });
+export const iniciarExtraAprovadoSchema = z.object({ extra_id: z.string().min(1).max(64), client_key: z.string().min(8).max(80), recuperacao: recuperacaoSchema });
 export const extraAtivoSchema = z.object({ id: z.string().min(1).max(64), ativo: z.boolean() });
 export const avaliarExtraSchema = z.object({ recuperacao: recuperacaoSchema, tempo_disponivel_min: z.coerce.number().int().min(5).max(300).nullable().optional() });
 export const solicitarExtraSchema = z.object({

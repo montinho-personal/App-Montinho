@@ -29,7 +29,7 @@ export async function POST(request: Request, { params }: Ctx) {
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   const { id: extraId, ...resto } = data;
   try {
-    const x = await salvarExtra(id, { ...resto, descricao: resto.descricao ?? null, treino_id: resto.treino_id ?? null }, extraId ?? null);
+    const x = await salvarExtra(id, { ...resto, descricao: resto.descricao ?? null, treino_id: resto.treino_id ?? null, ...(resto.exercicios !== undefined ? { exercicios: resto.exercicios } : {}) }, extraId ?? null);
     return NextResponse.json(x);
   } catch {
     return NextResponse.json({ error: "Não foi possível salvar o treino extra" }, { status: 500 });

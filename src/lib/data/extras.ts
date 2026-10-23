@@ -10,7 +10,7 @@ import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { listSessoes, type SessaoCompleta } from "@/lib/data/sessoes";
 import { dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
-import { classificarExtra, CONFIG_EXTRA_PADRAO, type Classificacao, type ConfigExtra, type ExtraLiberado, type Modalidade, type Recuperacao, type SessaoRecente } from "@/lib/treino/extra";
+import { classificarExtra, CONFIG_EXTRA_PADRAO, type Classificacao, type ConfigExtra, type ExtraLiberado, type ItemExtraAprovado, type Modalidade, type Recuperacao, type SessaoRecente } from "@/lib/treino/extra";
 import type { TrainingSession } from "@/lib/supabase/types-sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { getPlanoAtivo } from "@/lib/data/programas";
@@ -49,7 +49,7 @@ function demo(): DemoExtras {
       extras: [
         { id: "extra-caminhada", aluno_id: "aline", modalidade: "cardio_leve", titulo: "Caminhada leve", descricao: "Ritmo em que dá para conversar. Sem subir ladeira forte.", duracao_min: 30, treino_id: null, grupos: [], series_estimadas: 0, ativo: true, created_at: agora },
         { id: "extra-mobilidade", aluno_id: "aline", modalidade: "mobilidade", titulo: "Mobilidade de quadril e ombros", descricao: "Sequência leve, sem dor.", duracao_min: 20, treino_id: null, grupos: [], series_estimadas: 0, ativo: true, created_at: agora },
-        { id: "extra-bracos", aluno_id: "aline", modalidade: "resistido", titulo: "Braços complementar", descricao: "Rosca e tríceps, 2 exercícios × 4 séries, RIR 2.", duracao_min: 25, treino_id: null, grupos: ["biceps", "triceps"], series_estimadas: 8, ativo: true, created_at: agora },
+        { id: "extra-bracos", aluno_id: "aline", modalidade: "resistido", titulo: "Braços complementar", descricao: "Rosca direta com barra reta: 4 × 10-12. Tríceps corda na polia: 4 × 10-12.", duracao_min: 25, treino_id: null, grupos: ["biceps", "triceps"], series_estimadas: 8, ativo: true, created_at: agora, exercicios: [{ biblioteca_id: null, nome: "Rosca direta com barra reta", series: 4, reps: "10-12" }, { biblioteca_id: null, nome: "Tríceps corda na polia", series: 4, reps: "10-12" }] },
       ],
       solicitacoes: [],
     };
@@ -89,7 +89,7 @@ export async function listarExtras(alunoId: string | null, apenasAtivos = false)
   return (data ?? []) as ExtraRow[];
 }
 
-export type ExtraInput = { modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number };
+export type ExtraInput = { modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number; exercicios?: ItemExtraAprovado[] | null };
 
 export async function salvarExtra(alunoId: string, input: ExtraInput, id?: string | null): Promise<ExtraRow> {
   if (isDemoMode()) {

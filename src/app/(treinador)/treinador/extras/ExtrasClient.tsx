@@ -6,19 +6,22 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { MODALIDADES, RECUPERACAO, type Modalidade, type Recuperacao } from "@/lib/treino/extra";
 import { GRUPOS } from "@/lib/validacao/schemas";
-import type { SugestaoExtra } from "@/lib/treino/sugestao-extra";
+import type { ItemExtraAprovado } from "@/lib/treino/extra";
+import { descricaoDosItens, duracaoEstimada, seriesTotais, type OpcaoExtra } from "@/lib/treino/extra-opcoes";
+import { normalizarNome } from "@/lib/grupos";
+import { EditorExtra, type ItemBibliotecaLeve } from "./EditorExtra";
 import type { ExtraDitado } from "@/lib/treino/ditado-extra";
 import { DitarExtra } from "./DitarExtra";
 
 type Pendente = { id: string; aluno: string; titulo: string; classificacao: string; motivos: string[]; recuperacao: Recuperacao | null; tempo: number | null; data: string };
 type Config = { habilitado: boolean; requer_aprovacao: boolean; aprovacao_so_intensos: boolean; max_por_semana: number; dias_permitidos: number[]; limite_series_semana: number; intervalo_min_horas: number; observacao: string | null };
-type Extra = { id: string; modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number; ativo: boolean };
-type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number; sugestao: { sugestao: SugestaoExtra | null; motivo: string } } | null;
+type Extra = { id: string; modalidade: Modalidade; titulo: string; descricao: string | null; duracao_min: number; treino_id: string | null; grupos: string[]; series_estimadas: number; ativo: boolean; exercicios: ItemExtraAprovado[] | null };
+type Detalhe = { alunoId: string; config: Config; extras: Extra[]; treinos: Array<{ id: string; nome: string }>; feitos: Array<{ id: string; titulo: string; data: string; duracaoMin: number | null; series: number }>; seriesSemana: number; opcoes: OpcaoExtra[]; motivoSemOpcoes: string; biblioteca: ItemBibliotecaLeve[] } | null;
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const CLASSE: Record<string, string> = { liberado: "dentro das regras", aprovacao: "precisa da sua aprovação", nao_recomendado: "o app não recomendou" };
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-const vazio = (): Omit<Extra, "id" | "ativo"> & { id: string | null } => ({ id: null, modalidade: "cardio_leve", titulo: "", descricao: "", duracao_min: 30, treino_id: null, grupos: [], series_estimadas: 0 });
+const vazio = (): Omit<Extra, "id" | "ativo" | "exercicios"> & { id: string | null } => ({ id: null, modalidade: "cardio_leve", titulo: "", descricao: "", duracao_min: 30, treino_id: null, grupos: [], series_estimadas: 0 });
 const inp = "h-9 rounded-md border border-border bg-bg px-2";
 
 export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ id: string; nome: string }>; pendentes: Pendente[]; detalhe: Detalhe }) {
@@ -29,6 +32,18 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
   const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [ditando, setDitando] = useState(false);
+  const [editandoPronto, setEditandoPronto] = useState<Extra | null>(null);
+  const [aprovadas, setAprovadas] = useState<string[]>([]);
+
+  // Extra pronto (com exercícios): grava como musculação, com os grupos vindos da biblioteca.
+  async function salvarPronto(titulo: string, itens: ItemExtraAprovado[], id: string | null, ok: string) {
+    if (!detalhe) return false;
+    const porId = new Map(detalhe.biblioteca.map((b) => [b.id, b.grupo]));
+    const porNome = new Map(detalhe.biblioteca.map((b) => [normalizarNome(b.nome), b.grupo]));
+    const grupos = [...new Set(itens.map((x) => (x.biblioteca_id && porId.get(x.biblioteca_id)) || porNome.get(normalizarNome(x.nome))).filter((g): g is string => !!g && (GRUPOS as readonly string[]).includes(g)))];
+    const body = { id, modalidade: "resistido", titulo, descricao: descricaoDosItens(itens), duracao_min: duracaoEstimada(itens), treino_id: null, grupos, series_estimadas: Math.min(40, seriesTotais(itens)), exercicios: itens };
+    return enviar(`/api/alunos/${detalhe.alunoId}/extras`, "POST", body, ok);
+  }
 
   async function enviar(url: string, method: string, body: unknown, ok: string) {
     setSalvando(true);
@@ -97,41 +112,39 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
       </div>
 
       {detalhe ? (
-        <Card className="border-accent/40">
-          <CardBody className="space-y-2 text-sm">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sugestão automática do app</p>
-            {detalhe.sugestao.sugestao ? (
-              <>
-                <p className="font-semibold">{detalhe.sugestao.sugestao.titulo.replace("Extra sugerido: ", "Abaixo da meta: ")}</p>
-                <ul className="space-y-0.5 text-xs text-fg-muted">
-                  {detalhe.sugestao.sugestao.grupos.map((g) => (
-                    <li key={g.grupo}>{g.rotulo}: {String(g.feito).replace(".", ",")} de {g.meta} séries nos últimos 7 dias (faltam {String(g.falta).replace(".", ",")})</li>
-                  ))}
-                </ul>
-                <ul className="space-y-0.5">
-                  {detalhe.sugestao.sugestao.exercicios.map((x) => (
-                    <li key={x.nome}>• <strong>{x.nome}</strong> — {x.series} × {x.reps}</li>
-                  ))}
-                </ul>
-                <p className="text-xs text-fg-muted">≈ {detalhe.sugestao.sugestao.duracaoMin} min · {detalhe.sugestao.sugestao.seriesTotal} séries · respeita 48 h de recuperação e o limite de séries extras da semana.</p>
-                <button
-                  type="button"
-                  disabled={salvando}
-                  onClick={() => {
-                    const s = detalhe.sugestao.sugestao!;
-                    void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "POST", { modalidade: "resistido", titulo: s.titulo, descricao: s.descricao, duracao_min: s.duracaoMin, treino_id: null, grupos: s.grupos.map((g) => g.grupo), series_estimadas: s.seriesTotal }, "Sugestão liberada como treino extra.");
-                  }}
-                  className="touch rounded-lg bg-accent px-4 py-2 font-bold text-bg disabled:opacity-60"
-                >
-                  Liberar como treino extra
-                </button>
-                <p className="text-[11px] text-fg-subtle">Depois de liberada, ela segue as mesmas regras dos outros extras (cansaço, dor, dias, limite). Desative quando não fizer mais sentido.</p>
-              </>
-            ) : (
-              <p className="text-fg-muted">{detalhe.sugestao.motivo}</p>
-            )}
-          </CardBody>
-        </Card>
+        <section className="space-y-2" aria-labelledby="opcoes-extra">
+          <div>
+            <h2 id="opcoes-extra" className="text-[11px] font-bold uppercase tracking-wider text-accent">Opções de treino extra para aprovar</h2>
+            <p className="text-xs text-fg-muted">O app monta com o plano do aluno. Troque, tire ou ponha exercícios, ajuste séries e repetições e aprove: o aluno passa a ver o treino pronto em “Quero fazer um treino extra” e marca série por série. Continuam valendo as regras abaixo (dor, 48 h, dias e limites).</p>
+          </div>
+          {detalhe.opcoes.length ? (
+            <div className="grid gap-3 lg:grid-cols-3">
+              {detalhe.opcoes.map((o) => (
+                <Card key={`${detalhe.alunoId}-${o.chave}`} className="border-accent/40">
+                  <CardBody className="space-y-2 text-sm">
+                    <p className="text-[11px] text-fg-subtle">{o.motivo}</p>
+                    {aprovadas.includes(o.chave) ? (
+                      <p className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs font-semibold text-success">Aprovado! Já está na lista de extras liberados.</p>
+                    ) : (
+                      <EditorExtra
+                        tituloInicial={o.titulo}
+                        itensIniciais={o.itens}
+                        biblioteca={detalhe.biblioteca}
+                        salvando={salvando}
+                        rotuloBotao="Aprovar e liberar"
+                        onAprovar={async (titulo, itens) => {
+                          if (await salvarPronto(titulo, itens, null, `“${titulo}” liberado para o aluno.`)) setAprovadas((a) => [...a, o.chave]);
+                        }}
+                      />
+                    )}
+                  </CardBody>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-fg-muted">{detalhe.motivoSemOpcoes}</p>
+          )}
+        </section>
       ) : null}
 
       {detalhe && cfg ? (
@@ -237,6 +250,21 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                   }}
                 />
               ) : null}
+              {editandoPronto ? (
+                <div className="rounded-lg border border-accent/40 p-3">
+                  <EditorExtra
+                    tituloInicial={editandoPronto.titulo}
+                    itensIniciais={editandoPronto.exercicios ?? []}
+                    biblioteca={detalhe.biblioteca}
+                    salvando={salvando}
+                    rotuloBotao="Salvar alterações"
+                    onCancelar={() => setEditandoPronto(null)}
+                    onAprovar={async (titulo, itens) => {
+                      if (await salvarPronto(titulo, itens, editandoPronto.id, "Extra atualizado.")) setEditandoPronto(null);
+                    }}
+                  />
+                </div>
+              ) : null}
               {form ? (
                 <div className="space-y-2 rounded-lg border border-border p-3">
                   <select value={form.modalidade} onChange={(e) => setForm({ ...form, modalidade: e.target.value as Modalidade })} className={`${inp} w-full`} aria-label="Modalidade">
@@ -306,9 +334,10 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                     <li key={x.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 ${x.ativo ? "" : "border-dashed"}`}>
                       <span>
                         <strong>{x.titulo}</strong>{x.ativo ? null : <span className="text-xs text-warning"> (pausado)</span>} <span className="text-xs text-fg-subtle">· {MODALIDADES[x.modalidade].rotulo} · {x.duracao_min} min{x.series_estimadas ? ` · ${x.series_estimadas} séries` : ""}</span>
+                        {x.exercicios?.length ? <span className="block text-xs text-fg-muted">{x.exercicios.map((e) => `${e.nome} ${e.series}×${e.reps}`).join(" · ")}</span> : null}
                       </span>
                       <span className="flex gap-3 text-xs">
-                        <button type="button" onClick={() => setForm({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao ?? "", duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas })} className="alvo text-accent underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => (x.exercicios?.length ? (setForm(null), setEditandoPronto(x)) : setForm({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao ?? "", duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas }))} className="alvo text-accent underline-offset-2 hover:underline">
                           editar
                         </button>
                         <button type="button" onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PATCH", { id: x.id, ativo: !x.ativo }, x.ativo ? "Extra pausado." : "Extra reativado.")} className="alvo text-fg-muted underline-offset-2 hover:underline">

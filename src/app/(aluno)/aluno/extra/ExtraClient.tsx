@@ -52,6 +52,18 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
     setItens(r.itens ?? []);
   }
 
+  // Extra pronto do personal (com exercícios): abre o treino para marcar série por série.
+  async function comecar(extraId: string) {
+    setEnviando(true);
+    const res = await fetch("/api/extras/iniciar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extra_id: extraId, client_key: chave(), recuperacao }) }).catch(() => null);
+    const d = (await res?.json().catch(() => null)) as { id?: string; treinoId?: string; error?: string } | null;
+    if (!res?.ok || !d?.id) {
+      setEnviando(false);
+      return toast.error(d?.error ?? "Não foi possível começar agora.");
+    }
+    router.push(`/aluno/treino/${d.treinoId}?sessao=${d.id}`);
+  }
+
   async function registrar(extraId: string) {
     const min = Number(duracao);
     if (!min || min < 1) return toast.error("Informe quantos minutos você fez.");
@@ -106,7 +118,8 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
         ) : (
           itens.map(({ extra, classificacao, pedidoHoje }) => {
             const est = ESTILO[classificacao.classe];
-            const atividade = !extra.treino_id;
+            const pronto = !!extra.exercicios?.length;
+            const atividade = !extra.treino_id && !pronto;
             return (
               <Card key={extra.id}>
                 <CardBody className="space-y-2">
@@ -116,7 +129,17 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
                       {MODALIDADES[extra.modalidade].rotulo} · {extra.duracao_min} min
                     </span>
                   </div>
-                  {extra.descricao ? <p className="text-sm text-fg-muted">{extra.descricao}</p> : null}
+                  {pronto ? (
+                    <ul className="space-y-0.5 text-sm">
+                      {extra.exercicios!.map((x) => (
+                        <li key={x.nome}>
+                          • <strong>{x.nome}</strong> <span className="text-fg-muted">— {x.series} × {x.reps}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : extra.descricao ? (
+                    <p className="text-sm text-fg-muted">{extra.descricao}</p>
+                  ) : null}
                   <div className={`rounded-lg border px-3 py-2 text-xs ${est.cls}`}>
                     <p className="font-semibold">{est.rotulo}</p>
                     {classificacao.motivos.map((m) => (
@@ -124,7 +147,11 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
                     ))}
                   </div>
                   {classificacao.classe === "liberado" ? (
-                    atividade ? (
+                    pronto ? (
+                      <button type="button" disabled={enviando} onClick={() => void comecar(extra.id)} className="touch w-full rounded-lg bg-accent px-4 py-2.5 font-bold text-bg disabled:opacity-60">
+                        Começar treino extra
+                      </button>
+                    ) : atividade ? (
                       registrando === extra.id ? (
                         <div className="flex flex-wrap items-end gap-2">
                           <label className="space-y-0.5 text-xs">

@@ -4,13 +4,16 @@
 import { getAluno } from "@/lib/db";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { getSessaoEmAndamento, gravarSessaoNova, exerciciosDaSessao, listSessoes, type SessaoCompleta } from "@/lib/data/sessoes";
-import { getConfigExtra, sessaoRecente } from "@/lib/data/extras";
+import { exigirExtraLiberado, getConfigExtra, sessaoRecente } from "@/lib/data/extras";
+import { juntarOpcoes, type OpcaoExtra } from "@/lib/treino/extra-opcoes";
+import type { ItemExtraAprovado, Recuperacao } from "@/lib/treino/extra";
+import type { SugestaoExtra } from "@/lib/treino/sugestao-extra";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { completarGrupos } from "@/lib/data/biblioteca";
 import { estadoSemana } from "@/lib/relatorios/calcular";
 import { CONFIG_EXTRA_PADRAO } from "@/lib/treino/extra";
 import { dataLocal, diaDaSemana, inicioDaSemana } from "@/lib/aderencia/calcular";
-import { montarExtraGerado, montarExtraLivre, semanaCumprida, GRUPOS_PEQUENOS, LIMITES_EXTRA_LIVRE, REGRAS_EXTRA_GERADO, type CorpoExtra, type FocoExtra, type ItemExtraLivre, type ResultadoExtraGerado } from "@/lib/treino/extra-gerado";
+import { montarExtraGerado, montarExtraLivre, semanaCumprida, FOCOS_EXTRA, GRUPOS_PEQUENOS, LIMITES_EXTRA_LIVRE, REGRAS_EXTRA_GERADO, type CorpoExtra, type FocoExtra, type ItemExtraLivre, type ResultadoExtraGerado, type ExtraGerado } from "@/lib/treino/extra-gerado";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
@@ -151,7 +154,47 @@ export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { 
   if (c.ctx.bloqueio) throw new Error(`Extra não disponível agora: ${c.ctx.bloqueio}`);
   const g = await gerar(c, r);
   if (!g.ok) throw new Error(`Extra não disponível agora: ${g.motivo}`);
-  const ex = g.extra;
+  return gravarExtra(alunoId, c, g.extra, { clientKey: r.clientKey, corpo: r.corpo, foco: r.modo === "app" ? r.foco : "livre", tempoMin: r.modo === "app" ? r.tempoMin : null, extraId: null });
+}
+
+/**
+ * Começa um extra que o personal aprovou com a lista de exercícios (0073).
+ * Vale a avaliação de sempre dos extras liberados (dor, 48 h, dias, limites,
+ * aprovação); os exercícios são os que ele aprovou, na versão extra.
+ */
+export async function iniciarExtraAprovado(alunoId: string, input: { extraId: string; clientKey: string; recuperacao: Recuperacao | null }): Promise<SessaoCompleta> {
+  const extra = await exigirExtraLiberado(alunoId, input.extraId, { recuperacao: input.recuperacao, tempoDisponivelMin: null });
+  if (!extra.exercicios?.length) throw new Error("Este treino extra não tem exercícios cadastrados");
+  const c = await carregar(alunoId);
+  if (c.ctx.emAndamento) throw new Error("Extra não disponível agora: você tem um treino em andamento. Termine ele primeiro.");
+  const itens = await resolverEscolhas(c, extra.exercicios);
+  if ("erro" in itens) throw new Error(`Extra não disponível agora: ${itens.erro}`);
+  const corpo: CorpoExtra = input.recuperacao === "cansado" ? "cansado" : "bem";
+  // O personal já aprovou a lista: 48 h e limites são conferidos pela avaliação do extra.
+  const g = montarExtraLivre({ itens, corpo, recentes48h: [], seriesDisponiveis: 40, tempos: c.tempos });
+  if (!g.ok) throw new Error(`Extra não disponível agora: ${g.motivo}`);
+  return gravarExtra(alunoId, c, { ...g.extra, titulo: extra.titulo }, { clientKey: input.clientKey, corpo, foco: "aprovado", tempoMin: null, extraId: extra.id });
+}
+
+/** Opções de extra para o personal aprovar: abaixo da meta + focos do plano (até 3, sem repetir). */
+export async function opcoesExtraParaPersonal(alunoId: string, sugestaoVolume: SugestaoExtra | null): Promise<OpcaoExtra[]> {
+  const c = await carregar(alunoId);
+  const biblioteca = await listarBiblioteca();
+  const idPorNome = new Map(biblioteca.map((b) => [normalizarNome(b.nome), b.id]));
+  const doPlano = (x: ExercicioPrescrito): ItemExtraAprovado => ({ biblioteca_id: x.biblioteca_id ?? idPorNome.get(normalizarNome(x.nome)) ?? null, nome: x.nome, series: Math.max(1, x.series - (x.series_aquecimento ?? 0)), reps: x.reps });
+  const meta: OpcaoExtra | null = sugestaoVolume
+    ? { chave: "meta", titulo: sugestaoVolume.titulo.replace("Extra sugerido: ", "Abaixo da meta: "), motivo: sugestaoVolume.grupos.map((g) => `${g.rotulo}: ${String(g.feito).replace(".", ",")} de ${g.meta} séries nos últimos 7 dias`).join(" · "), itens: sugestaoVolume.exercicios.map((x) => ({ biblioteca_id: idPorNome.get(normalizarNome(x.nome)) ?? null, nome: x.nome, series: x.series, reps: x.reps })) }
+    : null;
+  const porFoco = (foco: FocoExtra): OpcaoExtra | null => {
+    const g = montarExtraGerado({ exercicios: c.exercicios, prioridades: c.ctx.prioridades, foco, tempoMin: 30, corpo: "bem", recentes48h: [], proximoTreino: [], seriesDisponiveis: 12, tempos: c.tempos });
+    if (!g.ok) return null;
+    return { chave: foco, titulo: FOCOS_EXTRA[foco].rotulo.replace(/^Meus /, "").replace(/^./, (l) => l.toUpperCase()), motivo: FOCOS_EXTRA[foco].detalhe.replace("Os músculos que o Montinho marcou como foco do seu plano.", "Os músculos marcados como prioridade no plano."), itens: g.extra.exercicios.map(doPlano) };
+  };
+  return juntarOpcoes([meta, porFoco("prioridade"), porFoco("full_body"), porFoco("pequenos")]);
+}
+
+async function gravarExtra(alunoId: string, c: Carga, ex: ExtraGerado, o: { clientKey: string; corpo: CorpoExtra; foco: string; tempoMin: number | null; extraId: string | null }): Promise<SessaoCompleta> {
+  const r = { clientKey: o.clientKey, corpo: o.corpo };
   // A tela de treino abre pelo treino do primeiro exercício; os exercícios vêm da foto da sessão.
   const treinoId = ex.exercicios.find((x) => x.treino_id)?.treino_id || c.treinoBase;
   const agora = new Date().toISOString();
@@ -170,7 +213,7 @@ export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { 
     snapshot: {
       treino: { id: treinoId, letra: "+", nome: ex.titulo, observacoes: null, tempos: c.tempos ?? {} },
       exercicios: ex.exercicios,
-      extra: { id: null, gerado: true, modalidade: "resistido", titulo: ex.titulo, foco: r.modo === "app" ? r.foco : "livre", grupos: ex.grupos, series_estimadas: ex.series },
+      extra: { id: o.extraId, gerado: true, modalidade: "resistido", titulo: ex.titulo, foco: o.foco, grupos: ex.grupos, series_estimadas: ex.series },
       recuperacao: r.corpo,
     },
     series_planejadas: ex.series,
@@ -179,8 +222,8 @@ export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { 
     checkin_pre: r.corpo === "cansado" ? "cansado" : "muito_bem",
     checkin_pre_nota: null,
     modo: "extra",
-    tempo_disponivel_min: r.modo === "app" ? r.tempoMin : null,
-    extra_id: null,
+    tempo_disponivel_min: o.tempoMin,
+    extra_id: o.extraId,
     series_concluidas: 0,
     feedback_percepcao: null,
     feedback_comentario: null,
