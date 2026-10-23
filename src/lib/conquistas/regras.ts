@@ -124,12 +124,12 @@ export const CODIGOS_TECNICA: CodigoConquista[] = MARCOS_TECNICA.map(([c]) => c)
 export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "completou_adaptacao", "completou_intensificacao", "completou_consolidacao", "protocolo_completo"];
 /**
  * Treino do Samurai (23/10/2026, pedido do Montinho): um treino de musculação
- * COMEÇADO entre 3h00 e 4h30 da manhã, horário de Brasília. Vale o horário
+ * COMEÇADO entre 3h59 e 4h30 da manhã, horário de Brasília. Vale o horário
  * em que o treino começou, registrado pelo servidor ao tocar em “Começar
- * treino” (não o relógio do celular): 4h30 conta; 4h31 já não conta. O treino
+ * treino” (não o relógio do celular): 4h30 conta; 4h31 já não conta; antes de 3h59 também não. O treino
  * precisa ser concluído, com séries registradas. Medalha à parte (0084).
  */
-export const LIMITES_SAMURAI = { inicioMin: 3 * 60, limiteMin: 4 * 60 + 30 } as const;
+export const LIMITES_SAMURAI = { inicioMin: 3 * 60 + 59, limiteMin: 4 * 60 + 30 } as const;
 export const CODIGOS_SAMURAI: CodigoConquista[] = ["treino_samurai"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -199,7 +199,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   completou_consolidacao: { titulo: "Consolidação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de consolidação e começar um novo ciclo definido pelo personal.`, repete: false },
   mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
-  treino_samurai: { titulo: "Treino do Samurai", criterio: "Começar um treino de musculação entre 3h00 e 4h30 da manhã (horário de Brasília) e concluí-lo. Vale o horário em que você tocou em “Começar treino”, registrado pelo app (não o relógio do celular): começou às 4h30, conta; às 4h31, já não conta.", repete: false },
+  treino_samurai: { titulo: "Treino do Samurai", criterio: "Começar um treino de musculação entre 3h59 e 4h30 da manhã (horário de Brasília) e concluí-lo. Vale o horário em que você tocou em “Começar treino”, registrado pelo app (não o relógio do celular): começou às 4h30, conta; às 4h31, já não conta.", repete: false },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };

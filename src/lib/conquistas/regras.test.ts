@@ -256,12 +256,13 @@ describe("medalhas das fases do protocolo", () => {
 });
 
 describe("Treino do Samurai (até 4h30, horário de Brasília)", () => {
-  it("4h30 conta; 4h31 não; 2h59 não; segundos não mudam o minuto", () => {
+  it("4h30 conta; 4h31 não; 3h58 não; 3h59 conta; segundos não mudam o minuto", () => {
     // Brasília = UTC−3: 4h30 local = 07:30Z.
     expect(ehHorarioSamurai("2026-10-23T07:30:59Z")).toBe(true);
     expect(ehHorarioSamurai("2026-10-23T07:31:00Z")).toBe(false);
-    expect(ehHorarioSamurai("2026-10-23T06:00:00Z")).toBe(true);
-    expect(ehHorarioSamurai("2026-10-23T05:59:00Z")).toBe(false);
+    expect(ehHorarioSamurai("2026-10-23T06:59:00Z")).toBe(true);
+    expect(ehHorarioSamurai("2026-10-23T06:58:59Z")).toBe(false);
+    expect(ehHorarioSamurai("2026-10-23T06:00:00Z")).toBe(false);
     expect(horaBrasilia("2026-10-23T07:12:00Z")).toBe("04h12");
   });
   it("medalha só com o treino começado até 4h30, concluído e com séries; importado não conta", () => {
