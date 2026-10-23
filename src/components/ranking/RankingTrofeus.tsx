@@ -45,7 +45,7 @@ export function RankingTrofeus({ linhas, nomeCompleto = false }: { linhas: Linha
                 {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
               </span>
               <span className="shrink-0 text-right">
-                <span className="block font-mono text-sm">{l.trofeus}{l.mesmoTotalAcima ? <span className="text-fg-subtle" title="Empate em troféus: decidido pelo desempate">*</span> : null} <span aria-label="troféus">🏆</span></span>
+                <span className="block font-mono text-sm">{l.trofeus}{l.mesmoTotalAcima ? <span className="text-fg-subtle" title="Empate em troféus: decidido pelo desempate">*</span> : null} <span aria-label={l.trofeus === 1 ? "troféu" : "troféus"}>🏆</span></span>
                 {l.aderenciaSemana != null ? <span className="block text-[10px] text-fg-subtle">semana {l.aderenciaSemana}%</span> : null}
               </span>
             </li>

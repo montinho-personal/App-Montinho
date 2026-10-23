@@ -118,7 +118,7 @@ export function ExercicioCard({ exercicio, index, ultimo }: ExercicioCardProps) 
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm">{exercicio.nome}</div>
             <div className="text-xs text-fg-subtle mt-0.5">
-              {exercicio.series} séries · {exercicio.reps}
+              {exercicio.series} {exercicio.series === 1 ? "série" : "séries"} · {exercicio.reps}
               {exercicio.ie ? ` · IE ${exercicio.ie}` : ""}
             </div>
           </div>

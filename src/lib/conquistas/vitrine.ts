@@ -90,6 +90,8 @@ export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "sema
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+/** “Falta 1 treino” / “Faltam 3 treinos”: o verbo concorda com o número. */
+const faltaN = (n: number, um: string, varios: string) => `${n === 1 ? "Falta" : "Faltam"} ${plural(n, um, varios)}`;
 
 type Aderencia = Pick<ResultadoAderencia, "sequencia" | "semanaAtual" | "semanas">;
 
@@ -124,7 +126,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const seriesExtras = daApp.filter((s) => s.modo !== "extra" && classificarSessao(s) === "concluida").reduce((a, s) => a + Math.max(0, (s.series_concluidas || 0) - (s.series_planejadas || 0)), 0);
 
   const progresso = (c: CodigoConquista): { atual: number | null; alvo: number | null; falta: string | null; disponivel: boolean } => {
-    const treinos = (n: number) => ({ atual: Math.min(concluidas, n), alvo: n, falta: `Faltam ${plural(Math.max(0, n - concluidas), "treino concluído", "treinos concluídos")}, seguindo o seu plano.`, disponivel: true });
+    const treinos = (n: number) => ({ atual: Math.min(concluidas, n), alvo: n, falta: `${faltaN(Math.max(0, n - concluidas), "treino concluído", "treinos concluídos")}, seguindo o seu plano.`, disponivel: true });
     const semanas = (n: number) => ({ atual: Math.min(seq.atual, n), alvo: n, falta: `Cumpra a meta semanal ${n} semanas seguidas — você está em ${seq.atual}.`, disponivel: true });
     switch (c) {
       case "primeiro_treino": return { atual: Math.min(concluidas, 1), alvo: 1, falta: "Conclua seu primeiro treino (pelo menos metade das séries).", disponivel: true };
@@ -172,13 +174,13 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "fiz_o_necessario":
       case "nunca_deixei_pra_depois": {
         const n = c === "fiz_o_necessario" ? 1 : LIMITES_ALEM.curtos;
-        return curtos ? { atual: Math.min(curtos, n), alvo: n, falta: `Faltam ${plural(n - Math.min(curtos, n), "treino", "treinos")} na versão curta, nos dias corridos.`, disponivel: true } : { atual: null, alvo: null, falta: "Num dia corrido, use “meu treino possível hoje” (quando o Montinho liberar na sua ficha) e conclua a versão curta.", disponivel: false };
+        return curtos ? { atual: Math.min(curtos, n), alvo: n, falta: `${faltaN(n - Math.min(curtos, n), "treino", "treinos")} na versão curta, nos dias corridos.`, disponivel: true } : { atual: null, alvo: null, falta: "Num dia corrido, use “meu treino possível hoje” (quando o Montinho liberar na sua ficha) e conclua a versão curta.", disponivel: false };
       }
       case "fui_alem":
       case "milha_extra":
       case "sempre_um_a_mais": {
         const n = c === "fui_alem" ? 1 : c === "milha_extra" ? LIMITES_ALEM.extras : LIMITES_ALEM.extrasMuitos;
-        return extras ? { atual: Math.min(extras, n), alvo: n, falta: `Faltam ${plural(n - Math.min(extras, n), "treino extra", "treinos extras")}, dentro do combinado com o Montinho.`, disponivel: true } : { atual: null, alvo: null, falta: "Quando o Montinho liberar treinos extras para você, eles aparecem em “Treino extra”.", disponivel: false };
+        return extras ? { atual: Math.min(extras, n), alvo: n, falta: `${faltaN(n - Math.min(extras, n), "treino extra", "treinos extras")}, dentro do combinado com o Montinho.`, disponivel: true } : { atual: null, alvo: null, falta: "Quando o Montinho liberar treinos extras para você, eles aparecem em “Treino extra”.", disponivel: false };
       }
       case "primeira_tecnica":
       case "tecnicas_2":
@@ -193,7 +195,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return {
           atual: Math.min(feitas.size, n),
           alvo: n,
-          falta: `Faltam ${plural(n - Math.min(feitas.size, n), "técnica avançada diferente", "técnicas avançadas diferentes")}. Elas aparecem quando o Montinho coloca na sua ficha.${c === "mestre_tecnicas" && faltam.length ? ` Ainda não fez: ${faltam.join(", ")}.` : ""}`,
+          falta: `${faltaN(n - Math.min(feitas.size, n), "técnica avançada diferente", "técnicas avançadas diferentes")}. Elas aparecem quando o Montinho coloca na sua ficha.${c === "mestre_tecnicas" && faltam.length ? ` Ainda não fez: ${faltam.join(", ")}.` : ""}`,
           disponivel: true,
         };
       }
@@ -205,7 +207,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         const fase = c.replace("completou_", "");
         const naFase = faseAtual?.fase === fase ? faseAtual.treinos : 0;
         return naFase
-          ? { atual: Math.min(naFase, LIMITES_FASE.minTreinos), alvo: LIMITES_FASE.minTreinos, falta: naFase < LIMITES_FASE.minTreinos ? `Faltam ${plural(LIMITES_FASE.minTreinos - naFase, "treino", "treinos")} nesta fase. A medalha sai quando o Montinho passar para a próxima.` : "Treinos da fase feitos! A medalha sai quando o Montinho passar para a próxima fase.", disponivel: true }
+          ? { atual: Math.min(naFase, LIMITES_FASE.minTreinos), alvo: LIMITES_FASE.minTreinos, falta: naFase < LIMITES_FASE.minTreinos ? `${faltaN(LIMITES_FASE.minTreinos - naFase, "treino", "treinos")} nesta fase. A medalha sai quando o Montinho passar para a próxima.` : "Treinos da fase feitos! A medalha sai quando o Montinho passar para a próxima fase.", disponivel: true }
           : { atual: null, alvo: null, falta: "As fases são definidas pelo Montinho no seu protocolo. Conclua pelo menos 4 treinos na fase e a medalha sai quando ela mudar.", disponivel: true };
       }
       case "treino_samurai":
@@ -222,7 +224,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       }
       case "terceiro_especial": {
         const bons = daApp.filter((s) => classificarSessao(s) === "concluida" && s.series_planejadas > 0 && s.series_concluidas / s.series_planejadas >= LIMITES_COMECO.pctSeries / 100).length;
-        return { atual: Math.min(bons, LIMITES_COMECO.treinosBons), alvo: LIMITES_COMECO.treinosBons, falta: `Faltam ${plural(Math.max(0, LIMITES_COMECO.treinosBons - bons), "treino", "treinos")} com ${LIMITES_COMECO.pctSeries}% ou mais das séries.`, disponivel: true };
+        return { atual: Math.min(bons, LIMITES_COMECO.treinosBons), alvo: LIMITES_COMECO.treinosBons, falta: `${faltaN(Math.max(0, LIMITES_COMECO.treinosBons - bons), "treino", "treinos")} com ${LIMITES_COMECO.pctSeries}% ou mais das séries.`, disponivel: true };
       }
       case "ponto_de_partida":
         return { atual: null, alvo: null, falta: null, disponivel: true }; // o “como conquistar” já explica (e o detalhe tem o botão)
@@ -231,7 +233,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "voltei_pro_jogo":
         return { atual: null, alvo: null, falta: "Só acontece no começo: se nos primeiros 30 dias você ficar de 7 a 13 dias sem treinar, volte e conclua um treino.", disponivel: false };
       case "uma_a_mais":
-        return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `Faltam ${plural(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
+        return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `${faltaN(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
       default: return { atual: null, alvo: null, falta: null, disponivel: true };
     }
   };

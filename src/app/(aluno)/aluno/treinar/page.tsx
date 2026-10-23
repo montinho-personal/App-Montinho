@@ -43,7 +43,7 @@ export default async function TreinarPage() {
               <div className="flex-1">
                 <p className="font-bold text-sm">Continuar: {emAndamento.nome_treino}</p>
                 <p className="text-xs text-fg-muted">
-                  {emAndamento.series_planejadas ? `${emAndamento.series_concluidas}/${emAndamento.series_planejadas}` : emAndamento.series_concluidas} séries registradas
+                  {emAndamento.series_planejadas ? `${emAndamento.series_concluidas}/${emAndamento.series_planejadas} séries registradas` : emAndamento.series_concluidas === 1 ? "1 série registrada" : `${emAndamento.series_concluidas} séries registradas`}
                 </p>
               </div>
               <Icon name="chevron" className="text-fg-subtle" />
@@ -93,7 +93,7 @@ export default async function TreinarPage() {
                             {feitoSemana ? <span className="text-[10px] uppercase tracking-wider font-bold text-success">feito esta semana</span> : null}
                           </div>
                           <p className="text-xs text-fg-subtle mt-0.5">
-                            {t.exercicios.length} exercícios{ultima ? ` · último: ${dataBR(ultima)}` : " · ainda não feito"}
+                            {t.exercicios.length} {t.exercicios.length === 1 ? "exercício" : "exercícios"}{ultima ? ` · último: ${dataBR(ultima)}` : " · ainda não feito"}
                           </p>
                         </div>
                         <Icon name="chevron" className="text-fg-subtle" />

@@ -51,7 +51,7 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistr
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">{feito ? "Histórico importado" : "Histórico pronto para importar"}</p>
           <p className="font-bold">{importacao.titulo}</p>
-          <p className="text-xs text-fg-muted">{validas.length} registros · {dias} dias de treino · {new Set(validas.map((l) => l.exercicio)).size} exercícios</p>
+          <p className="text-xs text-fg-muted">{validas.length} {validas.length === 1 ? "registro" : "registros"} · {dias} {dias === 1 ? "dia" : "dias"} de treino · {new Set(validas.map((l) => l.exercicio)).size} {new Set(validas.map((l) => l.exercicio)).size === 1 ? "exercício" : "exercícios"}</p>
         </div>
         <details className="text-xs">
           <summary className="cursor-pointer font-semibold">Conferir linha a linha</summary>
@@ -98,12 +98,12 @@ export function HistoricoResumoCard({ alunoId, importacao, gravadas, diasRegistr
               Dias com o treino identificado: {diasComTreino.map((d) => `${dataBR(d).slice(0, 5)} (${letraDoDia(d)})`).join(" · ")}.
             </p>
             {diasFeito ? (
-              <p className="text-xs text-success">Estes {diasComTreino.length} dias já contam na consistência, no volume semanal, na sequência de semanas e nas conquistas.</p>
+              <p className="text-xs text-success">{diasComTreino.length === 1 ? "Este 1 dia já conta" : `Estes ${diasComTreino.length} dias já contam`} na consistência, no volume semanal, na sequência de semanas e nas conquistas.</p>
             ) : (
               <>
                 <p className="text-xs text-fg-subtle">Cada dia vira um treino concluído (marcado como importado), com as séries feitas de cada exercício — sem carga/repetições por série, que o app anterior não mostra.</p>
                 <button type="button" disabled={enviando} onClick={() => void contarDias()} className="touch w-full rounded-lg border border-accent px-4 py-2.5 font-bold text-accent disabled:opacity-60">
-                  {enviando ? "Registrando…" : `Contar estes ${diasComTreino.length} dias (aderência, volume e conquistas)`}
+                  {enviando ? "Registrando…" : diasComTreino.length === 1 ? "Contar este 1 dia (aderência, volume e conquistas)" : `Contar estes ${diasComTreino.length} dias (aderência, volume e conquistas)`}
                 </button>
               </>
             )}

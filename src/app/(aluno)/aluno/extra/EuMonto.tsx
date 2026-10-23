@@ -94,7 +94,7 @@ export function EuMonto({ itens, setItens, biblioteca, atalhos, seriesDisponivei
               <li key={i.chave} className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5">
                 <span className="min-w-0 flex-1 truncate text-sm">{n + 1}. {i.nome}</span>
                 <button type="button" aria-label={`Menos uma série de ${i.nome}`} disabled={i.series <= 1} onClick={() => mudar(i.chave, { series: i.series - 1 })} className="alvo h-8 w-8 rounded border border-border disabled:opacity-40">−</button>
-                <span className="w-5 text-center text-sm tabular-nums" aria-label={`${i.series} séries`}>{i.series}</span>
+                <span className="w-5 text-center text-sm tabular-nums" aria-label={`${i.series} ${i.series === 1 ? "série" : "séries"}`}>{i.series}</span>
                 <button type="button" aria-label={`Mais uma série de ${i.nome}`} disabled={i.series >= L.maxSeries} onClick={() => mudar(i.chave, { series: i.series + 1 })} className="alvo h-8 w-8 rounded border border-border disabled:opacity-40">+</button>
                 <span className="text-xs text-fg-subtle">×</span>
                 <input value={i.reps} onChange={(e) => mudar(i.chave, { reps: e.target.value.slice(0, 20) })} aria-label={`Repetições de ${i.nome}`} className="w-16 rounded border border-border bg-bg px-1.5 py-1 text-center text-sm" />

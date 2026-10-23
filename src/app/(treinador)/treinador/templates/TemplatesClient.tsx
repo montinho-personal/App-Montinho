@@ -168,7 +168,7 @@ export function TemplatesClient({ templates: inicial, biblioteca }: ClientProps)
                       ) : null}
                     </div>
                     {t.uso_count > 0 ? (
-                      <Badge tone="gold">{t.uso_count} usos</Badge>
+                      <Badge tone="gold">{t.uso_count} {t.uso_count === 1 ? "uso" : "usos"}</Badge>
                     ) : null}
                   </div>
                   {t.descricao ? (
@@ -185,7 +185,7 @@ export function TemplatesClient({ templates: inicial, biblioteca }: ClientProps)
                     ))}
                   </div>
                   <div className="text-xs text-fg-subtle">
-                    {t.numero_treinos} treinos · {totalEx} exercícios totais
+                    {t.numero_treinos} {t.numero_treinos === 1 ? "treino" : "treinos"} · {totalEx} {totalEx === 1 ? "exercício" : "exercícios"} no total
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     <Button
@@ -664,9 +664,9 @@ function TemplateView({
           ) : null}
 
           <div className="flex items-center gap-2 flex-wrap text-xs text-fg-subtle">
-            <Badge tone="accent">{template.numero_treinos} treinos</Badge>
-            <Badge>{totalEx} exercícios</Badge>
-            {template.uso_count > 0 ? <Badge tone="gold">{template.uso_count} usos</Badge> : null}
+            <Badge tone="accent">{template.numero_treinos} {template.numero_treinos === 1 ? "treino" : "treinos"}</Badge>
+            <Badge>{totalEx} {totalEx === 1 ? "exercício" : "exercícios"}</Badge>
+            {template.uso_count > 0 ? <Badge tone="gold">{template.uso_count} {template.uso_count === 1 ? "uso" : "usos"}</Badge> : null}
           </div>
 
           <div className="space-y-3">
@@ -679,7 +679,7 @@ function TemplateView({
                   <div>
                     <div className="font-semibold text-sm">{sec.nome}</div>
                     <div className="text-[11px] text-fg-subtle">
-                      {sec.exercicios?.length ?? 0} exercícios
+                      {sec.exercicios?.length ?? 0} {(sec.exercicios?.length ?? 0) === 1 ? "exercício" : "exercícios"}
                     </div>
                   </div>
                 </div>

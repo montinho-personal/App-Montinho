@@ -915,7 +915,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold">{t.nome || `Treino ${t.letra}`}</span>
                       <span className="block text-[11px] font-mono text-fg-subtle">
-                        {t.rows.filter((r) => r.nome.trim()).length} exercício(s) · {totalT} séries{duracoes[t.key] ? ` · ${formatarDuracao(duracoes[t.key].resultado.totalSeg)}` : ""}{t.ativo ? "" : " · inativo"}
+                        {t.rows.filter((r) => r.nome.trim()).length} exercício(s) · {totalT} {totalT === 1 ? "série" : "séries"}{duracoes[t.key] ? ` · ${formatarDuracao(duracoes[t.key].resultado.totalSeg)}` : ""}{t.ativo ? "" : " · inativo"}
                       </span>
                     </span>
                     <Icon name="chevron" size={18} className="rotate-90 text-fg-subtle shrink-0" />

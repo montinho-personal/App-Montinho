@@ -102,8 +102,8 @@ export function prazoRestante(expiraEm: string, agora: Date): string {
   const ms = Math.max(0, Date.parse(expiraEm) - agora.getTime());
   const h = Math.floor(ms / HORA);
   const d = Math.floor(h / 24);
-  if (d >= 1) return `faltam ${d} ${d === 1 ? "dia" : "dias"}${h % 24 ? ` e ${h % 24} h` : ""}`;
-  return h >= 1 ? `faltam ${h} h` : "acaba em menos de 1 h";
+  if (d >= 1) return `${d === 1 && !(h % 24) ? "falta" : "faltam"} ${d} ${d === 1 ? "dia" : "dias"}${h % 24 ? ` e ${h % 24} h` : ""}`;
+  return h >= 1 ? `${h === 1 ? "falta" : "faltam"} ${h} h` : "acaba em menos de 1 h";
 }
 
 export function linkOferta(o: Oferta, whatsapp: string): string {

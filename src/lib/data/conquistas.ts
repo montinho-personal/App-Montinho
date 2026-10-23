@@ -218,7 +218,7 @@ export function destaquesDaConclusao(e: { evolucao: Descoberta | null; conquista
   if (e.evolucao) out.push(e.evolucao.tipo.startsWith("recorde") ? `Nova marca pessoal em ${e.evolucao.exercicio}.` : `Você evoluiu em ${e.evolucao.exercicio}: ${e.evolucao.atual.carga} kg × ${e.evolucao.atual.reps}${e.evolucao.anterior ? ` (antes ${e.evolucao.anterior.carga} kg × ${e.evolucao.anterior.reps})` : ""}.`.replace(/(\d)\.(\d)/g, "$1,$2"));
   const c = e.conquistas.find((x) => !["recorde", "relatorio_mensal"].includes(x.codigo));
   if (c) out.push(`Conquista: ${nomeDaConquista(c.codigo, c.titulo)}.`);
-  if (!e.extra && e.meta) out.push(e.metaCumpridaAgora ? "Você completou sua meta semanal." : e.pontosSemana >= e.meta ? "Meta da semana já cumprida — este treino soma à sua jornada." : `Meta da semana: ${String(Math.min(e.pontosSemana, e.meta)).replace(".", ",")} de ${e.meta} treinos.`);
+  if (!e.extra && e.meta) out.push(e.metaCumpridaAgora ? "Você completou sua meta semanal." : e.pontosSemana >= e.meta ? "Meta da semana já cumprida — este treino soma à sua jornada." : `Meta da semana: ${String(Math.min(e.pontosSemana, e.meta)).replace(".", ",")} de ${e.meta} ${e.meta === 1 ? "treino" : "treinos"}.`);
   if (out.length < 3) out.push("Mais uma sessão registrada na sua jornada.");
   return out.slice(0, 3);
 }

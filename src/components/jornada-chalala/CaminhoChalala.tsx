@@ -72,7 +72,7 @@ export function CaminhoChalala({ caminho, onAbrirPersonagem }: { caminho: Caminh
           </button>
         ) : null}
       </div>
-      <svg viewBox={`0 0 360 ${altura}`} className="w-full" role="img" aria-label={`${semanas.length} semanas de acompanhamento, ${caminho.retornos} retorno(s) depois de pausa`}>
+      <svg viewBox={`0 0 360 ${altura}`} className="w-full" role="img" aria-label={`${semanas.length} ${semanas.length === 1 ? "semana" : "semanas"} de acompanhamento, ${caminho.retornos} retorno(s) depois de pausa`}>
         {pts.slice(1).map((p, i) => {
           const a = pts[i];
           const e = estado(p.w);

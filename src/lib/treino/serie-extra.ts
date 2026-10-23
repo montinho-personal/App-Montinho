@@ -60,7 +60,7 @@ export function conviteSerieExtra(d: Deficit, o: { rotuloGrupo: string | null; c
     return {
       tom: "repor",
       titulo: `Bora repor? +${series(n)}`,
-      texto: `Da última vez ficaram ${series(d.exercicio)} deste exercício para trás. Se estiver com tempo, faça +${n} agora: já ajuda a recuperar o volume da semana.`,
+      texto: `Da última vez ${d.exercicio === 1 ? "ficou" : "ficaram"} ${series(d.exercicio)} deste exercício para trás. Se estiver com tempo, faça +${n} agora: já ajuda a recuperar o volume da semana.`,
       sugeridas: n,
     };
   }
@@ -69,7 +69,7 @@ export function conviteSerieExtra(d: Deficit, o: { rotuloGrupo: string | null; c
     return {
       tom: "repor",
       titulo: `Bora repor? +${series(n)}`,
-      texto: `Nos últimos treinos ficaram ${series(d.grupo)} de ${o.rotuloGrupo} para trás. Se estiver com tempo, faça +${n} agora: já ajuda a recuperar o volume da semana.`,
+      texto: `Nos últimos treinos ${d.grupo === 1 ? "ficou" : "ficaram"} ${series(d.grupo)} de ${o.rotuloGrupo} para trás. Se estiver com tempo, faça +${n} agora: já ajuda a recuperar o volume da semana.`,
       sugeridas: n,
     };
   }

@@ -112,7 +112,7 @@ export function BuscaClient({ alunos, inicial }: { alunos: AlunoIndice[]; inicia
           ) : null}
         </>
       ) : (
-        <p className="text-sm text-fg-subtle">{alunos.length} pessoas para buscar.</p>
+        <p className="text-sm text-fg-subtle">{alunos.length} {alunos.length === 1 ? "pessoa" : "pessoas"} para buscar.</p>
       )}
     </div>
   );

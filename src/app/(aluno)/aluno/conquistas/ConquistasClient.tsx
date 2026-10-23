@@ -105,7 +105,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
           <p className="rounded-xl border border-accent/40 p-3 text-sm">Você conquistou todas as medalhas. Chalalá! 🏅</p>
         ) : null}
         <VitrineMedalhas medalhas={destaque} nome={nome} reconhecimentos={reconhecimentosPorCodigo} />
-        <Link href="/aluno/conquistas/todas" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Todas as minhas conquistas ({total} medalhas + recordes e retomadas) →</Link>
+        <Link href="/aluno/conquistas/todas" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Todas as minhas conquistas ({total} {total === 1 ? "medalha" : "medalhas"} + recordes e retomadas) →</Link>
         <div className="flex flex-wrap gap-1.5 pt-1">
           <Link href="/aluno/conquistas/todas?aba=temas" className="alvo rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Por tema</Link>
           <Link href="/aluno/conquistas/todas?aba=desafiadores" className="alvo rounded-full border border-[#f59e0b]/50 px-3 py-1.5 text-xs font-semibold text-[#f5c451]">🔥 Mais desafiadores</Link>

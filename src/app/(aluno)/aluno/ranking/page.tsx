@@ -24,7 +24,7 @@ export default async function RankingPage() {
         <p className="mt-1 text-sm text-fg-muted">Quem tem mais troféus diferentes na turma do Montinho. Empatou em troféus? Vence a constância (veja o * no fim).</p>
       </header>
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
-        {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} troféus</span></p> : null}
+        {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} {eu.trofeus === 1 ? "troféu" : "troféus"}</span></p> : null}
         <p className="text-sm font-semibold">{fraseDoRanking(linhas)}</p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs">
           <Link href="/aluno/conquistas/todas" className="alvo font-semibold text-accent underline-offset-2 hover:underline">Ver os troféus que faltam →</Link>

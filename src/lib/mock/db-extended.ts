@@ -483,7 +483,7 @@ export const mockTemplates: TemplateTreino[] = [
   {
     id: "tpl-008",
     nome: "Cutting Avançado (5 dias)",
-    descricao: "Manter massa em déficit. Alto volume, RPE moderado pra recuperação em deficit calórico.",
+    descricao: "Manter massa em déficit. Alto volume, RPE moderado pra recuperação em déficit calórico.",
     publico_alvo: "Avançado em fase de definição",
     numero_treinos: 5,
     estrutura: {

@@ -21,7 +21,7 @@ export function RefeicaoCard({ refeicao }: { refeicao: Dieta }) {
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm">{refeicao.refeicao}</div>
             <div className="text-xs text-fg-subtle">
-              {refeicao.horario ?? "horário livre"} · {refeicao.alimentos.length} itens
+              {refeicao.horario ?? "horário livre"} · {refeicao.alimentos.length} {refeicao.alimentos.length === 1 ? "item" : "itens"}
             </div>
           </div>
           <span className="text-fg-subtle text-lg shrink-0">{expanded ? "▾" : "▸"}</span>

@@ -15,7 +15,7 @@ export type MensagemPush = { titulo: string; corpo: string; url: string; tag: st
 export function mensagemTreinoAberto(l: LembreteDevido): MensagemPush {
   const nome = l.nome_treino?.trim() || "Seu treino";
   const progresso =
-    l.series_planejadas > 0 ? `Você registrou ${l.series_feitas} de ${l.series_planejadas} séries.` : l.series_feitas ? `Você registrou ${l.series_feitas} séries.` : "";
+    l.series_planejadas > 0 ? `Você registrou ${l.series_feitas} de ${l.series_planejadas} séries.` : l.series_feitas ? `Você registrou ${l.series_feitas} ${l.series_feitas === 1 ? "série" : "séries"}.` : "";
   return {
     titulo: `${nome} ainda está em aberto`,
     corpo: [progresso, "Toque para conferir e finalizar."].filter(Boolean).join(" "),

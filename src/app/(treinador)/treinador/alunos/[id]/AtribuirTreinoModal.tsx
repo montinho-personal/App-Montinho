@@ -99,7 +99,7 @@ function AtribuirTreinoModal({
                 >
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.nome} ({Object.keys(t.estrutura).length} treinos)
+                      {t.nome} ({Object.keys(t.estrutura).length} {Object.keys(t.estrutura).length === 1 ? "treino" : "treinos"})
                     </option>
                   ))}
                 </select>

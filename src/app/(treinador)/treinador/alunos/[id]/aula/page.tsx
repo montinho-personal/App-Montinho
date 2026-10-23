@@ -47,7 +47,7 @@ export default async function AulaPresencialPage({ params }: { params: Promise<{
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">{t.nome}</span>
                   <span className="block text-xs text-fg-subtle">
-                    {t.exercicios.length} exercícios · {ultimaPorTreino.get(t.id) ? `última vez ${dataBR(ultimaPorTreino.get(t.id)!)}` : "ainda não feito"}
+                    {t.exercicios.length} {t.exercicios.length === 1 ? "exercício" : "exercícios"} · {ultimaPorTreino.get(t.id) ? `última vez ${dataBR(ultimaPorTreino.get(t.id)!)}` : "ainda não feito"}
                     {t.id === sugerido ? " · sugerido hoje" : ""}
                   </span>
                 </span>

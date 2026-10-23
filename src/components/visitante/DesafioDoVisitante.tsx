@@ -23,8 +23,8 @@ export async function DesafioDoVisitante({ alunoId }: { alunoId: string }) {
         : e.estado === "em_breve"
           ? `Começa em ${e.diasParaComecar} ${e.diasParaComecar === 1 ? "dia" : "dias"}.`
           : e.diasRestantes
-            ? `Faltam ${e.meta - e.feitos} ${e.meta - e.feitos === 1 ? "treino" : "treinos"} · ${e.diasRestantes} ${e.diasRestantes === 1 ? "dia" : "dias"} para terminar.`
-            : `Faltam ${e.meta - e.feitos} ${e.meta - e.feitos === 1 ? "treino" : "treinos"}.`;
+            ? `${e.meta - e.feitos === 1 ? "Falta" : "Faltam"} ${e.meta - e.feitos} ${e.meta - e.feitos === 1 ? "treino" : "treinos"} · ${e.diasRestantes} ${e.diasRestantes === 1 ? "dia" : "dias"} para terminar.`
+            : `${e.meta - e.feitos === 1 ? "Falta" : "Faltam"} ${e.meta - e.feitos} ${e.meta - e.feitos === 1 ? "treino" : "treinos"}.`;
   return (
     <Card className={e.estado === "concluido" ? "border-accent bg-accent-soft" : "border-accent/40"}>
       <CardBody className="space-y-3">

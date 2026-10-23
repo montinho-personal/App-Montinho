@@ -27,7 +27,7 @@ export function EvolucaoGeral({ treinos, musculos }: { treinos: TreinoEvolucao[]
                   <p className="truncate text-sm font-semibold">{t.nome}</p>
                   {t.volumeInicial != null ? (
                     <p className="text-xs text-fg-muted">
-                      {t.sessoes.length} treinos · volume {br(t.volumeInicial / 1000)} t → <b className="text-fg">{br(t.volumeAtual! / 1000)} t</b> <span className={tom(t.volumePct)}>({pctTxt(t.volumePct)})</span>
+                      {t.sessoes.length} {t.sessoes.length === 1 ? "treino" : "treinos"} · volume {br(t.volumeInicial / 1000)} t → <b className="text-fg">{br(t.volumeAtual! / 1000)} t</b> <span className={tom(t.volumePct)}>({pctTxt(t.volumePct)})</span>
                       {t.exerciciosComparaveis ? <> · carga <span className={tom(t.cargaPct)}>{pctTxt(t.cargaPct)}</span>, subiu em {t.exerciciosSubiram} de {t.exerciciosComparaveis}</> : null}
                     </p>
                   ) : (

@@ -14,8 +14,8 @@ export function ProgressoSemana({ semana, sequencia, extras = 0 }: { semana: Sem
   const frase = semana.pausada
     ? "Semana em pausa combinada com o Montinho: ela não conta como falta."
     : cumprida
-      ? `Meta da semana alcançada: ${num(semana.pontos)} de ${meta} treinos.`
-      : `Você completou ${num(semana.pontos)} dos seus ${meta} treinos desta semana.`;
+      ? `Meta da semana alcançada: ${num(semana.pontos)} de ${meta} ${meta === 1 ? "treino" : "treinos"}.`
+      : meta === 1 ? `Você completou ${num(semana.pontos)} do seu 1 treino desta semana.` : `Você completou ${num(semana.pontos)} dos seus ${meta} treinos desta semana.`;
   // Quando a meta da semana fecha: o que isso significa na jornada (sem prazo mágico).
   const jornada = cumprida && !semana.pausada && sequencia.semanasCumpridas != null ? mensagemDaJornada(sequencia.semanasCumpridas + 1) : null;
   return (

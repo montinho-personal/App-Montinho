@@ -155,7 +155,7 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
               <div className="h-2.5 overflow-hidden rounded-full bg-border" role="progressbar" aria-valuemin={0} aria-valuemax={r.meta} aria-valuenow={Math.min(r.pontosSemana, r.meta)} aria-label="Progresso da meta semanal">
                 <div className={`h-full rounded-full ${r.metaCumprida ? "bg-success" : "bg-accent"} transition-[width] duration-700 motion-reduce:transition-none`} style={{ width: `${Math.min(100, (r.pontosSemana / r.meta) * 100)}%` }} />
               </div>
-              <p className="text-xs text-fg-muted">{r.modo === "extra" ? "Treino extra: fica registrado, mas não entra na meta." : r.metaCumprida ? "Meta da semana cumprida." : `Você completou ${num(r.pontosSemana)} dos seus ${r.meta} treinos desta semana.`}</p>
+              <p className="text-xs text-fg-muted">{r.modo === "extra" ? "Treino extra: fica registrado, mas não entra na meta." : r.metaCumprida ? "Meta da semana cumprida." : r.meta === 1 ? `Você completou ${num(r.pontosSemana)} do seu 1 treino desta semana.` : `Você completou ${num(r.pontosSemana)} dos seus ${r.meta} treinos desta semana.`}</p>
             </div>
           ) : null}
         </CardBody>

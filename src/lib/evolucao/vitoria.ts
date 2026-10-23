@@ -30,7 +30,7 @@ export function pequenaVitoria(e: {
   // 1. Meta prescrita cumprida (esta semana, ou a que terminou dentro da janela).
   const semanaMeta = atual?.status === "cumprida" ? atual : ultimaFechada?.status === "cumprida" && somarDias(ultimaFechada.inicio, 6) >= desde ? ultimaFechada : null;
   if (semanaMeta?.meta) {
-    return { tipo: "meta", titulo: "Meta da semana cumprida", mensagem: `Você fez os ${semanaMeta.meta} treinos planejados para a semana.`, dados: [`Semana de ${semanaMeta.inicio.slice(8, 10)}/${semanaMeta.inicio.slice(5, 7)}: ${String(semanaMeta.concluidas + semanaMeta.parciais * 0.5).replace(".", ",")} de ${semanaMeta.meta} treinos (extras não contam).`], porQue: POR_QUE.consistencia, ate: e.hoje };
+    return { tipo: "meta", titulo: "Meta da semana cumprida", mensagem: semanaMeta.meta === 1 ? "Você fez o treino planejado para a semana." : `Você fez os ${semanaMeta.meta} treinos planejados para a semana.`, dados: [`Semana de ${semanaMeta.inicio.slice(8, 10)}/${semanaMeta.inicio.slice(5, 7)}: ${String(semanaMeta.concluidas + semanaMeta.parciais * 0.5).replace(".", ",")} de ${semanaMeta.meta} ${semanaMeta.meta === 1 ? "treino" : "treinos"} (extras não contam).`], porQue: POR_QUE.consistencia, ate: e.hoje };
   }
   // 2. Melhora consistente de desempenho: evolução confiável em 2+ exercícios.
   const exercicios = [...new Set(altas.filter((d) => !d.tipo.startsWith("recorde")).map((d) => d.exercicio))];

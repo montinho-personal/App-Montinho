@@ -109,7 +109,7 @@ export default async function MeusTreinosPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold leading-snug">{t.nome}</p>
-                      <p className="text-xs text-fg-subtle">{t.exercicios.length} exercícios · {t.exercicios.reduce((n, e) => n + e.series, 0)} séries</p>
+                      <p className="text-xs text-fg-subtle">{t.exercicios.length} {t.exercicios.length === 1 ? "exercício" : "exercícios"} · {t.exercicios.reduce((n, e) => n + e.series, 0)} {t.exercicios.reduce((n, e) => n + e.series, 0) === 1 ? "série" : "séries"}</p>
                     </div>
                   </div>
                   {/* Botões numa linha própria: no celular não espremem o nome do treino. */}

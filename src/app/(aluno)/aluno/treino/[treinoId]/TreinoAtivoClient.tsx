@@ -1087,7 +1087,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
             {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">👥 Aula presencial · registrando para {presencial.nomeAluno}</p> : null}
             <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Treino {treino.letra}</p>
             <h1 className="text-2xl font-bold leading-tight">{treino.nome}</h1>
-            <p className="text-sm text-fg-muted">{exercicios.length} exercícios · {exercicios.reduce((n, e) => n + e.series, 0)} séries</p>
+            <p className="text-sm text-fg-muted">{exercicios.length} {exercicios.length === 1 ? "exercício" : "exercícios"} · {exercicios.reduce((n, e) => n + e.series, 0)} {exercicios.reduce((n, e) => n + e.series, 0) === 1 ? "série" : "séries"}</p>
             {treino.observacoes ? <p className="text-sm text-fg-muted border-l-2 border-accent/50 pl-3">{treino.observacoes}</p> : null}
             {outraSessao ? (
               <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
@@ -1265,7 +1265,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         <div className="flex-1 min-w-0">
           <h1 className="font-bold leading-tight truncate">{treino.nome}</h1>
           <p className="text-xs text-fg-subtle">
-            {totalFeito} de {totalPlanejado} séries · {sessao.exercicios.length} exercícios
+            {totalFeito} de {totalPlanejado} {totalPlanejado === 1 ? "série" : "séries"} · {sessao.exercicios.length} {sessao.exercicios.length === 1 ? "exercício" : "exercícios"}
           </p>
         </div>
       </header>

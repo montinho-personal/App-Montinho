@@ -124,7 +124,7 @@ export default async function AlunoHomePage() {
               {emAndamento.nome_treino}
             </h2>
             <p className="text-sm text-fg-muted">
-              {emAndamento.series_planejadas ? `${emAndamento.series_concluidas} de ${emAndamento.series_planejadas}` : emAndamento.series_concluidas} séries registradas · iniciado {tempoRelativo(emAndamento.iniciado_em)}
+              {emAndamento.series_planejadas ? `${emAndamento.series_concluidas} de ${emAndamento.series_planejadas} séries registradas` : emAndamento.series_concluidas === 1 ? "1 série registrada" : `${emAndamento.series_concluidas} séries registradas`} · iniciado {tempoRelativo(emAndamento.iniciado_em)}
             </p>
             <Link href={hrefDaSessao(emAndamento)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
               <Icon name="play" /> Continuar treino
@@ -143,7 +143,7 @@ export default async function AlunoHomePage() {
               <div className="min-w-0">
                 <h2 className="text-lg font-bold leading-tight">{proximo.nome}</h2>
                 <p className="text-sm text-fg-muted mt-0.5">
-                  {proximo.exercicios.length} exercícios
+                  {proximo.exercicios.length} {proximo.exercicios.length === 1 ? "exercício" : "exercícios"}
                   {duracaoEstimada ? ` · ~${duracaoEstimada} min` : ""}
                 </p>
               </div>

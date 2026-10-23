@@ -98,7 +98,7 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
     case "acompanhamento_12_semanas":
       return "12 semanas de acompanhamento";
     case "primeira_meta_semanal":
-      return d.meta ? `${d.meta} treinos na semana, como planejado` : "Meta da semana cumprida";
+      return d.meta ? `${d.meta} ${d.meta === 1 ? "treino" : "treinos"} na semana, como planejado` : "Meta da semana cumprida";
     case "primeiro_treino":
       return "Primeiro treino concluído";
     case "primeiro_mes":

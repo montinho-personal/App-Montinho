@@ -39,7 +39,7 @@ export function evolucaoInvisivel(e: { sessoes: SessaoConquista[]; aderencia: Re
     const agora = concluidas.filter((s) => naJanela(s, desde, e.hoje)).length;
     const antes = concluidas.filter((s) => naJanela(s, antesDesde, somarDias(desde, -1))).length;
     if (agora - antes >= REGRAS_INVISIVEL.minDiferencaTreinos)
-      out.push({ tipo: "frequencia", titulo: "Mais treinos que no período anterior", dado: `${agora} treinos concluídos nos últimos ${e.dias} dias; ${antes} nos ${e.dias} dias anteriores.`, interpretacao: "Sua frequência aumentou em relação ao período anterior equivalente.", criterio: `Compara períodos de mesmo tamanho; diferença mínima de ${REGRAS_INVISIVEL.minDiferencaTreinos} treinos.` });
+      out.push({ tipo: "frequencia", titulo: "Mais treinos que no período anterior", dado: `${agora} ${agora === 1 ? "treino concluído" : "treinos concluídos"} nos últimos ${e.dias} dias; ${antes} nos ${e.dias} dias anteriores.`, interpretacao: "Sua frequência aumentou em relação ao período anterior equivalente.", criterio: `Compara períodos de mesmo tamanho; diferença mínima de ${REGRAS_INVISIVEL.minDiferencaTreinos} treinos.` });
   }
 
   // 2. Regularidade ao longo dos meses.
@@ -54,7 +54,7 @@ export function evolucaoInvisivel(e: { sessoes: SessaoConquista[]; aderencia: Re
   // 3. Metas pessoais atingidas no período.
   const doPeriodo = e.aderencia?.semanas.filter((w) => w.inicio >= somarDias(desde, -6) && w.status === "cumprida") ?? [];
   if (doPeriodo.length >= 2)
-    out.push({ tipo: "metas", titulo: "Metas semanais atingidas", dado: `Meta da semana cumprida ${doPeriodo.length} vezes no período.`, interpretacao: "Você está cumprindo o que combinou com o personal.", criterio: "Semanas em que os treinos válidos alcançaram a meta individual." });
+    out.push({ tipo: "metas", titulo: "Metas semanais atingidas", dado: `Meta da semana cumprida ${doPeriodo.length} ${doPeriodo.length === 1 ? "vez" : "vezes"} no período.`, interpretacao: "Você está cumprindo o que combinou com o personal.", criterio: "Semanas em que os treinos válidos alcançaram a meta individual." });
 
   // 4. Mais repetições com a mesma carga (registros comparáveis; reaproveita a regra de recordes).
   const reps: string[] = [];

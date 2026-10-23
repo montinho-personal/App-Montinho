@@ -61,7 +61,7 @@ export function fraseDoRanking(linhas: LinhaRanking[]): string {
   if (eu.posicao === 1) return "Você está no topo! Cada troféu novo ajuda a manter o ouro.";
   const onde = p ? `Você está no ${eu.posicao}º lugar: ${PODIO[p].rotulo.toLowerCase()}!` : `Você está em ${eu.posicao}º lugar.`;
   if (prox && prox.faltam === 0) return `${onde} Você tem os mesmos troféus de quem está no ${prox.posicao}º lugar: cumpra a sua meta desta semana para passar na frente no desempate.`;
-  return prox ? `${onde} Faltam ${prox.faltam} ${prox.faltam === 1 ? "troféu" : "troféus"} para chegar ao ${prox.posicao}º lugar.` : onde;
+  return prox ? `${onde} ${prox.faltam === 1 ? "Falta" : "Faltam"} ${prox.faltam} ${prox.faltam === 1 ? "troféu" : "troféus"} para chegar ao ${prox.posicao}º lugar.` : onde;
 }
 
 /** Conquistas que se repetem e ficam em seções próprias: não contam como troféu no ranking (igual à sala de troféus). Espelho de 0077. */

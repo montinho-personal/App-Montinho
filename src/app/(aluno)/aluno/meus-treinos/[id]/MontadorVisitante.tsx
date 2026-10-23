@@ -328,7 +328,7 @@ export function MontadorVisitante({ itens, inicial, iniciante, copia = false, de
         </button>
       ) : null}
 
-      {linhas.length ? <p className="text-center text-xs text-fg-subtle">{linhas.length} exercícios · {totalSeries} séries</p> : null}
+      {linhas.length ? <p className="text-center text-xs text-fg-subtle">{linhas.length} {linhas.length === 1 ? "exercício" : "exercícios"} · {totalSeries} {totalSeries === 1 ? "série" : "séries"}</p> : null}
       {erro ? <p className="text-sm text-danger" role="alert">{erro}</p> : null}
       <Button type="button" className="w-full" disabled={enviando} onClick={() => void salvar()}>
         {enviando ? "Salvando…" : "Salvar treino"}

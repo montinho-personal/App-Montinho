@@ -33,9 +33,9 @@ export function mensagemBoasVindas(d: DadosBoasVindas): string {
   const objetivo = d.objetivo ? OBJETIVO[d.objetivo] : null;
   const meta =
     d.frequenciaSemanal && objetivo
-      ? `Sua meta: ${d.frequenciaSemanal} treinos por semana para ${objetivo}. Vamos juntos!`
+      ? `Sua meta: ${d.frequenciaSemanal} ${d.frequenciaSemanal === 1 ? "treino" : "treinos"} por semana para ${objetivo}. Vamos juntos!`
       : d.frequenciaSemanal
-        ? `Sua meta: ${d.frequenciaSemanal} treinos por semana. Vamos juntos!`
+        ? `Sua meta: ${d.frequenciaSemanal} ${d.frequenciaSemanal === 1 ? "treino" : "treinos"} por semana. Vamos juntos!`
         : null;
   return [
     `Olá${primeiro ? `, ${primeiro}` : ""}! Aqui é o Montinho 💪`,

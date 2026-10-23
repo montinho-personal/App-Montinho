@@ -230,7 +230,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         {det.tempo ? (
           <div className="space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Metrica label="Duração real" valor={`${det.tempo.mediaRealMin} min`} hint={`média de ${det.tempo.sessoes} treinos`} />
+              <Metrica label="Duração real" valor={`${det.tempo.mediaRealMin} min`} hint={`média de ${det.tempo.sessoes} ${det.tempo.sessoes === 1 ? "treino" : "treinos"}`} />
               <Metrica label="Planejado" valor={det.tempo.mediaPlanejadaMin != null ? `${det.tempo.mediaPlanejadaMin} min` : "—"} hint={det.tempo.comparaveis ? `${det.tempo.comparaveis} com estimativa` : "sem estimativa"} />
               <Metrica label="Dentro do previsto" valor={det.tempo.dentroDoPrevisto != null ? `${det.tempo.dentroDoPrevisto}/${det.tempo.comparaveis}` : "—"} hint="diferença até 15%" />
               <Metrica label="Descanso típico" valor={det.descansoMedianoSeg != null ? `${Math.floor(det.descansoMedianoSeg / 60)}:${String(det.descansoMedianoSeg % 60).padStart(2, "0")}` : "—"} hint={det.descansoMedianoSeg != null ? `mediana de ${det.intervalosDescanso} intervalos` : "poucos dados"} />
@@ -295,7 +295,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         <p className="text-[11px] text-fg-subtle mt-2">Pausas combinadas (férias, lesão) aparecem no calendário de consistência e não contam como falta.</p>
       </Acordeao>
 
-      <Acordeao titulo="Frequência e aderência" resumo={`${calendario.filter((d) => d.status === "feito").length} dias com treino · ${calendario.filter((d) => d.status === "abandonado").length} encerrado(s) sem concluir`}>
+      <Acordeao titulo="Frequência e aderência" resumo={`${calendario.filter((d) => d.status === "feito").length} ${calendario.filter((d) => d.status === "feito").length === 1 ? "dia" : "dias"} com treino · ${calendario.filter((d) => d.status === "abandonado").length} encerrado(s) sem concluir`}>
         <Heatmap dias={calendario.map((d) => ({ data: d.data, intensidade: d.status === "feito" ? 3 : d.status === "abandonado" ? 1 : 0, tooltip: `${dataBR(d.data)} — ${d.status === "feito" ? `treino ${d.letra ?? ""}${d.duracaoMin ? ` (${d.duracaoMin} min)` : ""}` : d.status === "abandonado" ? "encerrado sem concluir" : "sem treino"}` }))} />
         <div className="flex items-center justify-between mt-3 text-xs text-fg-subtle">
           <span>Meta semanal do programa: {Math.round(Object.values(programa?.frequencia ?? {}).reduce((a, b) => a + (Number(b) || 0), 0)) || "—"} sessões</span>
@@ -304,7 +304,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         {resumo.duracaoMediaMin ? <p className="text-xs text-fg-muted mt-2">Duração média: {resumo.duracaoMediaMin} min por sessão.</p> : null}
       </Acordeao>
 
-      <Acordeao titulo="Força e desempenho" resumo={marcas.length ? `${marcas.length} exercícios com registro` : exerciciosGrafico.length ? "histórico do app anterior" : "sem registros no período"}>
+      <Acordeao titulo="Força e desempenho" resumo={marcas.length ? `${marcas.length} ${marcas.length === 1 ? "exercício" : "exercícios"} com registro` : exerciciosGrafico.length ? "histórico do app anterior" : "sem registros no período"}>
         {marcas.length === 0 ? (
           <>
             <p className="text-sm text-fg-muted">Registre cargas e repetições durante o treino para ver suas melhores marcas aqui.</p>
@@ -342,7 +342,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         )}
       </Acordeao>
 
-      <Acordeao titulo="Volume: programado × realizado" resumo={comparacao.length ? `${comparacao.length} grupos · média semanal no período` : "sem dados"}>
+      <Acordeao titulo="Volume: programado × realizado" resumo={comparacao.length ? `${comparacao.length} ${comparacao.length === 1 ? "grupo" : "grupos"} · média semanal no período` : "sem dados"}>
         {comparacao.length === 0 ? (
           <p className="text-sm text-fg-muted">Sem séries registradas no período.</p>
         ) : (
@@ -370,7 +370,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
         <p className="text-[11px] text-fg-subtle mt-2">Barra dourada = feito por semana; traço = programado. Séries válidas (sem aquecimento), volume direto por músculo principal. Tonelagem no período: {tonelagem(noPeriodo).toLocaleString("pt-BR")} kg — compare apenas os mesmos exercícios.</p>
       </Acordeao>
 
-      <Acordeao titulo="Recuperação e percepção" resumo={ciPeriodo.length ? `${ciPeriodo.length} check-ins` : "sem check-ins no período"}>
+      <Acordeao titulo="Recuperação e percepção" resumo={ciPeriodo.length ? `${ciPeriodo.length} ${ciPeriodo.length === 1 ? "check-in" : "check-ins"}` : "sem check-ins no período"}>
         {ciPeriodo.length === 0 && sessoesComDor === 0 ? (
           <p className="text-sm text-fg-muted">Sem dados autorrelatados no período.</p>
         ) : (
@@ -457,7 +457,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
                 {v.diff_resumo ? <p className="text-xs text-fg-subtle mt-0.5">{v.diff_resumo}</p> : null}
                 {modo === "treinador" ? (
                   <p className="text-xs text-fg-subtle mt-1">
-                    {v.snapshot?.treinos?.filter((t) => t.ativo).length ?? 0} treinos · {v.snapshot?.treinos?.reduce((n, t) => n + t.exercicios.reduce((m, e) => m + (e.series || 0), 0), 0) ?? 0} séries/ciclo
+                    {v.snapshot?.treinos?.filter((t) => t.ativo).length ?? 0} {(v.snapshot?.treinos?.filter((t) => t.ativo).length ?? 0) === 1 ? "treino" : "treinos"} · {v.snapshot?.treinos?.reduce((n, t) => n + t.exercicios.reduce((m, e) => m + (e.series || 0), 0), 0) ?? 0} séries/ciclo
                   </p>
                 ) : null}
               </li>

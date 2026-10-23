@@ -298,7 +298,7 @@ export function ganhoDescansoReduzido(normal: ResultadoPossivel, menor: Resultad
   const cortadosMenor = new Set(menor.cortes.map((c) => c.id));
   const recuperados = [
     ...normal.adiados.filter((a) => !fora.has(a.id)).map((a) => a.nome),
-    ...normal.cortes.filter((c) => !cortadosMenor.has(c.id)).map((c) => `${c.nome} com ${c.de} séries`),
+    ...normal.cortes.filter((c) => !cortadosMenor.has(c.id)).map((c) => `${c.nome} com ${c.de} ${c.de === 1 ? "série" : "séries"}`),
   ];
   const ajuda = normal.status === "inviavel" || recuperados.length > 0;
   return { ajuda, recuperados };

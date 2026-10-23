@@ -25,7 +25,7 @@ export function RelatorioTreino({ r, letra }: { r: RelatorioConclusao; letra?: s
             <span className="font-mono font-bold">{kg(r.volumeKg)}</span>
             <span className="w-full text-xs">
               <Variacao pct={r.anterior?.volumePct ?? null} base={doTreino} />
-              {r.media ? <> · <Variacao pct={r.media.volumePct} base={`vs sua média (${r.media.treinos} treinos)`} /></> : null}
+              {r.media ? <> · <Variacao pct={r.media.volumePct} base={`vs sua média (${r.media.treinos} ${r.media.treinos === 1 ? "treino" : "treinos"})`} /></> : null}
             </span>
           </li>
         ) : null}

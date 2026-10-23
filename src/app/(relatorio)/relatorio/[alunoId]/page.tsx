@@ -201,7 +201,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4 print:grid-cols-4">
-                <Numero rotulo="Treinos" valor={br(r.treinos, 0)} detalhe={`em ${r.semanas} semanas`} />
+                <Numero rotulo="Treinos" valor={br(r.treinos, 0)} detalhe={`em ${r.semanas} ${r.semanas === 1 ? "semana" : "semanas"}`} />
                 <Numero rotulo="Séries" valor={br(r.series, 0)} detalhe="sem aquecimento" />
                 <Numero rotulo="Volume" valor={`${br(r.tonelagem / 1000)} t`} detalhe="carga × repetições" />
                 <Numero rotulo="Tempo" valor={`${br(r.minutos / 60, 0)} h`} detalhe="treinando" />
@@ -384,7 +384,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 print:grid-cols-4">
             <Numero rotulo="Aderência" valor={aderenciaPct != null ? `${aderenciaPct}%` : "—"} detalhe={periodo === "tudo" ? "desde o início" : janela?.rotulo} />
             <Numero rotulo="Últimas 4 semanas" valor={aderencia.indices.d28.pct != null ? `${aderencia.indices.d28.pct}%` : "—"} detalhe="da meta semanal" />
-            <Numero rotulo="Semanas com meta" valor={`${aderencia.sequencia.semanasCumpridas}`} detalhe={`de ${aderencia.sequencia.semanasParticipando} semanas`} />
+            <Numero rotulo="Semanas com meta" valor={`${aderencia.sequencia.semanasCumpridas}`} detalhe={`de ${aderencia.sequencia.semanasParticipando} ${aderencia.sequencia.semanasParticipando === 1 ? "semana" : "semanas"}`} />
             <Numero rotulo="Melhor sequência" valor={`${aderencia.sequencia.melhor}`} detalhe="semanas seguidas" />
           </div>
           <p className="text-[8.5pt] text-[#8a8273]">Aderência = treinos feitos ÷ meta semanal combinada com o {BRAND.name}. Semanas de pausa combinada ficam fora da conta; treino parcial vale meio.</p>
