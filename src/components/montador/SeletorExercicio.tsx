@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { GRUPO_COR, GRUPO_LABEL } from "@/lib/grupos";
 import { buscarExercicios } from "@/lib/biblioteca/busca";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
+import { VerExercicio } from "@/components/ui/VerExercicio";
 
 type Props = {
   valor: string;
@@ -148,8 +149,10 @@ export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favorito
                 escolher(r.item);
               }}
               onMouseEnter={() => setDestaque(i)}
-              className={`cursor-pointer px-3 py-2 ${i === destaque ? "bg-accent/15" : ""}`}
+              className={`flex cursor-pointer items-center gap-2.5 px-3 py-2 ${i === destaque ? "bg-accent/15" : ""}`}
             >
+              <VerExercicio nome={r.item.nome} midia={r.item.midia?.verificada ? r.item.midia : null} passos={r.item.execucao.slice(0, 3)} tamanho="sm" />
+              <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2 text-[13px] font-semibold">
                 <span className="h-2 w-2 rounded-full" style={{ background: GRUPO_COR[r.item.grupo] }} aria-hidden />
                 {favoritos.has(r.item.id) ? <span className="text-accent" aria-label="favorito">★</span> : null}
@@ -159,6 +162,7 @@ export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favorito
                 {GRUPO_LABEL[r.item.grupo]}
                 {r.motivo && r.motivo !== "nome" ? ` · ${r.motivo}` : ""}
                 {uso.get(r.item.id) ? ` · você usou ${uso.get(r.item.id)}×` : ""}
+              </span>
               </span>
             </li>
           ))}

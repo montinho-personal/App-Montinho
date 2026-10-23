@@ -34,6 +34,6 @@ export default async function MontarTreinoPage({ params }: { params: Promise<{ i
     };
   }
   const perfil = await perfilVisitante(sessao.alunoId).catch(() => null);
-  const itens: ItemLeve[] = biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento, video: Boolean(i.midia?.verificada) }));
+  const itens: ItemLeve[] = biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento, video: Boolean(i.midia?.verificada), midia: i.midia?.verificada ? { provider: i.midia.provider, id: i.midia.id } : null, passos: i.execucao.slice(0, 3) }));
   return <MontadorVisitante itens={itens} inicial={inicial} iniciante={perfil?.experiencia === "iniciante"} />;
 }

@@ -48,6 +48,7 @@ import type { Anamnese, GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { ExercicioPrescrito, PrioridadeExercicio, Programa, SnapshotPrograma, TreinoLetra } from "@/lib/supabase/types-sessoes";
 import { LETRAS_TREINO } from "@/lib/supabase/types-sessoes";
 import type { Treino } from "@/lib/supabase/types";
+import { VerExercicio } from "@/components/ui/VerExercicio";
 
 // ----------------------------------------------------------------------------
 // Tipos de view
@@ -1023,7 +1024,13 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             </td>
                             <td className="p-0 align-top">
                               <div>
-                                <div>
+                                <div className="flex items-center gap-1.5 pr-1">
+                                  {(() => {
+                                    // Ver o exercício escolhido (vídeo da biblioteca) sem sair do montador.
+                                    const it = itemDaLinha(r);
+                                    return it ? <span className="pl-1.5"><VerExercicio nome={it.nome} midia={it.midia?.verificada ? it.midia : null} passos={it.execucao.slice(0, 3)} tamanho="sm" /></span> : null;
+                                  })()}
+                                  <div className="min-w-0 flex-1">
                                   <SeletorExercicio
                                     valor={r.nome}
                                     bibliotecaId={r.bibliotecaId}
@@ -1041,6 +1048,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                     placeholder={`exercício ${i + 1}… (busque por nome, músculo ou equipamento)`}
                                     ariaLabel={`Nome do exercício ${i + 1} do treino ${t.letra}`}
                                   />
+                                  </div>
                                 </div>
                                 {r.nome.trim() ? (
                                   <button type="button" onClick={() => setAlternativasDe(alternativasDe === r.key ? null : r.key)} aria-expanded={alternativasDe === r.key} title="Ver alternativas para este exercício" className="alvo ml-2 mb-1 text-[11px] text-fg-subtle hover:text-accent">

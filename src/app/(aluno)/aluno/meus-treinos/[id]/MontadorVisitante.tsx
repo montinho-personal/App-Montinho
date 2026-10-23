@@ -7,8 +7,9 @@ import { Input, Label } from "@/components/ui/Input";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { filtrarExercicios, filtrosComItens } from "@/lib/visitante/busca-exercicios";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
+import { VerExercicio, type MidiaExercicio } from "@/components/ui/VerExercicio";
 
-export type ItemLeve = { id: string; nome: string; grupo: GrupoMuscular; sinonimos: string[]; equipamento: string[]; video: boolean };
+export type ItemLeve = { id: string; nome: string; grupo: GrupoMuscular; sinonimos: string[]; equipamento: string[]; video: boolean; midia: MidiaExercicio; passos: string[] };
 
 type Linha = { chave: string; id: string | null; biblioteca_id: string; series: number; reps: string; descanso_seg: number };
 
@@ -91,9 +92,10 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
               <li key={l.chave} className="rounded-xl border border-border bg-card p-3 space-y-3">
                 <div className="flex items-start gap-2">
                   <span className="mt-0.5 text-sm font-bold text-accent">{i + 1}.</span>
+                  {item ? <VerExercicio nome={item.nome} midia={item.midia} passos={item.passos} tamanho="sm" /> : null}
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold leading-tight">{item?.nome ?? "Exercício"}</p>
-                    <p className="text-xs text-fg-subtle">{item ? GRUPO_LABEL[item.grupo] : ""}{item?.video ? " · com vídeo" : ""}</p>
+                    <p className="text-xs text-fg-subtle">{item ? GRUPO_LABEL[item.grupo] : ""}</p>
                   </div>
                   <button type="button" className={botao} onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir">
                     <Icon name="up" size={16} />
@@ -156,13 +158,15 @@ export function MontadorVisitante({ itens, inicial, iniciante }: { itens: ItemLe
           </p>
           <ul className="max-h-80 divide-y divide-border overflow-y-auto">
             {resultados.map((r) => (
-              <li key={r.id}>
-                <button type="button" onClick={() => adicionar(r)} className="alvo flex w-full items-center gap-3 py-2.5 text-left">
-                  <Icon name="plus" size={16} className="text-accent" />
+              <li key={r.id} className="flex items-center gap-3 py-1.5">
+                {/* Toque na miniatura: vê o vídeo (não adiciona). Toque no nome: adiciona. */}
+                <VerExercicio nome={r.nome} midia={r.midia} passos={r.passos} />
+                <button type="button" onClick={() => adicionar(r)} className="alvo flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm">{r.nome}</span>
-                    <span className="block text-xs text-fg-subtle">{GRUPO_LABEL[r.grupo]}{r.video ? " · com vídeo" : ""}</span>
+                    <span className="block text-xs text-fg-subtle">{GRUPO_LABEL[r.grupo]}{r.video ? " · toque na imagem para ver o vídeo" : ""}</span>
                   </span>
+                  <Icon name="plus" size={18} className="shrink-0 text-accent" />
                 </button>
               </li>
             ))}

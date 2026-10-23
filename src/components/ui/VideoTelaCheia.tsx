@@ -33,7 +33,7 @@ export function BotaoVideoTelaCheia({ source, titulo }: { source: VideoSource; t
   );
 }
 
-export function VideoTelaCheia({ source, titulo, onFechar }: { source: VideoSource; titulo: string; onFechar: () => void }) {
+export function VideoTelaCheia({ source, titulo, onFechar, rotuloVoltar = "Voltar ao treino" }: { source: VideoSource; titulo: string; onFechar: () => void; rotuloVoltar?: string }) {
   // Botão “voltar” do celular fecha o vídeo e volta ao treino.
   useFecharComVoltar(true, onFechar);
   useEffect(() => {
@@ -60,7 +60,7 @@ export function VideoTelaCheia({ source, titulo, onFechar }: { source: VideoSour
           <iframe src={src} className="absolute inset-0 h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={`Vídeo: ${titulo}`} />
         )}
       </div>
-      <button type="button" onClick={onFechar} className="mt-3 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-bg">Voltar ao treino</button>
+      <button type="button" onClick={onFechar} className="mt-3 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-bg">{rotuloVoltar}</button>
     </div>,
     document.body,
   );
