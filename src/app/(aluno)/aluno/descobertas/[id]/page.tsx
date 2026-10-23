@@ -32,9 +32,9 @@ export default async function DescobertaPage({ params, searchParams }: { params:
         key={id}
         conteudo={conteudo}
         fontes={fontes}
-        respostaAnterior={prog?.resposta ?? null}
+        respostaAnterior={conteudo.reformuladaEm && (prog?.explorado_em ?? "") < conteudo.reformuladaEm ? null : (prog?.resposta ?? null)}
         salvoInicial={!!prog?.salvo}
-        proximaHref={proxima ? `/aluno/descobertas/${proxima}${daBiblioteca ? "?o=biblioteca" : ""}` : null}
+        proximaHref={proxima ? `/aluno/descobertas/${proxima.id}${proxima.biblioteca ? "?o=biblioteca" : ""}` : null}
         origem={(ORIGENS as readonly string[]).includes(o ?? "") ? (o as (typeof ORIGENS)[number]) : null}
       />
     </div>

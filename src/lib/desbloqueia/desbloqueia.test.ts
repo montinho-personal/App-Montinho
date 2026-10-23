@@ -21,7 +21,12 @@ describe("conteúdo editorial (30 descobertas)", () => {
     for (const x of base) expect(x.ciencia.length, x.id).toBeGreaterThan(20);
   });
   it("2/3. respostas Mito e Verdade conforme a base editorial", () => {
-    expect(base.filter((x) => x.veredito.startsWith("VERDADE")).map((x) => x.id)).toEqual(["d22", "d29"]);
+    // Respostas equilibradas (23/10/2026): metade verdade, sem sequência longa igual.
+    const verdades = base.filter((x) => x.veredito.startsWith("VERDADE")).length;
+    expect(verdades).toBeGreaterThanOrEqual(12);
+    expect(base.length - verdades).toBeGreaterThanOrEqual(12);
+    let seq = 1;
+    for (let i = 1; i < base.length; i++) { seq = base[i].correta === base[i - 1].correta ? seq + 1 : 1; expect(seq).toBeLessThanOrEqual(3); }
     expect(c("d01")).toMatchObject({ correta: "mito", veredito: "MITO" });
     expect(c("d29")).toMatchObject({ tipo: "mito_verdade_depende", correta: "verdade", veredito: "VERDADE, COM CONTEXTO" });
   });

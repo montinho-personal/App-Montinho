@@ -205,14 +205,23 @@ export function eventosDasDescobertas(itens: ItemAlbum[]): Array<{ chave: string
 }
 
 /**
- * Próxima pergunta depois de ler uma descoberta: a próxima em número que a
- * pessoa ainda não explorou (dando a volta no álbum); se já explorou todas,
- * simplesmente a seguinte. Pelo álbum só valem as liberadas; pela biblioteca,
- * todas (a biblioteca é aberta). null = não há outra.
+ * Próxima pergunta depois de ler uma descoberta: SEMPRE para a frente (nunca
+ * volta para uma que a pessoa pulou — antes voltava, e quem pulava a 13 caía
+ * nela de novo a cada “próxima”). Ordem: a próxima ainda não explorada depois
+ * desta entre as liberadas no álbum; se não houver, a próxima não explorada
+ * depois desta na biblioteca (aberta, então a pessoa nunca fica presa no fim
+ * do álbum); se já explorou tudo para a frente, a seguinte em número (dando a
+ * volta no fim). null = não há outra.
  */
-export function proximaDescoberta(itens: Array<Pick<ItemAlbum, "estado"> & { conteudo: Pick<ConteudoConhecimento, "id" | "numero"> }>, atualId: string, biblioteca: boolean): string | null {
-  const ordem = [...itens].filter((i) => biblioteca || i.estado !== "futuro").sort((a, b) => a.conteudo.numero - b.conteudo.numero);
-  const k = ordem.findIndex((i) => i.conteudo.id === atualId);
-  const depois = [...ordem.slice(k + 1), ...ordem.slice(0, Math.max(0, k))].filter((i) => i.conteudo.id !== atualId);
-  return (depois.find((i) => i.estado !== "explorado") ?? depois[0])?.conteudo.id ?? null;
+export function proximaDescoberta(itens: Array<Pick<ItemAlbum, "estado"> & { conteudo: Pick<ConteudoConhecimento, "id" | "numero"> }>, atualId: string, biblioteca: boolean): { id: string; biblioteca: boolean } | null {
+  const todas = [...itens].sort((a, b) => a.conteudo.numero - b.conteudo.numero);
+  const atual = todas.find((i) => i.conteudo.id === atualId);
+  const n = atual?.conteudo.numero ?? -Infinity;
+  const frente = todas.filter((i) => i.conteudo.numero > n && i.conteudo.id !== atualId);
+  const noAlbum = biblioteca ? null : frente.find((i) => i.estado === "disponivel");
+  if (noAlbum) return { id: noAlbum.conteudo.id, biblioteca: false };
+  const naBiblioteca = frente.find((i) => i.estado !== "explorado");
+  if (naBiblioteca) return { id: naBiblioteca.conteudo.id, biblioteca: biblioteca || naBiblioteca.estado === "futuro" };
+  const seguinte = frente[0] ?? todas.find((i) => i.conteudo.id !== atualId);
+  return seguinte ? { id: seguinte.conteudo.id, biblioteca: biblioteca || seguinte.estado === "futuro" } : null;
 }

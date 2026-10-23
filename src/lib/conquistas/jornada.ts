@@ -5,10 +5,12 @@
 //
 // • Capítulos são narrativa, não barreira: uma medalha do capítulo 3 pode
 //   sair antes de uma do capítulo 1.
-// • “Você está aqui” = logo depois da MEDALHA mais avançada já conquistada,
-//   de qualquer tipo (constância, acompanhamento, prática…) — não só nº de
-//   treinos. Recordes/retomadas acendem, mas não empurram o marcador; os
-//   ciclos de tempo só contam depois de todas as medalhas possíveis.
+// • “Você está aqui” = logo depois da MEDALHA DO CAMINHO mais avançada já
+//   conquistada (treinos, metas, constância, acompanhamento, fases) — não só
+//   nº de treinos. Medalhas “paralelas” (abrir a evolução, técnicas, Além do
+//   necessário, Samurai), recordes e retomadas acendem, mas não empurram o
+//   marcador: antes, quem só abria a Evolução (0 treinos) caía no capítulo 3
+//   (23/10/2026). Os ciclos de tempo só contam depois de todas as medalhas.
 // • Depois do capítulo 4 a trilha continua com ciclos de acompanhamento
 //   (6 meses, 1 ano…) a partir das semanas reais — marcos, não medalhas novas.
 // ============================================================================
@@ -79,6 +81,13 @@ export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "e
   treino_samurai: 3,
 };
 
+/** Acendem no mapa, mas não mudam o “Você está aqui”: não medem o caminho percorrido. */
+export const NAO_MOVEM_O_MARCADOR: ReadonlySet<string> = new Set([
+  "relatorio_mensal", "treino_samurai",
+  "fiz_o_necessario", "fui_alem", "uma_a_mais", "nunca_deixei_pra_depois", "milha_extra", "sempre_um_a_mais",
+  "primeira_tecnica", "tecnicas_2", "tecnicas_3", "tecnicas_4", "tecnicas_5", "tecnicas_7", "tecnicas_10", "mestre_tecnicas",
+]);
+
 export type NoJornada =
   | { tipo: "medalha"; id: string; capitulo: number; medalha: Medalha; alcancado: boolean; proxima: boolean }
   | { tipo: "recorrente"; id: string; capitulo: number; codigo: "recorde" | "eu_voltei"; titulo: string; total: number; ultima: string | null; alcancado: boolean; proxima: false }
@@ -138,7 +147,7 @@ export function montarJornada(e: {
   }
   let ultimo = -1;
   nos.forEach((n, i) => {
-    if (n.tipo === "medalha" && n.alcancado) ultimo = i;
+    if (n.tipo === "medalha" && n.alcancado && !NAO_MOVEM_O_MARCADOR.has(n.medalha.codigo)) ultimo = i;
   });
   const medalhasAbertas = nos.some((n) => n.tipo === "medalha" && !n.alcancado && n.medalha.disponivel);
   if (!medalhasAbertas) nos.forEach((n, i) => {

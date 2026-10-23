@@ -47,6 +47,8 @@ export type ConteudoConhecimento = {
   status: StatusEditorial;
   versao: number;
   ordem?: number;
+  /** Pergunta reescrita nesta data (a resposta certa mudou): respostas anteriores a ela não são mostradas. */
+  reformuladaEm?: string;
   /** Personal: conteúdo criado no painel (não faz parte da base inicial). */
   personalizado?: boolean;
 };

@@ -51,6 +51,14 @@ describe("Minha Jornada — mapa", () => {
     const comAcomp = montarJornada({ medalhas: medalhas.map((m) => (m.codigo === "acompanhamento_12_semanas" ? { ...m, conquistada: true } : m)), proxima: null, conquistas: [], semanas: [] });
     expect(comAcomp.nos[comAcomp.posicao - 1].id).toBe("acompanhamento_12_semanas");
   });
+  it("abrir a evolução (0 treinos), técnicas e Samurai acendem, mas não levam o marcador ao capítulo 3 (caso Renata)", () => {
+    const { j } = jornadaDe([], "2026-10-23");
+    const medalhas = j.nos.filter((x) => x.tipo === "medalha").map((x) => (x as Extract<typeof x, { tipo: "medalha" }>).medalha);
+    const paralelas = ["relatorio_mensal", "tecnicas_2", "treino_samurai", "uma_a_mais"];
+    const r = montarJornada({ medalhas: medalhas.map((m) => (paralelas.includes(m.codigo) ? { ...m, conquistada: true } : m)), proxima: null, conquistas: [], semanas: [] });
+    expect(r.posicao).toBe(0);
+    expect(r.nos.find((x) => x.id === "relatorio_mensal")?.alcancado).toBe(true);
+  });
   it("medalhas independentes da ordem visual: conquista do capítulo 2 sem a meta do capítulo 1", () => {
     // 10 treinos espaçados (meta 2 nunca cumprida): sai “10 treinos” sem “Primeira meta”.
     const xs = Array.from({ length: 10 }, (_, i) => s(somarDias("2026-08-04", i * 7)));

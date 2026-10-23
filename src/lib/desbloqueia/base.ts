@@ -32,9 +32,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["schoenfeld2017cargas", "currier2023", "acsm2026"],
     gatilhos: { conquistas: ["treinos_25"], contexto: ["reps_altas"] },
   }),
-  mito({
-    id: "d02", numero: 2, categoria: "musculacao", titulo: "Preciso sentir dor?",
-    pergunta: "Preciso sentir dor muscular no dia seguinte para o treino funcionar?",
+  verdade({
+    id: "d02", numero: 2, categoria: "musculacao", titulo: "Dá para evoluir sem dor?", reformuladaEm: "2026-10-23",
+    pergunta: "É possível ter um treino produtivo sem sentir dor muscular no dia seguinte?",
     rapida: "A dor muscular tardia não é uma medida confiável de hipertrofia. Você pode ter um treino produtivo sem sentir dor depois.",
     pratica: "Observe sua evolução ao longo das semanas, não apenas a dor do dia seguinte.",
     detalhada: "A dor tardia costuma aparecer quando o estímulo é novo (exercício diferente, mais amplitude, mais excêntrica) e tende a diminuir quando o corpo se acostuma — mesmo que a evolução continue. Por isso ela é um sinal fraco de 'treino bom'.",
@@ -61,9 +61,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["currier2023", "acsm2026", "schoenfeld2017cargas"],
     gatilhos: { conquistas: ["recorde"], contexto: ["recorde", "mais_reps", "sem_aumento_carga"] },
   }),
-  mito({
-    id: "d04", numero: 4, categoria: "musculacao", titulo: "Treinar até a falha",
-    pergunta: "É obrigatório chegar à falha muscular em todas as séries para ter hipertrofia?",
+  verdade({
+    id: "d04", numero: 4, categoria: "musculacao", titulo: "Treinar até a falha", reformuladaEm: "2026-10-23",
+    pergunta: "Dá para ter hipertrofia sem chegar à falha muscular em todas as séries?",
     rapida: "Treinar até a falha em todas as séries não é obrigatório. É possível estimular adaptações treinando próximo da falha, conforme a estratégia e o exercício.",
     pratica: "Respeite as orientações de esforço (RIR) e repetições prescritas.",
     detalhada: "Chegar perto da falha garante esforço suficiente; ir até a falha em todas as séries aumenta a fadiga e pode atrapalhar as séries seguintes e a recuperação. Por isso muitos planos usam 'repetições em reserva' (RIR): parar quando ainda daria para fazer 1, 2 ou 3.",
@@ -103,9 +103,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: [],
     gatilhos: { conquistas: [], contexto: [] },
   }),
-  mito({
-    id: "d07", numero: 7, categoria: "musculacao", titulo: "Descansar mais atrapalha?",
-    pergunta: "Descansos maiores entre séries necessariamente prejudicam a hipertrofia?",
+  verdade({
+    id: "d07", numero: 7, categoria: "musculacao", titulo: "Descansar mais ajuda?", reformuladaEm: "2026-10-23",
+    pergunta: "Descansos maiores entre as séries podem ajudar a manter o desempenho nas séries seguintes?",
     rapida: "Intervalos adequados podem ajudar a manter o desempenho nas séries seguintes. O descanso ideal depende do exercício, do esforço e do objetivo.",
     pratica: "O cronômetro do app representa a estratégia de descanso prescrita, não uma corrida contra o tempo.",
     detalhada: "Descansar pouco demais pode reduzir as repetições nas séries seguintes e, com isso, o trabalho total. Exercícios grandes (agachamento, terra) costumam pedir mais descanso que exercícios pequenos.",
@@ -117,9 +117,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["schoenfeld2016descanso"],
     gatilhos: { conquistas: [], contexto: ["descanso"] },
   }),
-  mito({
-    id: "d08", numero: 8, categoria: "musculacao", titulo: "Máquinas são inferiores?",
-    pergunta: "Treinar em máquinas é sempre inferior a usar pesos livres?",
+  verdade({
+    id: "d08", numero: 8, categoria: "musculacao", titulo: "Máquinas funcionam?", reformuladaEm: "2026-10-23",
+    pergunta: "Máquinas também podem desenvolver força e massa muscular, assim como os pesos livres?",
     rapida: "Máquinas e pesos livres podem desenvolver força e massa muscular. A escolha depende do exercício, estabilidade, experiência, equipamento e objetivo.",
     pratica: "O melhor equipamento é aquele que se encaixa adequadamente na sua prescrição.",
     detalhada: "Pesos livres exigem mais estabilização; máquinas facilitam isolar o músculo e treinar perto da falha com segurança. Para crescer, os dois funcionam. Para força, tende a melhorar mais aquilo que você treina (quem treina na máquina melhora mais testes na máquina).",
@@ -175,9 +175,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["schoenfeld2014jejum"],
     gatilhos: { conquistas: [], contexto: [] },
   }),
-  mito({
-    id: "d12", numero: 12, categoria: "emagrecimento", titulo: "Musculação atrapalha emagrecer?",
-    pergunta: "Musculação atrapalha quem deseja emagrecer?",
+  verdade({
+    id: "d12", numero: 12, categoria: "emagrecimento", titulo: "Musculação ajuda a emagrecer?", reformuladaEm: "2026-10-23",
+    pergunta: "A musculação pode ajudar quem deseja emagrecer?",
     rapida: "O treinamento resistido pode ajudar a preservar massa magra durante o emagrecimento e melhorar a força e a função muscular.",
     pratica: "Não avalie sua evolução somente pelo número da balança.",
     detalhada: "Quando se perde peso, parte da perda pode ser de massa magra. A musculação dá ao corpo um motivo para manter músculo, o que ajuda na força, na função e na composição corporal.",
@@ -203,9 +203,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: [],
     gatilhos: { conquistas: ["relatorio_mensal"], contexto: [] },
   }),
-  mito({
-    id: "d14", numero: 14, categoria: "emagrecimento", titulo: "O fim de semana destrói tudo?",
-    pergunta: "Um fim de semana com alimentação diferente destrói automaticamente toda a evolução?",
+  verdade({
+    id: "d14", numero: 14, categoria: "emagrecimento", titulo: "Dá para retomar depois do fim de semana?", reformuladaEm: "2026-10-23",
+    pergunta: "Depois de um fim de semana com alimentação diferente, dá para retomar sem perder toda a evolução?",
     rapida: "Os resultados dependem do conjunto dos comportamentos ao longo do tempo. Um período isolado não determina sozinho a trajetória.",
     pratica: "Evite compensações extremas. Retome sua organização habitual.",
     detalhada: "O que pesa é a média de semanas e meses. Compensar com jejuns longos ou treinos exaustivos costuma gerar um ciclo difícil de manter; retomar a rotina normal é mais sustentável.",
@@ -232,9 +232,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["hallGuo2017"],
     gatilhos: { conquistas: [], contexto: [] },
   }),
-  mito({
-    id: "d16", numero: 16, categoria: "nutricao", titulo: "Whey é obrigatório?",
-    pergunta: "É obrigatório tomar whey protein para ganhar massa muscular?",
+  verdade({
+    id: "d16", numero: 16, categoria: "nutricao", titulo: "Dá para crescer sem whey?", reformuladaEm: "2026-10-23",
+    pergunta: "É possível ganhar massa muscular sem tomar whey protein?",
     rapida: "O whey é uma fonte prática de proteína, mas não é obrigatório. É possível atingir as necessidades de proteína com diferentes alimentos.",
     pratica: "Suplementos não substituem uma alimentação organizada.",
     detalhada: "O que importa é a quantidade total e a regularidade da proteína no dia. Carnes, ovos, laticínios, leguminosas e o whey são caminhos diferentes para o mesmo objetivo.",
@@ -289,9 +289,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["morton2018"],
     gatilhos: { conquistas: [], contexto: [] },
   }),
-  mito({
-    id: "d20", numero: 20, categoria: "nutricao", titulo: "Preciso cortar o pão?",
-    pergunta: "É obrigatório eliminar o pão para emagrecer?",
+  verdade({
+    id: "d20", numero: 20, categoria: "nutricao", titulo: "Dá para emagrecer comendo pão?", reformuladaEm: "2026-10-23",
+    pergunta: "Dá para emagrecer sem tirar o pão da alimentação?",
     rapida: "Nenhum alimento isolado determina o emagrecimento. Quantidade, padrão alimentar e balanço energético são o que importa.",
     pratica: "Uma alimentação sustentável pode incluir alimentos de que você gosta.",
     detalhada: "Cortar um alimento pode ajudar algumas pessoas a comer menos, mas não é obrigatório. O que conta é o conjunto — e conseguir manter.",
@@ -304,9 +304,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     gatilhos: { conquistas: [], contexto: [] },
   }),
   // --------------------------------------------------------------- RECUPERAÇÃO
-  mito({
-    id: "d21", numero: 21, categoria: "recuperacao", titulo: "Descanso é tempo perdido?",
-    pergunta: "Descansar entre as sessões significa perder oportunidades de evolução?",
+  verdade({
+    id: "d21", numero: 21, categoria: "recuperacao", titulo: "Descanso faz parte?", reformuladaEm: "2026-10-23",
+    pergunta: "O descanso entre as sessões também faz parte da evolução?",
     rapida: "A recuperação é importante para sustentar desempenho e adaptações. A quantidade de descanso necessária depende do treino e de cada pessoa.",
     pratica: "Cumprir o descanso prescrito também faz parte do planejamento.",
     detalhada: "O treino é o estímulo; a adaptação se consolida nos intervalos. Treinar sem recuperar pode acumular fadiga e reduzir o desempenho.",
@@ -362,9 +362,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     gatilhos: { conquistas: [], contexto: [] },
     essencial: true,
   }),
-  mito({
-    id: "d25", numero: 25, categoria: "recuperacao", titulo: "Evolução só no treino?",
-    pergunta: "As adaptações ao treinamento acontecem somente enquanto você faz as séries?",
+  verdade({
+    id: "d25", numero: 25, categoria: "recuperacao", titulo: "Evolução depois do treino?", reformuladaEm: "2026-10-23",
+    pergunta: "Muitas adaptações ao treino continuam acontecendo depois que a sessão termina?",
     rapida: "O treino fornece o estímulo; muitos processos de recuperação e adaptação continuam depois da sessão.",
     pratica: "Treinar e recuperar são partes complementares do programa.",
     detalhada: "Depois do treino o corpo segue reparando e reconstruindo. Sono, alimentação e intervalos entre sessões fazem parte da evolução.",
@@ -405,9 +405,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     fontes: ["lally2010"],
     gatilhos: { conquistas: ["constancia_vida_real", "criando_raizes"], contexto: ["meta_semanal"] },
   }),
-  mito({
-    id: "d28", numero: 28, categoria: "consistencia", titulo: "Preciso estar motivado?",
-    pergunta: "É necessário sentir motivação alta antes de todos os treinos?",
+  verdade({
+    id: "d28", numero: 28, categoria: "consistencia", titulo: "Treinar sem motivação?", reformuladaEm: "2026-10-23",
+    pergunta: "Dá para treinar bem mesmo em dias de pouca motivação?",
     rapida: "A motivação varia. Planejamento, ambiente favorável, rotina e apoio podem facilitar a prática mesmo em dias de menor disposição.",
     pratica: "Ter dias previamente organizados reduz decisões de última hora.",
     detalhada: "Planos do tipo 'quando for X, eu faço Y' (ex.: 'terça às 7h vou à academia') ajudam a agir sem depender do ânimo do momento.",
@@ -435,9 +435,9 @@ export const BASE_DESCOBERTAS: ConteudoConhecimento[] = [
     gatilhos: { conquistas: [], contexto: ["treino_reduzido"] },
     status: "publicado", versao: 1,
   },
-  mito({
-    id: "d30", numero: 30, categoria: "consistencia", titulo: "Uma semana apaga tudo?",
-    pergunta: "Ficar uma semana sem treinar necessariamente apaga todas as adaptações?",
+  verdade({
+    id: "d30", numero: 30, categoria: "consistencia", titulo: "Uma semana apaga tudo?", reformuladaEm: "2026-10-23",
+    pergunta: "Depois de uma semana sem treinar, dá para retomar sem começar do zero?",
     rapida: "Adaptações não desaparecem de uma vez. Os efeitos de uma interrupção variam conforme a duração, o histórico e cada pessoa.",
     pratica: "Se houve uma pausa, retome conforme orientação e respeitando suas condições atuais.",
     detalhada: "As perdas tendem a ser maiores quanto mais longa a pausa e podem ser maiores em pessoas mais velhas ou destreinadas. Uma semana costuma ter impacto pequeno, e a recuperação depois da volta costuma ser mais rápida que o ganho inicial.",
