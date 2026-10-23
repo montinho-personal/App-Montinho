@@ -34,7 +34,7 @@ async function chamar(url: string, metodo: string, corpo: unknown): Promise<{ ok
   }
 }
 
-export function LivreClient({ sessaoId, iniciadoEm, itens, inicial }: { sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[] }) {
+export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno" }: { sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string }) {
   const router = useRouter();
   const [exs, setExs] = useState<ExercicioTela[]>(inicial);
   const [aberto, setAberto] = useState<string | null>(inicial.at(-1)?.seId ?? null);
@@ -106,7 +106,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial }: { sessaoId
     const r = await chamar(`/api/sessoes/${sessaoId}`, "PATCH", { status, feedback_percepcao: status === "concluida" ? feedback : null, feedback_comentario: comentario.trim() || null });
     setOcupado(false);
     if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível terminar agora."));
-    if (status === "abandonada") return router.push("/aluno/meus-treinos");
+    if (status === "abandonada") return router.push(voltar);
     router.refresh();
   }
 
@@ -116,9 +116,9 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial }: { sessaoId
     <div className="space-y-4 pb-24">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-accent">🎲 Treino livre</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-accent">🎲 {extra ? "Treino extra · livre" : "Treino livre"}</p>
           <h1 className="text-2xl font-bold leading-tight">Decida na hora</h1>
-          <p className="text-sm text-fg-muted">Escolha o exercício, anote as séries e siga para o próximo.</p>
+          <p className="text-sm text-fg-muted">Escolha o exercício, anote as séries e siga para o próximo.{extra ? " Como extra, fica registrado à parte e não conta na meta semanal." : ""}</p>
         </div>
         <div className="shrink-0 rounded-xl border border-border bg-card px-3 py-2 text-right">
           <p className="font-mono text-lg font-bold tabular-nums">{relogio(decorrido)}</p>

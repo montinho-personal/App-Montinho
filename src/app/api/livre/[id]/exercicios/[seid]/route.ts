@@ -1,14 +1,14 @@
 // PATCH /api/livre/[id]/exercicios/[seid] — técnica e anotação do exercício no treino livre.
 import { NextResponse } from "next/server";
 import { ajustarExercicioLivre } from "@/lib/data/livre";
-import { requireVisitanteEmDiaApi } from "@/lib/visitante/guarda-api";
+import { requireAlunoTreinoLivreApi } from "@/lib/treino/livre-guarda";
 import { lerJson, livreAjusteSchema } from "@/lib/validacao/schemas";
 
 type Ctx = { params: Promise<{ id: string; seid: string }> };
 
 export async function PATCH(request: Request, { params }: Ctx) {
   const { id, seid } = await params;
-  const { sessao, error } = await requireVisitanteEmDiaApi();
+  const { sessao, error } = await requireAlunoTreinoLivreApi();
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, livreAjusteSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });

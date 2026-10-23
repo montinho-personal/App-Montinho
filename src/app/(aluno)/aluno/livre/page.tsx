@@ -2,8 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { FEATURES, isDemoMode } from "@/lib/env";
+import { redirect } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { ehVisitante } from "@/lib/auth/guards";
 import { getSessaoEmAndamento } from "@/lib/data/sessoes";
@@ -14,16 +13,15 @@ import { ComecarLivre } from "./ComecarLivre";
 export const metadata = { title: "Treino livre" };
 
 export default async function ComecarLivrePage() {
-  if (!FEATURES.modoVisitante) notFound();
   const sessao = await requireAlunoPage();
-  if (!ehVisitante(sessao) && !isDemoMode()) notFound();
+  const visitante = ehVisitante(sessao);
   const emAndamento = await getSessaoEmAndamento(sessao.alunoId).catch(() => null);
   if (emAndamento && ehSessaoLivre(emAndamento)) redirect(`/aluno/livre/${emAndamento.id}`);
-  const pode = podeRegistrar("visitante", sessao.acessoFim ?? null);
+  const pode = podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null);
 
   return (
     <div className="space-y-5">
-      <Link href="/aluno/meus-treinos" className="alvo inline-block text-sm text-fg-muted hover:text-fg">← Meus treinos</Link>
+      <Link href={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} className="alvo inline-block text-sm text-fg-muted hover:text-fg">← {visitante ? "Meus treinos" : "Treinar"}</Link>
       <header className="space-y-2">
         <p className="text-4xl" aria-hidden>🎲</p>
         <h1 className="text-2xl font-bold">Treino livre</h1>
@@ -32,7 +30,7 @@ export default async function ComecarLivrePage() {
       <ol className="space-y-2 text-sm">
         <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">1</span><span>Escolha o exercício (com vídeo) ou escreva o nome que você usa.</span></li>
         <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">2</span><span>Anote cada série: carga e repetições. Usou drop-set, rest-pause, bi-set? Marque a técnica.</span></li>
-        <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">3</span><span>Toque em “Próximo exercício” e siga. No fim, conte como foi e, se quiser, salve como treino para repetir.</span></li>
+        <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">3</span><span>Toque em “Próximo exercício” e siga. No fim, conte como foi{visitante ? " e, se quiser, salve como treino para repetir" : ""}.</span></li>
       </ol>
       <p className="text-xs text-fg-subtle">Conta na sua semana, nos troféus e na sua evolução como qualquer treino. Precisa de internet para anotar.</p>
       {!pode ? (

@@ -2,7 +2,6 @@
 export const dynamic = "force-dynamic";
 
 import { notFound, redirect } from "next/navigation";
-import { FEATURES, isDemoMode } from "@/lib/env";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { ehVisitante } from "@/lib/auth/guards";
 import { getSessao, ultimasExecucoes } from "@/lib/data/sessoes";
@@ -15,9 +14,8 @@ import { ResumoLivreClient } from "./ResumoLivreClient";
 export const metadata = { title: "Treino livre" };
 
 export default async function TreinoLivrePage({ params }: { params: Promise<{ id: string }> }) {
-  if (!FEATURES.modoVisitante) notFound();
   const sessao = await requireAlunoPage();
-  if (!ehVisitante(sessao) && !isDemoMode()) notFound();
+  const visitante = ehVisitante(sessao);
   const { id } = await params;
   const s = await getSessao(sessao.alunoId, id);
   if (!s) notFound();
@@ -27,7 +25,7 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
 
   if (s.status !== "em_andamento") {
     const exercicios: ExercicioLivre[] = s.exercicios.map((e) => ({ nome: e.nome, biblioteca_id: e.biblioteca_id, tecnica: tecnicaDe(e.prescricao), series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) }));
-    return <ResumoLivreClient resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={podeRegistrar("visitante", sessao.acessoFim ?? null)} duracaoMin={s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null} />;
+    return <ResumoLivreClient resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null} />;
   }
 
   const [biblioteca, ultimas] = await Promise.all([listarBiblioteca(), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);
@@ -42,5 +40,5 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     ultima: textoUltimaVez(ultimas[e.id]),
     series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: x.carga_kg != null ? String(x.carga_kg).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "", salva: true })),
   }));
-  return <LivreClient sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} />;
+  return <LivreClient sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} />;
 }

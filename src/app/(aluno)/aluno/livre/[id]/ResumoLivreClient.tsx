@@ -9,7 +9,7 @@ import { treinoDoLivre, type ExercicioLivre, type ResumoLivre } from "@/lib/trei
 
 const kg = (n: number) => `${n.toLocaleString("pt-BR")} kg`;
 
-export function ResumoLivreClient({ resumo, exercicios, podeSalvar, duracaoMin }: { resumo: ResumoLivre; exercicios: ExercicioLivre[]; podeSalvar: boolean; duracaoMin: number | null }) {
+export function ResumoLivreClient({ resumo, exercicios, podeSalvar, duracaoMin, extra = false }: { resumo: ResumoLivre; exercicios: ExercicioLivre[]; podeSalvar: boolean; duracaoMin: number | null; extra?: boolean }) {
   const [nome, setNome] = useState(`Treino livre ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`);
   const [estado, setEstado] = useState<"pronto" | "salvando" | "salvo">("pronto");
   const [erro, setErro] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export function ResumoLivreClient({ resumo, exercicios, podeSalvar, duracaoMin }
     <div className="space-y-4">
       <section className="space-y-1 rounded-xl border border-accent/50 bg-grain-strong p-4 text-center">
         <p className="text-4xl" aria-hidden>🎲</p>
-        <h1 className="text-2xl font-bold">Treino livre concluído!</h1>
+        <h1 className="text-2xl font-bold">{extra ? "Treino extra livre concluído!" : "Treino livre concluído!"}</h1>
         <p className="text-sm text-fg-muted">Chalalá! Decidiu na hora e fez acontecer.</p>
       </section>
       <dl className="grid grid-cols-3 gap-2 text-center">

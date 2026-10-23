@@ -26,6 +26,8 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
   const [previa, setPrevia] = useState<ResultadoExtraGerado | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [modo, setModo] = useState<"app" | "livre">("app");
+  // “🎲 Livre” no tempo: treino livre como extra (sem tempo fixo, decide os exercícios na hora).
+  const [livreHora, setLivreHora] = useState(false);
   const [itens, setItensState] = useState<ItemEscolhido[]>([]);
   const setItens = (f: (a: ItemEscolhido[]) => ItemEscolhido[]) => { setItensState(f); setPrevia(null); };
 
@@ -59,6 +61,14 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
   }
 
   const pronto = !!corpo && (modo === "app" ? !!(tempo && foco) : itens.length > 0);
+  async function comecarLivre() {
+    if (!corpo || corpo === "dor") return;
+    setCarregando(true);
+    const r = await fetch("/api/livre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_key: chave(), extra: { corpo } }) }).catch(() => null);
+    const d = (await r?.json().catch(() => null)) as { id?: string; error?: string } | null;
+    if (!r?.ok || !d?.id) { setCarregando(false); return toast.error(d?.error ?? "Não foi possível começar agora."); }
+    router.push(`/aluno/livre/${d.id}`);
+  }
   const corpoPedido = (f = foco, t = tempo, c = corpo) =>
     modo === "app" ? { modo, foco: f, tempo_min: t, corpo: c } : { modo, corpo: c, itens: itens.map((i) => ({ nome: i.nome, biblioteca_id: i.biblioteca_id, series: i.series, reps: i.reps })) };
   async function montar(f = foco, t = tempo, c = corpo) {
@@ -104,13 +114,22 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
           <legend className="font-semibold">Quanto tempo você tem?</legend>
           <div className="flex flex-wrap gap-1.5">
             {TEMPOS_EXTRA_MIN.map((m) => (
-              <button key={m} type="button" aria-pressed={tempo === m} onClick={() => { setTempo(m); setPrevia(null); }} className={chip(tempo === m)}>
+              <button key={m} type="button" aria-pressed={tempo === m && !livreHora} onClick={() => { setTempo(m); setLivreHora(false); setPrevia(null); }} className={chip(tempo === m && !livreHora)}>
                 {m} min
               </button>
             ))}
+            <button type="button" aria-pressed={livreHora} onClick={() => { setLivreHora(!livreHora); setPrevia(null); }} className={chip(livreHora)}>
+              🎲 Livre
+            </button>
           </div>
+          {livreHora ? (
+            <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+              <span className="font-semibold">Treino livre:</span> sem tempo fixo, do mínimo até quando você precisar. Você escolhe cada exercício na hora e anota as séries, cargas e técnicas.
+            </p>
+          ) : null}
         </fieldset>
 
+        {livreHora ? null : (
         <fieldset className="space-y-1.5">
           <legend className="font-semibold">O que você quer hoje?</legend>
           <div className="grid gap-1.5">
@@ -122,6 +141,7 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
             ))}
           </div>
         </fieldset>
+        )}
 
         </>
         )}
@@ -137,7 +157,15 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
           </div>
         </fieldset>
 
-        {!previa ? (
+        {modo === "app" && livreHora ? (
+          corpo === "dor" ? (
+            <p className="rounded-lg border border-warning/40 bg-warning/5 p-3">Com dor forte, nada de extra hoje. Converse com o {BRAND.name} pelo WhatsApp antes de treinar mais.</p>
+          ) : (
+            <button type="button" disabled={!corpo || carregando} onClick={() => void comecarLivre()} className="touch w-full rounded-lg bg-accent px-4 py-3 font-bold text-bg disabled:opacity-50">
+              {carregando ? "Abrindo…" : "🎲 Começar treino livre"}
+            </button>
+          )
+        ) : !previa ? (
           <button type="button" disabled={!pronto || carregando} onClick={() => void montar()} className="touch w-full rounded-lg bg-accent px-4 py-3 font-bold text-bg disabled:opacity-50">
             {carregando ? "Montando…" : modo === "app" ? "Montar meu extra" : "Conferir meu extra"}
           </button>

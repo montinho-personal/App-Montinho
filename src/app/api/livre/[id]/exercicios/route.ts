@@ -4,14 +4,14 @@ import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { adicionarExercicioLivre } from "@/lib/data/livre";
 import { ultimasExecucoes } from "@/lib/data/sessoes";
 import { textoUltimaVez } from "@/lib/treino/livre";
-import { requireVisitanteEmDiaApi } from "@/lib/visitante/guarda-api";
+import { requireAlunoTreinoLivreApi } from "@/lib/treino/livre-guarda";
 import { lerJson, livreExercicioSchema } from "@/lib/validacao/schemas";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Ctx) {
   const { id } = await params;
-  const { sessao, error } = await requireVisitanteEmDiaApi();
+  const { sessao, error } = await requireAlunoTreinoLivreApi();
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, livreExercicioSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });

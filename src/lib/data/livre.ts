@@ -17,7 +17,10 @@ import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { getSessao, getSessaoEmAndamento, gravarSessaoNova, type SessaoCompleta } from "./sessoes";
 
 /** Começa um treino livre (ou devolve o que já está em andamento). */
-export async function iniciarSessaoLivre(alunoId: string, clientKey: string): Promise<SessaoCompleta> {
+/** Como treino extra: registrado à parte (não conta na meta semanal), com o “como está o corpo” do extra. */
+export type ExtraLivre = { corpo: "bem" | "cansado" | "dor_leve" | "dor_moderada" };
+
+export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opts: { extra?: ExtraLivre | null } = {}): Promise<SessaoCompleta> {
   const atual = await getSessaoEmAndamento(alunoId);
   if (atual) {
     if (ehSessaoLivre(atual)) return atual;
@@ -30,19 +33,19 @@ export async function iniciarSessaoLivre(alunoId: string, clientKey: string): Pr
     treino_id: null,
     programa_versao_id: null,
     letra: null,
-    nome_treino: NOME_TREINO_LIVRE,
+    nome_treino: opts.extra ? `Extra · ${NOME_TREINO_LIVRE}` : NOME_TREINO_LIVRE,
     client_key: clientKey,
     status: "em_andamento",
     iniciado_em: agora,
     finalizado_em: null,
     duracao_seg: null,
-    snapshot: snapshotLivre(),
+    snapshot: { ...snapshotLivre(), ...(opts.extra ? { extra: { id: null, livre: true, modalidade: "resistido", titulo: `Extra · ${NOME_TREINO_LIVRE}` }, recuperacao: opts.extra.corpo } : {}) },
     series_planejadas: 0,
     tempo_estimado_seg: null,
     pausado_seg: 0,
-    checkin_pre: null,
+    checkin_pre: opts.extra ? (opts.extra.corpo === "cansado" ? "cansado" : opts.extra.corpo === "bem" ? "muito_bem" : "desconforto") : null,
     checkin_pre_nota: null,
-    modo: "normal",
+    modo: opts.extra ? "extra" : "normal",
     tempo_disponivel_min: null,
     extra_id: null,
     series_concluidas: 0,

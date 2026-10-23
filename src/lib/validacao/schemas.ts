@@ -702,7 +702,11 @@ export const ditadoIASchema = z.object({ fala: z.string().trim().min(3).max(4000
 
 // Treino livre (freestyle) do visitante: exercícios entram na hora.
 const TECNICAS_LIVRE_IDS = ["normal", "dropset", "rest_pause", "biset", "triset", "superset", "piramide", "piramide_decrescente", "myo_reps", "cluster", "tres_sete", "negativo", "super_slow", "isometria", "unilateral"] as const;
-export const livreIniciarSchema = z.object({ client_key: z.string().min(4).max(80) });
+export const livreIniciarSchema = z.object({
+  client_key: z.string().min(4).max(80),
+  /** Treino livre como treino extra (dor forte não entra: o extra pede conversa com o Montinho). */
+  extra: z.object({ corpo: z.enum(["bem", "cansado", "dor_leve", "dor_moderada", "dor"]) }).nullable().optional(),
+});
 export const livreExercicioSchema = z
   .object({
     client_key: z.string().min(4).max(80),

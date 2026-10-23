@@ -285,6 +285,17 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // Meu treino possível hoje: tempo disponível (min) escolhido antes de começar.
   const [tempoDisp, setTempoDisp] = useState<number | null>(null);
   const [tempoOutro, setTempoOutro] = useState("");
+  // “🎲 Livre” no tempo de hoje: em vez da ficha, um treino livre (sem tempo fixo).
+  const [livreHoje, setLivreHoje] = useState(false);
+  const [abrindoLivre, setAbrindoLivre] = useState(false);
+  async function comecarLivre() {
+    setAbrindoLivre(true);
+    const r = await fetch("/api/livre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_key: `livre-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}` }) }).catch(() => null);
+    const d = (await r?.json().catch(() => null)) as { id?: string; error?: string } | null;
+    if (r?.ok && d?.id) return router.push(`/aluno/livre/${d.id}`);
+    setAbrindoLivre(false);
+    toast.error(d?.error ?? "Não foi possível começar agora.");
+  }
   const [pedidoTempo, setPedidoTempo] = useState(false);
   // Opção do aluno para encaixar mais exercícios: descansos 20% menores.
   const [descansoMenor, setDescansoMenor] = useState(false);
@@ -1117,7 +1128,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                 </legend>
                 <div className="flex flex-wrap gap-1.5">
                   {OPCOES_TEMPO_MIN.map((m) => (
-                    <button key={m} type="button" aria-pressed={tempoDisp === m && !tempoOutro} onClick={() => { setTempoOutro(""); setPedidoTempo(false); setTempoDisp(tempoDisp === m ? null : m); }} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${tempoDisp === m && !tempoOutro ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                    <button key={m} type="button" aria-pressed={tempoDisp === m && !tempoOutro && !livreHoje} onClick={() => { setLivreHoje(false); setTempoOutro(""); setPedidoTempo(false); setTempoDisp(tempoDisp === m ? null : m); }} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${tempoDisp === m && !tempoOutro ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
                       {m} min
                     </button>
                   ))}
@@ -1126,7 +1137,19 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     <input inputMode="numeric" value={tempoOutro} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 3); setTempoOutro(v); setPedidoTempo(false); setTempoDisp(v && Number(v) >= 10 ? Math.min(240, Number(v)) : null); }} className="w-10 bg-transparent text-center font-mono text-fg outline-none" aria-label="Tempo disponível em minutos" placeholder="—" />
                     min
                   </label>
+                  {!presencial ? (
+                    <button type="button" aria-pressed={livreHoje} onClick={() => { const v = !livreHoje; setLivreHoje(v); if (v) { setTempoDisp(null); setTempoOutro(""); } }} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${livreHoje ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                      🎲 Livre
+                    </button>
+                  ) : null}
                 </div>
+                {livreHoje ? (
+                  <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm">
+                    <p className="font-semibold">Treino livre hoje</p>
+                    <p className="text-xs text-fg-muted">Sem tempo fixo: do mínimo até quando você precisar. Em vez desta ficha, você escolhe cada exercício na hora e anota as séries, cargas e técnicas. Conta como treino da semana.</p>
+                    <Button variant="gold" className="w-full touch" loading={abrindoLivre} onClick={() => void comecarLivre()}>🎲 Começar treino livre</Button>
+                  </div>
+                ) : null}
                 {possivel ? (
                   <div role="status" className={`rounded-lg border p-3 text-sm space-y-1 ${bloqueado || possivel.apertado ? "border-warning/40 bg-warning/10" : possivel.status === "reduzido" ? "border-accent/40 bg-accent/10" : "border-success/30 bg-success/10"}`}>
                     <p className="font-semibold">{possivel.status === "completo" ? (possivel.apertado ? "Dá para fazer completo, com tempo apertado" : "Cabe no seu tempo") : possivel.status === "reduzido" ? `Versão de hoje: cerca de ${Math.round(possivel.estimadoSeg / 60)} min` : "Sem versão segura para esse tempo"}</p>
