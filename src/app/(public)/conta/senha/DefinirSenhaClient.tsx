@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, FieldHint } from "@/components/ui/Input";
+import { Label, FieldHint } from "@/components/ui/Input";
+import { InputSenha } from "@/components/ui/InputSenha";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const MINIMO = 8;
@@ -52,12 +53,12 @@ export function DefinirSenhaClient({ destino, primeiro = false }: { destino: str
           <form onSubmit={salvar} className="space-y-4" noValidate>
             <div>
               <Label htmlFor="senha">Nova senha</Label>
-              <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" minLength={MINIMO} required autoFocus />
+              <InputSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" minLength={MINIMO} required autoFocus />
               <FieldHint>Mínimo de {MINIMO} caracteres.</FieldHint>
             </div>
             <div>
               <Label htmlFor="confirma">Repita a senha</Label>
-              <Input id="confirma" type="password" value={confirma} onChange={(e) => setConfirma(e.target.value)} autoComplete="new-password" required />
+              <InputSenha id="confirma" value={confirma} onChange={(e) => setConfirma(e.target.value)} autoComplete="new-password" required />
             </div>
             {error ? (
               <p role="alert" className="text-xs text-danger">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FieldHint, Input, Label } from "@/components/ui/Input";
+import { InputSenha } from "@/components/ui/InputSenha";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { eventoGa } from "@/components/analytics/ga";
 import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
@@ -64,7 +65,7 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
       </div>
       <div>
         <Label htmlFor="senha">Crie uma senha</Label>
-        <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Pelo menos 8 caracteres" autoComplete="new-password" required />
+        <InputSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Pelo menos 8 caracteres" autoComplete="new-password" required />
         <FieldHint>Você vai usar o e-mail e esta senha para entrar no app.</FieldHint>
       </div>
       <label className="flex items-start gap-3 text-sm text-fg-muted">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldHint } from "@/components/ui/Input";
+import { InputSenha } from "@/components/ui/InputSenha";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { BRAND } from "@/config/brand";
 
@@ -135,7 +136,7 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
             </div>
             <div>
               <Label htmlFor="senha">Senha</Label>
-              <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+              <InputSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
               <FieldHint>
                 Ou{" "}
                 <button type="button" onClick={handleMagicLink} className="alvo text-accent underline-offset-2 hover:underline">
