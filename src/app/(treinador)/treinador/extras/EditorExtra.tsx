@@ -32,6 +32,15 @@ export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, salvando
     return biblioteca.filter((b) => b.busca.includes(t)).slice(0, 6);
   }, [q, biblioteca]);
 
+  // Troca de lugar com o vizinho (↑ sobe, ↓ desce).
+  const mover = (i: number, dir: -1 | 1) =>
+    setItens((l) => {
+      const j = i + dir;
+      if (j < 0 || j >= l.length) return l;
+      const n = [...l];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
   const mudar = (i: number, p: Partial<ItemExtraAprovado>) => setItens((l) => l.map((x, k) => (k === i ? { ...x, ...p } : x)));
   function escolher(b: ItemBibliotecaLeve) {
     if (buscando === -1) setItens((l) => [...l, { biblioteca_id: b.id, nome: b.nome, series: 3, reps: "10-12" }]);
@@ -47,9 +56,16 @@ export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, salvando
       <ul className="space-y-1.5">
         {itens.map((x, i) => (
           <li key={`${x.nome}-${i}`} className="space-y-1.5 rounded-md border border-border px-2 py-1.5">
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-1">
+              <span className="mt-0.5 w-5 shrink-0 text-center font-mono text-xs text-fg-subtle">{i + 1}</span>
               <button type="button" onClick={() => { setBuscando(i); setQ(""); }} className="alvo min-w-0 flex-1 text-left text-sm font-semibold" title="Trocar exercício">
                 {x.nome} <span className="ml-1 whitespace-nowrap text-[11px] font-normal text-accent underline-offset-2 hover:underline">trocar</span>
+              </button>
+              <button type="button" disabled={i === 0} onClick={() => mover(i, -1)} aria-label={`Subir ${x.nome}`} className="alvo grid h-8 w-8 place-items-center rounded-md border border-border text-fg-muted hover:text-fg disabled:opacity-30">
+                ↑
+              </button>
+              <button type="button" disabled={i === itens.length - 1} onClick={() => mover(i, 1)} aria-label={`Descer ${x.nome}`} className="alvo grid h-8 w-8 place-items-center rounded-md border border-border text-fg-muted hover:text-fg disabled:opacity-30">
+                ↓
               </button>
               <button type="button" onClick={() => setItens((l) => l.filter((_, k) => k !== i))} aria-label={`Tirar ${x.nome}`} className="alvo px-1 text-fg-subtle hover:text-red">
                 ✕

@@ -33,7 +33,13 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
   const [salvando, setSalvando] = useState(false);
   const [ditando, setDitando] = useState(false);
   const [editandoPronto, setEditandoPronto] = useState<Extra | null>(null);
-  const [aprovadas, setAprovadas] = useState<string[]>([]);
+  // Opção aprovada → extra criado (para o atalho “Editar este extra”).
+  const [aprovadas, setAprovadas] = useState<Record<string, Extra>>({});
+  function abrirEdicao(x: Extra) {
+    setForm(null);
+    setEditandoPronto(x);
+    window.setTimeout(() => document.getElementById("extras-liberados")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
 
   // Extra pronto (com exercícios): grava como musculação, com os grupos vindos da biblioteca.
   async function salvarPronto(titulo: string, itens: ItemExtraAprovado[], id: string | null, ok: string) {
@@ -56,7 +62,8 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
     }
     toast.success(ok);
     router.refresh();
-    return true;
+    // Devolve o que o servidor gravou (ex.: o extra criado, para editar em seguida).
+    return (d ?? {}) as Record<string, unknown>;
   }
 
   const intenso = form ? MODALIDADES[form.modalidade].intenso : false;
@@ -123,8 +130,13 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                 <Card key={`${detalhe.alunoId}-${o.chave}`} className="border-accent/40">
                   <CardBody className="space-y-2 text-sm">
                     <p className="text-[11px] text-fg-subtle">{o.motivo}</p>
-                    {aprovadas.includes(o.chave) ? (
-                      <p className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs font-semibold text-success">Aprovado! Já está na lista de extras liberados.</p>
+                    {aprovadas[o.chave] ? (
+                      <div className="space-y-1 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs">
+                        <p className="font-semibold text-success">Aprovado! Já está na lista de extras liberados.</p>
+                        <button type="button" onClick={() => abrirEdicao(detalhe.extras.find((x) => x.id === aprovadas[o.chave].id) ?? aprovadas[o.chave])} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                          Editar este extra
+                        </button>
+                      </div>
                     ) : (
                       <EditorExtra
                         tituloInicial={o.titulo}
@@ -133,7 +145,8 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                         salvando={salvando}
                         rotuloBotao="Aprovar e liberar"
                         onAprovar={async (titulo, itens) => {
-                          if (await salvarPronto(titulo, itens, null, `“${titulo}” liberado para o aluno.`)) setAprovadas((a) => [...a, o.chave]);
+                          const criado = await salvarPronto(titulo, itens, null, `“${titulo}” liberado para o aluno.`);
+                          if (criado) setAprovadas((a) => ({ ...a, [o.chave]: { ...(criado as unknown as Extra), exercicios: itens } }));
                         }}
                       />
                     )}
@@ -218,7 +231,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
           <Card>
             <CardBody className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <h2 className="font-bold">Extras liberados</h2>
+                <h2 id="extras-liberados" className="scroll-mt-24 font-bold">Extras liberados</h2>
                 {!form && !ditando ? (
                   <span className="flex gap-3">
                     <button type="button" onClick={() => setDitando(true)} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
@@ -337,7 +350,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                         {x.exercicios?.length ? <span className="block text-xs text-fg-muted">{x.exercicios.map((e) => `${e.nome} ${e.series}×${e.reps}`).join(" · ")}</span> : null}
                       </span>
                       <span className="flex gap-3 text-xs">
-                        <button type="button" onClick={() => (x.exercicios?.length ? (setForm(null), setEditandoPronto(x)) : setForm({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao ?? "", duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas }))} className="alvo text-accent underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => (x.exercicios?.length ? abrirEdicao(x) : setForm({ id: x.id, modalidade: x.modalidade, titulo: x.titulo, descricao: x.descricao ?? "", duracao_min: x.duracao_min, treino_id: x.treino_id, grupos: x.grupos, series_estimadas: x.series_estimadas }))} className="alvo text-accent underline-offset-2 hover:underline">
                           editar
                         </button>
                         <button type="button" onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PATCH", { id: x.id, ativo: !x.ativo }, x.ativo ? "Extra pausado." : "Extra reativado.")} className="alvo text-fg-muted underline-offset-2 hover:underline">
