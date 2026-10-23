@@ -595,3 +595,10 @@ export const crmConfigSchema = z.object({
   webhook_url: z.string().trim().max(500).nullable(),
   ativo: z.boolean(),
 });
+
+/** Padrão de carga do aluno (0070): anilhas e halteres, total ou por lado. */
+const modoCarga = z.enum(["total", "por_lado"]).nullable();
+export const padraoCargaSchema = z
+  .object({ anilhas: modoCarga.optional(), halteres: modoCarga.optional() })
+  .strict()
+  .refine((v) => v.anilhas !== undefined || v.halteres !== undefined, { message: "Escolha um padrão" });

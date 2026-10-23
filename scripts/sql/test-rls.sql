@@ -1236,4 +1236,31 @@ begin
 end $$;
 reset role;
 \echo 'T39 OK: convite de amigo só com 4 treinos, +10 dias por amigo até +30, sem bônus forjado'
+-- T40 — 0070: padrão de carga (total × por lado): aluno grava só o próprio
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  insert into preferencias_carga (aluno_id, anilhas, halteres) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'total', 'por_lado');
+  update preferencias_carga set anilhas = 'por_lado' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  begin insert into preferencias_carga (aluno_id, anilhas) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'total'); exception when others then ok := true; end;
+  if not ok then raise exception 'T40a: aluno gravou o padrão de outro aluno'; end if;
+  ok := false;
+  begin update preferencias_carga set halteres = 'kg' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T40b: valor inválido aceito'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if (select count(*) from preferencias_carga) <> 0 then raise exception 'T40c: aluno vê o padrão de outro'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  if (select anilhas from preferencias_carga where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') <> 'por_lado' then raise exception 'T40d: personal não lê o padrão do aluno'; end if;
+end $$;
+select test_logout();
+\echo 'T40 OK: padrão de carga — cada aluno grava o próprio; personal lê'
 \echo 'TODOS OS TESTES PASSARAM'

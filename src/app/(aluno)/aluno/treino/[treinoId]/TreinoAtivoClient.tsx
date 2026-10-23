@@ -67,11 +67,15 @@ import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarCo
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
+import { PADRAO_CARGA_VAZIO, anotaCarga, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
+import { EscolherPadraoCarga, LembreteAparelho, salvarPadraoCarga } from "@/components/treinos/PadraoCarga";
+
+const CHAVE_OUTRO_APARELHO = "montinho:outro-aparelho";
 
 /** Modo aula presencial: o personal registra o treino do aluno pelo painel. */
 export type Presencial = { alunoId: string; nomeAluno: string; voltarHref: string };
 
-type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null; /** Trocado hoje pelo aluno. */ trocado?: boolean };
+type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null; /** Equipamentos da biblioteca (padrão de carga e lembrete do aparelho). */ equipamento?: string[]; /** Trocado hoje pelo aluno. */ trocado?: boolean };
 
 type Props = {
   treino: { id: string; letra: string; nome: string; observacoes: string | null; tempos: Partial<ParametrosTempo> };
@@ -107,6 +111,8 @@ type Props = {
   progressoesRecentes?: string[];
   /** “É impossível dar errado!”: histórico do aluno para escolher o momento. */
   confianca?: { concluidas: number; diasDesdeUltimo: number | null; fichaNova: boolean } | null;
+  /** Como o aluno anota o peso de anilhas e halteres (0070). */
+  padraoCarga?: PadraoCarga;
 };
 
 const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
@@ -189,7 +195,7 @@ function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[
 const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
   Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, padraoCarga }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -212,6 +218,41 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [aberto, setAberto] = useState<string | null>(() => sessaoInicial?.exercicios.find((e) => e.status === "pendente")?.id ?? sessaoInicial?.exercicios[0]?.id ?? null);
   // `fim` (epoch ms) permite retomar o descanso se o app fechar no meio dele.
   const [timer, setTimer] = useState<{ seg: number; key: number; fim: number } | null>(null);
+  // Padrão de carga (total × por lado) e “Outro aparelho hoje” por exercício da sessão.
+  const [padrao, setPadrao] = useState<PadraoCarga>(padraoCarga ?? PADRAO_CARGA_VAZIO);
+  const [trocandoPadrao, setTrocandoPadrao] = useState<TipoPeso | null>(null);
+  const [outroAparelho, setOutroAparelho] = useState<Record<string, boolean>>({});
+  // Sobrevive a recarregar a tela no meio do treino (só neste aparelho).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const salvo = JSON.parse(sessionStorage.getItem(CHAVE_OUTRO_APARELHO) ?? "{}") as Record<string, boolean>;
+        if (Object.keys(salvo).length) setOutroAparelho(salvo);
+      } catch {}
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  function marcarOutroAparelho(seId: string, v: boolean) {
+    setOutroAparelho((cur) => {
+      const novo = { ...cur, [seId]: v };
+      if (!v) delete novo[seId];
+      try {
+        sessionStorage.setItem(CHAVE_OUTRO_APARELHO, JSON.stringify(novo));
+      } catch {}
+      return novo;
+    });
+  }
+  async function escolherPadrao(tipo: TipoPeso, modo: PadraoCarga["anilhas"]) {
+    const antes = padrao;
+    setPadrao((p) => ({ ...p, [tipo]: modo }));
+    setTrocandoPadrao(null);
+    const salvo = await salvarPadraoCarga({ [tipo]: modo }, cab);
+    if (salvo) setPadrao(salvo);
+    else {
+      setPadrao(antes);
+      toast.warn("Não deu para salvar agora. Tente de novo com internet.");
+    }
+  }
   const [sync, setSync] = useState<EstadoSync>("sincronizado");
   const [pendentes, setPendentes] = useState(0);
   const [finalizando, setFinalizando] = useState(false);
@@ -530,13 +571,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       : null;
     const blocosPayload = emBlocos ? emBlocos.map((b) => ({ carga: nBloco(b.carga), reps: nBloco(b.reps) != null ? Math.round(nBloco(b.reps)!) : null })).filter((b) => b.reps != null || b.carga != null) : null;
     const reps = emBlocos ? (blocosPayload!.some((b) => b.reps != null) ? somaBlocos(emBlocos.map((b) => b.reps)) : null) : s.reps.trim() === "" ? null : Number(s.reps.replace(",", "."));
-    const carga = emBlocos ? (blocosPayload![0]?.carga ?? null) : s.carga.trim() === "" ? null : Number(s.carga.replace(",", "."));
+    // Outro aparelho hoje: só as repetições; a carga de referência fica a do aparelho de sempre.
+    const outro = !!outroAparelho[seId];
+    if (outro && blocosPayload) blocosPayload.forEach((b) => (b.carga = null));
+    const carga = outro ? null : emBlocos ? (blocosPayload![0]?.carga ?? null) : s.carga.trim() === "" ? null : Number(s.carga.replace(",", "."));
     if (reps === null && carga === null && ex.tecnica !== "isometria") {
       toast.warn("Informe pelo menos as repetições para concluir a série.");
       return;
     }
     // Conferência: valor bem fora do padrão do aluno → pergunta antes de gravar.
-    if (!silencioso && !confirmado && s.tipo === "valida" && !emBlocos) {
+    if (!silencioso && !confirmado && s.tipo === "valida" && !emBlocos && !outro) {
       const hoje = series[seId].filter((x, k) => k !== idx && x.concluida && x.tipo === "valida").map((x) => Number(x.carga.replace(",", ".")));
       const ult = ex.trocado ? [] : (ultimas[ex.id]?.series ?? []).filter((x) => x.tipo === "valida").map((x) => x.carga_kg ?? 0);
       const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ehPorTempo(ex) });
@@ -1258,6 +1302,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           const temMeta = metas.some((m) => m !== null);
           // Com meta, a meta de cada série fica numa coluna discreta ao lado do número da série.
           const colunas = temMeta ? "grid-cols-[22px_44px_1fr_1fr_44px]" : "grid-cols-[28px_1fr_1fr_44px]";
+          // Como anotar o peso (anilhas/halteres) e o lembrete do aparelho.
+          const equipamento = troca ? [] : (ex.equipamento ?? []);
+          const tipoPeso = ehPorTempo(ex) ? null : tipoDePeso({ nome: ex.nome, equipamento, unilateral: ex.unilateral });
+          const modoPeso = tipoPeso ? padrao[tipoPeso] : null;
+          const outro = !!outroAparelho[se.id];
           const detalheTecnica = descreverTecnica({ tecnica: ex.tecnica, tecnicaExtras: ex.tecnica_extras, tecnicaSeries: ex.tecnica_series }, Math.max(0, ex.series - (ex.series_aquecimento ?? 0)));
           const tecnicaTxt = ex.tecnica_config ? (instrucaoTecnica(ex.tecnica, ex.tecnica_config) ?? "") : [TECNICA_LABEL[ex.tecnica] ?? "", detalheTecnica ? `Hoje: ${detalheTecnica}.` : ""].filter(Boolean).join(" ");
           const corTecnica = COR_TECNICA[ex.tecnica] ?? "#d4a84b";
@@ -1373,11 +1422,22 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                     ) : (
                       <p className="text-xs text-fg-subtle">Primeira vez registrando este exercício.</p>
                     )}
+                    {tipoPeso && (!modoPeso || trocandoPadrao === tipoPeso) ? (
+                      <EscolherPadraoCarga tipo={tipoPeso} atual={modoPeso} onEscolher={(m) => escolherPadrao(tipoPeso, m)} onCancelar={modoPeso ? () => setTrocandoPadrao(null) : undefined} />
+                    ) : tipoPeso && modoPeso ? (
+                      <p className="text-xs text-fg-subtle">
+                        ⚖️ Seu jeito de anotar: {resumoPadrao(tipoPeso, modoPeso)} ·{" "}
+                        <button type="button" onClick={() => setTrocandoPadrao(tipoPeso)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                          mudar
+                        </button>
+                      </p>
+                    ) : null}
+                    {!ehPorTempo(ex) && anotaCarga(equipamento) ? <LembreteAparelho outro={outro} onOutro={(v) => marcarOutroAparelho(se.id, v)} /> : null}
                     <div className="space-y-2">
                       <div className={`grid ${colunas} gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1`}>
                         <span>#</span>
                         {temMeta ? <span className="text-center" title="Repetições que o Montinho quer em cada série">Meta</span> : null}
-                        <span>Carga (kg)</span>
+                        <span>{outro ? "Carga (outro aparelho)" : rotuloColunaCarga(tipoPeso, modoPeso)}</span>
                         <span>{ehPorTempo(ex) ? "Tempo (s)" : "Reps"}</span>
                         <span className="sr-only">Concluir</span>
                       </div>
@@ -1431,9 +1491,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                             <input
                               type="text"
                               inputMode="decimal"
-                              aria-label={`Carga da série ${s.serie} em quilos`}
-                              value={s.carga}
-                              placeholder={ref?.carga_kg != null ? String(ref.carga_kg) : "kg"}
+                              aria-label={outro ? `Carga da série ${s.serie}: não anotada (outro aparelho hoje)` : `Carga da série ${s.serie} em quilos`}
+                              value={outro ? "" : s.carga}
+                              disabled={outro}
+                              placeholder={outro ? "—" : ref?.carga_kg != null ? String(ref.carga_kg) : "kg"}
                               onChange={(e) => atualizar(se.id, i, { carga: e.target.value, concluida: false, sincronizada: false })}
                               className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                             />

@@ -24,6 +24,7 @@ import { ehExtraGerado } from "@/lib/data/extra-gerado";
 import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { linkOferta } from "@/lib/visitante/campanhas";
 import { BRAND } from "@/config/brand";
+import { getPadraoCarga } from "@/lib/data/padrao-carga";
 
 
 export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null, visitante = null }: {
@@ -46,7 +47,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   const gerado = ehExtraGerado(sessaoPedida) ? (sessaoPedida!.snapshot as { treino?: { nome?: string }; exercicios?: typeof treinoPlano.exercicios }) : null;
   const treino = gerado?.exercicios?.length ? { ...treinoPlano, letra: "+", nome: gerado.treino?.nome ?? "Treino extra", observacoes: null, ativo: true, exercicios: gerado.exercicios } : treinoPlano;
 
-  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf, padraoCarga] = await Promise.all([
     sessaoPedida ? Promise.resolve(sessaoPedida) : sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
     ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     listarBiblioteca(),
@@ -59,6 +60,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
     trocasParaExercicios(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     presencial ? Promise.resolve([]) : progressoesRecentes(alunoId).catch(() => []),
     presencial ? Promise.resolve(null) : dadosConfianca(alunoId).catch(() => null),
+    getPadraoCarga(alunoId).catch(() => ({ anilhas: null, halteres: null })),
   ]);
   const agora = new Date(agoraServidorMs());
   const confianca = conf
@@ -95,6 +97,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       grupo_muscular: e.grupo_muscular ?? b?.grupo ?? null,
       video: b?.midia?.verificada ? { provider: b.midia.provider as VideoProvider, id: b.midia.id } : null,
       instrucoes: (b?.execucao ?? []).slice(0, 3),
+      equipamento: (b?.equipamento ?? []) as string[],
       descricao: null,
     };
   });
@@ -127,6 +130,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       progressoesRecentes={progressoes}
       confianca={confianca}
       campanha={campanha}
+      padraoCarga={padraoCarga}
       extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );

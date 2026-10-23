@@ -126,14 +126,29 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
   for (const ex of exercicios) {
     const alvo = normalizarNome(ex.nome);
     let achado: UltimaExecucao | null = null;
-    for (const s of sessoes) {
-      const se = s.exercicios.find((e) => ((e.exercicio_id === ex.id && !e.substituido_de) || normalizarNome(e.nome) === alvo) && e.series.some((x) => (x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause") && (x.carga_kg != null || x.reps != null)));
+    const casa = (e: (typeof sessoes)[number]["exercicios"][number]) => (e.exercicio_id === ex.id && !e.substituido_de) || normalizarNome(e.nome) === alvo;
+    const conta = (x: { tipo: string }) => x.tipo === "valida" || x.tipo === "dropset" || x.tipo === "rest_pause";
+    let k = 0;
+    for (; k < sessoes.length; k++) {
+      const s = sessoes[k];
+      const se = s.exercicios.find((e) => casa(e) && e.series.some((x) => conta(x) && (x.carga_kg != null || x.reps != null)));
       if (se) {
         achado = {
           data: s.finalizado_em ?? s.iniciado_em,
           nomeTreino: s.nome_treino,
           series: se.series.filter((x) => x.tipo !== "aquecimento").map((x) => ({ serie: x.serie, carga_kg: x.carga_kg, reps: x.reps, rir: x.rir, tipo: x.tipo })),
         };
+        break;
+      }
+    }
+    // “Outro aparelho hoje” (0070): a última vez veio só com repetições — a carga
+    // de referência continua a da última vez com carga (no aparelho de sempre).
+    if (achado && achado.series.every((x) => x.carga_kg == null)) {
+      for (const s of sessoes.slice(k + 1)) {
+        const se = s.exercicios.find((e) => casa(e) && e.series.some((x) => conta(x) && x.carga_kg != null));
+        if (!se) continue;
+        const cargas = se.series.filter((x) => x.tipo !== "aquecimento" && x.carga_kg != null);
+        achado = { ...achado, series: achado.series.map((x) => ({ ...x, carga_kg: (cargas.find((c) => c.serie === x.serie) ?? cargas.at(-1))?.carga_kg ?? null })) };
         break;
       }
     }

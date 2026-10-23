@@ -178,6 +178,8 @@ export type Convite = {
 
 /** 0068: amigo que entrou pelo link de um visitante (+10 dias, até +30). */
 export type Indicacao = { id: string; indicador_aluno_id: string; indicado_aluno_id: string; dias_bonus: number; created_at: string };
+/** 0070: como o aluno anota o peso (anilhas/halteres). */
+export type PreferenciasCarga = { aluno_id: string; anilhas: "total" | "por_lado" | null; halteres: "total" | "por_lado" | null; atualizado_em: string };
 
 export type AcessoVisitante = {
   aluno_id: string;
