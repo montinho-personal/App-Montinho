@@ -12,6 +12,7 @@ import { albumParaAluno } from "@/lib/data/desbloqueia";
 import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
 import { paraVisao } from "@/components/desbloqueia/visao";
 import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
+import { CategoriasTrofeus } from "@/components/conquistas/CategoriasTrofeus";
 
 export const metadata = { title: "Conquistas" };
 
@@ -45,6 +46,13 @@ export default async function ConquistasPage() {
           Evolução →
         </Link>
       </div>
+      <section className="space-y-2" aria-labelledby="categorias-titulo">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 id="categorias-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Troféus por categoria</h2>
+          <Link href="/aluno/conquistas/todas" className="alvo text-xs font-semibold text-accent">Ver todos →</Link>
+        </div>
+        <CategoriasTrofeus medalhas={medalhas} />
+      </section>
       <Link href="/aluno/jornada" className="flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-grain-strong px-4 py-3">
         <span>
           <span className="block text-[11px] font-bold uppercase tracking-wider text-accent">Minha Jornada</span>

@@ -28,6 +28,20 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   fases: "Fases do protocolo",
 };
 
+/** Ícone de cada categoria (abas do topo da tela Conquistas). */
+export const CATEGORIA_EMOJI: Record<Categoria, string> = {
+  comeco: "🌱",
+  constancia: "🧱",
+  pratica: "💪",
+  acompanhamento: "🤝",
+  retomada: "🔄",
+  autoconhecimento: "🧭",
+  desempenho: "📈",
+  alem: "🚀",
+  tecnicas: "⚡",
+  fases: "🧩",
+};
+
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
 
 export const FONTES: Record<string, Fonte> = {

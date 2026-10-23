@@ -10,6 +10,7 @@ import { dataLocal } from "@/lib/aderencia/calcular";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
 import { Card, CardBody } from "@/components/ui/Card";
 import { ColecaoVista } from "./ColecaoVista";
+import { CategoriasTrofeus } from "@/components/conquistas/CategoriasTrofeus";
 
 export const metadata = { title: "Todas as minhas conquistas" };
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -20,11 +21,12 @@ const ABAS = [
   { id: "desafiadores", rotulo: "Mais desafiadores" },
 ] as const;
 
-export default async function TodasConquistasPage({ searchParams }: { searchParams: Promise<{ m?: string; aba?: string }> }) {
+export default async function TodasConquistasPage({ searchParams }: { searchParams: Promise<{ m?: string; aba?: string; tema?: string }> }) {
   const sessao = await requireAlunoPage();
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
-  const { m, aba: abaPedida } = await searchParams;
+  const { m, aba: abaPedida, tema: temaPedido } = await searchParams;
+  const tema = temaPedido && temaPedido in CATEGORIA_ROTULO ? (temaPedido as Categoria) : null;
   const aba = ABAS.some((a) => a.id === abaPedida) ? abaPedida! : "todas";
   const [{ conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()) });
@@ -57,8 +59,10 @@ export default async function TodasConquistasPage({ searchParams }: { searchPara
         <Link href="/aluno/ranking" className="alvo shrink-0 rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-fg-muted hover:text-fg">🏆 Ranking</Link>
       </nav>
 
+      {aba === "temas" ? <CategoriasTrofeus medalhas={medalhas} atual={tema} /> : null}
+
       {aba === "temas" ? (
-        (Object.keys(CATEGORIA_ROTULO) as Categoria[]).map((cat) => {
+        (Object.keys(CATEGORIA_ROTULO) as Categoria[]).filter((cat) => !tema || cat === tema).map((cat) => {
           const doTema = medalhas.filter((x) => CONTEUDO[x.codigo]?.categoria === cat);
           if (!doTema.length) return null;
           return (
