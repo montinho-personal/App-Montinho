@@ -98,14 +98,18 @@ export default async function MeusTreinosPage() {
           {meus.map((t) => (
             <li key={t.id}>
               <Card>
-                <CardBody className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-accent/30 bg-accent/10 text-xl font-black text-accent" aria-hidden>
-                    {t.letra}
+                <CardBody className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-accent/30 bg-accent/10 text-xl font-black text-accent" aria-hidden>
+                      {t.letra}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold leading-snug">{t.nome}</p>
+                      <p className="text-xs text-fg-subtle">{t.exercicios.length} exercícios · {t.exercicios.reduce((n, e) => n + e.series, 0)} séries</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{t.nome}</p>
-                    <p className="text-xs text-fg-subtle">{t.exercicios.length} exercícios · {t.exercicios.reduce((n, e) => n + e.series, 0)} séries</p>
-                  </div>
+                  {/* Botões numa linha própria: no celular não espremem o nome do treino. */}
+                  <div className={pode ? "flex justify-end gap-2" : "hidden"}>
                   {pode ? (
                     <Link href={`/aluno/meus-treinos/${t.id}`} className="alvo min-h-11 rounded-lg border border-border px-3 text-sm leading-[2.6rem]">Editar</Link>
                   ) : null}
@@ -113,6 +117,7 @@ export default async function MeusTreinosPage() {
                     <Link href={`/aluno/meus-treinos/novo?copiar=${t.id}`} className="alvo min-h-11 rounded-lg border border-border px-3 text-sm leading-[2.6rem]" aria-label={`Copiar ${t.nome}`}>Copiar</Link>
                   ) : null}
                   {pode ? <ArquivarTreino id={t.id} nome={t.nome} /> : null}
+                  </div>
                 </CardBody>
               </Card>
             </li>
