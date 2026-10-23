@@ -76,6 +76,7 @@ export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "e
   completou_intensificacao: 3,
   completou_consolidacao: 4,
   protocolo_completo: 4,
+  treino_samurai: 3,
 };
 
 export type NoJornada =

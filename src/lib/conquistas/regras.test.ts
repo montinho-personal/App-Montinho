@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calcularAderencia } from "@/lib/aderencia/calcular";
-import { detectarConquistas, mensagemConclusao, recordesDaSessao, type SessaoConquista } from "./regras";
+import { detectarConquistas, ehHorarioSamurai, horaBrasilia, mensagemConclusao, recordesDaSessao, type SessaoConquista } from "./regras";
 
 let n = 0;
 type Opc = Partial<SessaoConquista> & { carga?: number; reps?: number[] };
@@ -252,5 +252,24 @@ describe("medalhas das fases do protocolo", () => {
     const dias = ["01", "03", "05", "08"];
     const r = detectar([...dias.map((d) => f(`2026-09-${d}`, "consolidacao")), f("2026-09-12", "adaptacao")]);
     expect(codigos(r)).toContain("completou_consolidacao");
+  });
+});
+
+describe("Treino do Samurai (até 4h30, horário de Brasília)", () => {
+  it("4h30 conta; 4h31 não; 2h59 não; segundos não mudam o minuto", () => {
+    // Brasília = UTC−3: 4h30 local = 07:30Z.
+    expect(ehHorarioSamurai("2026-10-23T07:30:59Z")).toBe(true);
+    expect(ehHorarioSamurai("2026-10-23T07:31:00Z")).toBe(false);
+    expect(ehHorarioSamurai("2026-10-23T06:00:00Z")).toBe(true);
+    expect(ehHorarioSamurai("2026-10-23T05:59:00Z")).toBe(false);
+    expect(horaBrasilia("2026-10-23T07:12:00Z")).toBe("04h12");
+  });
+  it("medalha só com o treino começado até 4h30, concluído e com séries; importado não conta", () => {
+    const madrugada = (hora: string, o: Opc = {}) => s("2026-10-20", { iniciado_em: `2026-10-20T${hora}Z`, ...o });
+    expect(codigos(detectar([madrugada("07:31:00")]))).not.toContain("treino_samurai");
+    expect(codigos(detectar([madrugada("07:20:00", { origem: "importado" })]))).not.toContain("treino_samurai");
+    expect(codigos(detectar([madrugada("07:20:00", { series_concluidas: 0 })]))).not.toContain("treino_samurai");
+    const r = detectar([madrugada("07:30:10")]).find((x) => x.codigo === "treino_samurai");
+    expect(r?.descricao).toContain("04h30");
   });
 });

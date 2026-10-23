@@ -79,6 +79,8 @@ export type CodigoConquista =
   | "completou_intensificacao"
   | "completou_consolidacao"
   | "protocolo_completo"
+  // Treino do Samurai: musculação começada até as 4h30 da manhã (horário de Brasília)
+  | "treino_samurai"
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -120,6 +122,27 @@ export const CODIGOS_TECNICA: CodigoConquista[] = MARCOS_TECNICA.map(([c]) => c)
 
 /** Medalhas de fase (0044). Fase “completa” = pelo menos N treinos nela e o protocolo passou para outra fase. */
 export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "completou_adaptacao", "completou_intensificacao", "completou_consolidacao", "protocolo_completo"];
+/**
+ * Treino do Samurai (23/10/2026, pedido do Montinho): um treino de musculação
+ * COMEÇADO entre 3h00 e 4h30 da manhã, horário de Brasília. Vale o horário
+ * em que o treino começou, registrado pelo servidor ao tocar em “Começar
+ * treino” (não o relógio do celular): 4h30 conta; 4h31 já não conta. O treino
+ * precisa ser concluído, com séries registradas. Medalha à parte (0084).
+ */
+export const LIMITES_SAMURAI = { inicioMin: 3 * 60, limiteMin: 4 * 60 + 30 } as const;
+export const CODIGOS_SAMURAI: CodigoConquista[] = ["treino_samurai"];
+const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+/** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
+export function minutosBrasilia(iso: string): number {
+  const [h, m] = FMT_HORA.format(new Date(iso)).split(":").map(Number);
+  return h * 60 + m;
+}
+export const horaBrasilia = (iso: string) => FMT_HORA.format(new Date(iso)).replace(":", "h");
+export const ehHorarioSamurai = (iso: string) => {
+  const m = minutosBrasilia(iso);
+  return m >= LIMITES_SAMURAI.inicioMin && m <= LIMITES_SAMURAI.limiteMin;
+};
+
 /** Protocolo completo: adaptação → intensificação → consolidação seguidas, sem parar (nenhum intervalo maior que isto entre treinos). */
 export const LIMITE_PROTOCOLO = { diasSemTreino: 14 } as const;
 export const LIMITES_FASE = { minTreinos: 4 } as const;
@@ -176,6 +199,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   completou_consolidacao: { titulo: "Consolidação concluída", criterio: `Concluir pelo menos ${LIMITES_FASE.minTreinos} treinos na fase de consolidação e começar um novo ciclo definido pelo personal.`, repete: false },
   mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
+  treino_samurai: { titulo: "Treino do Samurai", criterio: "Começar um treino de musculação entre 3h00 e 4h30 da manhã (horário de Brasília) e concluí-lo. Vale o horário em que você tocou em “Começar treino”, registrado pelo app (não o relógio do celular): começou às 4h30, conta; às 4h31, já não conta.", repete: false },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -492,6 +516,9 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
 
   // Fases do protocolo: chegou na intensificação; completou cada fase (N treinos nela e depois outra fase).
   for (const f of fasesConquistadas(e.sessoes)) out.push(nova(f.codigo, "1", f.data, f.sessaoId, f.texto));
+  // Treino do Samurai: musculação começada até as 4h30 (horário de Brasília), concluída e com séries.
+  const samurai = ordenadas.find((s) => s.origem !== "importado" && s.origem !== "legado_logbook" && (s.series_concluidas ?? 0) > 0 && ["concluida", "extra"].includes(classificarSessao(s)) && ehHorarioSamurai(s.iniciado_em));
+  if (samurai) out.push(nova("treino_samurai", "1", samurai.iniciado_em, samurai.id, `Treino começado às ${horaBrasilia(samurai.iniciado_em)} da manhã. Disciplina de samurai.`));
   for (const d of e.desafios ?? []) {
     const p = progressoDesafio(d, concluidas);
     if (p.concluidoEm) out.push(nova("desafio_concluido", d.id, p.concluidoEm.data, p.concluidoEm.sessaoId, `Você concluiu o ${d.nome}: ${d.metaTreinos} treinos no prazo.`, undefined, { meta: d.metaTreinos, campanha: d.id }));

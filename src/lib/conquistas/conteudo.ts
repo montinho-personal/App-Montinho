@@ -572,6 +572,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Converse com o Montinho sobre o próximo ciclo: agora é evoluir a partir de uma base completa.",
     fontes: ["sdt2025"],
   },
+  treino_samurai: {
+    categoria: "alem",
+    resumo: "Treino de musculação começado até as 4h30 da manhã.",
+    mensagem: "Treino do Samurai! Antes do sol nascer, você já estava treinando.",
+    comoConquistar: "Toque em “Começar treino” entre 3h00 e 4h30 da manhã (horário de Brasília) e conclua o treino. Vale o horário registrado pelo app quando o treino começou: 4h30 conta; 4h31 já não conta.",
+    significado: "Você acordou de madrugada e fez o treino acontecer antes de todo mundo.",
+    importancia: "Treinar cedo protege o treino dos imprevistos do dia: ele já está feito antes de a rotina começar.",
+    explicacao: "O app confere o horário em que o treino começou, registrado pelo servidor no momento em que você toca em “Começar treino”, no horário de Brasília. O relógio do celular não conta. O treino precisa ser de musculação, concluído e com séries anotadas. Dormir bem continua sendo parte do treino: madrugar só vale a pena se o sono estiver em dia.",
+    proximoPasso: "Se madrugar funciona para você, combine com o Montinho um horário fixo de treino.",
+    fontes: ["habitos2024"],
+  },
   desafio_concluido: {
     categoria: "pratica",
     resumo: "Concluir um desafio do Montinho dentro do prazo.",
