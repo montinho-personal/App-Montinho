@@ -565,11 +565,16 @@ export const treinoProprioSchema = z.object({
     .array(
       z.object({
         id: z.string().max(64).nullable().optional(),
-        biblioteca_id: z.string().min(1).max(80),
+        /** Exercício da biblioteca… */
+        biblioteca_id: z.string().min(1).max(80).nullable().optional(),
+        /** …ou com o nome que a pessoa escolheu (fica fora do volume por músculo). */
+        nome_livre: z.string().trim().min(2, "Dê um nome ao exercício").max(60).nullable().optional(),
         series: z.number().int().min(1).max(10),
         reps: z.string().trim().regex(/^\d{1,3}(-\d{1,3})?$/, "Repetições: use um número (10) ou faixa (8-12)"),
         descanso_seg: z.number().int().min(15).max(600),
+        carga_kg: z.number().min(0).max(500).nullable().optional(),
       })
+      .refine((e) => Boolean(e.biblioteca_id) !== Boolean(e.nome_livre), "Escolha um exercício da biblioteca ou escreva o nome dele")
     )
     .min(1, "Adicione pelo menos um exercício")
     .max(15, "Até 15 exercícios por treino"),
@@ -648,3 +653,23 @@ export const registrarArquivoAvaliacaoSchema = urlArquivoAvaliacaoSchema.extend(
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   descricao: textoOpcional(300),
 });
+
+// Visitante sobe o treino que já tem (0080): leitura pela IA e envio do arquivo ao personal.
+export const lerTreinoArquivoSchema = z
+  .object({
+    tipo: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
+    // Base64 de até ~3 MB (imagens chegam reduzidas pelo navegador).
+    base64: z.string().min(100).max(4_300_000).regex(/^[A-Za-z0-9+/=]+$/, "Arquivo inválido"),
+  })
+  .strict();
+const TIPOS_TREINO_ENVIADO = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
+export const urlTreinoEnviadoSchema = z.object({ tipo: z.enum(TIPOS_TREINO_ENVIADO), tamanho: z.number().int().min(1).max(15_728_640) }).strict();
+export const registrarTreinoEnviadoSchema = z
+  .object({
+    caminho: z.string().min(5).max(300),
+    tipo: z.enum(TIPOS_TREINO_ENVIADO),
+    tamanho: z.number().int().min(1).max(15_728_640),
+    observacao: z.string().trim().max(500).nullable().optional(),
+  })
+  .strict();
+export const resolverTreinoEnviadoSchema = z.object({ status: z.enum(["montado", "descartado"]) }).strict();

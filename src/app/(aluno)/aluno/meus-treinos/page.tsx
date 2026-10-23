@@ -12,6 +12,7 @@ import { podeRegistrar } from "@/lib/visitante/acesso";
 import { ArquivarTreino } from "./ArquivarTreino";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
+import { meusEnviosPendentes } from "@/lib/data/treinos-enviados";
 
 export const metadata = { title: "Meus treinos" };
 
@@ -22,22 +23,28 @@ export default async function MeusTreinosPage() {
   const plano = await getPlanoAtivo(sessao.alunoId);
   const meus = plano.treinos.filter((t) => t.ativo && t.autoria === "proprio");
   const pode = podeRegistrar("visitante", sessao.acessoFim ?? null);
+  const enviados = await meusEnviosPendentes(sessao.alunoId).catch(() => []);
 
   return (
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-bold">Meus treinos</h1>
-        <p className="text-sm text-fg-muted mt-1">Monte seus treinos com os exercícios da biblioteca do Montinho, com vídeo de execução. Você pode ter até 8 (A a H).</p>
+        <p className="text-sm text-fg-muted mt-1">Monte pela biblioteca do Montinho (com vídeo de execução) ou suba o treino que você já tem: escrevendo, colando, ditando ou por foto/PDF. Até 8 treinos (A a H).</p>
       </header>
       {pode ? (
         <Link href="/aluno/meus-treinos/novo" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-bg">
-          <Icon name="plus" size={18} /> Montar um treino
+          <Icon name="plus" size={18} /> Montar ou subir um treino
         </Link>
+      ) : null}
+      {enviados.length ? (
+        <p className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm" role="status">
+          📨 {enviados.length === 1 ? "Você enviou 1 treino" : `Você enviou ${enviados.length} treinos`} para o Montinho montar. Quando estiver pronto, aparece aqui.
+        </p>
       ) : null}
       {pode && meus.length < 2 ? <ComeceAquiSite tela="meus_treinos" /> : null}
       {meus.length === 0 ? (
         <Card className="border-dashed">
-          <CardBody className="text-center py-8 text-sm text-fg-muted">Você ainda não montou nenhum treino. Comece pelo botão “Montar um treino”: leva uns 2 minutos.</CardBody>
+          <CardBody className="text-center py-8 text-sm text-fg-muted">Você ainda não tem treino aqui. Toque em “Montar ou subir um treino”: dá para montar pela biblioteca ou subir o treino que você já tem.</CardBody>
         </Card>
       ) : (
         <ul className="space-y-3">
@@ -54,6 +61,9 @@ export default async function MeusTreinosPage() {
                   </div>
                   {pode ? (
                     <Link href={`/aluno/meus-treinos/${t.id}`} className="alvo min-h-11 rounded-lg border border-border px-3 text-sm leading-[2.6rem]">Editar</Link>
+                  ) : null}
+                  {pode && meus.length < 8 ? (
+                    <Link href={`/aluno/meus-treinos/novo?copiar=${t.id}`} className="alvo min-h-11 rounded-lg border border-border px-3 text-sm leading-[2.6rem]" aria-label={`Copiar ${t.nome}`}>Copiar</Link>
                   ) : null}
                   {pode ? <ArquivarTreino id={t.id} nome={t.nome} /> : null}
                 </CardBody>

@@ -22,20 +22,23 @@ export function letraLivre(ativas: string[]): TreinoLetra | null {
   return LETRAS.find((l) => !ativas.includes(l)) ?? null;
 }
 
-function camposDoExercicio(e: TreinoProprioInput["exercicios"][number], item: ItemBiblioteca, ordem: number) {
+const cargaTexto = (kg: number | null | undefined) => (kg ? `${String(kg).replace(".", ",")} kg` : null);
+
+function camposDoExercicio(e: TreinoProprioInput["exercicios"][number], item: ItemBiblioteca | null, ordem: number) {
+  const comuns = { ordem, series: e.series, reps: e.reps, descanso_seg: e.descanso_seg, series_aquecimento: 0, tecnica: "normal" as const, carga_alvo: cargaTexto(e.carga_kg) };
+  if (!item) {
+    // Exercício com o nome da pessoa: guarda o histórico pelo nome, sem músculo
+    // (não entra no volume semanal nem nas contas por músculo).
+    return { ...comuns, nome: (e.nome_livre ?? "").trim(), biblioteca_id: null, grupo_muscular: null, grupos_secundarios: [], grupo_origem: "manual" as const, grupo_confianca: "baixa" as const, conta_volume: false };
+  }
   return {
-    ordem,
+    ...comuns,
     nome: item.nome,
-    series: e.series,
-    reps: e.reps,
-    descanso_seg: e.descanso_seg,
     biblioteca_id: item.id.startsWith("cat-") ? null : item.id,
     grupo_muscular: item.grupo,
     grupos_secundarios: item.secundarios,
     grupo_origem: "biblioteca" as const,
     grupo_confianca: "alta" as const,
-    series_aquecimento: 0,
-    tecnica: "normal" as const,
     conta_volume: item.contaVolume,
   };
 }
@@ -43,6 +46,7 @@ function camposDoExercicio(e: TreinoProprioInput["exercicios"][number], item: It
 export async function salvarTreinoProprio(alunoId: string, input: TreinoProprioInput, biblioteca: ItemBiblioteca[]): Promise<{ id: string }> {
   const porId = new Map(biblioteca.map((i) => [i.id, i]));
   const itens = input.exercicios.map((e) => {
+    if (!e.biblioteca_id) return { e, item: null };
     const item = porId.get(e.biblioteca_id);
     if (!item) throw new Error("Exercício não encontrado na biblioteca");
     return { e, item };
@@ -68,7 +72,7 @@ export async function salvarTreinoProprio(alunoId: string, input: TreinoProprioI
         Object.assign(ex, camposDoExercicio(e, item, ordem), { updated_at: agora });
         mantidos.add(ex.id);
       } else {
-        const novo = { id: uid(), treino_id: tid, created_at: agora, updated_at: agora, video_url: null, removido_em: null, ie: null, rir: null, observacoes: null, bloco: null, unilateral: false, carga_alvo: null, cadencia: null, ...camposDoExercicio(e, item, ordem) } as ExercicioPrescrito;
+        const novo = { id: uid(), treino_id: tid, created_at: agora, updated_at: agora, video_url: null, removido_em: null, ie: null, rir: null, observacoes: null, bloco: null, unilateral: false, cadencia: null, ...camposDoExercicio(e, item, ordem) } as ExercicioPrescrito;
         s.exercicios.push(novo);
         mantidos.add(novo.id);
       }

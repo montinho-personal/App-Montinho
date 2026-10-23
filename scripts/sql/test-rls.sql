@@ -1407,4 +1407,34 @@ begin
 end $$;
 select test_logout();
 \echo 'T44 OK: desempate — só o personal grava, aderência decide, aluno não vê a dos outros'
+-- T45 — 0080: treinos enviados (foto/PDF) — aluno só na própria pasta, não marca como montado; personal vê e resolve
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean;
+begin
+  insert into treinos_enviados (aluno_id, caminho, tipo_mime, tamanho_bytes) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/t1.jpg', 'image/jpeg', 1000);
+  ok := false;
+  begin insert into treinos_enviados (aluno_id, caminho, tipo_mime, tamanho_bytes) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/x.jpg', 'image/jpeg', 10); exception when others then ok := true; end;
+  if not ok then raise exception 'T45a: gravou na pasta de outro aluno'; end if;
+  ok := false;
+  begin insert into treinos_enviados (aluno_id, caminho, tipo_mime, tamanho_bytes, status) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/t2.jpg', 'image/jpeg', 10, 'montado'); exception when others then ok := true; end;
+  if not ok then raise exception 'T45b: aluno criou pedido já resolvido'; end if;
+  update treinos_enviados set status = 'montado' where caminho like 'aaaaaaaa%';
+  if exists (select 1 from treinos_enviados where status = 'montado') then raise exception 'T45c: aluno marcou como montado'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from treinos_enviados) then raise exception 'T45d: aluno viu o envio de outro'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  update treinos_enviados set status = 'montado', resolvido_em = now() where caminho like 'aaaaaaaa%';
+  if not exists (select 1 from treinos_enviados where status = 'montado') then raise exception 'T45e: personal não conseguiu marcar como montado'; end if;
+end $$;
+select test_logout();
+\echo 'T45 OK: treinos enviados — pasta própria, só o personal resolve'
 \echo 'TODOS OS TESTES PASSARAM'

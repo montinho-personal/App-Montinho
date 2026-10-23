@@ -15,6 +15,8 @@ import { AcoesVisitante } from "./AcoesVisitante";
 import { BoasVindasWhatsapp } from "./BoasVindasWhatsapp";
 import { mensagemBoasVindas } from "@/lib/visitante/boas-vindas-whatsapp";
 import { indicacoesPorVisitante } from "@/lib/data/campanhas";
+import { treinosParaMontar } from "@/lib/data/treinos-enviados";
+import { TreinosParaMontar } from "./TreinosParaMontar";
 
 export const metadata = { title: "Visitantes" };
 
@@ -23,7 +25,7 @@ const OBJETIVO: Record<string, string> = { hipertrofia: "Massa muscular", emagre
 export default async function VisitantesPage() {
   if (!FEATURES.modoVisitante) notFound();
   await requireTreinadorPage();
-  const [convites, visitantes, desafios, indicacoes] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios(), indicacoesPorVisitante().catch(() => new Map())]);
+  const [convites, visitantes, desafios, indicacoes, paraMontar] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios(), indicacoesPorVisitante().catch(() => new Map()), treinosParaMontar().catch(() => [])]);
   const nomeVisitante = new Map(visitantes.map((v) => [v.id, (v.profile?.nome ?? "").split(" ")[0]]));
   const nomeDesafio = new Map(desafios.map((d) => [d.id, d.nome]));
   const curta = (d: string | null) => (d ? d.split("-").reverse().join("/") : null);
@@ -41,6 +43,15 @@ export default async function VisitantesPage() {
           Pessoas que entraram por código de convite. {visitantes.length} no total · {ativos} com acesso em dia.
         </p>
       </header>
+
+      <Card id="treinos-para-montar" className={paraMontar.length ? "border-accent/50" : undefined}>
+        <CardHeader>
+          <CardTitle className="text-base">📨 Treinos para montar {paraMontar.length ? <span className="ml-1 rounded-full bg-accent px-2 py-0.5 text-xs text-bg">{paraMontar.length}</span> : null}</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <TreinosParaMontar itens={paraMontar} />
+        </CardBody>
+      </Card>
 
       <ConvitesClient
         sugestao={gerarCodigo("DESAFIO")}
