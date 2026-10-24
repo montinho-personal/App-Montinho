@@ -12,6 +12,7 @@ import type { ContextoExtraGerado } from "@/lib/data/extra-gerado";
 import { BRAND } from "@/config/brand";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { EuMonto, type ItemEscolhido } from "./EuMonto";
+import { SorteioExtra } from "./SorteioExtra";
 
 const CORPO: Record<CorpoExtra, string> = { bem: "Bem recuperado", cansado: "Um pouco cansado", dor_leve: "Dor leve", dor_moderada: "Dor moderada", dor: "Dor forte" };
 const chip = (on: boolean) => `touch rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`;
@@ -25,7 +26,7 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
   const [corpo, setCorpo] = useState<CorpoExtra | null>(null);
   const [previa, setPrevia] = useState<ResultadoExtraGerado | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const [modo, setModo] = useState<"app" | "livre">("app");
+  const [modo, setModo] = useState<"app" | "livre" | "sorteio">("app");
   // “🎲 Livre” no tempo: treino livre como extra (sem tempo fixo, decide os exercícios na hora).
   const [livreHora, setLivreHora] = useState(false);
   const [itens, setItensState] = useState<ItemEscolhido[]>([]);
@@ -97,18 +98,22 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Semana cumprida · {ctx.feitos} de {ctx.programados} treinos ✓</p>
           <h2 className="mt-1 text-lg font-bold">Monte o seu treino extra</h2>
-          <p className="text-fg-muted">Deixe o app montar em três toques ou monte do seu jeito, tocando ou falando.</p>
+          <p className="text-fg-muted">Deixe o app montar em três toques, monte do seu jeito (tocando ou falando) ou deixe o {BRAND.name} sortear um treino pronto.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-1 rounded-xl border border-border p-1" role="group" aria-label="Quem monta o extra">
-          {([["app", "O app monta"], ["livre", "Eu monto"]] as const).map(([v, t]) => (
-            <button key={v} type="button" aria-pressed={modo === v} onClick={() => { setModo(v); setPrevia(null); }} className={`touch rounded-lg py-2 text-sm font-bold ${modo === v ? "bg-accent text-bg" : "text-fg-muted"}`}>
+        <div className="grid grid-cols-3 gap-1 rounded-xl border border-border p-1" role="group" aria-label="Quem monta o extra">
+          {([["app", "O app monta"], ["livre", "Eu monto"], ["sorteio", "🎲 Sorteio"]] as const).map(([v, t]) => (
+            <button key={v} type="button" aria-pressed={modo === v} onClick={() => { setModo(v); setPrevia(null); }} className={`touch rounded-lg px-1 py-2 text-sm font-bold leading-tight ${modo === v ? "bg-accent text-bg" : "text-fg-muted"}`}>
               {t}
             </button>
           ))}
         </div>
 
-        {modo === "livre" ? <EuMonto itens={itens} setItens={setItens} biblioteca={biblioteca} atalhos={atalhos} seriesDisponiveis={ctx.seriesDisponiveis} /> : (
+        {modo === "sorteio" ? (
+          <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+            O {BRAND.name} sorteia um treino dos prontos (Shape de Verão, Rainha do Agachamento…). Você vê os exercícios: gostou, começa; não gostou, vai para a próxima rodada.
+          </p>
+        ) : modo === "livre" ? <EuMonto itens={itens} setItens={setItens} biblioteca={biblioteca} atalhos={atalhos} seriesDisponiveis={ctx.seriesDisponiveis} /> : (
         <>
         <fieldset className="space-y-1.5">
           <legend className="font-semibold">Quanto tempo você tem?</legend>
@@ -157,7 +162,9 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
           </div>
         </fieldset>
 
-        {modo === "app" && livreHora ? (
+        {modo === "sorteio" ? (
+          <SorteioExtra corpo={corpo} />
+        ) : modo === "app" && livreHora ? (
           corpo === "dor" ? (
             <p className="rounded-lg border border-warning/40 bg-warning/5 p-3">Com dor forte, nada de extra hoje. Converse com o {BRAND.name} pelo WhatsApp antes de treinar mais.</p>
           ) : (

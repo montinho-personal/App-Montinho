@@ -391,6 +391,7 @@ export const montarExtraSchema = z.discriminatedUnion("modo", [
     itens: z.array(z.object({ biblioteca_id: z.string().max(64).nullable().optional(), nome: z.string().trim().min(1).max(80), series: z.coerce.number().int().min(1).max(5), reps: z.string().trim().max(20).default("10-12") })).min(1).max(8),
     ...baseMontar,
   }),
+  z.object({ modo: z.literal("sorteio"), chave: z.string().trim().min(3).max(100).regex(/^[a-z0-9-]+:[A-F]$/).optional(), vistos: z.array(z.string().max(100)).max(200).optional().default([]), ...baseMontar }),
 ]);
 export const registrarAtividadeExtraSchema = z.object({
   extra_id: z.string().min(1).max(64),

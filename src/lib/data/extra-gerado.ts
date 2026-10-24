@@ -23,6 +23,8 @@ import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { ExercicioPrescrito, TrainingSession } from "@/lib/supabase/types-sessoes";
 import { uid } from "@/lib/mock/store";
+import { abaDoSexo, nomeVisivel, planoDoPronto, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
+import { candidatosDoSorteio, sortearCandidato, tituloDoSorteio, type CandidatoSorteio } from "@/lib/treino/extra-sorteio";
 
 export type ContextoExtraGerado = {
   habilitado: boolean;
@@ -40,7 +42,7 @@ export type ContextoExtraGerado = {
   bloqueio: string | null;
 };
 
-type Carga = { ctx: ContextoExtraGerado; exercicios: ExercicioPrescrito[]; recentes48h: GrupoMuscular[]; proximoGrupos: GrupoMuscular[]; tempos: Record<string, number | boolean> | null; treinoBase: string | null };
+type Carga = { ctx: ContextoExtraGerado; exercicios: ExercicioPrescrito[]; recentes48h: GrupoMuscular[]; proximoGrupos: GrupoMuscular[]; tempos: Record<string, number | boolean> | null; treinoBase: string | null; sexo: string | null };
 
 async function carregar(alunoId: string, agora = new Date()): Promise<Carga> {
   const [aluno, plano, config, sessoes, emAndamento] = await Promise.all([getAluno(alunoId), getPlanoAtivo(alunoId), getConfigExtra(alunoId), listSessoes(alunoId, { limite: 120, status: "todas" }), getSessaoEmAndamento(alunoId)]);
@@ -95,7 +97,7 @@ async function carregar(alunoId: string, agora = new Date()): Promise<Carga> {
             : ctx.seriesDisponiveis <= 0
               ? "Você já fez todas as séries extras combinadas para esta semana."
               : null;
-  return { ctx, exercicios: todos, recentes48h, proximoGrupos, tempos: proximoT ? ((proximoT.tempos_efetivos ?? proximoT.tempos ?? null) as Record<string, number | boolean> | null) : null, treinoBase: treinos[0]?.id ?? null };
+  return { ctx, exercicios: todos, recentes48h, proximoGrupos, tempos: proximoT ? ((proximoT.tempos_efetivos ?? proximoT.tempos ?? null) as Record<string, number | boolean> | null) : null, treinoBase: treinos[0]?.id ?? null, sexo: aluno?.sexo ?? null };
 }
 
 export async function contextoExtraGerado(alunoId: string): Promise<ContextoExtraGerado> {
@@ -105,7 +107,8 @@ export async function contextoExtraGerado(alunoId: string): Promise<ContextoExtr
 export type EscolhaLivre = { biblioteca_id?: string | null; nome: string; series: number; reps: string };
 export type RespostasExtra =
   | { modo: "app"; foco: FocoExtra; tempoMin: number; corpo: CorpoExtra }
-  | { modo: "livre"; corpo: CorpoExtra; itens: EscolhaLivre[] };
+  | { modo: "livre"; corpo: CorpoExtra; itens: EscolhaLivre[] }
+  | { modo: "sorteio"; corpo: CorpoExtra; chave: string };
 
 /** O que o aluno escolheu → exercício do plano (carga anterior, recado) ou, se não houver, da biblioteca. */
 async function resolverEscolhas(c: Carga, itens: EscolhaLivre[]): Promise<ItemExtraLivre[] | { erro: string }> {
@@ -136,7 +139,35 @@ async function resolverEscolhas(c: Carga, itens: EscolhaLivre[]): Promise<ItemEx
   return out;
 }
 
+/** Opções do sorteio para esta pessoa: prontos da vitrine (do público dela + para todos), sem músculo descansando. */
+async function candidatosParaSorteio(c: Carga): Promise<CandidatoSorteio[]> {
+  const biblioteca = await listarBiblioteca();
+  const slugs = biblioteca.map((b) => b.slug);
+  const aba = abaDoSexo(c.sexo);
+  const prontos = prontosVisiveis(isDemoMode())
+    .filter((t) => aba === "todos" || t.publico === aba || t.publico === "todos")
+    .map((t) => ({ pronto: { slug: t.slug, nome: nomeVisivel(t), emoji: t.emoji, chamada: t.chamada }, plano: planoDoPronto(t, slugs) }))
+    .filter((x): x is { pronto: { slug: string; nome: string; emoji: string; chamada: string }; plano: NonNullable<typeof x.plano> } => !!x.plano);
+  return candidatosDoSorteio(prontos, c.recentes48h, c.ctx.seriesDisponiveis);
+}
+
+async function itensDoSorteio(cand: CandidatoSorteio): Promise<EscolhaLivre[]> {
+  const biblioteca = await listarBiblioteca();
+  return cand.itens.flatMap((i) => {
+    const b = biblioteca.find((x) => x.slug === i.slug);
+    return b ? [{ biblioteca_id: b.id, nome: b.nome, series: i.series, reps: i.reps }] : [];
+  });
+}
+
 async function gerar(c: Carga, r: RespostasExtra): Promise<ResultadoExtraGerado> {
+  if (r.modo === "sorteio") {
+    const cand = (await candidatosParaSorteio(c)).find((x) => x.chave === r.chave);
+    if (!cand) return { ok: false, motivo: "Esse treino sorteado não cabe mais hoje. Sorteie de novo." };
+    const g = await gerar(c, { modo: "livre", corpo: r.corpo, itens: await itensDoSorteio(cand) });
+    if (!g.ok) return g;
+    const avisos = cand.encurtado ? [...g.extra.avisos, "Versão extra do treino: mais curta, sem os músculos que você treinou nas últimas 48 h e dentro do limite de séries extras da semana."] : g.extra.avisos;
+    return { ok: true, extra: { ...g.extra, titulo: tituloDoSorteio(cand), avisos } };
+  }
   if (r.modo === "livre") {
     const itens = await resolverEscolhas(c, r.itens);
     if ("erro" in itens) return { ok: false, motivo: itens.erro };
@@ -151,13 +182,31 @@ export async function previaExtraGerado(alunoId: string, r: RespostasExtra): Pro
   return { ctx: c.ctx, resultado: await gerar(c, r) };
 }
 
+export type SorteioExtra = { chave: string; nome: string; emoji: string; chamada: string; letra: string; nomeTreino: string; recomecou: boolean; roleta: string[] };
+
+/** “O Montinho sorteia”: escolhe um treino de um pronto que a pessoa ainda não viu e devolve a prévia. */
+export async function sortearExtra(alunoId: string, input: { corpo: CorpoExtra; vistos: string[] }): Promise<{ ctx: ContextoExtraGerado; sorteio: SorteioExtra | null; resultado: ResultadoExtraGerado | null }> {
+  const c = await carregar(alunoId);
+  if (c.ctx.bloqueio) return { ctx: c.ctx, sorteio: null, resultado: null };
+  if (input.corpo === "dor") return { ctx: c.ctx, sorteio: null, resultado: await gerar(c, { modo: "livre", corpo: "dor", itens: [] }) };
+  const cands = await candidatosParaSorteio(c);
+  const { escolhido, recomecou } = sortearCandidato(cands, input.vistos);
+  if (!escolhido) return { ctx: c.ctx, sorteio: null, resultado: { ok: false, motivo: "Hoje nenhum treino pronto cabe no seu extra (músculos descansando ou limite de séries da semana). Use “O app monta” ou “Eu monto”." } };
+  const roleta = [...new Set(cands.map((x) => `${x.emoji} ${x.nome}`))];
+  return {
+    ctx: c.ctx,
+    sorteio: { chave: escolhido.chave, nome: escolhido.nome, emoji: escolhido.emoji, chamada: escolhido.chamada, letra: escolhido.letra, nomeTreino: escolhido.nomeTreino, recomecou, roleta },
+    resultado: await gerar(c, { modo: "sorteio", corpo: input.corpo, chave: escolhido.chave }),
+  };
+}
+
 /** Começa o extra montado. Liberado direto (decisão do Montinho, 22/10/2026), mas só dentro das regras. */
 export async function iniciarExtraGerado(alunoId: string, r: RespostasExtra & { clientKey: string }): Promise<SessaoCompleta> {
   const c = await carregar(alunoId);
   if (c.ctx.bloqueio) throw new Error(`Extra não disponível agora: ${c.ctx.bloqueio}`);
   const g = await gerar(c, r);
   if (!g.ok) throw new Error(`Extra não disponível agora: ${g.motivo}`);
-  return gravarExtra(alunoId, c, g.extra, { clientKey: r.clientKey, corpo: r.corpo, foco: r.modo === "app" ? r.foco : "livre", tempoMin: r.modo === "app" ? r.tempoMin : null, extraId: null });
+  return gravarExtra(alunoId, c, g.extra, { clientKey: r.clientKey, corpo: r.corpo, foco: r.modo === "app" ? r.foco : r.modo, tempoMin: r.modo === "app" ? r.tempoMin : null, extraId: null });
 }
 
 /**
