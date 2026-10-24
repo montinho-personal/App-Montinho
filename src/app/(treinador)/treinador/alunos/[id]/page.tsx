@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { listarCardio } from "@/lib/data/strava";
+import { textoCardio } from "@/lib/strava/combinar";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
@@ -80,7 +82,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
-  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id)]);
+  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => [])]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
   // Mesmos alertas do painel inicial, agora também na ficha (topo da aba Evolução).
@@ -208,6 +210,22 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           </div>
         </CardBody>
       </Card>
+
+      {cardio.length ? (
+        <Card>
+          <CardBody className="space-y-1.5 text-sm">
+            <div className="text-xs font-bold uppercase tracking-wider text-accent">⌚ Batimento do relógio (Strava)</div>
+            <ul className="space-y-1">
+              {cardio.map((c) => (
+                <li key={c.session_id} className="flex flex-wrap justify-between gap-x-3 border-t border-border pt-1 text-xs">
+                  <span className="text-fg-muted">{c.inicio_atividade ? dataBR(c.inicio_atividade) : "—"}{c.dispositivo ? ` · ${c.dispositivo}` : ""}</span>
+                  <span>❤️ {textoCardio(c)}</span>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      ) : null}
 
       {a?.lesoes || a?.dores_atuais || aluno.observacoes ? (
         <Card className="border-gold/20 bg-gold/5">

@@ -30,6 +30,7 @@ export default function PrivacidadePage() {
               <li>As respostas do questionário inicial: objetivo, experiência, frequência, local e tempo de treino.</li>
               <li>Os treinos que você registra: exercícios, cargas, repetições, datas e comentários.</li>
               <li>Medalhas, marcos da Jornada e preferências do app (por exemplo, notificações).</li>
+              <li>Se você conectar o Strava (opcional, só com a sua autorização): o resumo do relógio de cada treino — batimento médio e máximo, duração, calorias, nome do aparelho — e as chaves de acesso da conexão.</li>
             </ul>
             <p className="mt-2">Não pedimos documentos, endereço nem dados de pagamento no cadastro por convite.</p>
           </section>
@@ -41,6 +42,12 @@ export default function PrivacidadePage() {
             <h2>Com quem compartilhamos</h2>
             <p>
               Não vendemos nem cedemos seus dados. Eles ficam guardados em serviços de infraestrutura contratados para o app funcionar (banco de dados e hospedagem). Se você entrou por convite, seu nome, e-mail e o andamento no app (convite, desafio, objetivo, treinos feitos) podem ir para a ferramenta de gestão de contatos (CRM) do {BRAND.name}, só para ele poder falar com você. Estatísticas de uso, como as do Google Analytics, só são ativadas se você aceitar, e nunca recebem seu nome, e-mail, telefone ou dados de saúde.
+            </p>
+          </section>
+          <section>
+            <h2>Relógio e Strava (dados de saúde)</h2>
+            <p>
+              Batimento cardíaco é dado de saúde. Só é importado se você marcar a autorização e conectar o Strava no Perfil. O app lê apenas as atividades no horário dos seus treinos, para mostrar o batimento a você e ao {BRAND.name} no acompanhamento. As chaves da conexão só o seu login acessa: nem o {BRAND.name} as vê. Você pode desconectar a qualquer momento no Perfil (o app avisa o Strava e apaga as chaves); os resumos já importados ficam no histórico dos treinos e podem ser apagados a seu pedido, pelo e-mail abaixo.
             </p>
           </section>
           <section>

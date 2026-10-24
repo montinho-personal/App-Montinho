@@ -724,3 +724,6 @@ export const livreAjusteSchema = z.object({
 export const livreFotoAparelhoSchema = z
   .object({ base64: z.string().min(100).max(2_000_000).regex(/^[A-Za-z0-9+/=]+$/, "Imagem inválida") })
   .strict();
+
+// Strava (0086): id do treino para buscar o batimento do relógio.
+export const idSessaoStravaSchema = z.string().trim().min(1).max(80).regex(/^[A-Za-z0-9_-]+$/);

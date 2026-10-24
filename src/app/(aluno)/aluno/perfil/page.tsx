@@ -16,12 +16,15 @@ import { getPadraoCarga } from "@/lib/data/padrao-carga";
 import { PadraoCargaPerfil } from "@/components/treinos/PadraoCarga";
 import { getRankingVisivel } from "@/lib/data/ranking";
 import { RankingVisivel } from "@/components/ranking/RankingVisivel";
+import { ConectarStrava } from "@/components/strava/ConectarStrava";
+import { listarCardio, statusStrava } from "@/lib/data/strava";
 
 export const metadata = { title: "Perfil" };
 
-export default async function PerfilPage() {
+export default async function PerfilPage({ searchParams }: { searchParams: Promise<{ strava?: string }> }) {
   const sessao = await requireAlunoPage();
-  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga, rankingVisivel] = await Promise.all([
+  const { strava } = await searchParams;
+  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga, rankingVisivel, stravaStatus, cardio] = await Promise.all([
     getAluno(sessao.alunoId),
     getPlanoAtivo(sessao.alunoId),
     listAdaptacoes(sessao.alunoId),
@@ -30,6 +33,8 @@ export default async function PerfilPage() {
     getPreferencias(sessao.userId),
     getPadraoCarga(sessao.alunoId),
     getRankingVisivel(sessao.alunoId).catch(() => true),
+    statusStrava(sessao.alunoId),
+    listarCardio(sessao.alunoId, 5).catch(() => []),
   ]);
   if (!aluno) return null;
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
@@ -54,6 +59,8 @@ export default async function PerfilPage() {
       </Link>
 
       <RankingVisivel inicial={rankingVisivel} />
+
+      <ConectarStrava status={stravaStatus} ultimos={cardio} aviso={strava ?? null} />
 
       <Card>
         <CardHeader>

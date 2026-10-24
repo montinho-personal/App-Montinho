@@ -1437,4 +1437,37 @@ begin
 end $$;
 select test_logout();
 \echo 'T45 OK: treinos enviados — pasta própria, só o personal resolve'
+-- T46 — 0086: Strava — chaves só do próprio aluno (o personal não vê); resumo do relógio: aluno nas próprias sessões, personal lê
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean; sid uuid;
+begin
+  insert into strava_conexoes (aluno_id, athlete_id, access_token, refresh_token, expira_em, consentido_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 123, 'a', 'r', now() + interval '6 hours', now());
+  ok := false;
+  begin insert into strava_conexoes (aluno_id, athlete_id, access_token, refresh_token, expira_em, consentido_em) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 9, 'a', 'r', now(), now()); exception when others then ok := true; end;
+  if not ok then raise exception 'T46a: gravou a conexão de outro aluno'; end if;
+  insert into training_sessions (aluno_id, client_key, status, iniciado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't46-a', 'concluida', now()) returning id into sid;
+  insert into sessao_cardio (session_id, aluno_id, atividade_id, fc_media) values (sid, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, 130);
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare ok boolean; sid uuid;
+begin
+  if exists (select 1 from strava_conexoes) then raise exception 'T46b: aluno viu a conexão de outro'; end if;
+  if exists (select 1 from sessao_cardio) then raise exception 'T46c: aluno viu o batimento de outro'; end if;
+  select id into sid from training_sessions where client_key = 't46-a';
+  ok := false;
+  begin insert into sessao_cardio (session_id, aluno_id, atividade_id) values (coalesce(sid, gen_random_uuid()), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 2); exception when others then ok := true; end;
+  if not ok then raise exception 'T46d: ligou batimento à sessão de outro aluno'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  if exists (select 1 from strava_conexoes) then raise exception 'T46e: personal viu as chaves do Strava'; end if;
+  if not exists (select 1 from sessao_cardio) then raise exception 'T46f: personal não leu o batimento'; end if;
+end $$;
+select test_logout();
+\echo 'T46 OK: Strava — chaves só do aluno, batimento lido pelo personal'
 \echo 'TODOS OS TESTES PASSARAM'
