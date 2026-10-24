@@ -33,7 +33,7 @@ export default async function ComecarLivrePage() {
         <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">3</span><span>Toque em “Próximo exercício” e siga. No fim, conte como foi{visitante ? " e, se quiser, salve como treino para repetir" : ""}.</span></li>
       </ol>
       <p className="text-xs text-fg-subtle">Conta na sua semana, nos troféus e na sua evolução como qualquer treino. Precisa de internet para anotar.</p>
-      {!pode ? (
+      {!pode && !visitante ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm">Seu acesso terminou. Para voltar a treinar pelo app, fale com o Montinho.</p>
       ) : emAndamento ? (
         <div className="space-y-2 rounded-xl border border-accent/50 bg-card p-4 text-sm">
@@ -41,6 +41,7 @@ export default async function ComecarLivrePage() {
           <Link href={hrefDaSessao(emAndamento)} className="alvo inline-block font-semibold text-accent">Continuar o treino →</Link>
         </div>
       ) : (
+        // Visitante depois dos 30 dias: o botão continua e abre o convite para o WhatsApp (TravaVisitante).
         <ComecarLivre />
       )}
     </div>

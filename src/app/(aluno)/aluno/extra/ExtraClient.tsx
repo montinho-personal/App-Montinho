@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { MODALIDADES, RECUPERACAO, type Classificacao, type Recuperacao } from "@/lib/treino/extra";
 import type { ExtraAvaliado } from "@/lib/data/extras";
 import { BRAND } from "@/config/brand";
+import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 
 type Pedido = { id: string; titulo: string; status: "pendente" | "aprovada" | "recusada"; resposta: string | null; data: string; created_at: string };
 
@@ -20,6 +21,7 @@ const chave = () => `extra:${new Date().toISOString().slice(0, 10)}:${Math.rando
 const dataBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
+  const trava = useTravaVisitante();
   const router = useRouter();
   const toast = useToast();
   const [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
@@ -54,6 +56,7 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
 
   // Extra pronto do personal (com exercícios): abre o treino para marcar série por série.
   async function comecar(extraId: string) {
+    if (trava.travado) return trava.abrir();
     setEnviando(true);
     const res = await fetch("/api/extras/iniciar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extra_id: extraId, client_key: chave(), recuperacao }) }).catch(() => null);
     const d = (await res?.json().catch(() => null)) as { id?: string; treinoId?: string; error?: string } | null;
@@ -65,6 +68,7 @@ export function ExtraClient({ pedidos }: { pedidos: Pedido[] }) {
   }
 
   async function registrar(extraId: string) {
+    if (trava.travado) return trava.abrir();
     const min = Number(duracao);
     if (!min || min < 1) return toast.error("Informe quantos minutos você fez.");
     setEnviando(true);

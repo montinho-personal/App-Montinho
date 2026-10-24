@@ -13,8 +13,8 @@ const DIA = 86_400_000;
 export async function campanhaDoVisitante(alunoId: string, acessoFim: string | null, agora = new Date()): Promise<CampanhaVisitante> {
   if (isDemoMode()) {
     // Vitrine da demonstração (dados fictícios): já engajada, 1 amigo convidado e acesso acabando em 3 dias.
-    const fim = new Date(agora.getTime() + 3 * DIA).toISOString();
-    const inicio = new Date(agora.getTime() - 27 * DIA).toISOString();
+    const fim = acessoFim ?? new Date(agora.getTime() + 3 * DIA).toISOString();
+    const inicio = new Date(Date.parse(fim) - 30 * DIA).toISOString();
     const eventos = await eventosCta(alunoId).catch(() => []);
     return { treinosConcluidos: 11, indicacao: { amigos: 1, diasGanhos: 10 }, oferta: ofertaFimAcesso({ fim, inicio, treinosConcluidos: 11, frequenciaSemanal: 3, eventos, agora }) };
   }

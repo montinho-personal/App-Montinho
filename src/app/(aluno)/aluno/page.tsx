@@ -49,6 +49,7 @@ import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { conviteLiberado, linkOferta } from "@/lib/visitante/campanhas";
 import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
 import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
+import { estadoDoAcesso } from "@/lib/visitante/acesso";
 import { hrefDaSessao } from "@/lib/treino/livre";
 
 export const metadata = { title: "Início" };
@@ -112,7 +113,8 @@ export default async function AlunoHomePage() {
         </h1>
       </header>
 
-      {campanha?.oferta && ofertaHref ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
+      {/* Depois do fim do acesso, a oferta já vem no topo de todas as telas (layout). */}
+      {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
 

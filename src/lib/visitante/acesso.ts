@@ -5,7 +5,10 @@
 //  • "permanente" → sem fim;
 //  • "dias"       → N dias a partir do cadastro (padrão 30);
 //  • "ate_data"   → até o fim do dia indicado (horário de Brasília).
-// Acesso vencido = só leitura (histórico, Jornada e medalhas continuam).
+// Acesso vencido = treino travado (o banco barra em pode_registrar()); o app
+// fica aberto só para ver (evolução, ranking, conquistas) por mais
+// DIAS_APP_APOS_FIM dias, com a oferta para fechar o plano em toda tela.
+// Depois disso, o app fecha: só a tela de oferta (pedido do Montinho, 24/10/2026).
 // ============================================================================
 
 export type TipoAcesso = "permanente" | "dias" | "ate_data";
@@ -14,6 +17,8 @@ export type Modalidade = "consultoria" | "visitante";
 export const DIAS_PADRAO = 30;
 /** Avisar o visitante quando faltar isto ou menos. */
 export const DIAS_AVISO = 5;
+/** Dias em que o app continua aberto (só para ver) depois do fim do acesso. */
+export const DIAS_APP_APOS_FIM = 7;
 
 export type ConviteRegra = {
   codigo: string;
@@ -95,6 +100,17 @@ export function estadoDoAcesso(fim: string | null, agora: Date = new Date()): Es
   if (restante <= 0) return { estado: "vencido", fim };
   const diasRestantes = Math.ceil(restante / DIA_MS);
   return diasRestantes <= DIAS_AVISO ? { estado: "vencendo", fim, diasRestantes } : { estado: "ativo", fim, diasRestantes };
+}
+
+/** Quando o app fecha para o visitante (fim do acesso + DIAS_APP_APOS_FIM). */
+export function fechamentoDoApp(fim: string | null): string | null {
+  return fim ? new Date(Date.parse(fim) + DIAS_APP_APOS_FIM * DIA_MS).toISOString() : null;
+}
+
+/** Passou do fim + os dias de vitrine: o app mostra só a tela de oferta. */
+export function appEncerrado(fim: string | null, agora: Date = new Date()): boolean {
+  const f = fechamentoDoApp(fim);
+  return !!f && agora.getTime() > Date.parse(f);
 }
 
 /** Pode iniciar treino novo? (espelha public.pode_registrar() do banco) */

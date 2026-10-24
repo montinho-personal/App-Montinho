@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 
 export function ComecarLivre() {
   const router = useRouter();
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const trava = useTravaVisitante();
   async function comecar() {
+    if (trava.travado) return trava.abrir();
     setOcupado(true);
     setErro(null);
     const r = await fetch("/api/livre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_key: `livre-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}` }) }).catch(() => null);

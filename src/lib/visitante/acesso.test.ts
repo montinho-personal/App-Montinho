@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { codigoValido, descreverPrazo, estadoDoAcesso, fimDoAcesso, gerarCodigo, normalizarCodigo, podeRegistrar, situacaoConvite, type ConviteRegra } from "./acesso";
+import { appEncerrado, codigoValido, DIAS_APP_APOS_FIM, fechamentoDoApp, descreverPrazo, estadoDoAcesso, fimDoAcesso, gerarCodigo, normalizarCodigo, podeRegistrar, situacaoConvite, type ConviteRegra } from "./acesso";
+import { REGRAS_OFERTA } from "./campanhas";
 
 const base: ConviteRegra = { codigo: "DESAFIO-21", tipo_acesso: "dias", dias: 21, acesso_ate: null, max_usos: 50, usos: 0, valido_ate: null, ativo: true };
 const agora = new Date("2026-10-22T15:00:00Z");
@@ -49,5 +50,20 @@ describe("convites do Modo Visitante", () => {
     expect(descreverPrazo(base)).toBe("21 dias de acesso");
     expect(descreverPrazo({ ...base, tipo_acesso: "ate_data", acesso_ate: "2026-11-30" })).toBe("Acesso até 30/11/2026");
     expect(descreverPrazo({ ...base, tipo_acesso: "permanente" })).toBe("Acesso sem prazo");
+  });
+});
+
+describe("depois dos 30 dias", () => {
+  const fim = "2026-10-20T12:00:00.000Z";
+  it("treino trava no fim; o app fica aberto mais 7 dias e depois fecha", () => {
+    expect(podeRegistrar("visitante", fim, new Date("2026-10-20T11:59:00Z"))).toBe(true);
+    expect(podeRegistrar("visitante", fim, new Date("2026-10-20T12:01:00Z"))).toBe(false);
+    expect(fechamentoDoApp(fim)).toBe("2026-10-27T12:00:00.000Z");
+    expect(appEncerrado(fim, new Date("2026-10-27T11:00:00Z"))).toBe(false);
+    expect(appEncerrado(fim, new Date("2026-10-27T13:00:00Z"))).toBe(true);
+    expect(appEncerrado(null, new Date("2030-01-01T00:00:00Z"))).toBe(false);
+  });
+  it("a oferta do fim vale enquanto o app está aberto", () => {
+    expect(REGRAS_OFERTA.diasDepois).toBe(DIAS_APP_APOS_FIM);
   });
 });

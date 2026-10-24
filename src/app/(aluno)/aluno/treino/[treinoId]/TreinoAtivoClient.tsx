@@ -43,6 +43,7 @@ import { conviteLiberado } from "@/lib/visitante/campanhas";
 import type { CampanhaVisitante } from "@/lib/data/campanhas";
 import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
 import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
+import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
@@ -264,6 +265,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // Status marcado nesta tela (pular / não consegui) antes do servidor confirmar.
   const [statusEx, setStatusEx] = useState<Record<string, string>>({});
   const [percepcaoEx, setPercepcaoEx] = useState<Record<string, PercepcaoExercicio>>({});
+  const trava = useTravaVisitante();
   const [perguntandoEsforco, setPerguntandoEsforco] = useState<string | null>(null);
   // Conferência ao concluir: mostra o que falta marcar antes de finalizar.
   const [conferindo, setConferindo] = useState(false);
@@ -290,6 +292,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [livreHoje, setLivreHoje] = useState(false);
   const [abrindoLivre, setAbrindoLivre] = useState(false);
   async function comecarLivre() {
+    if (trava.travado) return trava.abrir();
     setAbrindoLivre(true);
     const r = await fetch("/api/livre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_key: `livre-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}` }) }).catch(() => null);
     const d = (await r?.json().catch(() => null)) as { id?: string; error?: string } | null;
@@ -520,6 +523,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // Ações
   // ------------------------------------------------------------------------
   async function iniciar() {
+    // Visitante depois dos 30 dias: em vez de começar, abre o convite para o WhatsApp.
+    if (trava.travado && !presencial) return trava.abrir();
     setIniciando(true);
     try {
       const chave = `sess:${treino.id}:${new Date().toISOString().slice(0, 10)}:${gerarClientKey("s").slice(2, 10)}`;
