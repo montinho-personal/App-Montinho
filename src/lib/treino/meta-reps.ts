@@ -44,3 +44,43 @@ export function avisoMeta(metas: Array<MetaReps | null>, valores: string[]): str
   if (!algumaAbaixo) return null;
   return "Os números vêm do seu último treino. Tente chegar na meta de cada série — e, se der, passe dela. Não chegou? Registre o que fez: o app sugere o ajuste.";
 }
+
+// ----------------------------------------------------------------------------
+// Passou da meta na última vez → hora de subir o peso (pedido do Montinho em
+// 25/10/2026). Ex.: meta 15 e fez 20 com 10 kg → no treino seguinte o app
+// avisa que já dá para aumentar o peso e voltar a fazer dentro da faixa.
+// É convite, não ordem: o aluno decide, e com dor no check-in não aparece.
+// ----------------------------------------------------------------------------
+
+export type SeriePassou = { serie: number; reps: number; meta: MetaReps; cargaKg: number };
+
+type SerieHoje = { serie: number; tipo: string };
+type SerieUltima = { serie: number; reps: number | null; carga_kg: number | null; tipo: string };
+
+/**
+ * Séries de hoje em que, na última vez, a pessoa fez MAIS repetições que o topo
+ * da meta, com carga anotada. Peso do corpo (sem carga) fica de fora.
+ */
+export function seriesQuePassaram(hoje: SerieHoje[], metas: Array<MetaReps | null>, ultima: SerieUltima[]): SeriePassou[] {
+  const validas = ultima.filter((u) => u.tipo === "valida");
+  const out: SeriePassou[] = [];
+  hoje.forEach((s, i) => {
+    const meta = metas[i];
+    if (s.tipo !== "valida" || !meta) return;
+    const u = validas.find((x) => x.serie === s.serie);
+    if (!u || u.reps == null || u.carga_kg == null || u.carga_kg <= 0) return;
+    if (u.reps > meta.max) out.push({ serie: s.serie, reps: u.reps, meta, cargaKg: u.carga_kg });
+  });
+  return out;
+}
+
+const kgBR = (n: number) => `${String(Math.round(n * 100) / 100).replace(".", ",")} kg`;
+
+/** Texto do aviso no topo do exercício. */
+export function textoSubirPeso(passou: SeriePassou[]): string | null {
+  if (!passou.length) return null;
+  const partes = passou.map((p) => `série ${p.serie}: ${p.reps} reps com ${kgBR(p.cargaKg)} (meta ${rotuloMeta(p.meta)})`);
+  const lista = partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join("; ")} e ${partes.at(-1)}`;
+  const onde = passou.length === 1 ? "nessa série" : "nessas séries";
+  return `Na última vez você passou da meta — ${lista}. Hoje dá para subir um pouco o peso ${onde} (a próxima anilha ou o próximo halter) e fazer dentro da faixa. Se a execução não ficar firme, volte ao peso anterior.`;
+}

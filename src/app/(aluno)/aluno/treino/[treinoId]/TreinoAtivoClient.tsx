@@ -37,7 +37,7 @@ import { descansoDaRodada, mesclarParametros, type ParametrosTempo } from "@/lib
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
-import { lerMeta, rotuloMeta } from "@/lib/treino/meta-reps";
+import { lerMeta, rotuloMeta, seriesQuePassaram, textoSubirPeso } from "@/lib/treino/meta-reps";
 import { guardarTela } from "@/lib/offline/paginas";
 import { conviteLiberado } from "@/lib/visitante/campanhas";
 import type { CampanhaVisitante } from "@/lib/data/campanhas";
@@ -1335,6 +1335,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           // Meta de reps do personal em cada série válida (pirâmide 20/15/12/10 ou série a série).
           const metas = lista.map((s, i) => (s.tipo === "valida" && !ehPorTempo(ex) ? lerMeta(prescritoDaSerie(ex, lista.slice(0, i + 1).filter((x) => x.tipo === "valida").length)) : null));
           const temMeta = metas.some((m) => m !== null);
+          // Passou da meta na última vez (ex.: meta 15, fez 20) → convite para subir o peso hoje.
+          // Com dor no check-in ou “outro aparelho hoje”, não aparece.
+          const passou = !sessao || sessao.checkin_pre === "desconforto" || outroAparelho[se.id] ? [] : seriesQuePassaram(lista, metas, ultima?.series ?? []);
+          const subirPeso = textoSubirPeso(passou);
           // Com meta, a meta de cada série fica numa coluna discreta ao lado do número da série.
           const colunas = temMeta ? "grid-cols-[22px_44px_1fr_1fr_44px]" : "grid-cols-[28px_1fr_1fr_44px]";
           // Como anotar o peso (anilhas/halteres) e o lembrete do aparelho.
@@ -1436,6 +1440,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         <p className="text-xs text-fg-muted">{progressaoChalala[se.id]}</p>
                       </div>
                     ) : null}
+                    {subirPeso && !completo ? (
+                      <div role="note" className="rounded-md border border-success/50 bg-success/10 px-3 py-2">
+                        <p className="text-sm font-bold text-success">⬆️ Dá para subir o peso</p>
+                        <p className="text-xs text-fg-muted">{subirPeso}</p>
+                      </div>
+                    ) : null}
                     {tecnicaTxt ? <p className="text-xs text-fg-muted">{tecnicaTxt}</p> : null}
                     {ex.unilateral && ex.tecnica !== "unilateral" ? <p className="text-xs text-fg-muted">{TECNICA_LABEL.unilateral}</p> : null}
                     {ex.instrucoes.length ? (
@@ -1521,6 +1531,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                             {temMeta ? (
                               <span className="text-center font-mono text-xs text-fg-muted" aria-label={metas[i] ? `Meta: ${rotuloMeta(metas[i]!)} repetições` : undefined}>
                                 {metas[i] ? rotuloMeta(metas[i]!) : "—"}
+                                {!s.concluida && passou.some((p) => p.serie === s.serie) ? <span className="ml-0.5 font-bold text-success" title="Na última vez passou da meta: dá para subir o peso">↑</span> : null}
                               </span>
                             ) : null}
                             <input
