@@ -110,6 +110,14 @@ const limitar = (n: number | null, min: number, max: number) => (n == null || !N
 /** null = não deu (erro, recusa ou resposta fora do formato): o app usa o leitor sem IA. */
 export async function interpretarTreinoComIA(fala: string, itens: ItemParaIA[]): Promise<ResultadoInterpretacao | null> {
   if (!fala.trim() || !itens.length) return null;
+  return organizarComIA(INSTRUCOES, `Fala: """${fala.slice(0, 4000)}"""`, itens, "interpretar-treino");
+}
+
+/**
+ * Chamada comum (ditado e “Criar com IA”): mesmas regras de saída — a IA só
+ * escolhe exercícios da lista por número e o app confere os limites.
+ */
+export async function organizarComIA(instrucoes: string, mensagem: string, itens: ItemParaIA[], rotulo: string): Promise<ResultadoInterpretacao | null> {
   try {
     const client = new Anthropic();
     const resposta = await client.beta.messages.create({
@@ -119,10 +127,10 @@ export async function interpretarTreinoComIA(fala: string, itens: ItemParaIA[]):
       fallbacks: "default",
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA as unknown as Record<string, unknown> } },
       system: [
-        { type: "text", text: INSTRUCOES },
+        { type: "text", text: instrucoes },
         { type: "text", text: `BIBLIOTECA (número | nome | sinônimos):\n${listaBiblioteca(itens)}`, cache_control: { type: "ephemeral" } },
       ],
-      messages: [{ role: "user", content: `Fala: """${fala.slice(0, 4000)}"""` }],
+      messages: [{ role: "user", content: mensagem }],
     });
     if (resposta.stop_reason === "refusal" || resposta.stop_reason === "max_tokens") return null;
     const bloco = resposta.content.find((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text");
@@ -151,8 +159,8 @@ export async function interpretarTreinoComIA(fala: string, itens: ItemParaIA[]):
       .filter((t) => t.exercicios.length);
     return { treinos, metodoGeral: r.data.metodo_geral };
   } catch (e) {
-    if (e instanceof Anthropic.APIError) console.error("[ia/interpretar-treino]", e.status, e.message);
-    else console.error("[ia/interpretar-treino]", e);
+    if (e instanceof Anthropic.APIError) console.error(`[ia/${rotulo}]`, e.status, e.message);
+    else console.error(`[ia/${rotulo}]`, e);
     return null;
   }
 }

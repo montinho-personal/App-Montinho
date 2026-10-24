@@ -727,3 +727,13 @@ export const livreFotoAparelhoSchema = z
 
 // Strava (0086): id do treino para buscar o batimento do relógio.
 export const idSessaoStravaSchema = z.string().trim().min(1).max(80).regex(/^[A-Za-z0-9_-]+$/);
+
+// “Criar com IA” no montador do personal: pedido + aluno + letra do treino.
+export const criarTreinoIASchema = z
+  .object({
+    pedido: z.string().trim().min(3, "Escreva o que você quer no treino").max(2000),
+    aluno_id: z.string().trim().min(1).max(80),
+    letra: z.string().trim().min(1).max(2),
+    foco: z.string().trim().max(120).nullable().optional(),
+  })
+  .strict();

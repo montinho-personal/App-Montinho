@@ -3,6 +3,9 @@
 // Ditar treino: o personal fala (microfone do navegador ou do teclado) e o app
 // monta os exercícios (regras em src/lib/treino/ditado.ts). Sempre mostra a
 // prévia; nada entra no treino sem tocar em "Aplicar".
+// Modo "criar" (✨ Criar com IA): o personal pede o treino (“glúteo com ênfase
+// em hip thrust, 6 exercícios”) e a IA monta com o contexto do aluno
+// (api/ia/criar-treino); mesma prévia, mesmas trocas, mesmo “Aplicar”.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
@@ -24,6 +27,9 @@ type Props = {
   /** Quantos exercícios o treino já tem (com nome). */
   existentes: number;
   onAplicar: (linhas: LinhaDitada[], substituir: boolean) => void;
+  /** "criar" = a IA cria o treino a partir do pedido (precisa do aluno). */
+  modo?: "ditar" | "criar";
+  alunoId?: string;
 };
 
 type ResultadoFala = { isFinal: boolean; 0: { transcript: string } };
@@ -49,7 +55,8 @@ function criarReconhecimento(): Reconhecimento | null {
 
 const ROTULO_METODO = new Map(METODOS.map((m) => [m.v, m.l]));
 
-export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, onAplicar }: Props) {
+export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, onAplicar, modo = "ditar", alunoId }: Props) {
+  const criar = modo === "criar";
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ouvindo, setOuvindo] = useState(false);
@@ -72,17 +79,18 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
   }, [aberto]);
 
   const fala = texto.trim();
-  const local = useMemo(() => interpretarDitado(fala, itens, { favoritos, uso }), [fala, itens, favoritos, uso]);
+  // No “Criar com IA” o texto é um pedido, não uma lista: só a IA monta.
+  const local = useMemo(() => interpretarDitado(criar ? "" : fala, itens, { favoritos, uso }), [criar, fala, itens, favoritos, uso]);
   // Ditado inteligente: quando a pessoa para de falar/digitar, a IA organiza a fala.
-  const ia = useDitadoIA();
+  const ia = useDitadoIA(criar ? { rota: "/api/ia/criar-treino", corpo: (f) => ({ pedido: f.slice(0, 2000), aluno_id: alunoId ?? "", letra, foco: foco ?? null }) } : {});
   const resIA = ia.resultadoPara(fala);
   const ditado = useMemo(() => (resIA ? ditadoDaIA(resIA, itens, { favoritos, uso }) : local), [resIA, local, itens, favoritos, uso]);
   const { organizar, disponivel: iaDisponivel } = ia;
   useEffect(() => {
-    if (!aberto || ouvindo || !iaDisponivel || fala.length < 3) return;
+    if (criar || !aberto || ouvindo || !iaDisponivel || fala.length < 3) return;
     const id = window.setTimeout(() => void organizar(fala), 900);
     return () => window.clearTimeout(id);
-  }, [aberto, ouvindo, fala, iaDisponivel, organizar]);
+  }, [criar, aberto, ouvindo, fala, iaDisponivel, organizar]);
   const trocas = trocasDe.fala === fala ? trocasDe.trocas : {};
   const removidos = trocasDe.fala === fala ? trocasDe.removidos : new Set<number>();
   const setTrocas = (fn: (t: Record<number, string>) => Record<number, string>) => setTrocasDe({ fala, trocas: fn(trocas), removidos });
@@ -190,19 +198,20 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
           setAberto(true);
         }}
         className="inline-flex h-8 items-center gap-1 rounded-md border border-accent/50 bg-accent/10 px-2 text-[11px] font-semibold text-accent hover:bg-accent/20"
-        title="Montar este treino falando os exercícios"
+        title={criar ? "A IA cria este treino a partir do seu pedido, com o contexto do aluno" : "Montar este treino falando os exercícios"}
       >
-        🎤 Ditar
+        {criar ? "✨ Criar com IA" : "🎤 Ditar"}
       </button>
       {aberto
         ? createPortal(
-            <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={`Ditar treino ${letra}`}>
+            <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={criar ? `Criar treino ${letra} com IA` : `Ditar treino ${letra}`}>
               <button type="button" aria-label="Fechar" onClick={fechar} className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
               <div className="relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl sm:max-w-lg sm:rounded-2xl">
                 <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border sm:hidden" aria-hidden />
                 <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-3">
                   <div className="min-w-0">
-                    <p className="text-base font-bold">🎤 Ditar treino {letra}</p>
+                    <p className="text-base font-bold">{criar ? `✨ Criar treino ${letra} com IA` : `🎤 Ditar treino ${letra}`}</p>
+                    {criar ? <p className="text-xs text-fg-muted">A IA usa a anamnese, o objetivo, as prioridades e os outros treinos do aluno. Você confere e troca o que quiser antes de aplicar.</p> : null}
                     {foco ? <p className="text-xs text-fg-muted">Foco: {foco}</p> : null}
                   </div>
                   <button type="button" onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border text-fg-muted hover:text-fg">
@@ -218,7 +227,7 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
                       aria-pressed={ouvindo}
                       className={`mb-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold ${ouvindo ? "animate-pulse bg-danger text-white" : "bg-accent text-bg"}`}
                     >
-                      {ouvindo ? "● Ouvindo… toque para parar" : "🎤 Toque e fale o treino"}
+                      {ouvindo ? "● Ouvindo… toque para parar" : criar ? "🎤 Toque e fale o que você quer" : "🎤 Toque e fale o treino"}
                     </button>
                   ) : null}
                   {erroMic ? <p className="mb-2 text-xs text-warning">{erroMic}</p> : null}
@@ -227,11 +236,20 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
                     onChange={(e) => setTexto(e.target.value)}
                     rows={3}
                     aria-label="Texto do treino"
-                    placeholder="Ex.: crucifixo máquina, supino inclinado, supino reto barra 4 de 10, elevação lateral e um bi-set de desenvolvimento com elevação frontal. Todos em pirâmide crescente."
+                    placeholder={criar ? "Ex.: treino de glúteo e posterior, 6 exercícios, ênfase em hip thrust, pirâmide crescente, 60 minutos. Ela tem condromalácia no joelho." : "Ex.: crucifixo máquina, supino inclinado, supino reto barra 4 de 10, elevação lateral e um bi-set de desenvolvimento com elevação frontal. Todos em pirâmide crescente."}
                     className="w-full rounded-xl border border-border bg-bg p-3 text-sm outline-none focus:border-accent"
                   />
                   {!temMic ? <p className="mt-1 text-[11px] text-fg-subtle">Dica: use o microfone do teclado do celular para ditar aqui.</p> : null}
-                  {ia.disponivel && fala ? (
+                  {criar ? (
+                    ia.disponivel ? (
+                      <button type="button" disabled={fala.length < 3 || ia.lendo || ouvindo} onClick={() => void ia.organizar(fala, true)} className="mt-2 w-full rounded-xl border border-accent bg-accent/15 py-2.5 text-sm font-bold text-accent disabled:opacity-40">
+                        {ia.lendo ? "✨ Criando o treino…" : resIA ? "✨ Criar outra versão" : "✨ Criar treino"}
+                      </button>
+                    ) : (
+                      <p className="mt-2 text-xs text-warning">A criação com IA não está ligada agora. Use o 🎤 Ditar ou monte pela busca.</p>
+                    )
+                  ) : null}
+                  {!criar && ia.disponivel && fala ? (
                     <p className="mt-1 text-[11px] font-semibold" role="status">
                       {ia.lendo ? <span className="text-accent">✨ Organizando com IA…</span> : resIA ? <span className="text-accent">✨ Organizado pela IA · confira e ajuste</span> : ia.falhou ? <span className="text-warning">A IA não conseguiu agora; usei a leitura simples.</span> : null}
                     </p>
@@ -289,7 +307,9 @@ export function DitarTreino({ letra, foco, itens, favoritos, uso, existentes, on
                         );
                       })}
                     </ol>
-                  ) : fala ? (
+                  ) : criar && ia.falhou && resIA === null && !ia.lendo && ia.organizada === fala ? (
+                    <p className="mt-3 text-sm text-warning">A IA não conseguiu criar agora. Tente de novo ou reescreva o pedido.</p>
+                  ) : fala && !criar ? (
                     <p className="mt-3 text-sm text-fg-muted">Ainda não reconheci nenhum exercício.</p>
                   ) : null}
                   {ditado.naoEntendido.length ? <p className="mt-2 text-xs text-warning">Não entendi: “{ditado.naoEntendido.join("”, “")}”. Corrija no texto acima.</p> : null}
