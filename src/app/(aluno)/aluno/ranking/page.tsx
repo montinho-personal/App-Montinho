@@ -31,7 +31,7 @@ export default async function RankingPage() {
           <Link href="/aluno/conquistas/todas?aba=desafiadores" className="alvo font-semibold text-accent underline-offset-2 hover:underline">🔥 Mais desafiadores</Link>
         </div>
       </div>
-      <RankingTrofeus linhas={linhas} />
+      <RankingTrofeus linhas={linhas} desafiar />
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
     </div>
   );

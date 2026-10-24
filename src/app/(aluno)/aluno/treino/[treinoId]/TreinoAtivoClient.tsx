@@ -1064,6 +1064,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           ) : campanha && conviteLiberado(campanha.treinosConcluidos + (concluida.status === "concluida" && !sessaoConcluida ? 1 : 0), campanha.indicacao) ? (
             <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="fim_treino" />
           ) : null}
+          {concluida.status === "concluida" && feedback !== "dor" ? (
+            <Link href="/aluno/desafios/novo" className="alvo flex items-center gap-3 rounded-2xl border border-accent/50 bg-card px-4 py-3">
+              <span className="text-2xl" aria-hidden>⚔️</span>
+              <span className="flex-1">
+                <span className="block font-bold">Treino pago! Bora desafiar alguém?</span>
+                <span className="block text-xs text-fg-muted">Quem pega mais peso hoje, quem treina mais na semana… escolha e chame a galera.</span>
+              </span>
+              <span aria-hidden className="text-fg-subtle">→</span>
+            </Link>
+          ) : null}
       </TelaChalala>
     );
   }

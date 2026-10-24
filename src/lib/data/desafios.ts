@@ -15,23 +15,31 @@ import {
   type LinhaPlacar,
   type MarcosDesafios,
   type ParticipanteDados,
+  recadoDoPlacar,
+  TIPOS_DESAFIO,
+  TIPOS_SERIE_VOLUME,
+  type ExercicioDesafio,
+  type FocoMuscular,
   type ResultadoDesafio,
+  type SerieDesafio,
   type SituacaoDesafio,
   type TipoDesafio,
 } from "@/lib/desafios/regras";
 
-export type Desafio = { id: string; codigo: string; criadorAlunoId: string; nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; cancelado: boolean };
+export type Desafio = { id: string; codigo: string; criadorAlunoId: string; nome: string; tipo: TipoDesafio; meta: number | null; foco: FocoMuscular | null; exercicios: ExercicioDesafio[] | null; modelo: string | null; revancheDe: string | null; inicio: string; fim: string; cancelado: boolean };
 export type ResumoDesafio = Desafio & { situacao: SituacaoDesafio; meuStatus: "convidado" | "aceito" | "recusado" | null; souCriador: boolean; aceitos: number };
 export type DetalheDesafio = ResumoDesafio & { placar: LinhaPlacar[]; convidados: Array<{ nome: string }>; criadorNome: string };
 export type DesafioPublico = { nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; criador: string; participantes: number; encerrado: boolean };
-export type NovoDesafio = { nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; dias: number };
+export type NovoDesafio = { nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; dias: number; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; modelo?: string | null; revancheDe?: string | null };
+export type Cutucada = { id: string; desafioId: string; desafio: string; de: string; emoji: string; em: string };
 
-type Linha = { id: string; codigo: string; criador_aluno_id: string; nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; cancelado_em: string | null };
+type Linha = { id: string; codigo: string; criador_aluno_id: string; nome: string; tipo: TipoDesafio; meta: number | null; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; modelo?: string | null; revanche_de?: string | null; inicio: string; fim: string; cancelado_em: string | null };
+const COLUNAS = "id, codigo, criador_aluno_id, nome, tipo, meta, foco, exercicios, modelo, revanche_de, inicio, fim, cancelado_em";
 type Part = { desafio_id: string; aluno_id: string; status: "convidado" | "aceito" | "recusado"; convidado_por: string | null };
 
 const hoje = () => diaBrasilia(new Date());
 const somar = (dia: string, n: number) => new Date(Date.parse(`${dia}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
-const doBanco = (l: Linha): Desafio => ({ id: l.id, codigo: l.codigo, criadorAlunoId: l.criador_aluno_id, nome: l.nome, tipo: l.tipo, meta: l.meta, inicio: String(l.inicio), fim: String(l.fim), cancelado: !!l.cancelado_em });
+const doBanco = (l: Linha): Desafio => ({ id: l.id, codigo: l.codigo, criadorAlunoId: l.criador_aluno_id, nome: l.nome, tipo: l.tipo, meta: l.meta, foco: l.foco ?? null, exercicios: l.exercicios ?? null, modelo: l.modelo ?? null, revancheDe: l.revanche_de ?? null, inicio: String(l.inicio), fim: String(l.fim), cancelado: !!l.cancelado_em });
 /** Primeiro nome + inicial do último sobrenome (“Aline de Souza” → “Aline S.”), como no banco. */
 const nomeCurto = (nome: string) => {
   const partes = nome.replace(/\(.*?\)/g, "").trim().split(/\s+/).filter(Boolean);
@@ -42,7 +50,7 @@ const nomeCurto = (nome: string) => {
 // ---------------------------------------------------------------------------
 // Demonstração: tudo em memória, com dois desafios de exemplo.
 // ---------------------------------------------------------------------------
-type DemoDesafios = { desafios: Linha[]; parts: Part[] };
+type DemoDesafios = { desafios: Linha[]; parts: Part[]; cutucadas: Array<{ id: string; desafio_id: string; de: string; para: string; emoji: string; created_at: string; vista: boolean }> };
 function demo(): DemoDesafios {
   const g = globalThis as unknown as { __montinhoDesafios?: DemoDesafios };
   if (!g.__montinhoDesafios) {
@@ -59,6 +67,7 @@ function demo(): DemoDesafios {
         { desafio_id: "des-demo-2", aluno_id: "joao", status: "aceito", convidado_por: null },
         { desafio_id: "des-demo-2", aluno_id: "aline", status: "aceito", convidado_por: "joao" },
       ],
+      cutucadas: [{ id: "cut-demo-1", desafio_id: "des-demo-1", de: "joao", para: "aline", emoji: "😈", created_at: new Date().toISOString(), vista: false }],
     };
   }
   return g.__montinhoDesafios;
@@ -76,7 +85,20 @@ function dadosDemo(desafioId: string, eu: string | null, personal: boolean): Par
       eu: p.aluno_id === eu,
       criador: p.aluno_id === d.criador_aluno_id,
       treinos: st.sessions.filter((s) => s.aluno_id === p.aluno_id && s.status === "concluida" && (s.series_concluidas ?? 0) > 0).map((s) => s.iniciado_em),
+      series: seriesDemo(p.aluno_id),
+      recordes: [],
     }));
+}
+function seriesDemo(alunoId: string): SerieDesafio[] {
+  const st = demoStore();
+  const sessoes = new Map(st.sessions.filter((s) => s.aluno_id === alunoId && s.status === "concluida").map((s) => [s.id, s.iniciado_em]));
+  const exs = new Map(st.sessionExercises.filter((e) => sessoes.has(e.session_id)).map((e) => [e.id, e]));
+  return st.sessionSets
+    .filter((x) => exs.has(x.session_exercise_id) && (TIPOS_SERIE_VOLUME as readonly string[]).includes(x.tipo))
+    .map((x) => {
+      const e = exs.get(x.session_exercise_id)!;
+      return { em: sessoes.get(e.session_id)!, bibliotecaId: e.biblioteca_id ?? null, grupo: e.grupo_muscular ?? null, carga: x.carga_kg != null ? Number(x.carga_kg) : null, reps: x.reps };
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +125,7 @@ export async function listarMeusDesafios(alunoId: string): Promise<ResumoDesafio
     parts = demo().parts;
   } else {
     const db = await getDb();
-    const { data, error } = await db.from("desafios").select("id, codigo, criador_aluno_id, nome, tipo, meta, inicio, fim, cancelado_em").order("fim", { ascending: false }).limit(60);
+    const { data, error } = await db.from("desafios").select(COLUNAS).order("fim", { ascending: false }).limit(60);
     if (error) return [];
     desafios = ((data ?? []) as Linha[]).map(doBanco);
     const { data: ps } = desafios.length ? await db.from("desafio_participantes").select("desafio_id, aluno_id, status, convidado_por").in("desafio_id", desafios.map((d) => d.id)) : { data: [] };
@@ -124,10 +146,20 @@ export async function detalheDesafio(desafioId: string, alunoId: string | null):
     return montarDetalhe(doBanco(l), dados, demo().parts, alunoId);
   }
   const db = await getDb();
-  const { data: l } = await db.from("desafios").select("id, codigo, criador_aluno_id, nome, tipo, meta, inicio, fim, cancelado_em").eq("id", desafioId).maybeSingle();
+  const { data: l } = await db.from("desafios").select(COLUNAS).eq("id", desafioId).maybeSingle();
   if (!l) return null;
   const { data: rows } = await db.rpc("dados_desafio", { p_desafio: desafioId });
-  const dados = ((rows ?? []) as Array<{ aluno_id: string; nome: string; status: Part["status"]; eu: boolean; criador: boolean; treinos: string[] | null }>).map((r) => ({ alunoId: r.aluno_id, nome: r.nome, status: r.status, eu: r.eu, criador: r.criador, treinos: r.treinos ?? [] }));
+  type Bruta = { aluno_id: string; nome: string; status: Part["status"]; eu: boolean; criador: boolean; treinos: string[] | null; series: Array<{ em: string; b: string | null; g: string | null; c: number | string | null; r: number | null }> | null; recordes: string[] | null };
+  const dados = ((rows ?? []) as Bruta[]).map((r) => ({
+    alunoId: r.aluno_id,
+    nome: r.nome,
+    status: r.status,
+    eu: r.eu,
+    criador: r.criador,
+    treinos: r.treinos ?? [],
+    series: (r.series ?? []).map((x) => ({ em: x.em, bibliotecaId: x.b, grupo: x.g, carga: x.c != null ? Number(x.c) : null, reps: x.r })),
+    recordes: r.recordes ?? [],
+  }));
   const parts: Part[] = dados.map((x) => ({ desafio_id: desafioId, aluno_id: x.alunoId, status: x.status, convidado_por: null }));
   return montarDetalhe(doBanco(l as Linha), dados, parts, alunoId);
 }
@@ -174,7 +206,7 @@ export async function listarTodosDesafios(): Promise<Array<ResumoDesafio & { par
     nomes = new Map(demoStore().alunos.map((a) => [a.id, nomeDemo(a.id)]));
   } else {
     const db = await getDb();
-    const { data } = await db.from("desafios").select("id, codigo, criador_aluno_id, nome, tipo, meta, inicio, fim, cancelado_em").order("fim", { ascending: false }).limit(100);
+    const { data } = await db.from("desafios").select(COLUNAS).order("fim", { ascending: false }).limit(100);
     desafios = ((data ?? []) as Linha[]).map(doBanco);
     const { data: ps } = desafios.length ? await db.from("desafio_participantes").select("desafio_id, aluno_id, status, convidado_por").in("desafio_id", desafios.map((d) => d.id)) : { data: [] };
     parts = (ps ?? []) as Part[];
@@ -190,11 +222,12 @@ export async function listarTodosDesafios(): Promise<Array<ResumoDesafio & { par
 // ---------------------------------------------------------------------------
 export async function criarDesafio(alunoId: string, n: NovoDesafio, convidar: string[]): Promise<{ id: string; codigo: string }> {
   const fim = somar(n.inicio, n.dias - 1);
-  const meta = n.tipo === "meta_fixa" || n.tipo === "semanas" ? n.meta : null;
+  const meta = ["meta_fixa", "semanas", "corrida", "dupla"].includes(n.tipo) ? n.meta : null;
+  const extras = { foco: n.tipo === "musculo" ? (n.foco ?? "pernas") : null, exercicios: n.tipo === "treino_desafio" ? (n.exercicios ?? null) : null, modelo: n.modelo ?? null, revanche_de: n.revancheDe ?? null };
   if (isDemoMode()) {
     const id = uid();
     const codigo = gerarCodigoDesafio();
-    demo().desafios.push({ id, codigo, criador_aluno_id: alunoId, nome: n.nome, tipo: n.tipo, meta, inicio: n.inicio, fim, cancelado_em: null });
+    demo().desafios.push({ id, codigo, criador_aluno_id: alunoId, nome: n.nome, tipo: n.tipo, meta, ...extras, inicio: n.inicio, fim, cancelado_em: null });
     demo().parts.push({ desafio_id: id, aluno_id: alunoId, status: "aceito", convidado_por: null });
     for (const a of convidar) if (a !== alunoId) demo().parts.push({ desafio_id: id, aluno_id: a, status: "convidado", convidado_por: alunoId });
     return { id, codigo };
@@ -202,7 +235,7 @@ export async function criarDesafio(alunoId: string, n: NovoDesafio, convidar: st
   const db = await getDb();
   for (let tentativa = 0; tentativa < 4; tentativa++) {
     const codigo = gerarCodigoDesafio();
-    const { data, error } = await db.from("desafios").insert({ codigo, criador_aluno_id: alunoId, nome: n.nome, tipo: n.tipo, meta, inicio: n.inicio, fim }).select("id").single();
+    const { data, error } = await db.from("desafios").insert({ codigo, criador_aluno_id: alunoId, nome: n.nome, tipo: n.tipo, meta, ...extras, inicio: n.inicio, fim }).select("id").single();
     if (error) {
       if (error.code === "23505") continue; // código repetido: tenta outro
       throw new Error(error.message);
@@ -267,8 +300,58 @@ export async function marcosDosDesafios(alunoId: string): Promise<MarcosDesafios
     const det = await detalheDesafio(d.id, alunoId).catch(() => null);
     if (!det) continue;
     const eu = det.placar.find((l) => l.eu);
-    const disputa = d.tipo === "mais_treinos" || d.tipo === "madrugador";
+    const disputa = TIPOS_DESAFIO[d.tipo].modo === "disputa";
     resultados.push({ id: d.id, fim: d.fim, souCriador: d.souCriador, aceitos: det.placar.length, venci: disputa && !!eu?.cumpriu, cumpri: !disputa && !!eu?.cumpriu, aceitei: true });
   }
   return marcosDesafios(resultados);
+}
+
+// ---------------------------------------------------------------------------
+// Cutucar (provocação com emoji no placar) e recados para o Início
+// ---------------------------------------------------------------------------
+export async function cutucar(alunoId: string, desafioId: string, para: string, emoji: string): Promise<boolean> {
+  if (isDemoMode()) {
+    const hoje0 = hoje();
+    const ja = demo().cutucadas.some((c) => c.desafio_id === desafioId && c.de === alunoId && c.para === para && diaBrasilia(c.created_at) === hoje0);
+    if (ja) return false;
+    demo().cutucadas.push({ id: uid(), desafio_id: desafioId, de: alunoId, para, emoji, created_at: new Date().toISOString(), vista: false });
+    return true;
+  }
+  const db = await getDb();
+  const { data, error } = await db.rpc("cutucar_no_desafio", { p_desafio: desafioId, p_para: para, p_emoji: emoji });
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
+export async function minhasCutucadas(alunoId: string): Promise<Cutucada[]> {
+  if (isDemoMode()) {
+    return demo()
+      .cutucadas.filter((c) => c.para === alunoId && !c.vista)
+      .map((c) => ({ id: c.id, desafioId: c.desafio_id, desafio: demo().desafios.find((d) => d.id === c.desafio_id)?.nome ?? "Desafio", de: nomeCurto(nomeDemo(c.de)), emoji: c.emoji, em: c.created_at }));
+  }
+  const db = await getDb();
+  const { data } = await db.rpc("minhas_cutucadas");
+  return ((data ?? []) as Array<{ id: string; desafio_id: string; desafio: string; de: string; emoji: string; created_at: string }>).map((c) => ({ id: c.id, desafioId: c.desafio_id, desafio: c.desafio, de: c.de, emoji: c.emoji, em: c.created_at }));
+}
+
+/** Marca como vistas as cutucadas recebidas num desafio (ao abrir o placar). */
+export async function marcarCutucadasVistas(alunoId: string, desafioId: string): Promise<void> {
+  if (isDemoMode()) {
+    for (const c of demo().cutucadas) if (c.para === alunoId && c.desafio_id === desafioId) c.vista = true;
+    return;
+  }
+  const db = await getDb();
+  await db.from("desafio_cutucadas").update({ vista_em: new Date().toISOString() }).eq("desafio_id", desafioId).eq("para_aluno_id", alunoId).is("vista_em", null);
+}
+
+/** Recados do placar dos desafios em andamento (até 3), para o Início. */
+export async function recadosDosDesafios(alunoId: string, desafios: ResumoDesafio[]): Promise<Array<{ id: string; texto: string }>> {
+  const ativos = desafios.filter((d) => d.meuStatus === "aceito" && d.situacao === "andamento").slice(0, 3);
+  const out: Array<{ id: string; texto: string }> = [];
+  for (const d of ativos) {
+    const det = await detalheDesafio(d.id, alunoId).catch(() => null);
+    const texto = det ? recadoDoPlacar(det, det.placar, hoje()) : null;
+    if (texto) out.push({ id: d.id, texto });
+  }
+  return out;
 }

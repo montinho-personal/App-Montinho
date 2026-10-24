@@ -4,9 +4,13 @@
 --   e convida outros pelo nome (quem aparece no ranking) ou por link
 --   (/desafio/<codigo>). Quem não tem conta entra pelo convite DESAFIO
 --   (visitante, 30 dias) e depois aceita o desafio.
--- • Tipos (só o que o app mede sozinho): mais_treinos, meta_fixa (N treinos),
---   semanas (N treinos por semana em todas as semanas), madrugador (treinos
---   começados antes das 6h). Conta treino concluído com séries, 1 por dia.
+-- • Tipos (só o que o app mede sozinho; regras em src/lib/desafios/regras.ts):
+--   mais_treinos, corrida (primeiro a N), meta_fixa, semanas, madrugador,
+--   volume (kg × repetições), evolucao (vs. as 4 semanas antes), recordes,
+--   musculo (séries de um grupo), dupla (time soma treinos), treino_desafio
+--   (os mesmos exercícios para todos). Conta treino concluído com séries.
+-- • Cutucar (desafio_cutucadas): provocação com emoji no placar, 1 por dia
+--   para a mesma pessoa no mesmo desafio.
 --   O placar é calculado no app (src/lib/desafios/regras.ts) com os dados de
 --   dados_desafio(): só participantes (e o personal) leem.
 -- • Troféus: criador_desafios, campeao_desafio, palavra_cumprida, desafiante_nato.
@@ -19,14 +23,20 @@ create table if not exists desafios (
   codigo text not null unique check (codigo ~ '^[A-Z0-9]{6}$'),
   criador_aluno_id uuid not null references alunos(id) on delete cascade,
   nome text not null check (char_length(nome) between 3 and 60),
-  tipo text not null check (tipo in ('mais_treinos', 'meta_fixa', 'semanas', 'madrugador')),
-  meta int check (meta is null or meta between 1 and 60),
+  tipo text not null check (tipo in ('mais_treinos', 'corrida', 'meta_fixa', 'semanas', 'madrugador', 'volume', 'evolucao', 'recordes', 'musculo', 'dupla', 'treino_desafio')),
+  meta int check (meta is null or meta between 1 and 200),
+  foco text check (foco is null or foco in ('pernas', 'gluteo', 'bracos', 'peito', 'costas', 'ombros', 'abdomen')),
+  exercicios jsonb check (exercicios is null or (jsonb_typeof(exercicios) = 'array' and jsonb_array_length(exercicios) between 1 and 10)),
+  modelo text check (modelo is null or modelo ~ '^[a-z0-9_]{1,40}$'),
+  revanche_de uuid references desafios(id) on delete set null,
   inicio date not null,
   fim date not null,
   cancelado_em timestamptz,
   created_at timestamptz not null default now(),
   check (fim >= inicio and fim - inicio <= 62),
-  check (tipo not in ('meta_fixa', 'semanas') or meta is not null)
+  check (tipo not in ('meta_fixa', 'semanas', 'corrida', 'dupla') or meta is not null),
+  check (tipo <> 'musculo' or foco is not null),
+  check (tipo <> 'treino_desafio' or exercicios is not null)
 );
 create index if not exists idx_desafios_criador on desafios(criador_aluno_id);
 
@@ -159,25 +169,87 @@ revoke all on function public.pessoas_para_desafio() from public, anon;
 grant execute on function public.pessoas_para_desafio() to authenticated;
 
 -- Dados do placar: para cada participante, os inícios dos treinos concluídos
--- com séries dentro do período (o app conta 1 por dia, horário de Brasília).
--- Só participantes e o personal; nome curto para alunos, completo para o personal.
+-- com séries no período, as séries (carga, repetições, exercício, grupo) nos
+-- tipos de peso/músculo — com as 4 semanas antes, para a evolução — e as
+-- datas dos recordes. Só participantes e o personal; nome curto para alunos.
 create or replace function public.dados_desafio(p_desafio uuid)
-returns table (aluno_id uuid, nome text, status text, eu boolean, criador boolean, treinos timestamptz[])
+returns table (aluno_id uuid, nome text, status text, eu boolean, criador boolean, treinos timestamptz[], series jsonb, recordes timestamptz[])
 language sql stable security definer set search_path = public as $$
+  with d as (
+    select x.*, (x.inicio::timestamp at time zone 'America/Sao_Paulo') as ini_ts, ((x.fim + 1)::timestamp at time zone 'America/Sao_Paulo') as fim_ts,
+           ((x.inicio - case when x.tipo = 'evolucao' then 28 else 0 end)::timestamp at time zone 'America/Sao_Paulo') as base_ts
+      from desafios x where x.id = p_desafio and (public.is_treinador() or public.participa_do_desafio(x.id))
+  )
   select dp.aluno_id,
-         case when public.is_treinador() then coalesce(p.nome, 'Aluno')
-              else public.nome_curto(p.nome) end,
+         case when public.is_treinador() then coalesce(p.nome, 'Aluno') else public.nome_curto(p.nome) end,
          dp.status, dp.aluno_id = public.aluno_id_atual(), dp.aluno_id = d.criador_aluno_id,
          coalesce((select array_agg(s.iniciado_em order by s.iniciado_em) from training_sessions s
                     where s.aluno_id = dp.aluno_id and s.status = 'concluida' and s.series_concluidas > 0
-                      and s.iniciado_em >= (d.inicio::timestamp at time zone 'America/Sao_Paulo')
-                      and s.iniciado_em < ((d.fim + 1)::timestamp at time zone 'America/Sao_Paulo')), '{}')
-    from desafios d join desafio_participantes dp on dp.desafio_id = d.id
-    join alunos a on a.id = dp.aluno_id left join profiles p on p.id = a.profile_id
-   where d.id = p_desafio and (public.is_treinador() or public.participa_do_desafio(d.id));
+                      and s.iniciado_em >= d.ini_ts and s.iniciado_em < d.fim_ts), '{}'),
+         case when d.tipo in ('volume', 'evolucao', 'musculo', 'treino_desafio') then
+           coalesce((select jsonb_agg(jsonb_build_object('em', s.iniciado_em, 'b', se.biblioteca_id, 'g', se.grupo_muscular, 'c', ss.carga_kg, 'r', ss.reps))
+                       from training_sessions s join session_exercises se on se.session_id = s.id join session_sets ss on ss.session_exercise_id = se.id
+                      where s.aluno_id = dp.aluno_id and s.status = 'concluida'
+                        and s.iniciado_em >= d.base_ts and s.iniciado_em < d.fim_ts
+                        and ss.tipo in ('valida', 'dropset', 'rest_pause', 'cluster')), '[]'::jsonb)
+         else '[]'::jsonb end,
+         case when d.tipo = 'recordes' then
+           coalesce((select array_agg(c.conquistado_em) from conquistas_aluno c
+                      where c.aluno_id = dp.aluno_id and c.codigo = 'recorde' and c.conquistado_em >= d.ini_ts and c.conquistado_em < d.fim_ts), '{}')
+         else '{}'::timestamptz[] end
+    from d join desafio_participantes dp on dp.desafio_id = d.id
+    join alunos a on a.id = dp.aluno_id left join profiles p on p.id = a.profile_id;
 $$;
 revoke all on function public.dados_desafio(uuid) from public, anon;
 grant execute on function public.dados_desafio(uuid) to authenticated;
+
+-- Cutucar: provocação com emoji no placar (só entre quem aceitou; 1 por dia por pessoa e desafio).
+create table if not exists desafio_cutucadas (
+  id uuid primary key default gen_random_uuid(),
+  desafio_id uuid not null references desafios(id) on delete cascade,
+  de_aluno_id uuid not null references alunos(id) on delete cascade,
+  para_aluno_id uuid not null references alunos(id) on delete cascade,
+  emoji text not null check (emoji in ('🔥', '💪', '😈', '⏰', '👀')),
+  dia date not null default (now() at time zone 'America/Sao_Paulo')::date,
+  created_at timestamptz not null default now(),
+  vista_em timestamptz,
+  unique (desafio_id, de_aluno_id, para_aluno_id, dia)
+);
+create index if not exists idx_cutucadas_para on desafio_cutucadas(para_aluno_id, created_at desc);
+alter table desafio_cutucadas enable row level security;
+drop policy if exists cutucadas_le on desafio_cutucadas;
+create policy cutucadas_le on desafio_cutucadas for select using (public.is_treinador() or de_aluno_id = public.aluno_id_atual() or para_aluno_id = public.aluno_id_atual());
+drop policy if exists cutucadas_vista on desafio_cutucadas;
+create policy cutucadas_vista on desafio_cutucadas for update using (para_aluno_id = public.aluno_id_atual()) with check (para_aluno_id = public.aluno_id_atual());
+
+create or replace function public.cutucar_no_desafio(p_desafio uuid, p_para uuid, p_emoji text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_eu uuid := public.aluno_id_atual();
+begin
+  if v_eu is null or v_eu = p_para then return false; end if;
+  if not exists (select 1 from desafio_participantes where desafio_id = p_desafio and aluno_id = v_eu and status = 'aceito')
+     or not exists (select 1 from desafio_participantes where desafio_id = p_desafio and aluno_id = p_para and status = 'aceito') then
+    raise exception 'Só entre quem está no desafio';
+  end if;
+  insert into desafio_cutucadas (desafio_id, de_aluno_id, para_aluno_id, emoji) values (p_desafio, v_eu, p_para, p_emoji)
+  on conflict (desafio_id, de_aluno_id, para_aluno_id, dia) do nothing;
+  return found;
+end $$;
+revoke all on function public.cutucar_no_desafio(uuid, uuid, text) from public, anon;
+grant execute on function public.cutucar_no_desafio(uuid, uuid, text) to authenticated;
+
+-- Cutucadas recebidas e ainda não vistas (com o primeiro nome de quem cutucou).
+create or replace function public.minhas_cutucadas()
+returns table (id uuid, desafio_id uuid, desafio text, de text, emoji text, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select c.id, c.desafio_id, d.nome, public.nome_curto(p.nome), c.emoji, c.created_at
+    from desafio_cutucadas c join desafios d on d.id = c.desafio_id
+    join alunos a on a.id = c.de_aluno_id left join profiles p on p.id = a.profile_id
+   where c.para_aluno_id = public.aluno_id_atual() and c.vista_em is null
+   order by c.created_at desc limit 10;
+$$;
+revoke all on function public.minhas_cutucadas() from public, anon;
+grant execute on function public.minhas_cutucadas() to authenticated;
 
 -- Convite para quem ainda não tem conta (visitante, 30 dias).
 insert into convites (codigo, tipo_acesso, dias, origem, ativo)

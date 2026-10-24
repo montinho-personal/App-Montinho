@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { marcosDesafios, placarDesafio, resumoDesafio, semanasDoDesafio, situacaoDesafio, type ParticipanteDados } from "./regras";
+import { marcosDesafios, placarDesafio, recadoDoPlacar, resumoDesafio, semanasDoDesafio, situacaoDesafio, type ParticipanteDados } from "./regras";
 
 const p = (alunoId: string, treinos: string[], extra: Partial<ParticipanteDados> = {}): ParticipanteDados => ({ alunoId, nome: alunoId, status: "aceito", eu: false, criador: false, treinos, ...extra });
 
@@ -50,5 +50,60 @@ describe("placar dos desafios", () => {
       { id: "d3", fim: "2026-10-30", souCriador: false, aceitos: 2, venci: false, cumpri: true, aceitei: true },
     ]);
     expect(m).toMatchObject({ criador: "2026-10-10", campeao: "2026-10-10", palavra: "2026-10-30", nato: "2026-10-30" });
+  });
+});
+
+describe("desafios de peso, corrida e time", () => {
+  const s = (em: string, carga: number, reps: number, extra: Partial<{ bibliotecaId: string; grupo: string }> = {}) => ({ em, carga, reps, bibliotecaId: extra.bibliotecaId ?? null, grupo: extra.grupo ?? null });
+  const P = (alunoId: string, treinos: string[], series: ReturnType<typeof s>[] = [], recordes: string[] = []) => ({ alunoId, nome: alunoId, status: "aceito" as const, eu: alunoId === "A", criador: false, treinos, series, recordes });
+
+  it("corrida: vence quem chega primeiro, não quem fez mais depois", () => {
+    const r = placarDesafio({ tipo: "corrida", meta: 2, inicio: "2026-10-01", fim: "2026-10-30" }, [
+      P("A", ["2026-10-02T12:00:00Z", "2026-10-05T12:00:00Z", "2026-10-06T12:00:00Z"]),
+      P("B", ["2026-10-02T12:00:00Z", "2026-10-03T12:00:00Z"]),
+    ]);
+    expect(r.map((l) => [l.nome, l.posicao, l.cumpriu])).toEqual([["B", 1, true], ["A", 2, false]]);
+    expect(r[0].rotulo).toBe("🏁 chegou aos 2 em 03/10");
+  });
+
+  it("peso de hoje (volume em 1 dia) e treino do desafio (só os exercícios escolhidos)", () => {
+    const v = placarDesafio({ tipo: "volume", meta: null, inicio: "2026-10-05", fim: "2026-10-05" }, [
+      P("A", ["2026-10-05T12:00:00Z"], [s("2026-10-05T12:00:00Z", 100, 10), s("2026-10-05T12:00:00Z", 50, 10), s("2026-10-04T12:00:00Z", 500, 10)]),
+      P("B", ["2026-10-05T12:00:00Z"], [s("2026-10-05T12:00:00Z", 60, 20)]),
+    ]);
+    expect(v.map((l) => [l.nome, l.pontos, l.rotulo])).toEqual([["A", 1500, "1.500 kg"], ["B", 1200, "1.200 kg"]]);
+    const t = placarDesafio({ tipo: "treino_desafio", meta: null, inicio: "2026-10-01", fim: "2026-10-07", exercicios: [{ id: "agacho", nome: "Agachamento" }] }, [
+      P("A", [], [s("2026-10-02T12:00:00Z", 100, 10, { bibliotecaId: "agacho" }), s("2026-10-02T12:00:00Z", 300, 10, { bibliotecaId: "supino" })]),
+      P("B", [], [s("2026-10-02T12:00:00Z", 80, 15, { bibliotecaId: "agacho" })]),
+    ]);
+    expect(t.map((l) => [l.nome, l.pontos])).toEqual([["B", 1200], ["A", 1000]]);
+  });
+
+  it("evolução: compara com a própria média das 4 semanas antes; sem base fica no fim", () => {
+    const r = placarDesafio({ tipo: "evolucao", meta: null, inicio: "2026-10-29", fim: "2026-11-04" }, [
+      // base: 4 semanas com 1.000 kg/semana; período (7 dias): 1.500 kg → +50%
+      P("A", [], [s("2026-10-05T12:00:00Z", 100, 10), s("2026-10-12T12:00:00Z", 100, 10), s("2026-10-19T12:00:00Z", 100, 10), s("2026-10-26T12:00:00Z", 100, 10), s("2026-10-30T12:00:00Z", 150, 10)]),
+      P("B", [], [s("2026-10-30T12:00:00Z", 999, 10)]),
+    ]);
+    expect(r.map((l) => [l.nome, l.pontos, l.rotulo])).toEqual([["A", 50, "+50% de volume por semana"], ["B", 0, "sem treinos nas 4 semanas antes para comparar"]]);
+  });
+
+  it("músculo da vez, recordes e time", () => {
+    const m = placarDesafio({ tipo: "musculo", meta: null, inicio: "2026-10-01", fim: "2026-10-07", foco: "pernas" }, [
+      P("A", [], [s("2026-10-02T12:00:00Z", 10, 10, { grupo: "quadriceps" }), s("2026-10-02T12:00:00Z", 10, 10, { grupo: "peito" })]),
+      P("B", [], [s("2026-10-02T12:00:00Z", 10, 10, { grupo: "gluteo" }), s("2026-10-02T12:00:00Z", 10, 10, { grupo: "posteriores" })]),
+    ]);
+    expect(m.map((l) => [l.nome, l.rotulo])).toEqual([["B", "2 séries de pernas"], ["A", "1 série de pernas"]]);
+    const rec = placarDesafio({ tipo: "recordes", meta: null, inicio: "2026-10-01", fim: "2026-10-07" }, [P("A", [], [], ["2026-10-02T12:00:00Z", "2026-10-03T12:00:00Z"]), P("B", [], [], ["2026-09-30T12:00:00Z"])]);
+    expect(rec.map((l) => [l.nome, l.pontos, l.cumpriu])).toEqual([["A", 2, true], ["B", 0, false]]);
+    const time = placarDesafio({ tipo: "dupla", meta: 3, inicio: "2026-10-01", fim: "2026-10-07" }, [P("A", ["2026-10-02T12:00:00Z", "2026-10-03T12:00:00Z"]), P("B", ["2026-10-02T12:00:00Z"])]);
+    expect(time.every((l) => l.cumpriu)).toBe(true);
+  });
+
+  it("recado do placar", () => {
+    const d = { tipo: "mais_treinos" as const, meta: null, inicio: "2026-10-01", fim: "2026-10-07", nome: "Duelo" };
+    const placar = placarDesafio(d, [P("A", ["2026-10-02T12:00:00Z"]), P("B", ["2026-10-02T12:00:00Z", "2026-10-03T12:00:00Z"])]);
+    expect(recadoDoPlacar(d, placar, "2026-10-05")).toBe("⚔️ B está na frente em “Duelo” (você em 2º), faltam 2 dias. Bora virar!");
+    expect(recadoDoPlacar(d, placar, "2026-10-08")).toBeNull();
   });
 });

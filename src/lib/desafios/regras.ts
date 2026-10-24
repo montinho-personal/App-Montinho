@@ -1,26 +1,72 @@
 // ============================================================================
 // Desafios entre alunos (pedido do Montinho, 24/10/2026). Puro e testável.
 //
-// Só o que o app mede sozinho, para ninguém precisar provar nada:
-//  • mais_treinos — ganha quem fizer mais treinos no período;
-//  • meta_fixa    — quem chegar a N treinos até o fim cumpre (todos podem);
-//  • semanas      — N treinos por semana em TODAS as semanas do período;
-//  • madrugador   — mais treinos começados antes das 6h (Brasília).
-// Conta treino concluído com séries, no máximo 1 por dia (horário de Brasília).
-// Nada de quilos: não favorece quem já é mais forte.
+// Só o que o app mede sozinho, para ninguém precisar provar nada. Conta treino
+// concluído com séries, no máximo 1 por dia (horário de Brasília). Tipos:
+//  • mais_treinos  — mais treinos no período (disputa);
+//  • corrida       — quem chega primeiro a N treinos (disputa);
+//  • meta_fixa     — chegar a N treinos até o fim (todos podem cumprir);
+//  • semanas       — N treinos por semana em TODAS as semanas (meta);
+//  • madrugador    — mais treinos começados antes das 6h (disputa);
+//  • volume        — mais peso total (kg × repetições) no período (disputa);
+//  • evolucao      — maior aumento do volume em relação à própria média das
+//                    4 semanas anteriores (justo entre forte e iniciante);
+//  • recordes      — mais recordes pessoais no período (disputa);
+//  • musculo       — mais séries de um grupo (pernas, braços…) (disputa);
+//  • dupla         — todos somam treinos para bater uma meta juntos (time);
+//  • treino_desafio— o mesmo treino para todos: mais volume nesses exercícios.
+// Volume = séries válidas (normais, drop-set, rest-pause, cluster) com carga ×
+// repetições; aquecimento e isometria não entram.
 // ============================================================================
 
-export type TipoDesafio = "mais_treinos" | "meta_fixa" | "semanas" | "madrugador";
+export type TipoDesafio = "mais_treinos" | "corrida" | "meta_fixa" | "semanas" | "madrugador" | "volume" | "evolucao" | "recordes" | "musculo" | "dupla" | "treino_desafio";
+export type FocoMuscular = "pernas" | "gluteo" | "bracos" | "peito" | "costas" | "ombros" | "abdomen";
 
-export const TIPOS_DESAFIO: Record<TipoDesafio, { titulo: string; emoji: string; descricao: string; pedeMeta: boolean; metaPadrao: number | null; rotuloMeta: string | null }> = {
-  mais_treinos: { titulo: "Quem treina mais", emoji: "🏋️", descricao: "Ganha quem fizer mais treinos no período.", pedeMeta: false, metaPadrao: null, rotuloMeta: null },
-  meta_fixa: { titulo: "Meta de treinos", emoji: "🎯", descricao: "Todo mundo que chegar à meta até o fim cumpre o desafio.", pedeMeta: true, metaPadrao: 12, rotuloMeta: "treinos no período" },
-  semanas: { titulo: "Semana em dia", emoji: "📅", descricao: "Cumpre quem treinar o combinado em todas as semanas.", pedeMeta: true, metaPadrao: 3, rotuloMeta: "treinos por semana" },
-  madrugador: { titulo: "Madrugadores", emoji: "🌅", descricao: "Ganha quem fizer mais treinos começados antes das 6h.", pedeMeta: false, metaPadrao: null, rotuloMeta: null },
+type InfoTipo = { titulo: string; emoji: string; descricao: string; meta: { padrao: number; max: number; rotulo: string } | null; modo: "disputa" | "meta" | "time" };
+export const TIPOS_DESAFIO: Record<TipoDesafio, InfoTipo> = {
+  mais_treinos: { titulo: "Quem treina mais", emoji: "🏋️", descricao: "Ganha quem fizer mais treinos no período.", meta: null, modo: "disputa" },
+  corrida: { titulo: "Corrida de treinos", emoji: "🏁", descricao: "Ganha quem chegar primeiro ao número de treinos.", meta: { padrao: 10, max: 40, rotulo: "treinos para chegar" }, modo: "disputa" },
+  meta_fixa: { titulo: "Meta de treinos", emoji: "🎯", descricao: "Todo mundo que chegar à meta até o fim cumpre o desafio.", meta: { padrao: 12, max: 60, rotulo: "treinos no período" }, modo: "meta" },
+  semanas: { titulo: "Semana em dia", emoji: "📅", descricao: "Cumpre quem treinar o combinado em todas as semanas.", meta: { padrao: 3, max: 7, rotulo: "treinos por semana" }, modo: "meta" },
+  madrugador: { titulo: "Madrugadores", emoji: "🌅", descricao: "Ganha quem fizer mais treinos começados antes das 6h.", meta: null, modo: "disputa" },
+  volume: { titulo: "Quem pega mais peso", emoji: "🏋️‍♂️", descricao: "Ganha quem somar mais peso no período (carga × repetições de cada série).", meta: null, modo: "disputa" },
+  evolucao: { titulo: "Quem mais evolui", emoji: "📈", descricao: "Ganha quem mais aumentar o próprio volume em relação às 4 semanas anteriores. Justo para quem é forte e para quem está começando.", meta: null, modo: "disputa" },
+  recordes: { titulo: "Caçador de recordes", emoji: "🏆", descricao: "Ganha quem bater mais recordes pessoais no período.", meta: null, modo: "disputa" },
+  musculo: { titulo: "Músculo da vez", emoji: "💪", descricao: "Ganha quem fizer mais séries do grupo escolhido.", meta: null, modo: "disputa" },
+  dupla: { titulo: "Time", emoji: "🤝", descricao: "Todo mundo soma treinos para bater a meta juntos. Ou todos ganham, ou ninguém.", meta: { padrao: 20, max: 200, rotulo: "treinos somados" }, modo: "time" },
+  treino_desafio: { titulo: "Treino do desafio", emoji: "📋", descricao: "Todo mundo faz os mesmos exercícios. Ganha quem somar mais peso neles (carga × repetições).", meta: null, modo: "disputa" },
 };
 
-export const DURACOES_DESAFIO = [7, 14, 30] as const;
-export const LIMITES_DESAFIO = { participantes: 30, horaMadrugada: 6, desafiosParaNato: 3 } as const;
+export const FOCOS: Record<FocoMuscular, { rotulo: string; grupos: string[] }> = {
+  pernas: { rotulo: "Pernas", grupos: ["quadriceps", "posteriores", "gluteo", "adutores", "abdutores", "panturrilha", "pernas"] },
+  gluteo: { rotulo: "Glúteos", grupos: ["gluteo", "abdutores"] },
+  bracos: { rotulo: "Braços", grupos: ["biceps", "triceps", "antebraco"] },
+  peito: { rotulo: "Peito", grupos: ["peito"] },
+  costas: { rotulo: "Costas", grupos: ["costas", "trapezio", "lombar"] },
+  ombros: { rotulo: "Ombros", grupos: ["ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior"] },
+  abdomen: { rotulo: "Abdômen", grupos: ["abdomen", "core"] },
+};
+
+export const DURACOES_DESAFIO = [1, 3, 7, 14, 30] as const;
+export const LIMITES_DESAFIO = { participantes: 30, horaMadrugada: 6, desafiosParaNato: 3, exerciciosTreino: 10, diasBase: 28 } as const;
+export const TIPOS_SERIE_VOLUME = ["valida", "dropset", "rest_pause", "cluster"] as const;
+
+/** Desafios prontos (o Montinho aprovou a lista em 24/10/2026). */
+export type DesafioPronto = { id: string; nome: string; emoji: string; chamada: string; tipo: TipoDesafio; meta: number | null; dias: number; foco?: FocoMuscular };
+export const DESAFIOS_PRONTOS: DesafioPronto[] = [
+  { id: "peso_hoje", nome: "Quem pega mais peso hoje", emoji: "🏋️‍♂️", chamada: "Duelo de 1 dia: soma de carga × repetições do treino de hoje.", tipo: "volume", meta: null, dias: 1 },
+  { id: "duelo_relampago", nome: "Duelo Relâmpago", emoji: "⚡", chamada: "Quem treina mais em 3 dias.", tipo: "mais_treinos", meta: null, dias: 3 },
+  { id: "semana_espartana", nome: "Semana Espartana", emoji: "🏛️", chamada: "5 treinos em 7 dias. Todo mundo que conseguir, cumpre.", tipo: "meta_fixa", meta: 5, dias: 7 },
+  { id: "corrida_10", nome: "Corrida dos 10", emoji: "🏁", chamada: "Quem chega a 10 treinos primeiro.", tipo: "corrida", meta: 10, dias: 30 },
+  { id: "modo_monstro", nome: "Modo Monstro", emoji: "👹", chamada: "Maior volume total (kg × repetições) em 14 dias.", tipo: "volume", meta: null, dias: 14 },
+  { id: "fenix", nome: "Fênix", emoji: "🔥", chamada: "Quem mais evolui o próprio volume em 30 dias.", tipo: "evolucao", meta: null, dias: 30 },
+  { id: "rei_da_perna", nome: "Rei/Rainha da Perna", emoji: "🦵", chamada: "Mais séries de perna em 14 dias.", tipo: "musculo", meta: null, dias: 14, foco: "pernas" },
+  { id: "cacador_recordes", nome: "Caçador de Recordes", emoji: "🏆", chamada: "Mais recordes pessoais em 30 dias.", tipo: "recordes", meta: null, dias: 30 },
+  { id: "clube_5h", nome: "Clube das 5h", emoji: "🌅", chamada: "Mais treinos começados antes das 6h em 14 dias.", tipo: "madrugador", meta: null, dias: 14 },
+  { id: "dupla_imbativel", nome: "Dupla Imbatível", emoji: "🤝", chamada: "20 treinos somados em 14 dias. Juntos!", tipo: "dupla", meta: 20, dias: 14 },
+  { id: "mes_sem_falhar", nome: "Mês sem Falhar", emoji: "🗓️", chamada: "3 treinos por semana, o mês inteiro.", tipo: "semanas", meta: 3, dias: 28 },
+  { id: "mesmo_treino", nome: "Mesmo treino, quem pega mais?", emoji: "📋", chamada: "Escolham os exercícios: ganha quem somar mais peso neles.", tipo: "treino_desafio", meta: null, dias: 7 },
+];
 
 const DIA = 86_400_000;
 const FUSO = -3 * 3_600_000; // Brasília (sem horário de verão)
@@ -31,7 +77,8 @@ export function diaBrasilia(iso: string | Date): string {
   return new Date(t).toISOString().slice(0, 10);
 }
 const horaBrasilia = (iso: string) => new Date(Date.parse(iso) + FUSO).getUTCHours();
-const somarDias = (dia: string, n: number) => new Date(Date.parse(`${dia}T00:00:00Z`) + n * DIA).toISOString().slice(0, 10);
+export const somarDias = (dia: string, n: number) => new Date(Date.parse(`${dia}T00:00:00Z`) + n * DIA).toISOString().slice(0, 10);
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DIA);
 
 /** Código do link: 6 letras/números sem 0/O e 1/I. */
 export function gerarCodigoDesafio(aleatorio: () => number = Math.random): string {
@@ -41,22 +88,37 @@ export function gerarCodigoDesafio(aleatorio: () => number = Math.random): strin
   return s;
 }
 
-export type DesafioBase = { tipo: TipoDesafio; meta: number | null; inicio: string; fim: string };
-export type ParticipanteDados = { alunoId: string; nome: string; status: "convidado" | "aceito" | "recusado"; eu: boolean; criador: boolean; treinos: string[] };
+export type ExercicioDesafio = { id: string; nome: string };
+export type DesafioBase = { tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null };
+/** Série registrada (só para os tipos de peso/músculo). `em` = início do treino. */
+export type SerieDesafio = { em: string; bibliotecaId: string | null; grupo: string | null; carga: number | null; reps: number | null };
+export type ParticipanteDados = {
+  alunoId: string;
+  nome: string;
+  status: "convidado" | "aceito" | "recusado";
+  eu: boolean;
+  criador: boolean;
+  /** Início de cada treino concluído com séries no período. */
+  treinos: string[];
+  /** Séries do período (e das 4 semanas antes, para a evolução). */
+  series?: SerieDesafio[];
+  /** Datas dos recordes pessoais no período. */
+  recordes?: string[];
+};
 export type LinhaPlacar = {
   alunoId: string;
   nome: string;
   eu: boolean;
   criador: boolean;
-  /** Número principal do placar (treinos, treinos de madrugada ou semanas cumpridas). */
+  /** Número principal do placar. */
   pontos: number;
-  /** Texto do número (“5 treinos”, “2 de 3 semanas”). */
+  /** Texto do número (“5 treinos”, “2 de 3 semanas”, “12.345 kg”). */
   rotulo: string;
   posicao: number;
   cumpriu: boolean;
 };
 
-/** Semanas do período (blocos de 7 dias a partir do início; a última pode ser menor e só conta se for completa). */
+/** Semanas do período (blocos de 7 dias a partir do início; a última só conta se for completa). */
 export function semanasDoDesafio(inicio: string, fim: string): Array<{ inicio: string; fim: string }> {
   const out: Array<{ inicio: string; fim: string }> = [];
   for (let d = inicio; d <= fim; d = somarDias(d, 7)) {
@@ -67,42 +129,116 @@ export function semanasDoDesafio(inicio: string, fim: string): Array<{ inicio: s
 }
 
 const plural = (n: number, s: string, p: string) => `${n} ${n === 1 ? s : p}`;
+export const kgBR = (n: number) => `${Math.round(n).toLocaleString("pt-BR")} kg`;
+const volumeDe = (ss: SerieDesafio[]) => ss.reduce((t, s) => t + (s.carga && s.reps && s.carga > 0 && s.reps > 0 ? s.carga * s.reps : 0), 0);
 
-/** Placar dos que aceitaram. `hoje` define se o desafio já acabou (para “cumpriu”/campeão). */
+/** Placar dos que aceitaram. */
 export function placarDesafio(d: DesafioBase, participantes: ParticipanteDados[]): LinhaPlacar[] {
+  const info = TIPOS_DESAFIO[d.tipo];
   const aceitos = participantes.filter((p) => p.status === "aceito");
   const semanas = semanasDoDesafio(d.inicio, d.fim);
-  const linhas = aceitos.map((p) => {
-    const dias = [...new Set(p.treinos.map(diaBrasilia).filter((x) => x >= d.inicio && x <= d.fim))];
+  const noPeriodo = (iso: string) => {
+    const x = diaBrasilia(iso);
+    return x >= d.inicio && x <= d.fim;
+  };
+  const meta = d.meta ?? info.meta?.padrao ?? 1;
+
+  type Linha = LinhaPlacar & { desempate: number };
+  const linhas: Linha[] = aceitos.map((p) => {
+    const dias = [...new Set(p.treinos.filter(noPeriodo).map(diaBrasilia))].sort();
+    const series = (p.series ?? []).filter((s) => noPeriodo(s.em));
     let pontos = dias.length;
     let rotulo = plural(pontos, "treino", "treinos");
     let cumpriu = false;
-    if (d.tipo === "madrugador") {
-      const cedo = new Set(p.treinos.filter((t) => horaBrasilia(t) < LIMITES_DESAFIO.horaMadrugada).map(diaBrasilia).filter((x) => x >= d.inicio && x <= d.fim));
-      pontos = cedo.size;
-      rotulo = `${plural(pontos, "treino", "treinos")} antes das 6h`;
-    } else if (d.tipo === "meta_fixa") {
-      const meta = d.meta ?? 1;
-      rotulo = `${Math.min(pontos, meta)} de ${meta} treinos`;
-      cumpriu = pontos >= meta;
-    } else if (d.tipo === "semanas") {
-      const meta = d.meta ?? 1;
-      const ok = semanas.filter((w) => dias.filter((x) => x >= w.inicio && x <= w.fim).length >= meta).length;
-      pontos = ok;
-      rotulo = `${ok} de ${plural(semanas.length, "semana", "semanas")}`;
-      cumpriu = ok === semanas.length;
+    let desempate = dias.length;
+    switch (d.tipo) {
+      case "madrugador": {
+        const cedo = new Set(p.treinos.filter((t) => noPeriodo(t) && horaBrasilia(t) < LIMITES_DESAFIO.horaMadrugada).map(diaBrasilia));
+        pontos = cedo.size;
+        rotulo = `${plural(pontos, "treino", "treinos")} antes das 6h`;
+        break;
+      }
+      case "corrida": {
+        const chegou = dias.length >= meta ? dias[meta - 1] : null;
+        pontos = Math.min(dias.length, meta);
+        rotulo = chegou ? `🏁 chegou aos ${meta} em ${chegou.split("-").reverse().slice(0, 2).join("/")}` : `${pontos} de ${meta} treinos`;
+        // Quem chegou antes fica na frente: desempate pelo dia (quanto antes, maior).
+        desempate = chegou ? -diasEntre(d.inicio, chegou) : -9999;
+        break;
+      }
+      case "meta_fixa":
+        rotulo = `${Math.min(pontos, meta)} de ${meta} treinos`;
+        cumpriu = pontos >= meta;
+        break;
+      case "semanas": {
+        const ok = semanas.filter((w) => dias.filter((x) => x >= w.inicio && x <= w.fim).length >= meta).length;
+        pontos = ok;
+        rotulo = `${ok} de ${plural(semanas.length, "semana", "semanas")}`;
+        cumpriu = ok === semanas.length;
+        break;
+      }
+      case "volume":
+        pontos = Math.round(volumeDe(series));
+        rotulo = kgBR(pontos);
+        break;
+      case "treino_desafio": {
+        const ids = new Set((d.exercicios ?? []).map((e) => e.id));
+        pontos = Math.round(volumeDe(series.filter((s) => s.bibliotecaId && ids.has(s.bibliotecaId))));
+        rotulo = kgBR(pontos);
+        break;
+      }
+      case "evolucao": {
+        const inicioBase = somarDias(d.inicio, -LIMITES_DESAFIO.diasBase);
+        const base = volumeDe((p.series ?? []).filter((s) => {
+          const x = diaBrasilia(s.em);
+          return x >= inicioBase && x < d.inicio;
+        }));
+        const diasPeriodo = diasEntre(d.inicio, d.fim) + 1;
+        const atualPorSemana = (volumeDe(series) / diasPeriodo) * 7;
+        const basePorSemana = (base / LIMITES_DESAFIO.diasBase) * 7;
+        if (basePorSemana <= 0) {
+          pontos = 0;
+          rotulo = "sem treinos nas 4 semanas antes para comparar";
+          desempate = -1;
+        } else {
+          pontos = Math.round((atualPorSemana / basePorSemana - 1) * 100);
+          rotulo = `${pontos > 0 ? "+" : ""}${pontos}% de volume por semana`;
+        }
+        break;
+      }
+      case "recordes":
+        pontos = new Set((p.recordes ?? []).filter(noPeriodo)).size;
+        rotulo = plural(pontos, "recorde", "recordes");
+        break;
+      case "musculo": {
+        const grupos = new Set(FOCOS[d.foco ?? "pernas"].grupos);
+        pontos = series.filter((s) => s.grupo && grupos.has(s.grupo)).length;
+        rotulo = `${plural(pontos, "série", "séries")} de ${FOCOS[d.foco ?? "pernas"].rotulo.toLowerCase()}`;
+        break;
+      }
     }
-    return { alunoId: p.alunoId, nome: p.nome, eu: p.eu, criador: p.criador, pontos, rotulo, posicao: 0, cumpriu, desempate: dias.length };
+    return { alunoId: p.alunoId, nome: p.nome, eu: p.eu, criador: p.criador, pontos, rotulo, posicao: 0, cumpriu, desempate };
   });
-  linhas.sort((a, b) => b.pontos - a.pontos || b.desempate - a.desempate || a.nome.localeCompare(b.nome, "pt-BR"));
+
+  linhas.sort((a, b) => (d.tipo === "corrida" ? b.desempate - a.desempate || b.pontos - a.pontos : b.pontos - a.pontos || b.desempate - a.desempate) || a.nome.localeCompare(b.nome, "pt-BR"));
   let pos = 0;
   linhas.forEach((l, i) => {
-    if (i === 0 || l.pontos !== linhas[i - 1].pontos || l.desempate !== linhas[i - 1].desempate) pos = i + 1;
+    const anterior = linhas[i - 1];
+    if (i === 0 || l.pontos !== anterior.pontos || l.desempate !== anterior.desempate) pos = i + 1;
     l.posicao = pos;
   });
-  // Disputa (mais treinos/madrugador): campeão(ões) = 1º lugar com pelo menos 1 ponto e 2+ participantes.
-  if (d.tipo === "mais_treinos" || d.tipo === "madrugador") for (const l of linhas) l.cumpriu = l.posicao === 1 && l.pontos > 0 && linhas.length >= 2;
+  if (info.modo === "disputa") {
+    for (const l of linhas) l.cumpriu = l.posicao === 1 && linhas.length >= 2 && (d.tipo === "corrida" ? l.pontos >= meta : l.pontos > 0);
+  } else if (info.modo === "time") {
+    const total = linhas.reduce((t, l) => t + l.pontos, 0);
+    for (const l of linhas) l.cumpriu = total >= meta && linhas.length >= 2;
+  }
   return linhas.map(({ desempate: _d, ...l }) => (void _d, l));
+}
+
+/** Total do time (desafio “dupla”). */
+export function totalDoTime(placar: LinhaPlacar[]): number {
+  return placar.reduce((t, l) => t + l.pontos, 0);
 }
 
 export type SituacaoDesafio = "agendado" | "andamento" | "encerrado";
@@ -115,13 +251,40 @@ export function situacaoDesafio(d: { inicio: string; fim: string; cancelado: boo
 export function resumoDesafio(d: DesafioBase): string {
   const t = TIPOS_DESAFIO[d.tipo];
   const br = (x: string) => x.split("-").reverse().slice(0, 2).join("/");
-  const meta = d.tipo === "meta_fixa" ? ` · meta de ${d.meta} treinos` : d.tipo === "semanas" ? ` · ${d.meta}× por semana` : "";
-  return `${t.titulo}${meta} · ${br(d.inicio)} a ${br(d.fim)}`;
+  const extra =
+    d.tipo === "meta_fixa" ? ` · meta de ${d.meta} treinos`
+    : d.tipo === "semanas" ? ` · ${d.meta}× por semana`
+    : d.tipo === "corrida" ? ` · até ${d.meta} treinos`
+    : d.tipo === "dupla" ? ` · ${d.meta} treinos somados`
+    : d.tipo === "musculo" ? ` · ${FOCOS[d.foco ?? "pernas"].rotulo}`
+    : d.tipo === "treino_desafio" ? ` · ${plural((d.exercicios ?? []).length, "exercício", "exercícios")}`
+    : "";
+  const quando = d.inicio === d.fim ? `só em ${br(d.inicio)}` : `${br(d.inicio)} a ${br(d.fim)}`;
+  return `${t.titulo}${extra} · ${quando}`;
 }
 
 /** Mensagem do convite no WhatsApp (link com o código). */
 export function mensagemConviteDesafio(p: { nome: string; criador: string; resumo: string; link: string }): string {
   return [`Olá! Bora encarar um desafio no app do Montinho? 💪`, `“${p.nome}” — ${p.resumo}`, `Entra por aqui: ${p.link}`].join("\n\n");
+}
+
+/** Recado do placar para quem está participando (“faltam 2 dias e o João está 1 treino na frente”). */
+export function recadoDoPlacar(d: DesafioBase & { nome: string }, placar: LinhaPlacar[], hoje: string): string | null {
+  const eu = placar.find((l) => l.eu);
+  if (!eu || hoje < d.inicio || hoje > d.fim) return null;
+  const faltam = diasEntre(hoje, d.fim);
+  const prazo = faltam === 0 ? "termina hoje" : faltam === 1 ? "termina amanhã" : `faltam ${faltam} dias`;
+  const modo = TIPOS_DESAFIO[d.tipo].modo;
+  if (modo === "time") {
+    const total = totalDoTime(placar);
+    const meta = d.meta ?? 1;
+    return total >= meta ? `🤝 Meta do time batida em “${d.nome}”!` : `🤝 “${d.nome}”: o time tem ${total} de ${meta}, ${prazo}.`;
+  }
+  if (modo === "meta") return eu.cumpriu ? `✅ Meta cumprida em “${d.nome}”!` : `🎯 “${d.nome}”: ${eu.rotulo}, ${prazo}.`;
+  if (placar.length < 2) return `⚔️ “${d.nome}”: chame alguém para disputar, ${prazo}.`;
+  if (eu.posicao === 1) return `🥇 Você lidera “${d.nome}”, ${prazo}. Não deixe ninguém passar!`;
+  const lider = placar.find((l) => l.posicao === 1)!;
+  return `⚔️ ${lider.nome} está na frente em “${d.nome}” (você em ${eu.posicao}º), ${prazo}. Bora virar!`;
 }
 
 // ---------------------------------------------------------------------------

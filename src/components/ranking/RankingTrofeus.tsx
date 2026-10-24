@@ -1,5 +1,6 @@
 // Ranking de troféus: pódio (ouro, prata, bronze) + lista. Mostra só o nome
 // que a função do banco devolve (primeiro nome e inicial para os alunos).
+import Link from "next/link";
 import { DESEMPATE, PODIO, podioDaPosicao, type LinhaRanking } from "@/lib/ranking/trofeus";
 
 const ALTURA: Record<number, string> = { 1: "h-28", 2: "h-20", 3: "h-14" };
@@ -25,7 +26,7 @@ function Degrau({ posicao, linhas }: { posicao: 1 | 2 | 3; linhas: LinhaRanking[
   );
 }
 
-export function RankingTrofeus({ linhas, nomeCompleto = false }: { linhas: LinhaRanking[]; nomeCompleto?: boolean }) {
+export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false }: { linhas: LinhaRanking[]; nomeCompleto?: boolean; desafiar?: boolean }) {
   if (!linhas.length) return <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Ainda ninguém tem troféus. O primeiro a conquistar já sai na frente!</p>;
   return (
     <div className="space-y-4">
@@ -44,6 +45,11 @@ export function RankingTrofeus({ linhas, nomeCompleto = false }: { linhas: Linha
                 {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
                 {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
               </span>
+              {desafiar && !l.eu ? (
+                <Link href={`/aluno/desafios/novo?com=${encodeURIComponent(l.nome)}`} className="alvo shrink-0 rounded-full border border-accent/60 px-2.5 py-1 text-xs font-bold text-accent" aria-label={`Desafiar ${l.nome}`}>
+                  ⚔️ Desafiar
+                </Link>
+              ) : null}
               <span className="shrink-0 text-right">
                 <span className="block font-mono text-sm">{l.trofeus}{l.mesmoTotalAcima ? <span className="text-fg-subtle" title="Empate em troféus: decidido pelo desempate">*</span> : null} <span aria-label={l.trofeus === 1 ? "troféu" : "troféus"}>🏆</span></span>
                 {l.aderenciaSemana != null ? <span className="block text-[10px] text-fg-subtle">semana {l.aderenciaSemana}%</span> : null}

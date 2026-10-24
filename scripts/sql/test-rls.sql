@@ -1552,6 +1552,20 @@ begin
   v_id := public.entrar_no_desafio('abc123');
   if not exists (select 1 from desafios where id = v_id) then raise exception 'T49h: entrou mas não vê o desafio'; end if;
   if (select count(*) from public.dados_desafio(v_id)) <> 2 then raise exception 'T49i: placar sem os 2 participantes'; end if;
+  if not public.cutucar_no_desafio(v_id, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '🔥') then raise exception 'T49j: não cutucou'; end if;
+  if public.cutucar_no_desafio(v_id, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '💪') then raise exception 'T49k: cutucou 2x no mesmo dia'; end if;
+  begin
+    insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim) values ('ABC125', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Sem foco', 'musculo', current_date, current_date);
+    raise exception 'T49l: músculo sem foco foi aceito';
+  exception when check_violation then null;
+  end;
+  insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim, exercicios) values ('ABC126', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Mesmo treino', 'treino_desafio', current_date, current_date, '[{"id":"x","nome":"Agachamento"}]');
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if (select count(*) from public.minhas_cutucadas()) <> 1 then raise exception 'T49m: cutucada não chegou'; end if;
 end $$;
 select test_logout();
 do $$

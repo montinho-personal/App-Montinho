@@ -51,7 +51,7 @@ import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
 import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
 import { estadoDoAcesso } from "@/lib/visitante/acesso";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
-import { listarMeusDesafios } from "@/lib/data/desafios";
+import { listarMeusDesafios, minhasCutucadas, recadosDosDesafios } from "@/lib/data/desafios";
 import { hrefDaSessao } from "@/lib/treino/livre";
 
 export const metadata = { title: "Início" };
@@ -102,7 +102,8 @@ export default async function AlunoHomePage() {
   const ofertaHref = campanha?.oferta && BRAND.contact.whatsapp ? linkOferta(campanha.oferta, BRAND.contact.whatsapp) : null;
   const mostrarConvite = Boolean(campanha && conviteLiberado(campanha.treinosConcluidos, campanha.indicacao));
   // Convites para desafio entre amigos esperando resposta (0094).
-  const desafios = await listarMeusDesafios(alunoId).catch(() => []);
+  const [desafios, cutucadas] = await Promise.all([listarMeusDesafios(alunoId).catch(() => []), minhasCutucadas(alunoId).catch(() => [])]);
+  const recadosDesafio = await recadosDosDesafios(alunoId, desafios).catch(() => []);
 
   return (
     <div className="space-y-5">
@@ -117,7 +118,7 @@ export default async function AlunoHomePage() {
         </h1>
       </header>
 
-      <EntradaDesafios desafios={desafios} compacto />
+      <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
 
       {/* Depois do fim do acesso, a oferta já vem no topo de todas as telas (layout). */}
       {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
