@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { salvarPlanoSchema } from "@/lib/validacao/schemas";
+import { extraLiberadoSchema, salvarPlanoSchema } from "@/lib/validacao/schemas";
 import { auditarPrescricao } from "./auditar";
-import { PRESCRICAO } from "./operacao-pernas-poderosas";
+import { EXTRAS, PRESCRICAO } from "./operacao-pernas-poderosas";
 import { prescricoesParaAluno } from "./index";
 import { AQUECIMENTO } from "./regras";
 import { seriesDeFinalizacao } from "@/lib/treino/tecnica-config";
@@ -18,9 +18,10 @@ describe("prescrição Operação Pernas Poderosas (Brigida) — conforme a fich
     expect(r.success ? "ok" : JSON.stringify(r.error.issues.slice(0, 3))).toBe("ok");
   });
 
-  it("4 treinos A → D na ordem da ficha, com o nome da operação", () => {
+  it("3 treinos A → C na ordem da ficha (o D virou extra), com o nome da operação", () => {
     expect(PRESCRICAO.programa.nome).toBe("Operação Pernas Poderosas - Intensificação");
-    expect(aud.map((t) => [t.letra, t.itens.length, t.series])).toEqual([["A", 6, 21], ["B", 8, 32], ["C", 6, 21], ["D", 5, 16]]);
+    expect(aud.map((t) => [t.letra, t.itens.length, t.series])).toEqual([["A", 6, 21], ["B", 8, 32], ["C", 6, 21]]);
+    expect(PRESCRICAO.programa.frequencia).toEqual({ A: 1, B: 1, C: 1 });
     expect(T("A").exercicios.map((e) => e.nome)).toEqual(["Prancha frontal", "Cadeira extensora", "Agachamento no Smith", "Leg press 45°", "Hip thrust com barra", "Cadeira abdutora"]);
     expect(T("C").exercicios.map((e) => e.reps)).toEqual(["60s", "20/15/12/10", "12/12/10/8", "20/15/12/10", "12/10/8/8", "20/15/12/10"]);
   });
@@ -39,10 +40,16 @@ describe("prescrição Operação Pernas Poderosas (Brigida) — conforme a fich
     for (let i = 0; i < b.length; i += 2) expect([b[i].descanso_seg, b[i].descanso_apos_seg]).toEqual([0, 0]);
   });
 
-  it("padrão do Montinho: aquecimento no 1º exercício depois da prancha; abdominal remador no banco com nome livre", () => {
+  it("padrão do Montinho: aquecimento no 1º exercício depois da prancha", () => {
     expect(E("A", "Cadeira extensora").observacoes).toContain(AQUECIMENTO);
-    expect(E("D", "Abdominal remador").observacoes).toContain(AQUECIMENTO);
-    expect(E("D", "Abdominal remador no banco")).toMatchObject({ biblioteca_id: null, grupo_origem: "manual", grupo_muscular: "abdomen" });
+    expect(E("C", "Cadeira flexora").observacoes).toContain(AQUECIMENTO);
+  });
+
+  it("Treino D (abdômen e core) como treino extra pronto, válido no painel de extras", () => {
+    expect(EXTRAS).toHaveLength(1);
+    const r = extraLiberadoSchema.safeParse(EXTRAS[0]);
+    expect(r.success ? "ok" : JSON.stringify(r.error.issues.slice(0, 3))).toBe("ok");
+    expect(EXTRAS[0].exercicios!.map((x) => `${x.nome} ${x.series}×${x.reps}`)).toEqual(["Prancha frontal 2×60s", "Prancha lateral 2×60s", "Abdominal remador 4×20", "Abdominal remador no banco 4×20", "Abdominal infra (elevação de pernas deitado) 4×15"]);
   });
 
   it("aparece só para a Brigida", () => {
@@ -56,9 +63,12 @@ describe("prescrição Operação Pernas Poderosas (Brigida) — conforme a fich
     st.alunos.push({ ...st.alunos[0], id: "teste-brigida" });
     await salvarPlano("teste-brigida", "treinador", { ...PRESCRICAO });
     const plano = await getPlanoAtivo("teste-brigida");
-    expect(plano.treinos.map((t) => t.letra)).toEqual(["A", "B", "C", "D"]);
+    expect(plano.treinos.map((t) => t.letra)).toEqual(["A", "B", "C"]);
     const mesa = plano.treinos.find((t) => t.letra === "C")!.exercicios.find((e) => e.nome === "Mesa flexora")!;
     expect([mesa.tecnica, seriesDeFinalizacao(mesa.tecnica, mesa.tecnica_config)]).toEqual(["dropset", 1]);
-    expect(plano.treinos.find((t) => t.letra === "D")!.exercicios.some((e) => e.nome === "Abdominal remador no banco")).toBe(true);
+    const { salvarExtra, listarExtras } = await import("@/lib/data/extras");
+    await salvarExtra("teste-brigida", EXTRAS[0]);
+    const extras = await listarExtras("teste-brigida");
+    expect(extras.find((x) => x.titulo === "Treino D — Abdômen e core")?.exercicios).toHaveLength(5);
   });
 });

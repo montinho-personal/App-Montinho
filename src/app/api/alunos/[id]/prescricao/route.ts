@@ -8,6 +8,7 @@ import { requireTreinadorApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { getPlanoAtivo, listVersoes, salvarPlano, type TreinoInput } from "@/lib/data/programas";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
+import { listarExtras, salvarExtra } from "@/lib/data/extras";
 import { assinaturaTreinos, PRESCRICOES } from "@/lib/prescricoes";
 import { auditarPrescricao } from "@/lib/prescricoes/auditar";
 import { lerJson, salvarPlanoSchema } from "@/lib/validacao/schemas";
@@ -33,15 +34,23 @@ export async function POST(request: Request, { params }: Ctx) {
   const validado = salvarPlanoSchema.safeParse(pr.plano);
   if (!validado.success) return NextResponse.json({ error: "Prescrição inválida", detalhes: validado.error.issues.slice(0, 5) }, { status: 422 });
 
+  // Extras da prescrição (ex.: o Treino D da Brigida): criados pelo mesmo caminho do painel de extras, sem duplicar pelo título.
+  const criarExtras = async () => {
+    if (!pr.extras?.length) return;
+    const existentes = new Set((await listarExtras(id)).map((x) => x.titulo));
+    for (const x of pr.extras) if (!existentes.has(x.titulo)) await salvarExtra(id, x);
+  };
   const [atual, versoes] = await Promise.all([getPlanoAtivo(id), listVersoes(id, 50)]);
   // Já cadastrada (pela marca na versão) ou idêntica ao plano ativo → não grava de novo.
   if (versoes.some((v) => v.motivo?.includes(`[${pr.id}]`)) || (atual.treinos.length && assinaturaTreinos(atual.treinos) === assinaturaTreinos(pr.plano.treinos))) {
+    await criarExtras().catch(() => undefined);
     return NextResponse.json({ ok: true, jaCadastrada: true, auditoria: auditarPrescricao({ treinos: atual.treinos.map((t) => ({ ...t, letra: t.letra as TreinoLetra, exercicios: t.exercicios })) as TreinoInput[] }) });
   }
   // Treinos atuais (se houver) ficam arquivados — nada é apagado.
   const arquivados: TreinoInput[] = atual.treinos.map((t) => paraTreinoInput(t, false));
   try {
     const resultado = await salvarPlano(id, sessao.userId, { ...pr.plano, treinos: [...pr.plano.treinos, ...arquivados], motivo: `${pr.plano.motivo ?? "Prescrição cadastrada"} [${pr.id}]` });
+    await criarExtras();
     await criarIntervencao(id, sessao.userId, { tipo: "revisao_treino", titulo: `Treino cadastrado (versão ${resultado.versao.versao})`, descricao: pr.titulo, referencia: { versao_id: resultado.versao.id, prescricao: pr.id }, visivel_aluno: true }).catch(() => undefined);
     const ativos = resultado.treinos.filter((t) => t.ativo);
     return NextResponse.json({ ok: true, jaCadastrada: false, versao: resultado.versao.versao, auditoria: auditarPrescricao({ treinos: ativos.map((t) => ({ ...t, letra: t.letra as TreinoLetra })) as unknown as TreinoInput[] }) }, { status: 201 });

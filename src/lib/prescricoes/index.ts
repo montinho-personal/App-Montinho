@@ -1,6 +1,7 @@
 // Prescrições prontas (ficha do personal transcrita e auditada) para cadastro
 // com um clique, pelo mesmo caminho do montador (validação, versão, RLS).
 import type { SalvarPlanoInput } from "@/lib/data/programas";
+import type { ExtraInput } from "@/lib/data/extras";
 import { normalizarNome } from "@/lib/grupos";
 import * as missTerracos from "./miss-terracos-tambore";
 import * as mrBellagio from "./missao-mr-bellagio";
@@ -11,7 +12,7 @@ import * as dublinHybrid from "./operacao-dublin-hybrid-queen";
 import * as mrArena from "./operacao-mr-arena-18";
 import * as pernasPoderosas from "./operacao-pernas-poderosas";
 
-export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[] };
+export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[]; /** Treinos extras liberados criados junto no cadastro (sem duplicar pelo título). */ extras?: ExtraInput[] };
 
 export const PRESCRICOES: PrescricaoPronta[] = [
   { id: missTerracos.ID_PRESCRICAO, titulo: `${missTerracos.ROTULO} — Upper/Lower 4×/semana`, alunoNome: missTerracos.NOME_ALUNA, plano: missTerracos.PRESCRICAO, pendencias: missTerracos.PENDENCIAS },
@@ -21,7 +22,7 @@ export const PRESCRICOES: PrescricaoPronta[] = [
   { id: shapeLutador.ID_PRESCRICAO, titulo: `${shapeLutador.ROTULO} — 5 treinos em sequência (A → E)`, alunoNome: shapeLutador.NOME_ALUNO, plano: shapeLutador.PRESCRICAO, pendencias: shapeLutador.PENDENCIAS },
   { id: dublinHybrid.ID_PRESCRICAO, titulo: `${dublinHybrid.ROTULO} — Inferiores/Superiores 4×/semana, com HYROX em bi-set`, alunoNome: dublinHybrid.NOME_ALUNA, plano: dublinHybrid.PRESCRICAO, pendencias: dublinHybrid.PENDENCIAS },
   { id: mrArena.ID_PRESCRICAO, titulo: `${mrArena.ROTULO} — Push/Legs/Pull em sequência (A → C)`, alunoNome: mrArena.NOME_ALUNO, plano: mrArena.PRESCRICAO, pendencias: mrArena.PENDENCIAS },
-  { id: pernasPoderosas.ID_PRESCRICAO, titulo: `${pernasPoderosas.ROTULO} — 4 treinos em sequência (A → D)`, alunoNome: pernasPoderosas.NOME_ALUNA, plano: pernasPoderosas.PRESCRICAO, pendencias: pernasPoderosas.PENDENCIAS },
+  { id: pernasPoderosas.ID_PRESCRICAO, titulo: `${pernasPoderosas.ROTULO} — 3 treinos em sequência (A → C) + Treino D (abdômen) como extra`, alunoNome: pernasPoderosas.NOME_ALUNA, plano: pernasPoderosas.PRESCRICAO, pendencias: pernasPoderosas.PENDENCIAS, extras: pernasPoderosas.EXTRAS },
 ];
 
 export function prescricoesParaAluno(nome: string | null | undefined): PrescricaoPronta[] {

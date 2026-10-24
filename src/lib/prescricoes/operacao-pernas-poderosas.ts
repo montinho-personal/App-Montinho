@@ -1,7 +1,9 @@
 // ============================================================================
 // Prescrição — Operação Pernas Poderosas · Intensificação (Brigida Cibelle
-// Pereira). 4 treinos em sequência A → D: Quadríceps e glúteo / Upper em
-// bi-sets / Posterior e glúteo / Abdômen e core. Fonte: prints da ficha do
+// Pereira). 3 treinos em sequência A → C: Quadríceps e glúteo / Upper em
+// bi-sets / Posterior e glúteo. O “Treino D” da ficha (abdômen e core) virou
+// TREINO EXTRA liberado (pedido do personal em 24/10/2026), criado junto no
+// cadastro (EXTRAS). Fonte: prints da ficha do
 // personal (24/10/2026). Mesmas convenções das fichas anteriores:
 //  • Pirâmide: técnica "piramide" + séries detalhadas.
 //  • “Pirâmide + 1 série de finalização com drop-set/rest-pause”: o app guarda
@@ -25,13 +27,13 @@
 // Abdominal infra (elevação de pernas deitado). “Abdominal remador banco” não
 // existe na biblioteca: entra com o nome da ficha (nome livre, conta abdômen).
 // Programa: nome, objetivo, nível, prioridades, observações e fase que o
-// personal já tinha no app; 4 treinos em sequência (o D, de abdômen, no dia
-// do aeróbico de quinta).
+// personal já tinha no app; 3 treinos em sequência, como estava.
 // ============================================================================
 
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
+import type { ExtraInput } from "@/lib/data/extras";
 import { comRegras } from "./regras";
 
 export const ID_PRESCRICAO = "operacao-pernas-poderosas-intensificacao-v1";
@@ -122,10 +124,10 @@ export const PRESCRICAO: SalvarPlanoInput = {
     nome: ROTULO,
     objetivo: "Hipertrofia",
     nivel: "Intermediário",
-    split: "Quadríceps / Upper / Posterior / Abdômen",
+    split: "Quadríceps / Upper / Posterior",
     modo_semana: "rotativo",
-    frequencia: { A: 1, B: 1, C: 1, D: 1 },
-    calendario: { modo: "rotativo", sequencia: ["A", "B", "C", "D"], diasPorSemana: 4 },
+    frequencia: { A: 1, B: 1, C: 1 },
+    calendario: { modo: "rotativo", sequencia: ["A", "B", "C"], diasPorSemana: 3 },
     metas_volume: {},
     prioridades: ["quadriceps", "posteriores", "gluteo"],
     equipamentos: [],
@@ -163,16 +165,29 @@ export const PRESCRICAO: SalvarPlanoInput = {
       pir("Agachamento búlgaro", ["12", "10", "8", "8"], "Com halteres."),
       pirFinal("Cadeira abdutora", P20, "rest_pause", `Fazer as 4 séries + 1 série de finalização com rest-pause! ${ISO5}`),
     ]),
-    treino("D", "Abdômen e core", [
-      prancha("Prancha frontal", 2),
-      prancha("Prancha lateral", 2, "1 série de cada lado."),
-      ex("Abdominal remador", x(4, "20"), null),
-      ex("Abdominal remador no banco", x(4, "20"), null),
-      ex("Abdominal infra (elevação de pernas deitado)", x(4, "15"), null, { obs: "Joelho estendido." }),
-    ]),
   ],
   motivo: "Cadastro da prescrição Operação Pernas Poderosas - Intensificação a partir da ficha do personal",
 };
+
+/** O “Treino D” da ficha, como treino extra liberado (o aluno faz quando quiser, nas regras dos extras). */
+export const EXTRAS: ExtraInput[] = [
+  {
+    modalidade: "resistido",
+    titulo: "Treino D — Abdômen e core",
+    descricao: "Prancha frontal: 2 × 60 s. Prancha lateral: 2 × 60 s (1 série de cada lado). Abdominal remador: 4 × 20. Abdominal remador no banco: 4 × 20. Abdominal infra (joelho estendido): 4 × 15. Chegar todas até a falha!",
+    duracao_min: 25,
+    treino_id: null,
+    grupos: ["abdomen", "core"],
+    series_estimadas: 16,
+    exercicios: [
+      { biblioteca_id: BIBLIOTECA["Prancha frontal"].id, nome: "Prancha frontal", series: 2, reps: "60s" },
+      { biblioteca_id: BIBLIOTECA["Prancha lateral"].id, nome: "Prancha lateral", series: 2, reps: "60s" },
+      { biblioteca_id: BIBLIOTECA["Abdominal remador"].id, nome: "Abdominal remador", series: 4, reps: "20" },
+      { biblioteca_id: null, nome: "Abdominal remador no banco", series: 4, reps: "20" },
+      { biblioteca_id: BIBLIOTECA["Abdominal infra (elevação de pernas deitado)"].id, nome: "Abdominal infra (elevação de pernas deitado)", series: 4, reps: "15" },
+    ],
+  },
+];
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
 export const PENDENCIAS: string[] = [
