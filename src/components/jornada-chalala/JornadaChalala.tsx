@@ -15,7 +15,7 @@ import { DetalheMedalha } from "@/components/conquistas/DetalheMedalha";
 import { cardDaMedalha } from "@/components/conquistas/VitrineMedalhas";
 import { enviarEvento } from "@/components/chalala/evento";
 import { CONTEUDO } from "@/lib/conquistas/conteudo";
-import type { EventoJornada, Jornada, NoJornada } from "@/lib/conquistas/jornada";
+import { MEDALHAS_DO_RITMO, type EventoJornada, type ItemParada, type Jornada, type NoJornada } from "@/lib/conquistas/jornada";
 import type { DadosCard, ModeloId } from "@/lib/chalala/card";
 import { FALAS_CHALALA, PERSONAGENS_CHALALA, personagemPorId, type PersonagemChalala } from "@/lib/jornada-chalala/universo";
 import { CaminhoChalala } from "./CaminhoChalala";
@@ -60,6 +60,7 @@ const gravar = (k: string, v: string) => {
 export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", alunoId, reconhecimentos = {}, semTreinos = false }: Props) {
   const [aba, setAba] = useState<Aba>("mapa");
   const [aberto, setAberto] = useState<NoJornada | null>(null);
+  const [parada, setParada] = useState<ItemParada | null>(null);
   const [personagem, setPersonagem] = useState<PersonagemChalala["id"] | null>(null);
   const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId } | null>(null);
   const [introFechada, setIntroFechada] = useState(false);
@@ -102,15 +103,16 @@ export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", 
   }, [revelar]);
 
   useEffect(() => {
-    if (!aberto && !personagem) return;
+    if (!aberto && !personagem && !parada) return;
     const esc = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setAberto(null);
+      setParada(null);
       setPersonagem(null);
     };
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
-  }, [aberto, personagem]);
+  }, [aberto, personagem, parada]);
 
   function fecharIntro() {
     setIntroFechada(true);
@@ -172,7 +174,8 @@ export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", 
                 <p className="rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/10 px-3 py-2 font-semibold">{FALAS_CHALALA.primeiroTreino}</p>
               </div>
               <ul className="list-disc space-y-1 pl-5 text-fg-muted">
-                <li>Cada medalha da trilha é um acontecimento real do seu treino.</li>
+                <li>A estrada mostra as medalhas do caminho. As paradas 🎁 ao lado são bônus: nunca seguram ninguém.</li>
+                <li>Você muda de capítulo com 10, 25 e 50 treinos (ou 12 semanas) e aos 6 meses de acompanhamento.</li>
                 <li>O marcador <span className="font-semibold text-accent">Você está aqui</span> mostra onde você está agora.</li>
                 <li>Toque numa medalha para ver o que ela significa. Toque num personagem para conhecê-lo.</li>
                 {prox ? <li>Sua próxima conquista possível: <span className="font-semibold text-fg">{prox.titulo}</span>.</li> : null}
@@ -192,10 +195,32 @@ export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", 
             </section>
           ) : null}
 
+          {jornada.missoesEmAberto.length ? (
+            <section className="space-y-2 rounded-2xl border border-[#C18B61]/50 bg-[#171B21] p-3" aria-label="Missões em aberto">
+              <div className="flex items-center gap-3">
+                <PersonagemBotao id="fenix" tamanho={52} onAbrir={setPersonagem} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#C18B61]">Missões em aberto</p>
+                  <p className="text-xs text-fg-muted">Ficaram para trás na estrada, mas ainda dá tempo. Seu caminho continua aqui.</p>
+                </div>
+              </div>
+              <ul className="space-y-1.5">
+                {jornada.missoesEmAberto.map((m) => (
+                  <li key={m.codigo}>
+                    <button type="button" onClick={() => setParada({ codigo: m.codigo, titulo: m.titulo, total: 0, data: "", medalha: m })} className="flex w-full items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-left text-sm hover:border-accent/50">
+                      <span className="min-w-0"><span className="block font-semibold">{m.titulo}</span>{m.falta ? <span className="block text-xs text-fg-muted">{m.falta}</span> : null}</span>
+                      <span aria-hidden className="text-accent">→</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           {jornada.caminho ? <CaminhoChalala caminho={jornada.caminho} onAbrirPersonagem={setPersonagem} /> : null}
-          <MapaChalala jornada={jornada} movimento={movimento} revelar={revelar} onAbrir={setAberto} onAbrirPersonagem={setPersonagem} semTreinos={semTreinos} rolarAteAqui />
+          <MapaChalala jornada={jornada} movimento={movimento} revelar={revelar} onAbrir={setAberto} onAbrirParada={setParada} onAbrirPersonagem={setPersonagem} semTreinos={semTreinos} rolarAteAqui />
           <div className="flex flex-col items-center gap-1 text-center text-[11px] text-fg-subtle">
-            <p>Os capítulos organizam a história; nenhuma medalha depende de outra. Cada uma sai seguindo o seu plano, sem treinar além do prescrito.</p>
+            <p>A estrada mostra as medalhas do caminho, na ordem em que você conquista. As paradas 🎁 são bônus e nunca seguram ninguém. Cada medalha sai seguindo o seu plano, sem treinar além do prescrito.</p>
             {sistemaPermite ? (
               <button type="button" onClick={alternarMovimento} aria-pressed={reduzir} className="alvo font-semibold text-fg-muted underline-offset-2 hover:underline">
                 {reduzir ? "Ligar movimento do mapa" : "Reduzir movimento do mapa"}
@@ -223,14 +248,29 @@ export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", 
           </div>
         </div>
       ) : null}
-      {aberto ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={() => setAberto(null)}>
+      {aberto || parada ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={() => { setAberto(null); setParada(null); }}>
           <div role="dialog" aria-modal="true" aria-label="Detalhe do marco" className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-bg p-3 chalala-fala sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-            {aberto.tipo === "medalha" ? (
-              <DetalheMedalha m={aberto.medalha} reconhecimento={reconhecimentos[aberto.medalha.codigo] ?? null} onFechar={() => setAberto(null)} rotuloEntender="Entenda a ciência dessa conquista" rotuloCard="Compartilhar conquista" onGerarCard={aberto.medalha.conquistada && modo === "aluno" ? () => setEditor(cardDaMedalha(aberto.medalha)) : undefined} />
-            ) : (
-              <DetalheMarco no={aberto} onFechar={() => setAberto(null)} />
-            )}
+            {(() => {
+              const fechar = () => { setAberto(null); setParada(null); };
+              const m = aberto?.tipo === "medalha" ? aberto.medalha : parada?.medalha ?? null;
+              if (m) {
+                return (
+                  <>
+                    {MEDALHAS_DO_RITMO.has(m.codigo) ? (
+                      <div className="mb-2 flex items-end gap-2 px-1">
+                        <PersonagemBotao id="oogway" tamanho={48} onAbrir={setPersonagem} />
+                        <p className="rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold">“{personagemPorId("oogway").fala}”</p>
+                      </div>
+                    ) : null}
+                    <DetalheMedalha m={m} reconhecimento={reconhecimentos[m.codigo] ?? null} onFechar={fechar} rotuloEntender="Entenda a ciência dessa conquista" rotuloCard="Compartilhar conquista" onGerarCard={m.conquistada && modo === "aluno" ? () => setEditor(cardDaMedalha(m)) : undefined} />
+                  </>
+                );
+              }
+              if (parada) return <DetalheRecorrente item={parada} onFechar={fechar} />;
+              if (aberto && aberto.tipo === "ciclo") return <DetalheMarco no={aberto} onFechar={fechar} />;
+              return null;
+            })()}
           </div>
         </div>
       ) : null}
@@ -257,20 +297,36 @@ function DetalhePersonagem({ p, onFechar }: { p: PersonagemChalala; onFechar: ()
   );
 }
 
-function DetalheMarco({ no, onFechar }: { no: Exclude<NoJornada, { tipo: "medalha" }>; onFechar: () => void }) {
-  const t = no.tipo === "recorrente" ? CONTEUDO[no.codigo] : null;
+function DetalheMarco({ no, onFechar }: { no: Extract<NoJornada, { tipo: "ciclo" }>; onFechar: () => void }) {
   return (
     <div className="space-y-3 p-2 text-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">{no.tipo === "recorrente" ? "Conquista que se repete" : "Marco de acompanhamento"}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Marco de acompanhamento</p>
           <h2 className="text-lg font-black">{no.titulo}</h2>
         </div>
         <button type="button" onClick={onFechar} aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full border border-border text-fg-muted">✕</button>
       </div>
-      {t && no.tipo === "recorrente" ? (
+      <p className="text-fg-muted">{no.alcancado ? `Você completou ${no.titulo.toLowerCase()} em ${fmt.format(new Date(`${no.data}T15:00:00Z`))}. Um bom momento para olhar sua evolução com o Montinho e planejar o próximo ciclo.` : "Um marco de tempo de acompanhamento (semanas em pausa combinada não contam). A jornada continua depois dele, um ciclo de cada vez."}</p>
+    </div>
+  );
+}
+
+/** Parada 🎁 de recorde ou retomada (conquistas que se repetem). */
+function DetalheRecorrente({ item, onFechar }: { item: ItemParada; onFechar: () => void }) {
+  const t = item.codigo === "recorde" || item.codigo === "eu_voltei" ? CONTEUDO[item.codigo] : null;
+  return (
+    <div className="space-y-3 p-2 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Conquista que se repete</p>
+          <h2 className="text-lg font-black">{item.titulo}</h2>
+        </div>
+        <button type="button" onClick={onFechar} aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full border border-border text-fg-muted">✕</button>
+      </div>
+      {t ? (
         <>
-          <p className="font-semibold">{no.total ? `${no.total} ${no.total === 1 ? "vez" : "vezes"} até agora${no.ultima ? ` · a última em ${fmt.format(new Date(no.ultima))}` : ""}.` : t.comoConquistar}</p>
+          <p className="font-semibold">{item.total} {item.total === 1 ? "vez" : "vezes"} neste trecho da estrada · a primeira em {fmt.format(new Date(item.data))}.</p>
           <p className="text-fg-muted">{t.importancia}</p>
           <details>
             <summary className="cursor-pointer text-xs font-semibold text-accent">Entenda a ciência dessa conquista</summary>
@@ -279,8 +335,6 @@ function DetalheMarco({ no, onFechar }: { no: Exclude<NoJornada, { tipo: "medalh
           </details>
           <Link href="/aluno/conquistas/todas" className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Ver o histórico completo</Link>
         </>
-      ) : no.tipo === "ciclo" ? (
-        <p className="text-fg-muted">{no.alcancado ? `Você completou ${no.titulo.toLowerCase()} em ${fmt.format(new Date(`${no.data}T15:00:00Z`))}. Um bom momento para olhar sua evolução com o Montinho e planejar o próximo ciclo.` : "Um marco de tempo de acompanhamento (semanas em pausa combinada não contam). A jornada continua depois dele, um ciclo de cada vez."}</p>
       ) : null}
     </div>
   );

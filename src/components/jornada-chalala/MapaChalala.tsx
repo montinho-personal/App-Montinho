@@ -2,26 +2,28 @@
 
 // ============================================================================
 // Mapa vertical de “A Jornada do Chalalá”: cinco regiões (cenários 2.5D em
-// camadas), trilha sinuosa, medalhas do motor real, “Você está aqui”,
-// personagem-guia por capítulo e detalhes ambientais que acendem com o
-// progresso. O estado de cada medalha vem de `Jornada` (lib/conquistas):
-// aqui nada é concedido — só desenhado.
+// camadas), a ESTRADA com as medalhas do caminho (acesas atrás, cadeados na
+// frente, sem buracos), as PARADAS 🎁 com as medalhas paralelas presas ao
+// ponto em que foram ganhas, o Montinho na abertura de cada capítulo (os
+// portões) e o Colombo junto do “Você está aqui”, apontando a próxima. O
+// estado de cada medalha vem de `Jornada` (lib/conquistas): aqui nada é
+// concedido — só desenhado.
 // ============================================================================
 
 import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
-import type { Jornada, NoJornada } from "@/lib/conquistas/jornada";
+import type { ItemParada, Jornada, NoJornada } from "@/lib/conquistas/jornada";
 import { CAPITULOS_CHALALA, FALAS_CHALALA, type CapituloChalala, type PersonagemChalala } from "@/lib/jornada-chalala/universo";
 import { Cenario2D } from "./Cenarios2D";
 import { Personagem, PersonagemBotao } from "./Personagens";
 
 const TOPO = 150;
 const PASSO = 128;
+/** Altura de cada etiqueta 🎁 de parada. */
+const LINHA_PARADA = 24;
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 const xDoNo = (i: number) => (i % 2 === 0 ? 118 : 242);
-/** Quem aparece em cada capítulo (um por tela). */
-const GUIA: Record<number, PersonagemChalala["id"]> = { 1: "montinho", 2: "oogway", 3: "colombo", 4: "fenix", 5: "montinho" };
 
 type Props = {
   jornada: Jornada;
@@ -30,6 +32,8 @@ type Props = {
   /** Código do nó que acabou de ser conquistado (simulação): toca a revelação. */
   revelar?: string | null;
   onAbrir: (no: NoJornada) => void;
+  /** Toque numa parada 🎁 (medalha paralela, recorde ou retomada). */
+  onAbrirParada: (item: ItemParada) => void;
   /** Toque num personagem do mapa: abre a explicação curta dele. */
   onAbrirPersonagem: (id: PersonagemChalala["id"]) => void;
   semTreinos?: boolean;
@@ -37,10 +41,12 @@ type Props = {
   rolarAteAqui?: boolean;
 };
 
-export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPersonagem, semTreinos = false, rolarAteAqui = false }: Props) {
+export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirParada, onAbrirPersonagem, semTreinos = false, rolarAteAqui = false }: Props) {
   const raiz = useRef<HTMLDivElement>(null);
   const aqui = useRef<HTMLDivElement>(null);
   const indice = useMemo(() => new Map(jornada.nos.map((n, i) => [n.id, i])), [jornada.nos]);
+  const paradaDe = useMemo(() => new Map(jornada.paradas.map((p) => [p.apos, p.itens])), [jornada.paradas]);
+  const proximaNo = jornada.nos[jornada.posicao] ?? null;
 
   // Parallax leve: --p = progresso da seção na janela (0…1). Só com movimento.
   useEffect(() => {
@@ -90,20 +96,33 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPerso
     alvo?.scrollIntoView({ behavior: movimento === "reduzido" ? "auto" : "smooth", block: "center" });
   }, [revelar, movimento]);
 
-  const ultimoCap = Math.max(...jornada.capitulos.map((c) => c.numero));
-
   return (
     <div ref={raiz} className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-3xl sm:border sm:border-border" aria-label="Mapa de A Jornada do Chalalá">
       {jornada.capitulos.map((cap) => {
         const cx = CAPITULOS_CHALALA.find((c) => c.numero === cap.numero) ?? CAPITULOS_CHALALA[0];
-        const altura = TOPO + cap.nos.length * PASSO + 80;
-        const pts = cap.nos.map((n, i) => ({ n, x: xDoNo(i), y: TOPO + i * PASSO + 60 }));
-        const caminho = [`M180 0`, ...pts.map((p, i) => { const ant = i ? pts[i - 1] : { x: 180, y: 0 }; const meio = (ant.y + p.y) / 2; return `C${ant.x} ${meio} ${p.x} ${meio} ${p.x} ${p.y}`; }), `C${pts.at(-1)!.x} ${altura - 30} 180 ${altura - 40} 180 ${altura}`].join(" ");
-        const alcancadosAqui = pts.filter((p) => (indice.get(p.n.id) ?? 0) < jornada.posicao);
-        const yOuro = jornada.posicao >= (indice.get(cap.nos.at(-1)!.id) ?? 0) + 1 ? altura : alcancadosAqui.length ? alcancadosAqui.at(-1)!.y : 0;
-        const aceso = cap.alcancados > 0 || (indice.get(cap.nos[0].id) ?? 0) <= jornada.posicao;
-        const posLocal = pts.findIndex((p) => indice.get(p.n.id) === jornada.posicao);
-        const aquiNoFim = cap.numero === ultimoCap && jornada.posicao >= jornada.nos.length;
+        // Paradas do começo da trilha (antes da 1ª medalha) ficam no capítulo 1.
+        const inicio = cap.numero === 1 ? paradaDe.get(null) ?? [] : [];
+        // Posição de cada nó: a estrada desce; as paradas abrem espaço embaixo do nó.
+        const aquiNoCap = cap.numero === jornada.capituloAtual;
+        const semAcesas = !cap.nos.some((n) => (indice.get(n.id) ?? 0) < jornada.posicao);
+        // Ninguém aceso ainda neste capítulo: o “Você está aqui” vai antes do 1º nó, com espaço próprio.
+        const espacoAqui = aquiNoCap && semAcesas ? 96 : 0;
+        let y = TOPO + 60 + inicio.length * LINHA_PARADA + (inicio.length ? 20 : 0) + espacoAqui;
+        const pts = cap.nos.map((n, i) => {
+          const itens = paradaDe.get(n.id) ?? [];
+          const p = { n, x: xDoNo(i), y, itens };
+          y += PASSO + (itens.length ? itens.length * LINHA_PARADA + 24 : 0) + (indice.get(n.id) === jornada.posicao - 1 ? 46 : 0);
+          return p;
+        });
+        const altura = Math.max(y + 10, TOPO + 140);
+        const caminho = [`M180 0`, ...pts.map((p, i) => { const ant = i ? pts[i - 1] : { x: 180, y: 0 }; const meio = (ant.y + p.y) / 2; return `C${ant.x} ${meio} ${p.x} ${meio} ${p.x} ${p.y}`; }), pts.length ? `C${pts.at(-1)!.x} ${altura - 30} 180 ${altura - 40} 180 ${altura}` : `L180 ${altura}`].join(" ");
+        const acesasAqui = pts.filter((p) => (indice.get(p.n.id) ?? 0) < jornada.posicao);
+        const todasAcesas = pts.length > 0 && acesasAqui.length === pts.length && cap.numero < jornada.capituloAtual;
+        const ultimaAcesa = acesasAqui.at(-1);
+        // “Você está aqui” logo depois da última medalha acesa da estrada (ou no começo do capítulo atual).
+        const yAqui = ultimaAcesa ? ultimaAcesa.y + 46 + ultimaAcesa.itens.length * LINHA_PARADA + (ultimaAcesa.itens.length ? 24 : 0) : TOPO + 50 + inicio.length * LINHA_PARADA + (inicio.length ? 20 : 0);
+        const yOuro = todasAcesas ? altura : aquiNoCap ? yAqui : ultimaAcesa ? ultimaAcesa.y : 0;
+        const aceso = cap.numero <= jornada.capituloAtual;
         return (
           <section key={cap.numero} data-regiao={cx.regiao} className="relative" style={{ height: altura, ["--p" as string]: 0.5 }} aria-label={`Capítulo ${cap.numero}: ${cx.titulo} — ${cx.lugar}`}>
             <Cenario2D regiao={cx.regiao} atenuado={!aceso} altura={altura} />
@@ -119,17 +138,18 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPerso
               <path d={caminho} fill="none" stroke="#e3cd8a" strokeWidth="4" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#chalala-ouro-${cap.numero})`} opacity="0.9" />
             </svg>
 
-            <Abertura cap={cx} alcancados={cap.alcancados} total={cap.total} guia={GUIA[cap.numero] ?? "montinho"} semTreinos={cap.numero === 1 && semTreinos} onAbrirPersonagem={onAbrirPersonagem} />
+            <Abertura cap={cx} alcancados={cap.alcancados} total={cap.total} semTreinos={cap.numero === 1 && semTreinos} onAbrirPersonagem={onAbrirPersonagem} />
+
+            {inicio.length ? <Paradas itens={inicio} x={180} y={TOPO + 20} lado="centro" onAbrir={onAbrirParada} /> : null}
 
             {pts.map((p, i) => (
-              <No key={p.n.id} no={p.n} x={p.x} y={p.y} lado={i % 2 === 0 ? "dir" : "esq"} revelado={revelar === p.n.id} onAbrir={() => onAbrir(p.n)} />
+              <div key={p.n.id}>
+                <No no={p.n} x={p.x} y={p.y} lado={i % 2 === 0 ? "dir" : "esq"} revelado={revelar === p.n.id} onAbrir={() => onAbrir(p.n)} />
+                {p.itens.length ? <Paradas itens={p.itens} x={p.x} y={p.y + 40} lado={i % 2 === 0 ? "dir" : "esq"} onAbrir={onAbrirParada} /> : null}
+              </div>
             ))}
 
-            {posLocal >= 0 || (cap.numero === 1 && jornada.posicao === 0) ? (
-              <Aqui ref={aqui} x={posLocal >= 0 ? pts[posLocal].x : 180} y={posLocal >= 0 ? pts[posLocal].y - 70 : TOPO - 10} />
-            ) : aquiNoFim ? (
-              <Aqui ref={aqui} x={180} y={altura - 70} />
-            ) : null}
+            {aquiNoCap ? <Aqui ref={aqui} y={yAqui} proxima={proximaNo} onAbrirPersonagem={onAbrirPersonagem} /> : null}
           </section>
         );
       })}
@@ -137,19 +157,39 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirPerso
   );
 }
 
-function Abertura({ cap, alcancados, total, guia, semTreinos, onAbrirPersonagem }: { cap: CapituloChalala; alcancados: number; total: number; guia: PersonagemChalala["id"]; semTreinos: boolean; onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) {
+/** Etiquetas 🎁 das medalhas paralelas, ao lado do ponto da estrada em que foram ganhas. */
+function Paradas({ itens, x, y, lado, onAbrir }: { itens: ItemParada[]; x: number; y: number; lado: "dir" | "esq" | "centro"; onAbrir: (i: ItemParada) => void }) {
+  const pos = lado === "centro" ? { left: "50%", transform: "translateX(-50%)" } : lado === "dir" ? { left: `${(x / 360) * 100}%`, transform: "translateX(-20%)" } : { right: `${100 - (x / 360) * 100}%`, transform: "translateX(20%)" };
+  return (
+    <ul className="absolute z-[5] flex flex-col gap-1" style={{ top: y, ...pos }} aria-label="Paradas: medalhas paralelas ganhas neste ponto">
+      {itens.map((it) => (
+        <li key={`${it.codigo}-${it.data}`}>
+          <button type="button" onClick={() => onAbrir(it)} className="flex max-w-[11.5rem] items-center gap-1 rounded-full border border-[#7c6a3a] bg-[#2a2416]/95 px-2.5 py-0.5 text-left text-[11px] font-semibold leading-5 text-[#e8d8a8] shadow-[0_2px_8px_rgba(0,0,0,0.5)] hover:border-accent">
+            <span aria-hidden>🎁</span>
+            <span className="truncate">{it.titulo}{it.total > 1 ? ` ×${it.total}` : ""}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Abertura({ cap, alcancados, total, semTreinos, onAbrirPersonagem }: { cap: CapituloChalala; alcancados: number; total: number; semTreinos: boolean; onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) {
+  // O Montinho recebe o aluno em cada portão (abertura de capítulo).
   return (
     <div className="absolute inset-x-3 top-3 flex items-end gap-2">
-      <PersonagemBotao id={guia} tamanho={64} onAbrir={onAbrirPersonagem} />
+      <PersonagemBotao id="montinho" tamanho={64} onAbrir={onAbrirPersonagem} />
       <div className="min-w-0 flex-1 rounded-2xl border border-accent/40 bg-[#171B21]/85 px-3.5 py-2.5 backdrop-blur-sm">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">{cap.numero <= 4 ? `Capítulo ${cap.numero}` : "Depois do capítulo 4"} · {cap.lugar}</p>
         <p className="text-base font-black leading-tight">{cap.titulo}</p>
         <p className="mt-1 text-[12px] leading-snug text-fg-muted">“{cap.narrativa}”</p>
-        <p className="mt-1 text-[10px] text-fg-subtle">{semTreinos ? "Os marcos se preenchem conforme seus treinos registrados." : `${cap.tema} ${alcancados}/${total}`}</p>
+        <p className="mt-1 text-[10px] text-fg-subtle">{semTreinos ? "As medalhas da estrada acendem conforme seus treinos registrados." : `${PORTAO_TEXTO[cap.numero]} ${alcancados}/${total}`}</p>
       </div>
     </div>
   );
 }
+
+const PORTAO_TEXTO: Record<number, string> = { 1: "O começo da caminhada.", 2: "Portão: 10 treinos.", 3: "Portão: 25 treinos.", 4: "Portão: 50 treinos ou 12 semanas de acompanhamento.", 5: "Portão: 6 meses de acompanhamento." };
 
 function No({ no, x, y, lado, revelado, onAbrir }: { no: NoJornada; x: number; y: number; lado: "dir" | "esq"; revelado: boolean; onAbrir: () => void }) {
   const titulo = no.tipo === "medalha" ? no.medalha.titulo : no.titulo;
@@ -160,9 +200,7 @@ function No({ no, x, y, lado, revelado, onAbrir }: { no: NoJornada; x: number; y
         : no.medalha.alvo
           ? `${no.medalha.atual ?? 0}/${no.medalha.alvo}`
           : no.medalha.disponivel ? "a conquistar" : "momento próprio"
-      : no.tipo === "recorrente"
-        ? no.total ? `${no.total}× · última ${fmt.format(new Date(no.ultima!)).slice(0, 5)}` : "acontece ao longo do caminho"
-        : no.data ? fmt.format(new Date(`${no.data}T15:00:00Z`)) : "próximo marco";
+      : no.data ? fmt.format(new Date(`${no.data}T15:00:00Z`)) : "próximo marco";
   return (
     <div className="absolute" style={{ left: `${(x / 360) * 100}%`, top: y, transform: "translate(-50%, -50%)" }} data-no={no.id}>
       {revelado ? (
@@ -179,8 +217,6 @@ function No({ no, x, y, lado, revelado, onAbrir }: { no: NoJornada; x: number; y
         <span className="block drop-shadow-[0_6px_8px_rgba(0,0,0,0.55)]">
           {no.tipo === "medalha" ? (
             <MedalhaIcone selo={no.medalha.selo} conquistada={no.medalha.conquistada} atual={no.medalha.atual} alvo={no.medalha.alvo} tamanho={66} lendaria={LENDARIAS.has(no.medalha.codigo)} />
-          ) : no.tipo === "recorrente" ? (
-            <MedalhaIcone selo={no.codigo === "recorde" ? "Rec" : "↺"} conquistada={no.alcancado} atual={null} alvo={null} tamanho={58} />
           ) : (
             <Marco acesa={no.alcancado} />
           )}
@@ -204,12 +240,22 @@ function Marco({ acesa }: { acesa: boolean }) {
   );
 }
 
-const Aqui = ({ ref, x, y }: { ref: React.Ref<HTMLDivElement>; x: number; y: number }) => (
-  <div ref={ref} className="pointer-events-none absolute z-10 flex flex-col items-center" style={{ left: `${(x / 360) * 100}%`, top: y, transform: "translateX(-50%)" }} aria-label="Você está aqui" role="img">
-    <span className="whitespace-nowrap rounded-full bg-accent px-3 py-1 text-[10px] font-black uppercase tracking-wider text-bg shadow-[0_6px_16px_rgba(0,0,0,0.6)]">Você está aqui</span>
-    <span className="mt-0.5 h-0 w-0 border-x-[7px] border-t-[9px] border-x-transparent border-t-accent" aria-hidden />
-  </div>
-);
+/** “Você está aqui”, com o Colombo apontando a próxima medalha da estrada. */
+const Aqui = ({ ref, y, proxima, onAbrirPersonagem }: { ref: React.Ref<HTMLDivElement>; y: number; proxima: NoJornada | null; onAbrirPersonagem: (id: PersonagemChalala["id"]) => void }) => {
+  const titulo = proxima ? (proxima.tipo === "medalha" ? proxima.medalha.titulo : proxima.titulo) : null;
+  const falta = proxima?.tipo === "medalha" ? proxima.medalha.falta : null;
+  return (
+    <div ref={ref} className="absolute inset-x-0 z-10 flex justify-center" style={{ top: y - 14 }} aria-label="Você está aqui" role="group">
+      <div className="flex items-center gap-1.5">
+        <PersonagemBotao id="colombo" tamanho={40} onAbrir={onAbrirPersonagem} />
+        <div className="flex flex-col items-start">
+          <span className="whitespace-nowrap rounded-full bg-accent px-3 py-1 text-[10px] font-black uppercase tracking-wider text-bg shadow-[0_6px_16px_rgba(0,0,0,0.6)]">Você está aqui</span>
+          {titulo ? <span className="mt-0.5 max-w-[14rem] rounded-xl border border-accent/50 bg-[#171B21]/95 px-2 py-0.5 text-[10px] leading-snug text-fg-muted">Próxima: <strong className="text-fg">{titulo}</strong>{falta ? ` · ${falta}` : ""}</span> : null}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export function useMovimentoPermitido(): boolean {
   const [ok, setOk] = useState(true);

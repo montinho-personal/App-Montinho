@@ -1,18 +1,24 @@
 // ============================================================================
-// Minha Jornada — organização VISUAL das conquistas em capítulos, posição
-// atual do aluno e linha do tempo. Tudo é derivado do motor oficial
-// (vitrine/regras/conquistas gravadas): aqui não se concede nada.
+// Minha Jornada — organização VISUAL das conquistas: a estrada, as paradas
+// laterais, os capítulos e a posição do aluno. Tudo é derivado do motor
+// oficial (vitrine/regras/conquistas gravadas): aqui não se concede nada.
 //
-// • Capítulos são narrativa, não barreira: uma medalha do capítulo 3 pode
-//   sair antes de uma do capítulo 1.
-// • “Você está aqui” = logo depois da MEDALHA DO CAMINHO mais avançada já
-//   conquistada (treinos, metas, constância, acompanhamento, fases) — não só
-//   nº de treinos. Medalhas “paralelas” (abrir a evolução, técnicas, Além do
-//   necessário, Samurai), recordes e retomadas acendem, mas não empurram o
-//   marcador: antes, quem só abria a Evolução (0 treinos) caía no capítulo 3
-//   (23/10/2026). Os ciclos de tempo só contam depois de todas as medalhas.
-// • Depois do capítulo 4 a trilha continua com ciclos de acompanhamento
-//   (6 meses, 1 ano…) a partir das semanas reais — marcos, não medalhas novas.
+// Estrada principal + paradas laterais (aprovado pelo Montinho em 24/10/2026):
+// • ESTRADA: só as medalhas do caminho, que vêm numa sequência natural
+//   (primeiro treino, metas, semanas seguidas, 10/25/50 treinos, fases…).
+//   As conquistadas aparecem na ordem em que foram ganhas; as que faltam vêm
+//   depois. Nunca fica medalha apagada no meio de acesas.
+// • PORTÕES: o capítulo muda ao conquistar 10 treinos (Ponte), 25 treinos
+//   (Mirante), 50 treinos ou 12 semanas de acompanhamento (Montanhas) e 6
+//   meses (Horizonte), em sequência. Cada medalha conquistada fica no
+//   capítulo em que o aluno estava quando a ganhou.
+// • MISSÕES EM ABERTO: medalha da estrada de um capítulo que já ficou para
+//   trás e ainda dá para conquistar — sai da estrada e vira um cartão.
+// • PARADAS (🎁): as medalhas paralelas (técnicas, Além do necessário,
+//   Samurai, abrir a evolução, avaliação, recordes, retomadas…) ficam presas
+//   ao ponto da estrada em que o aluno estava quando ganhou. Nunca seguram
+//   ninguém.
+// • “Você está aqui” = logo depois da última medalha acesa da estrada.
 // ============================================================================
 
 import { dataLocal, somarDias, type Semana } from "@/lib/aderencia/calcular";
@@ -30,77 +36,44 @@ export const CAPITULOS: Capitulo[] = [
   { numero: 5, titulo: "Seguindo em frente", subtitulo: "Ciclos de acompanhamento ao longo do tempo.", cenario: "horizonte" },
 ];
 
-/** Em que capítulo cada medalha aparece (só visual). */
-export const CAPITULO_DA_MEDALHA: Record<Exclude<CodigoConquista, "recorde" | "eu_voltei" | "desafio_concluido">, number> = {
-  primeiro_treino: 1,
-  criando_raizes: 1,
-  primeira_meta_semanal: 1,
-  missao_cumprida: 1,
-  cada_quilo_conta: 1,
-  terceiro_especial: 1,
-  voltei_pro_jogo: 1,
-  ponto_de_partida: 1,
-  olhar_de_aguia: 1,
-  treinos_10: 2,
-  primeiro_mes: 2,
-  constancia_vida_real: 2,
-  semanas_consistentes_4: 2,
-  relatorio_mensal: 3,
-  treinos_25: 3,
-  semanas_consistentes_5: 2,
-  semanas_consistentes_6: 3,
-  semanas_consistentes_8: 3,
-  semanas_consistentes_10: 4,
-  semanas_consistentes_12: 4,
-  acompanhamento_12_semanas: 4,
-  constancia_verdade: 4,
-  treinos_50: 4,
-  recomeco_consistente: 4,
-  // Além do necessário
-  fiz_o_necessario: 2,
-  fui_alem: 2,
-  uma_a_mais: 3,
-  nunca_deixei_pra_depois: 3,
-  milha_extra: 3,
-  sempre_um_a_mais: 4,
-  // Técnicas avançadas
-  primeira_tecnica: 2,
-  tecnicas_2: 3,
-  tecnicas_3: 3,
-  tecnicas_4: 3,
-  tecnicas_5: 4,
-  tecnicas_7: 4,
-  tecnicas_10: 5,
-  mestre_tecnicas: 5,
-  // Fases do protocolo
-  completou_adaptacao: 2,
-  chegou_intensificacao: 3,
-  completou_intensificacao: 3,
-  completou_consolidacao: 4,
-  protocolo_completo: 4,
-  treino_samurai: 3,
+/** A estrada principal, capítulo a capítulo, na ordem natural (o 1º de cada capítulo 2–4 é o portão). */
+export const ESTRADA: Record<1 | 2 | 3 | 4, CodigoConquista[]> = {
+  1: ["primeiro_treino", "terceiro_especial", "primeira_meta_semanal", "criando_raizes"],
+  2: ["treinos_10", "primeiro_mes", "constancia_vida_real", "semanas_consistentes_4", "semanas_consistentes_5", "completou_adaptacao"],
+  3: ["treinos_25", "semanas_consistentes_6", "chegou_intensificacao", "semanas_consistentes_8", "completou_intensificacao"],
+  4: ["acompanhamento_12_semanas", "treinos_50", "semanas_consistentes_10", "constancia_verdade", "semanas_consistentes_12", "completou_consolidacao", "protocolo_completo"],
 };
+/** Portões: conquistar QUALQUER um destes leva ao capítulo (em sequência: 2 → 3 → 4 → 5). */
+export const PORTOES: Record<2 | 3 | 4 | 5, string[]> = { 2: ["treinos_10"], 3: ["treinos_25"], 4: ["treinos_50", "acompanhamento_12_semanas"], 5: ["ciclo-26"] };
+/** Medalhas de constância: a explicação vem com o Mestre Oogway (Guardião do Ritmo). */
+export const MEDALHAS_DO_RITMO: ReadonlySet<string> = new Set(["primeira_meta_semanal", "criando_raizes", "primeiro_mes", "constancia_vida_real", "constancia_verdade", "acompanhamento_12_semanas", "semanas_consistentes_4", "semanas_consistentes_5", "semanas_consistentes_6", "semanas_consistentes_8", "semanas_consistentes_10", "semanas_consistentes_12", "completou_adaptacao", "chegou_intensificacao", "completou_intensificacao", "completou_consolidacao", "protocolo_completo"]);
 
-/** Acendem no mapa, mas não mudam o “Você está aqui”: não medem o caminho percorrido. */
-export const NAO_MOVEM_O_MARCADOR: ReadonlySet<string> = new Set([
-  "relatorio_mensal", "treino_samurai",
-  "fiz_o_necessario", "fui_alem", "uma_a_mais", "nunca_deixei_pra_depois", "milha_extra", "sempre_um_a_mais",
-  "primeira_tecnica", "tecnicas_2", "tecnicas_3", "tecnicas_4", "tecnicas_5", "tecnicas_7", "tecnicas_10", "mestre_tecnicas",
-]);
+const CAP_DA_ESTRADA = new Map<string, number>(Object.entries(ESTRADA).flatMap(([c, xs]) => xs.map((x) => [x, Number(c)] as const)));
+/** Capítulo de origem de uma medalha da estrada (null = medalha paralela). */
+export const capituloDaEstrada = (codigo: string): number | null => CAP_DA_ESTRADA.get(codigo) ?? null;
 
 export type NoJornada =
-  | { tipo: "medalha"; id: string; capitulo: number; medalha: Medalha; alcancado: boolean; proxima: boolean }
-  | { tipo: "recorrente"; id: string; capitulo: number; codigo: "recorde" | "eu_voltei"; titulo: string; total: number; ultima: string | null; alcancado: boolean; proxima: false }
-  | { tipo: "ciclo"; id: string; capitulo: number; semanas: number; titulo: string; data: string | null; alcancado: boolean; proxima: boolean };
+  | { tipo: "medalha"; id: string; capitulo: number; medalha: Medalha; alcancado: boolean; proxima: boolean; portao: boolean }
+  | { tipo: "ciclo"; id: string; capitulo: number; semanas: number; titulo: string; data: string | null; alcancado: boolean; proxima: boolean; portao: boolean };
+
+/** Uma medalha paralela (ou recorde/retomada, com quantas vezes) presa a um ponto da estrada. */
+export type ItemParada = { codigo: string; titulo: string; total: number; data: string; medalha: Medalha | null };
+export type Parada = { /** id do nó da estrada; null = antes do primeiro (começo da trilha). */ apos: string | null; itens: ItemParada[] };
 
 export type Jornada = {
   /** Desenho semana a semana (fases, pausas e retornos); ausente em telas antigas. */
   caminho?: CaminhoJornada;
   capitulos: Array<Capitulo & { nos: NoJornada[]; alcancados: number; total: number }>;
-  /** Índice (na lista achatada de nós) ANTES do qual fica o “Você está aqui”. */
+  /** Índice (na lista achatada da estrada) ANTES do qual fica o “Você está aqui” = medalhas da estrada acesas. */
   posicao: number;
+  /** A estrada inteira, capítulo a capítulo. */
   nos: NoJornada[];
   proxima: Medalha | null;
+  /** Capítulo em que o aluno está (pelos portões). */
+  capituloAtual: number;
+  paradas: Parada[];
+  /** Medalhas da estrada de capítulos que ficaram para trás e ainda dá para conquistar. */
+  missoesEmAberto: Medalha[];
 };
 
 /** Rótulo do ciclo: 26 semanas = 6 meses, 52 = 1 ano, 78 = 1 ano e meio… */
@@ -125,38 +98,106 @@ export function ciclos(semanas: Pick<Semana, "inicio" | "pausada">[], passo = 26
   return out;
 }
 
+const dataDoNo = (n: NoJornada): string | null => (n.tipo === "medalha" ? n.medalha.data : n.data ? `${n.data}T15:00:00Z` : null);
+
 export function montarJornada(e: {
   medalhas: Medalha[];
   proxima: Medalha | null;
   conquistas: Array<{ codigo: string; conquistado_em: string }>;
   semanas: Pick<Semana, "inicio" | "pausada">[];
 }): Jornada {
-  const recorrente = (codigo: "recorde" | "eu_voltei", capitulo: number): NoJornada => {
-    const xs = e.conquistas.filter((c) => c.codigo === codigo).map((c) => c.conquistado_em).sort();
-    return { tipo: "recorrente", id: codigo, capitulo, codigo, titulo: CONTEUDO[codigo].nome, total: xs.length, ultima: xs.at(-1) ?? null, alcancado: xs.length > 0, proxima: false };
-  };
-  const nos: NoJornada[] = [];
-  for (const cap of CAPITULOS) {
-    const doCap = e.medalhas.filter((m) => CAPITULO_DA_MEDALHA[m.codigo as keyof typeof CAPITULO_DA_MEDALHA] === cap.numero);
-    for (const m of doCap) nos.push({ tipo: "medalha", id: m.codigo, capitulo: cap.numero, medalha: m, alcancado: m.conquistada, proxima: e.proxima?.codigo === m.codigo });
-    if (cap.numero === 3) nos.push(recorrente("recorde", 3));
-    if (cap.numero === 4) nos.push(recorrente("eu_voltei", 4));
-    if (cap.numero === 5) {
-      for (const c of ciclos(e.semanas)) nos.push({ tipo: "ciclo", id: `ciclo-${c.semanas}`, capitulo: 5, semanas: c.semanas, titulo: rotuloCiclo(c.semanas), data: c.data, alcancado: c.alcancado, proxima: false });
+  const porCodigo = new Map(e.medalhas.map((m) => [m.codigo as string, m]));
+  // Estrada candidata: medalhas do caminho + ciclos de tempo (capítulo 5).
+  const candidatos: NoJornada[] = [];
+  const ehPortao = (id: string) => Object.values(PORTOES).some((xs) => xs.includes(id));
+  for (const [cap, xs] of Object.entries(ESTRADA)) {
+    for (const c of xs) {
+      const m = porCodigo.get(c);
+      if (m) candidatos.push({ tipo: "medalha", id: c, capitulo: Number(cap), medalha: m, alcancado: m.conquistada, proxima: false, portao: ehPortao(c) });
     }
   }
-  let ultimo = -1;
-  nos.forEach((n, i) => {
-    if (n.tipo === "medalha" && n.alcancado && !NAO_MOVEM_O_MARCADOR.has(n.medalha.codigo)) ultimo = i;
-  });
-  const medalhasAbertas = nos.some((n) => n.tipo === "medalha" && !n.alcancado && n.medalha.disponivel);
-  if (!medalhasAbertas) nos.forEach((n, i) => {
-    if (n.tipo === "ciclo" && n.alcancado) ultimo = i;
-  });
+  for (const c of ciclos(e.semanas)) candidatos.push({ tipo: "ciclo", id: `ciclo-${c.semanas}`, capitulo: 5, semanas: c.semanas, titulo: rotuloCiclo(c.semanas), data: c.data, alcancado: c.alcancado, proxima: false, portao: ehPortao(`ciclo-${c.semanas}`) });
+
+  // Quando cada portão foi aberto (em sequência): capítulo do aluno em cada data.
+  const dataDe = (id: string) => {
+    const n = candidatos.find((x) => x.id === id);
+    return n && n.alcancado ? dataDoNo(n) : null;
+  };
+  const aberturas: Array<{ cap: number; data: string }> = [];
+  let ultima = "";
+  for (const cap of [2, 3, 4, 5] as const) {
+    const datas = PORTOES[cap].map(dataDe).filter((d): d is string => !!d).sort();
+    if (!datas.length) break;
+    ultima = datas[0] > ultima ? datas[0] : ultima;
+    aberturas.push({ cap, data: ultima });
+  }
+  const capituloAtual = aberturas.at(-1)?.cap ?? 1;
+  const capNaData = (d: string) => aberturas.filter((a) => a.data <= d).at(-1)?.cap ?? 1;
+
+  // Monta a estrada: acesas no capítulo em que o aluno estava (pela data, em ordem);
+  // as que faltam, no capítulo de origem (só do atual em diante).
+  // O portão que abriu um capítulo fica no começo desse capítulo (mesmo que outro abra junto).
+  const capDaAcesa = (n: NoJornada) => {
+    const d = dataDoNo(n) ?? "";
+    const abriu = aberturas.find((a) => PORTOES[a.cap as 2 | 3 | 4 | 5].includes(n.id) && a.data === d);
+    return abriu ? abriu.cap : capNaData(d);
+  };
+  // Ciclos de tempo só ficam acesos no capítulo 5 (o tempo sozinho não anda a estrada):
+  // antes disso, “6 meses” aparece apagado como o portão do Horizonte.
+  if (capituloAtual < 5) {
+    for (let i = candidatos.length - 1; i >= 0; i--) {
+      const n = candidatos[i];
+      if (n.tipo !== "ciclo") continue;
+      if (n.id === "ciclo-26") candidatos[i] = { ...n, alcancado: false, data: null };
+      else candidatos.splice(i, 1);
+    }
+    if (!candidatos.some((n) => n.id === "ciclo-26")) candidatos.push({ tipo: "ciclo", id: "ciclo-26", capitulo: 5, semanas: 26, titulo: rotuloCiclo(26), data: null, alcancado: false, proxima: false, portao: true });
+  }
+  const acesas = candidatos.filter((n) => n.alcancado).map((n) => ({ ...n, capitulo: capDaAcesa(n) }));
+  const ordemOriginal = new Map(candidatos.map((n, i) => [n.id, i]));
+  acesas.sort((a, b) => a.capitulo - b.capitulo || (dataDoNo(a) ?? "").localeCompare(dataDoNo(b) ?? "") || Number(b.portao) - Number(a.portao) || ordemOriginal.get(a.id)! - ordemOriginal.get(b.id)!);
+  const disponivel = (n: NoJornada) => n.tipo === "ciclo" || n.medalha.disponivel;
+  const faltam = candidatos.filter((n) => !n.alcancado && disponivel(n) && n.capitulo >= capituloAtual);
+  const missoesEmAberto = candidatos.filter((n): n is Extract<NoJornada, { tipo: "medalha" }> => n.tipo === "medalha" && !n.alcancado && n.medalha.disponivel && n.capitulo < capituloAtual).map((n) => n.medalha);
+  const proximaId = faltam.find((n) => n.tipo === "medalha")?.id ?? null;
+  const nos: NoJornada[] = [];
+  for (const cap of CAPITULOS) {
+    nos.push(...acesas.filter((n) => n.capitulo === cap.numero));
+    nos.push(...faltam.filter((n) => n.capitulo === cap.numero).map((n) => ({ ...n, proxima: n.id === proximaId })));
+  }
+  const posicao = acesas.length;
+
+  // Paradas laterais: medalhas paralelas conquistadas + recordes/retomadas,
+  // presas à última medalha acesa da estrada até a data em que aconteceram.
+  const ancora = (d: string) => acesas.filter((n) => (dataDoNo(n) ?? "") <= d).at(-1)?.id ?? null;
+  const itens: Array<ItemParada & { apos: string | null }> = [];
+  for (const m of e.medalhas) {
+    if (!m.conquistada || !m.data || CAP_DA_ESTRADA.has(m.codigo)) continue;
+    itens.push({ apos: ancora(m.data), codigo: m.codigo, titulo: m.titulo, total: 1, data: m.data, medalha: m });
+  }
+  for (const codigo of ["recorde", "eu_voltei"] as const) {
+    const grupos = new Map<string | null, string[]>();
+    for (const c of e.conquistas.filter((x) => x.codigo === codigo)) {
+      const a = ancora(c.conquistado_em);
+      grupos.set(a, [...(grupos.get(a) ?? []), c.conquistado_em]);
+    }
+    for (const [apos, datas] of grupos) itens.push({ apos, codigo, titulo: CONTEUDO[codigo].nome, total: datas.length, data: datas.sort()[0], medalha: null });
+  }
+  const paradas: Parada[] = [];
+  for (const it of itens.sort((a, b) => a.data.localeCompare(b.data))) {
+    const { apos, ...item } = it;
+    const p = paradas.find((x) => x.apos === apos);
+    if (p) p.itens.push(item);
+    else paradas.push({ apos, itens: [item] });
+  }
+
   return {
     nos,
-    posicao: ultimo + 1,
+    posicao,
     proxima: e.proxima,
+    capituloAtual,
+    paradas,
+    missoesEmAberto,
     capitulos: CAPITULOS.map((c) => {
       const ns = nos.filter((n) => n.capitulo === c.numero);
       return { ...c, nos: ns, alcancados: ns.filter((n) => n.alcancado).length, total: ns.length };
