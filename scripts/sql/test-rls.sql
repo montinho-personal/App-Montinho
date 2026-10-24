@@ -1498,4 +1498,27 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'strava_conectado', '1', 'Relógio no Pulso', now());
 end $$;
 \echo 'T47 OK: cardios do Strava e troféu Relógio no Pulso'
+-- T48 — 0088: troféus de compartilhamento — cada aluno lê só os próprios eventos e as visitas ao link dele
+insert into eventos_chalala (aluno_id, tipo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'download', 'historico'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'download', 'historico');
+insert into eventos_chalala (aluno_id, tipo, origem, ref) values (null, 'visita_link', 'card_a', 'c:' || substr(md5('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:chalala'), 1, 12));
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; v int;
+begin
+  select count(*) filter (where tipo = 'download'), count(*) filter (where tipo = 'visita_link') into n, v from public.meus_eventos_compartilhar();
+  if n <> 1 then raise exception 'T48a: esperava 1 download do próprio aluno, veio %', n; end if;
+  if v <> 1 then raise exception 'T48b: visita ao link do aluno não apareceu'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from public.meus_eventos_compartilhar() where tipo = 'visita_link') then raise exception 'T48c: viu a visita ao link de outro aluno'; end if;
+end $$;
+select test_logout();
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'trouxe_amigo', '1', 'Trouxe um Amigo', now());
+end $$;
+\echo 'T48 OK: troféus de compartilhamento'
 \echo 'TODOS OS TESTES PASSARAM'

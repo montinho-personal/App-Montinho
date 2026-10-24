@@ -84,6 +84,11 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   // Além do necessário: madrugada
   { codigo: "treino_samurai", selo: "4h30" },
   { codigo: "strava_conectado", selo: "⌚" },
+  { codigo: "compartilhou_primeiro", selo: "📣" },
+  { codigo: "diario_de_bordo", selo: "📸" },
+  { codigo: "vitrine_de_trofeus", selo: "🏆" },
+  { codigo: "inspiracao_galera", selo: "🔥" },
+  { codigo: "trouxe_amigo", selo: "🤝" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
@@ -211,6 +216,16 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
           ? { atual: Math.min(naFase, LIMITES_FASE.minTreinos), alvo: LIMITES_FASE.minTreinos, falta: naFase < LIMITES_FASE.minTreinos ? `${faltaN(LIMITES_FASE.minTreinos - naFase, "treino", "treinos")} nesta fase. A medalha sai quando o Montinho passar para a próxima.` : "Treinos da fase feitos! A medalha sai quando o Montinho passar para a próxima fase.", disponivel: true }
           : { atual: null, alvo: null, falta: "As fases são definidas pelo Montinho no seu protocolo. Conclua pelo menos 4 treinos na fase e a medalha sai quando ela mudar.", disponivel: true };
       }
+      case "compartilhou_primeiro":
+        return { atual: null, alvo: null, falta: "Gere o card no fim do treino ou numa medalha e toque em Compartilhar.", disponivel: true };
+      case "diario_de_bordo":
+        return { atual: null, alvo: null, falta: "Compartilhe o card do fim do treino em 4 semanas diferentes.", disponivel: true };
+      case "vitrine_de_trofeus":
+        return { atual: null, alvo: null, falta: "Compartilhe 5 troféus diferentes (pelo card da medalha).", disponivel: true };
+      case "inspiracao_galera":
+        return { atual: null, alvo: null, falta: "Compartilhe um card: quando alguém abrir o link dele, o troféu sai.", disponivel: true };
+      case "trouxe_amigo":
+        return { atual: null, alvo: null, falta: "Convide um amigo pelo seu link AMIGO-…: quando ele se cadastrar, o troféu sai.", disponivel: true };
       case "strava_conectado":
         return { atual: null, alvo: null, falta: "No Perfil, em “Relógio (pelo Strava)”, marque a autorização e toque em “Conectar com o Strava”.", disponivel: true };
       case "treino_samurai":

@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -26,6 +26,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   alem: "Além do necessário",
   tecnicas: "Técnicas avançadas",
   fases: "Fases do protocolo",
+  compartilhar: "Compartilhar",
 };
 
 /** Ícone de cada categoria (abas do topo da tela Conquistas). */
@@ -40,6 +41,7 @@ export const CATEGORIA_EMOJI: Record<Categoria, string> = {
   alem: "🚀",
   tecnicas: "⚡",
   fases: "🧩",
+  compartilhar: "📣",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -593,6 +595,61 @@ const BASE: Record<CodigoConquista, Base> = {
     explicacao: "No fim de cada treino, o app busca no Strava a atividade do relógio no mesmo horário e guarda o batimento médio e máximo, a duração e as calorias. Os cardios que você registra no Strava aparecem em Evolução. Batimento é dado de saúde: só você e o Montinho veem, e você pode desconectar quando quiser.",
     proximoPasso: "Treine com o relógio e termine o treino no app: o batimento aparece sozinho no resumo.",
     fontes: ["sdt2025"],
+  },
+  compartilhou_primeiro: {
+    categoria: "compartilhar",
+    resumo: "O primeiro card compartilhado.",
+    mensagem: "Espalhando o Chalalá! Sua evolução já está inspirando alguém.",
+    comoConquistar: "No fim do treino, numa medalha ou numa descoberta, toque em “Gerar card” e depois em Compartilhar (ou Baixar).",
+    significado: "Você mostrou para o mundo um pedaço do seu processo.",
+    importancia: "Contar para os outros reforça o compromisso com você mesmo: quem compartilha a rotina costuma levar o plano mais a sério.",
+    explicacao: "O card leva só o que você escolhe mostrar (treino, troféu ou frase) e o logo do Montinho. Nenhum dado de saúde vai junto.",
+    proximoPasso: "Compartilhe o card do fim do treino em semanas diferentes e ganhe o Diário de Bordo.",
+    fontes: ["sdt2025"],
+  },
+  diario_de_bordo: {
+    categoria: "compartilhar",
+    resumo: "Card do fim do treino compartilhado em 4 semanas diferentes.",
+    mensagem: "Diário de Bordo! Quatro semanas mostrando que o treino está acontecendo.",
+    comoConquistar: "Compartilhe (ou baixe) o card do fim do treino em 4 semanas diferentes. Várias vezes na mesma semana contam como uma.",
+    significado: "Você registrou a sua rotina em público, semana após semana.",
+    importancia: "Mostrar a constância cria um compromisso a mais com o plano e lembra você de quanto já fez.",
+    explicacao: "O app conta semanas diferentes (de segunda a domingo), não quantas vezes você tocou em Compartilhar: o que vale é a rotina.",
+    proximoPasso: "Compartilhe também os troféus que você ganhar: com 5 diferentes vem a Vitrine de Troféus.",
+    fontes: ["habitos2024"],
+  },
+  vitrine_de_trofeus: {
+    categoria: "compartilhar",
+    resumo: "5 troféus diferentes compartilhados.",
+    mensagem: "Vitrine de Troféus! Cinco conquistas suas já rodaram por aí.",
+    comoConquistar: "Ao ganhar um troféu (ou na sala de troféus), toque em “Gerar card” e compartilhe. Valem 5 troféus diferentes.",
+    significado: "Você celebrou em público várias etapas diferentes do seu caminho.",
+    importancia: "Celebrar as pequenas vitórias mantém a motivação viva ao longo dos meses.",
+    explicacao: "O mesmo troféu compartilhado várias vezes conta uma. O app só sabe que você tocou em Compartilhar ou Baixar.",
+    proximoPasso: "Quando alguém abrir o link de um card seu, vem a Inspiração da Galera.",
+    fontes: ["sdt2025"],
+  },
+  inspiracao_galera: {
+    categoria: "compartilhar",
+    resumo: "Alguém abriu o link de um card seu.",
+    mensagem: "Inspiração da Galera! Alguém viu o seu card e quis saber mais.",
+    comoConquistar: "Compartilhe um card (o link vai junto na mensagem). Quando alguém abrir esse link, o troféu sai.",
+    significado: "A sua rotina chegou em outra pessoa de verdade.",
+    importancia: "Seu exemplo pode ser o empurrão que alguém precisava para começar.",
+    explicacao: "O link do card leva um código que não mostra o seu nome a quem abre. O app só conta que alguém abriu.",
+    proximoPasso: "Tem alguém querendo começar? Convide pelo seu link de amigo e ganhe o Trouxe um Amigo.",
+    fontes: ["sdt2025"],
+  },
+  trouxe_amigo: {
+    categoria: "compartilhar",
+    resumo: "Um amigo entrou no app pelo seu convite.",
+    mensagem: "Trouxe um Amigo! Agora tem mais gente no Chalalá com você.",
+    comoConquistar: "Envie o seu convite de amigo (link AMIGO-…) e, quando a pessoa se cadastrar por ele, o troféu sai.",
+    significado: "Você trouxe alguém para cuidar da saúde junto com você.",
+    importancia: "Treinar com amigos por perto ajuda a manter a rotina dos dois.",
+    explicacao: "Vale o cadastro pelo seu link de convite. Para visitantes, cada amigo também dá dias a mais de acesso.",
+    proximoPasso: "Combine com o seu amigo um dia de treino na mesma semana.",
+    fontes: ["habitos2024"],
   },
   desafio_concluido: {
     categoria: "pratica",

@@ -62,7 +62,7 @@ export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", 
   const [aberto, setAberto] = useState<NoJornada | null>(null);
   const [parada, setParada] = useState<ItemParada | null>(null);
   const [personagem, setPersonagem] = useState<PersonagemChalala["id"] | null>(null);
-  const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId } | null>(null);
+  const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; ref?: string } | null>(null);
   const [introFechada, setIntroFechada] = useState(false);
   const [reduzirManual, setReduzirManual] = useState<boolean | null>(null);
   const [revelar, setRevelar] = useState<string | null>(null);
@@ -274,7 +274,7 @@ export function JornadaChalala({ jornada, eventos, stats, nome, modo = "aluno", 
           </div>
         </div>
       ) : null}
-      {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem="historico" onFechar={() => setEditor(null)} /> : null}
+      {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem="historico" refEvento={editor.ref ?? null} onFechar={() => setEditor(null)} /> : null}
     </div>
   );
 }

@@ -11,6 +11,7 @@
 //   sessão com dor relatada não vira recorde.
 // ============================================================================
 
+import { LIMITES_COMPARTILHAR, type MarcosCompartilhar } from "./compartilhar";
 import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
@@ -82,6 +83,11 @@ export type CodigoConquista =
   // Treino do Samurai: musculação começada até as 4h30 da manhã (horário de Brasília)
   | "treino_samurai"
   | "strava_conectado"
+  | "compartilhou_primeiro"
+  | "diario_de_bordo"
+  | "vitrine_de_trofeus"
+  | "inspiracao_galera"
+  | "trouxe_amigo"
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -134,6 +140,8 @@ export const LIMITES_SAMURAI = { inicioMin: 3 * 60 + 59, limiteMin: 4 * 60 + 30 
 export const CODIGOS_SAMURAI: CodigoConquista[] = ["treino_samurai"];
 /** Relógio no Pulso (0087): conectar o Strava. Gravado à parte, como os outros troféus novos. */
 export const CODIGOS_STRAVA: CodigoConquista[] = ["strava_conectado"];
+/** Troféus de compartilhamento (0088). Gravados à parte, como os outros novos. */
+export const CODIGOS_COMPARTILHAR: CodigoConquista[] = ["compartilhou_primeiro", "diario_de_bordo", "vitrine_de_trofeus", "inspiracao_galera", "trouxe_amigo"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
 export function minutosBrasilia(iso: string): number {
@@ -204,6 +212,11 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
   treino_samurai: { titulo: "Treino do Samurai", criterio: "Começar um treino de musculação entre 3h59 e 4h30 da manhã (horário de Brasília) e concluí-lo. Vale o horário em que você tocou em “Começar treino”, registrado pelo app (não o relógio do celular): começou às 4h30, conta; às 4h31, já não conta.", repete: false },
   strava_conectado: { titulo: "Relógio no Pulso", criterio: "Conectar o seu relógio ao app pelo Strava (Perfil → Relógio), autorizando a importação dos batimentos e dos cardios.", repete: false },
+  compartilhou_primeiro: { titulo: "Espalhando o Chalalá", criterio: "Compartilhar (ou baixar) pela primeira vez um card do app: fim de treino, troféu ou descoberta.", repete: false },
+  diario_de_bordo: { titulo: "Diário de Bordo", criterio: "Compartilhar o card do fim do treino em 4 semanas diferentes (várias vezes na mesma semana contam uma).", repete: false },
+  vitrine_de_trofeus: { titulo: "Vitrine de Troféus", criterio: "Compartilhar 5 troféus diferentes (o mesmo troféu mais de uma vez conta uma).", repete: false },
+  inspiracao_galera: { titulo: "Inspiração da Galera", criterio: "Alguém abrir o link de um card que você compartilhou.", repete: false },
+  trouxe_amigo: { titulo: "Trouxe um Amigo", criterio: "Um amigo se cadastrar no app pelo seu convite (link AMIGO-…).", repete: false },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -341,6 +354,8 @@ export type EntradaConquistas = {
   primeiraAvaliacao?: string | null;
   /** Quando o aluno conectou o Strava pela primeira vez (Relógio no Pulso). */
   stravaConectadoEm?: string | null;
+  /** Quando cada troféu de compartilhamento foi alcançado (src/lib/conquistas/compartilhar.ts). */
+  compartilhar?: MarcosCompartilhar | null;
   /** Modo Visitante: desafios em que a pessoa entrou. */
   desafios?: DesafioConquista[];
 };
@@ -424,6 +439,12 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   const comCargas = doApp.find((s) => exerciciosComCarga(s) >= LIMITES_COMECO.exerciciosComCarga);
   if (comCargas) out.push(nova("cada_quilo_conta", "1", comCargas.iniciado_em, comCargas.id, `Cargas anotadas em ${exerciciosComCarga(comCargas)} exercícios no mesmo treino.`));
   if (e.primeiraAvaliacao) out.push(nova("ponto_de_partida", "1", e.primeiraAvaliacao, null, "Primeira avaliação registrada: o ponto de partida da sua evolução."));
+  const cp = e.compartilhar;
+  if (cp?.primeiro) out.push(nova("compartilhou_primeiro", "1", cp.primeiro, null, "Você compartilhou a sua evolução pela primeira vez."));
+  if (cp?.diario) out.push(nova("diario_de_bordo", "1", cp.diario, null, `Card do fim do treino compartilhado em ${LIMITES_COMPARTILHAR.semanasDiario} semanas diferentes.`));
+  if (cp?.vitrine) out.push(nova("vitrine_de_trofeus", "1", cp.vitrine, null, `${LIMITES_COMPARTILHAR.trofeusVitrine} troféus diferentes compartilhados.`));
+  if (cp?.inspiracao) out.push(nova("inspiracao_galera", "1", cp.inspiracao, null, "Alguém abriu o link de um card que você compartilhou."));
+  if (cp?.amigo) out.push(nova("trouxe_amigo", "1", cp.amigo, null, "Um amigo entrou no app pelo seu convite."));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

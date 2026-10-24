@@ -33,7 +33,7 @@ function cardDaConquista(c: Conquista): { dados: DadosCard; modelo: ModeloId } {
 }
 
 export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, destaque, proximas, ganhas, total, novas, jornada, reconhecimentosPorCodigo }: { nome: string; mensal: ResumoMensal; conquistas: Conquista[]; reconhecimentos: Reconhecimento[]; destaque: Medalha[]; proximas: Medalha[]; ganhas: number; total: number; novas: Array<{ id: string; codigo: string }>; jornada: string | null; reconhecimentosPorCodigo: Record<string, { mensagem: string; data: string }> }) {
-  const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; origem: "historico" | "mensal" | "reconhecimento" } | null>(null);
+  const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; origem: "historico" | "mensal" | "reconhecimento"; ref?: string } | null>(null);
   const [todosRecordes, setTodosRecordes] = useState(false);
   const recordes = conquistas.filter((c) => c.codigo === "recorde");
   const visiveis = conquistas.filter((c) => c.codigo !== "recorde");
@@ -134,7 +134,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
                       ))}
                       {!c.dados.recordes?.length && c.descricao ? <li className="text-fg-muted">{c.descricao}</li> : null}
                     </ul>
-                    <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico" })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Gerar card</button>
+                    <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico", ...(c.codigo !== "recorde" && c.codigo !== "eu_voltei" ? { ref: `medalha:${c.codigo}` } : {}) })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Gerar card</button>
                   </CardBody>
                 </Card>
               </li>
@@ -223,7 +223,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
                     {c.descricao ? <p className="text-sm text-fg-muted">{c.descricao}</p> : null}
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       {c.codigo !== "relatorio_mensal" ? (
-                        <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico" })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                        <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico", ...(c.codigo !== "recorde" && c.codigo !== "eu_voltei" ? { ref: `medalha:${c.codigo}` } : {}) })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
                           Gerar card
                         </button>
                       ) : null}
@@ -254,7 +254,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
         </ul>
       </details>
 
-      {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem={editor.origem} onFechar={() => setEditor(null)} /> : null}
+      {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem={editor.origem} refEvento={editor.ref ?? null} onFechar={() => setEditor(null)} /> : null}
     </>
   );
 }

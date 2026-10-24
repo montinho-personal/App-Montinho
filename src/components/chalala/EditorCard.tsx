@@ -32,7 +32,7 @@ function Chip({ ativo, onClick, children, disabled }: { ativo: boolean; onClick:
   );
 }
 
-export default function EditorCard({ dados, modeloInicial, nome, origem, registrarEventos = true, onFechar }: { dados: DadosCard; modeloInicial: ModeloId; nome: string; origem: Origem; registrarEventos?: boolean; onFechar: () => void }) {
+export default function EditorCard({ dados, modeloInicial, nome, origem, registrarEventos = true, refEvento = null, onFechar }: { dados: DadosCard; modeloInicial: ModeloId; nome: string; origem: Origem; registrarEventos?: boolean; /** Ex.: "medalha:treinos_10" — qual troféu foi compartilhado (Vitrine de Troféus). */ refEvento?: string | null; onFechar: () => void }) {
   const modelos = modelosDisponiveis(dados);
   const inicial = modelos.includes(modeloInicial) ? modeloInicial : modelos[0];
   const [cfg, setCfg] = useState<ConfigCard>(() => configPadrao(inicial, dados, nome));
@@ -45,6 +45,21 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
   const fotoRef = useRef<HTMLInputElement>(null);
   const dialogoRef = useRef<HTMLDivElement>(null);
   const ev = (e: Parameters<typeof enviarEvento>[0]) => registrarEventos && enviarEvento({ origem, ...e });
+  // Código opaco do link (Inspiração da Galera): quem abre não vê quem compartilhou.
+  const [codigoLink, setCodigoLink] = useState<string | null>(null);
+  useEffect(() => {
+    if (!registrarEventos) return;
+    let vivo = true;
+    void fetch("/api/chalala/meu-link")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { codigo?: string } | null) => {
+        if (vivo && j?.codigo) setCodigoLink(j.codigo);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [registrarEventos]);
 
   useEffect(() => {
     if (registrarEventos) enviarEvento({ tipo: "editor_aberto", origem, modelo: inicial });
@@ -139,14 +154,14 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
         baixar(f);
         r = "baixado";
       } else {
-        const link = `${window.location.origin}/chalala?origem=card_${cfg.modelo.toLowerCase()}`;
+        const link = `${window.location.origin}/chalala?origem=card_${cfg.modelo.toLowerCase()}${codigoLink ? `&c=${codigoLink}` : ""}`;
         r = await compartilharArquivo(navigator, f, `${cfg.frase} @montinho_personal ${link}`, baixar);
       }
     } catch {
       r = "erro";
     }
-    if (r === "baixado") ev({ tipo: "download", modelo: cfg.modelo, formato: cfg.formato });
-    if (r === "enviado_ao_sistema") ev({ tipo: "compartilhar_nativo", modelo: cfg.modelo, formato: cfg.formato });
+    if (r === "baixado") ev({ tipo: "download", modelo: cfg.modelo, formato: cfg.formato, ...(refEvento ? { ref: refEvento } : {}) });
+    if (r === "enviado_ao_sistema") ev({ tipo: "compartilhar_nativo", modelo: cfg.modelo, formato: cfg.formato, ...(refEvento ? { ref: refEvento } : {}) });
     if (r === "cancelado") ev({ tipo: "compartilhar_cancelado", modelo: cfg.modelo, formato: cfg.formato });
     setAviso({ texto: MENSAGEM_RESULTADO[r], tipo: r === "erro" ? "erro" : "ok" });
     setOcupado(false);

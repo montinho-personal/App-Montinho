@@ -1,15 +1,18 @@
 // Página pública do link dos cards (“Seu shape merece um chalalá.”).
-// Sem nenhum dado de aluno: registra só a visita e a origem (ex.: card_A).
+// Sem nenhum dado de aluno: registra só a visita, a origem (ex.: card_A) e o
+// código opaco de quem compartilhou, quando houver.
 import { BRAND } from "@/config/brand";
 import { registrarEvento } from "@/lib/data/conquistas";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Seu shape merece um chalalá", description: BRAND.description };
 
-export default async function ChalalaPublicaPage({ searchParams }: { searchParams: Promise<{ origem?: string }> }) {
-  const { origem } = await searchParams;
+export default async function ChalalaPublicaPage({ searchParams }: { searchParams: Promise<{ origem?: string; c?: string }> }) {
+  const { origem, c } = await searchParams;
   const origemSegura = origem && /^[a-z0-9_]{1,40}$/i.test(origem) ? origem.toLowerCase() : "direto";
-  await registrarEvento(null, { tipo: "visita_link", origem: origemSegura }).catch(() => undefined);
+  // c = código opaco de quem compartilhou (troféu Inspiração da Galera); não identifica a pessoa aqui.
+  const ref = c && /^[a-f0-9]{12}$/.test(c) ? `c:${c}` : null;
+  await registrarEvento(null, { tipo: "visita_link", origem: origemSegura, ref }).catch(() => undefined);
   return (
     <div className="w-full max-w-md space-y-6 text-center">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Chalalá!</p>

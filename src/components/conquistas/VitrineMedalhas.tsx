@@ -20,8 +20,8 @@ const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo"
 const diaLocal = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(iso));
 
 /** Card da medalha: nome, selo desenhado, data e frase curta. Nada privado. */
-export function cardDaMedalha(m: Medalha): { dados: DadosCard; modelo: ModeloId } {
-  return { dados: { data: m.data ? diaLocal(m.data) : null, conquistaTitulo: CONTEUDO[m.codigo].nome, medalhaSelo: m.selo, conquistaFrase: CONTEUDO[m.codigo].mensagem }, modelo: "C" };
+export function cardDaMedalha(m: Medalha): { dados: DadosCard; modelo: ModeloId; ref: string } {
+  return { ref: `medalha:${m.codigo}`, dados: { data: m.data ? diaLocal(m.data) : null, conquistaTitulo: CONTEUDO[m.codigo].nome, medalhaSelo: m.selo, conquistaFrase: CONTEUDO[m.codigo].mensagem }, modelo: "C" };
 }
 
 /** Detalhe numa janela que sobe de baixo: aparece na hora, sem precisar rolar a lista de medalhas. */
@@ -50,7 +50,7 @@ function JanelaDetalhe({ onFechar, children }: { onFechar: () => void; children:
 
 export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial = null, comPrevia = false }: { medalhas: Medalha[]; nome: string; reconhecimentos?: Record<string, { mensagem: string; data: string }>; inicial?: string | null; /** Personal: botão para ver a comemoração como o aluno vê. */ comPrevia?: boolean }) {
   const [aberta, setAberta] = useState<string | null>(inicial);
-  const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId } | null>(null);
+  const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; ref?: string } | null>(null);
   const [previa, setPrevia] = useState<Medalha | null>(null);
   const sel = medalhas.find((m) => m.codigo === aberta) ?? null;
 
@@ -74,7 +74,7 @@ export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial 
         </JanelaDetalhe>
       ) : null}
       {previa ? <CelebracaoMedalha previa conquistas={[{ codigo: previa.codigo, titulo: previa.titulo, descricao: null, conquistado_em: previa.data ?? new Date().toISOString(), dados: {} }]} nome={nome} onFechar={() => setPrevia(null)} /> : null}
-      {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem="historico" onFechar={() => setEditor(null)} /> : null}
+      {editor ? <EditorCard dados={editor.dados} modeloInicial={editor.modelo} nome={nome} origem="historico" refEvento={editor.ref ?? null} onFechar={() => setEditor(null)} /> : null}
     </>
   );
 }
