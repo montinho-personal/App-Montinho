@@ -59,6 +59,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - “✨ Criar com IA” no montador do personal (ao lado do 🎤 Ditar, por treino): `DitarTreino modo="criar"` → `api/ia/criar-treino` (só personal; contexto do aluno: anamnese/restrições, objetivo, nível, prioridades, foco do dia, outros treinos) → `src/lib/ia/criar-treino.ts` (mesmo formato do ditado via `organizarComIA` em `interpretar-treino.ts`; só exercícios da biblioteca) → mesma prévia e “Aplicar”.
 
+- **Regra do Montinho (24/10/2026): sempre que algum aluno/visitante tiver exercício sem vídeo, avisar.** No app: cartão “🎬 Exercícios sem vídeo” na Visão geral do personal (`ExerciciosSemVideo`, dados `src/lib/data/sem-video.ts`, regra pura `src/lib/videos/sem-video.ts`: vídeo verificado da biblioteca ou link próprio do exercício; fichas ativas, sem arquivados). Ao cadastrar treino para alguém, conferir e avisar na resposta quais exercícios ficaram sem vídeo.
+
 - Lupa do personal: `/treinador/busca` (menu “Buscar” + lupa na barra do celular); regras em `src/lib/busca/alunos.ts` (nome/sobrenome por pedaço e sem acento; estrutura do treino com motivo; “treino parecido” por exercícios em comum); índice em `src/lib/data/busca.ts`.
 
 ## Ao editar

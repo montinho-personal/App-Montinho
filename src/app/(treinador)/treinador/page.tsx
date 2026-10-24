@@ -17,12 +17,14 @@ import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBa
 import { AnelPercentual } from "@/components/graficos/AnelPercentual";
 import { AcessosDoDia } from "@/components/painel/AcessosDoDia";
 import { resumoDeAcessos } from "@/lib/data/acessos";
+import { ExerciciosSemVideo } from "@/components/painel/ExerciciosSemVideo";
+import { listarSemVideo } from "@/lib/data/sem-video";
 
 export const metadata = { title: "Visão geral" };
 
 export default async function TreinadorDashboardPage() {
   const sessao = await requireTreinadorPage();
-  const [m, alunos, adaptacoes, acessos] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null)]);
+  const [m, alunos, adaptacoes, acessos, semVideo] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null), listarSemVideo().catch(() => [])]);
   const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   // Dados por aluno ativo (limitado para manter o painel rápido)
@@ -95,6 +97,8 @@ export default async function TreinadorDashboardPage() {
       </div>
 
       {acessos ? <AcessosDoDia r={acessos} /> : null}
+
+      <ExerciciosSemVideo lista={semVideo} />
 
       {turmaBarras.length >= 2 ? (
         <Card>
