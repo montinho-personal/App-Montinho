@@ -52,6 +52,24 @@ export async function POST(req: Request) {
       chalala.falhas += r.falha;
     }
   }
+  // 2b) Desafios entre alunos (0095): convite, cutucada e “termina amanhã” — 1 por pessoa a cada 24 h.
+  const desafios = { enviados: 0, falhas: 0 };
+  const { data: devDesafio, error: e4 } = await db.rpc("desafio_notificacoes_devidas", { p_chave: chave });
+  if (!e4) {
+    const porEnvio = new Map<string, { titulo: string; corpo: string; url: string; aparelhos: Array<{ endpoint: string; p256dh: string; auth: string }> }>();
+    for (const r of (devDesafio ?? []) as Array<{ envio_id: string; titulo: string; corpo: string; url: string; endpoint: string; p256dh: string; auth: string }>) {
+      const x = porEnvio.get(r.envio_id) ?? { titulo: r.titulo, corpo: r.corpo, url: r.url, aparelhos: [] };
+      x.aparelhos.push({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth });
+      porEnvio.set(r.envio_id, x);
+    }
+    for (const [id, env] of porEnvio) {
+      const r = await enviarAosAparelhos(env.aparelhos, { id, titulo: env.titulo, corpo: env.corpo, url: env.url, tag: "desafio" }, { ttl: 12 * 60 * 60, topic: topicoDoEnvio(id) });
+      await desativar(r.expirados);
+      await db.rpc("chalala_notificacao_resultado", { p_chave: chave, p_id: id, p_titulo: env.titulo, p_corpo: env.corpo, p_url: env.url, p_ok: r.ok, p_falha: r.falha });
+      desafios.enviados += r.ok;
+      desafios.falhas += r.falha;
+    }
+  }
   // 3) CRM do personal (Modo Visitante, 0058): entrega a fila de novidades dos leads.
   const crm = { entregues: 0, falhas: 0 };
   const { data: pendentes, error: e3 } = await db.rpc("crm_pendentes", { p_chave: chave });
@@ -63,5 +81,5 @@ export async function POST(req: Request) {
       else crm.falhas++;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, crm: e3 ? "indisponivel" : crm });
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, crm: e3 ? "indisponivel" : crm });
 }

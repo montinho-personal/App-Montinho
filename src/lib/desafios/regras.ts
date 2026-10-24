@@ -47,6 +47,13 @@ export const FOCOS: Record<FocoMuscular, { rotulo: string; grupos: string[] }> =
   abdomen: { rotulo: "Abdômen", grupos: ["abdomen", "core"] },
 };
 
+/**
+ * Prêmio real para quem vence (ex.: desconto na consultoria) — engatilhado,
+ * DESLIGADO por decisão do Montinho (24/10/2026): por enquanto só troféu.
+ * Para ligar: ativa = true e o texto da oferta; aparece para o campeão no placar.
+ */
+export const RECOMPENSA_DESAFIO = { ativa: false, texto: "Você ganhou um desconto na consultoria do Montinho! Chame no WhatsApp para resgatar." } as const;
+
 export const DURACOES_DESAFIO = [1, 3, 7, 14, 30] as const;
 export const LIMITES_DESAFIO = { participantes: 30, horaMadrugada: 6, desafiosParaNato: 3, exerciciosTreino: 10, diasBase: 28 } as const;
 export const TIPOS_SERIE_VOLUME = ["valida", "dropset", "rest_pause", "cluster"] as const;

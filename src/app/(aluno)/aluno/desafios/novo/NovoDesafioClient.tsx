@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SorteioMontinho } from "@/components/desafios/SorteioMontinho";
 import { DESAFIOS_PRONTOS, DURACOES_DESAFIO, FOCOS, TIPOS_DESAFIO, type DesafioPronto, type ExercicioDesafio, type FocoMuscular, type TipoDesafio } from "@/lib/desafios/regras";
 
-const TIPOS = Object.keys(TIPOS_DESAFIO) as TipoDesafio[];
+// “Quem mais evolui” aparece como uma opção dentro de “Quem pega mais peso” (o criador escolhe).
+const TIPOS = (Object.keys(TIPOS_DESAFIO) as TipoDesafio[]).filter((t) => t !== "evolucao");
 const sem = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 export type InicialDesafio = {
@@ -73,7 +75,8 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
     <div className="space-y-6">
       {!rv ? (
         <section className="space-y-2" aria-label="Desafios prontos">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-fg-muted">Desafios prontos</h2>
+          <SorteioMontinho onAceitar={usarPronto} />
+          <h2 className="pt-2 text-sm font-bold uppercase tracking-wider text-fg-muted">Ou escolha um pronto</h2>
           <div className="grid grid-cols-2 gap-2">
             {DESAFIOS_PRONTOS.map((p) => (
               <button key={p.id} type="button" aria-pressed={modelo === p.id} onClick={() => usarPronto(p)} className={`alvo flex flex-col items-start rounded-xl border p-3 text-left ${modelo === p.id ? "border-accent bg-accent/10" : "border-border bg-card"}`}>
@@ -102,7 +105,7 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
             <div className="grid grid-cols-2 gap-2">
               {TIPOS.map((t) => {
                 const x = TIPOS_DESAFIO[t];
-                const on = t === tipo;
+                const on = t === tipo || (t === "volume" && tipo === "evolucao");
                 return (
                   <button key={t} type="button" aria-pressed={on} onClick={() => escolherTipo(t)} className={`alvo flex flex-col items-start rounded-xl border px-3 py-2 text-left ${on ? "border-accent bg-accent/10" : "border-border bg-card"}`}>
                     <span className="text-sm font-bold">{x.emoji} {x.titulo}</span>
@@ -112,6 +115,22 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
             </div>
             <p className="rounded-lg bg-bg/60 px-3 py-2 text-xs text-fg-muted">{info.descricao}</p>
           </fieldset>
+          {tipo === "volume" || tipo === "evolucao" ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-semibold">Como conta o peso?</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["volume", "🏋️‍♂️ Peso total", "Ganha quem levantar mais (carga × repetições)."],
+                  ["evolucao", "📈 Evolução %", "Ganha quem mais melhorar em relação a si mesmo. Justo entre forte e iniciante."],
+                ] as const).map(([t, titulo, texto]) => (
+                  <button key={t} type="button" aria-pressed={tipo === t} onClick={() => setTipo(t)} className={`alvo flex flex-col items-start rounded-xl border px-3 py-2 text-left ${tipo === t ? "border-accent bg-accent/10" : "border-border bg-card"}`}>
+                    <span className="text-sm font-bold">{titulo}</span>
+                    <span className="text-[11px] text-fg-muted">{texto}</span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           {info.meta ? (
             <div className="space-y-1">
               <label htmlFor="meta" className="text-sm font-semibold">Meta</label>

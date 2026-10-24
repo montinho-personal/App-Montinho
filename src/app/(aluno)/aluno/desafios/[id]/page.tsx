@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { detalheDesafio, marcarCutucadasVistas, minhasCutucadas, pessoasParaDesafio } from "@/lib/data/desafios";
-import { diaBrasilia, FOCOS, recadoDoPlacar, resumoDesafio, TIPOS_DESAFIO, totalDoTime } from "@/lib/desafios/regras";
+import { diaBrasilia, FOCOS, RECOMPENSA_DESAFIO, recadoDoPlacar, resumoDesafio, TIPOS_DESAFIO, totalDoTime } from "@/lib/desafios/regras";
 import { Cutucar } from "@/components/desafios/Cutucar";
 import { ConvidarDesafio } from "@/components/desafios/ConvidarDesafio";
 import { ResponderConvite } from "@/components/desafios/ResponderConvite";
@@ -54,6 +54,7 @@ export default async function DesafioPage({ params, searchParams }: { params: Pr
         </p>
       ))}
       {recado && !encerrado ? <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold">{recado}</p> : null}
+      {encerrado && eu?.cumpriu && disputa && RECOMPENSA_DESAFIO.ativa ? <p className="rounded-xl border-2 border-accent bg-accent/15 px-4 py-3 text-sm font-bold">🎁 {RECOMPENSA_DESAFIO.texto}</p> : null}
       {d.tipo === "treino_desafio" && d.exercicios?.length ? (
         <section className="space-y-2 rounded-2xl border border-accent/40 bg-card p-4" aria-label="Treino do desafio">
           <h2 className="font-bold">📋 Treino do desafio</h2>

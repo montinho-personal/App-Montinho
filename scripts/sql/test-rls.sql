@@ -1573,4 +1573,19 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'criador_desafios', '1', 'Criador de Desafios', now());
 end $$;
 \echo 'T49 OK: desafios entre alunos'
+-- T50 — 0095: notificações dos desafios — cutucada vira notificação para quem recebeu; a função do cron roda só com a chave
+do $$
+begin
+  if not exists (select 1 from notificacoes_envios e join alunos a on a.profile_id = e.profile_id where e.categoria = 'desafio' and a.id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and e.dedupe like 'desafio_cutucada:%') then
+    raise exception 'T50a: cutucada não gerou notificação';
+  end if;
+  perform * from public.desafio_notificacoes_devidas('chave-teste');
+  begin
+    perform * from public.desafio_notificacoes_devidas('errada');
+    raise exception 'T50b: rodou com chave errada';
+  exception when raise_exception then
+    if sqlerrm like 'T50b%' then raise; end if;
+  end;
+end $$;
+\echo 'T50 OK: notificações dos desafios'
 \echo 'TODOS OS TESTES PASSARAM'
