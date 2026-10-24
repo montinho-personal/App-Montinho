@@ -89,6 +89,10 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "vitrine_de_trofeus", selo: "🏆" },
   { codigo: "inspiracao_galera", selo: "🔥" },
   { codigo: "trouxe_amigo", selo: "🤝" },
+  { codigo: "criador_desafios", selo: "⚔️" },
+  { codigo: "campeao_desafio", selo: "🥇" },
+  { codigo: "palavra_cumprida", selo: "✅" },
+  { codigo: "desafiante_nato", selo: "🔥" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
@@ -226,6 +230,14 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Compartilhe um card: quando alguém abrir o link dele, o troféu sai.", disponivel: true };
       case "trouxe_amigo":
         return { atual: null, alvo: null, falta: "Convide um amigo pelo seu link AMIGO-…: quando ele se cadastrar, o troféu sai.", disponivel: true };
+      case "criador_desafios":
+        return { atual: null, alvo: null, falta: "Em Ranking → Desafios, crie um desafio e convide alguém. Ao chegar ao fim com pelo menos mais uma pessoa, o troféu sai.", disponivel: true };
+      case "campeao_desafio":
+        return { atual: null, alvo: null, falta: "Termine em 1º lugar um desafio “Quem treina mais” ou “Madrugadores”.", disponivel: true };
+      case "palavra_cumprida":
+        return { atual: null, alvo: null, falta: "Cumpra a meta de um desafio de “Meta de treinos” ou “Semana em dia”.", disponivel: true };
+      case "desafiante_nato":
+        return { atual: null, alvo: null, falta: "Participe até o fim de 3 desafios entre amigos.", disponivel: true };
       case "strava_conectado":
         return { atual: null, alvo: null, falta: "No Perfil, em “Relógio (pelo Strava)”, marque a autorização e toque em “Conectar com o Strava”.", disponivel: true };
       case "treino_samurai":

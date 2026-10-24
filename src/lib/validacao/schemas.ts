@@ -737,3 +737,20 @@ export const criarTreinoIASchema = z
     foco: z.string().trim().max(120).nullable().optional(),
   })
   .strict();
+
+// Desafios entre alunos (0094)
+const idAluno = z.string().trim().min(1).max(64);
+export const novoDesafioSchema = z
+  .object({
+    nome: z.string().trim().min(3, "Dê um nome ao desafio (3 letras ou mais)").max(60),
+    tipo: z.enum(["mais_treinos", "meta_fixa", "semanas", "madrugador"]),
+    meta: z.number().int().min(1).max(60).nullable(),
+    inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de início inválida"),
+    dias: z.union([z.literal(7), z.literal(14), z.literal(30)]),
+    convidar: z.array(idAluno).max(29).default([]),
+  })
+  .refine((d) => d.tipo !== "semanas" || (d.meta != null && d.meta <= 7), { message: "Escolha de 1 a 7 treinos por semana", path: ["meta"] })
+  .refine((d) => d.tipo !== "meta_fixa" || d.meta != null, { message: "Escolha a meta de treinos", path: ["meta"] });
+export const convidarDesafioSchema = z.object({ alunos: z.array(idAluno).min(1).max(29) });
+export const responderDesafioSchema = z.object({ aceitar: z.boolean() });
+export const entrarDesafioSchema = z.object({ codigo: z.string().trim().regex(/^[A-Za-z0-9]{6}$/, "Código inválido") });

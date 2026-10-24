@@ -50,6 +50,8 @@ import { conviteLiberado, linkOferta } from "@/lib/visitante/campanhas";
 import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
 import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
 import { estadoDoAcesso } from "@/lib/visitante/acesso";
+import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
+import { listarMeusDesafios } from "@/lib/data/desafios";
 import { hrefDaSessao } from "@/lib/treino/livre";
 
 export const metadata = { title: "Início" };
@@ -99,6 +101,8 @@ export default async function AlunoHomePage() {
   const campanha = FEATURES.modoVisitante && ehVisitante(sessao) ? await campanhaDoVisitante(alunoId, sessao.acessoFim ?? null).catch(() => null) : null;
   const ofertaHref = campanha?.oferta && BRAND.contact.whatsapp ? linkOferta(campanha.oferta, BRAND.contact.whatsapp) : null;
   const mostrarConvite = Boolean(campanha && conviteLiberado(campanha.treinosConcluidos, campanha.indicacao));
+  // Convites para desafio entre amigos esperando resposta (0094).
+  const desafios = await listarMeusDesafios(alunoId).catch(() => []);
 
   return (
     <div className="space-y-5">
@@ -112,6 +116,8 @@ export default async function AlunoHomePage() {
           {saudacao}, <span className="text-accent">{primeiroNome}</span>
         </h1>
       </header>
+
+      <EntradaDesafios desafios={desafios} compacto />
 
       {/* Depois do fim do acesso, a oferta já vem no topo de todas as telas (layout). */}
       {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}

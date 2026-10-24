@@ -1521,4 +1521,42 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'trouxe_amigo', '1', 'Trouxe um Amigo', now());
 end $$;
 \echo 'T48 OK: troféus de compartilhamento'
+-- T49 — 0094: desafios entre alunos — cria, convida, entra por código, placar só para participantes
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v_id uuid; n int;
+begin
+  insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim) values ('ABC123', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Teste', 'mais_treinos', current_date, current_date + 7) returning id into v_id;
+  if not exists (select 1 from desafio_participantes where desafio_id = v_id and aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and status = 'aceito') then raise exception 'T49a: criador não entrou'; end if;
+  begin
+    insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim) values ('ABC124', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Falso', 'mais_treinos', current_date, current_date + 7);
+    raise exception 'T49b: criou desafio em nome de outro';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  begin
+    insert into desafio_participantes (desafio_id, aluno_id, status) values (v_id, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aceito');
+    raise exception 'T49c: gravou participante direto';
+  exception when insufficient_privilege then null;
+  end;
+  select count(*) into n from public.dados_desafio(v_id);
+  if n <> 1 then raise exception 'T49d: placar com % linhas', n; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare v_id uuid;
+begin
+  if exists (select 1 from desafios) then raise exception 'T49e: viu desafio sem participar'; end if;
+  if exists (select 1 from public.dados_desafio((select id from desafios limit 1))) then raise exception 'T49f: viu placar sem participar'; end if;
+  if (select criador from public.desafio_publico('abc123')) is null then raise exception 'T49g: prévia do link não veio'; end if;
+  v_id := public.entrar_no_desafio('abc123');
+  if not exists (select 1 from desafios where id = v_id) then raise exception 'T49h: entrou mas não vê o desafio'; end if;
+  if (select count(*) from public.dados_desafio(v_id)) <> 2 then raise exception 'T49i: placar sem os 2 participantes'; end if;
+end $$;
+select test_logout();
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'criador_desafios', '1', 'Criador de Desafios', now());
+end $$;
+\echo 'T49 OK: desafios entre alunos'
 \echo 'TODOS OS TESTES PASSARAM'

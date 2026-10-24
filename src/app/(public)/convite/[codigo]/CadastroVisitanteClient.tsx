@@ -9,7 +9,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { eventoGa } from "@/components/analytics/ga";
 import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
 
-export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
+export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: string; depois?: string | null }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -38,10 +38,10 @@ export function CadastroVisitanteClient({ codigo }: { codigo: string }) {
       eventoGa("sign_up", { method: "convite" });
       const { error } = await createSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password: senha });
       if (error) {
-        window.location.href = "/login?next=/aluno/boas-vindas";
+        window.location.href = `/login?next=${encodeURIComponent(depois ?? "/aluno/boas-vindas")}`;
         return;
       }
-      window.location.href = "/aluno/boas-vindas";
+      window.location.href = depois ?? "/aluno/boas-vindas";
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível criar a conta agora.");
       setEnviando(false);

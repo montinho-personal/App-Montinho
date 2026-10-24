@@ -12,6 +12,7 @@
 // ============================================================================
 
 import { LIMITES_COMPARTILHAR, type MarcosCompartilhar } from "./compartilhar";
+import { LIMITES_DESAFIO, type MarcosDesafios } from "@/lib/desafios/regras";
 import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
@@ -88,6 +89,10 @@ export type CodigoConquista =
   | "vitrine_de_trofeus"
   | "inspiracao_galera"
   | "trouxe_amigo"
+  | "criador_desafios"
+  | "campeao_desafio"
+  | "palavra_cumprida"
+  | "desafiante_nato"
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -142,6 +147,8 @@ export const CODIGOS_SAMURAI: CodigoConquista[] = ["treino_samurai"];
 export const CODIGOS_STRAVA: CodigoConquista[] = ["strava_conectado"];
 /** Troféus de compartilhamento (0088). Gravados à parte, como os outros novos. */
 export const CODIGOS_COMPARTILHAR: CodigoConquista[] = ["compartilhou_primeiro", "diario_de_bordo", "vitrine_de_trofeus", "inspiracao_galera", "trouxe_amigo"];
+/** Troféus dos desafios entre alunos (0094). Gravados à parte, como os outros novos. */
+export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
 export function minutosBrasilia(iso: string): number {
@@ -217,6 +224,10 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   vitrine_de_trofeus: { titulo: "Vitrine de Troféus", criterio: "Compartilhar 5 troféus diferentes (o mesmo troféu mais de uma vez conta uma).", repete: false },
   inspiracao_galera: { titulo: "Inspiração da Galera", criterio: "Alguém abrir o link de um card que você compartilhou.", repete: false },
   trouxe_amigo: { titulo: "Trouxe um Amigo", criterio: "Um amigo se cadastrar no app pelo seu convite (link AMIGO-…).", repete: false },
+  criador_desafios: { titulo: "Criador de Desafios", criterio: "Criar um desafio entre amigos que chegue até o fim com pelo menos mais uma pessoa participando.", repete: false },
+  campeao_desafio: { titulo: "Campeão do Desafio", criterio: "Terminar em 1º lugar um desafio de disputa (quem treina mais ou madrugadores) com pelo menos mais uma pessoa.", repete: false },
+  palavra_cumprida: { titulo: "Palavra Cumprida", criterio: "Cumprir a meta de um desafio de meta (meta de treinos ou semana em dia) até o fim.", repete: false },
+  desafiante_nato: { titulo: "Desafiante Nato", criterio: `Participar até o fim de ${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos.`, repete: false },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -356,6 +367,8 @@ export type EntradaConquistas = {
   stravaConectadoEm?: string | null;
   /** Quando cada troféu de compartilhamento foi alcançado (src/lib/conquistas/compartilhar.ts). */
   compartilhar?: MarcosCompartilhar | null;
+  /** Quando cada troféu dos desafios entre amigos foi alcançado (src/lib/desafios/regras.ts). */
+  desafiosAmigos?: MarcosDesafios | null;
   /** Modo Visitante: desafios em que a pessoa entrou. */
   desafios?: DesafioConquista[];
 };
@@ -445,6 +458,11 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (cp?.vitrine) out.push(nova("vitrine_de_trofeus", "1", cp.vitrine, null, `${LIMITES_COMPARTILHAR.trofeusVitrine} troféus diferentes compartilhados.`));
   if (cp?.inspiracao) out.push(nova("inspiracao_galera", "1", cp.inspiracao, null, "Alguém abriu o link de um card que você compartilhou."));
   if (cp?.amigo) out.push(nova("trouxe_amigo", "1", cp.amigo, null, "Um amigo entrou no app pelo seu convite."));
+  const da = e.desafiosAmigos;
+  if (da?.criador) out.push(nova("criador_desafios", "1", da.criador, null, "Você criou um desafio que chegou até o fim com os amigos."));
+  if (da?.campeao) out.push(nova("campeao_desafio", "1", da.campeao, null, "1º lugar num desafio entre amigos."));
+  if (da?.palavra) out.push(nova("palavra_cumprida", "1", da.palavra, null, "Meta do desafio cumprida até o fim."));
+  if (da?.nato) out.push(nova("desafiante_nato", "1", da.nato, null, `${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos até o fim.`));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

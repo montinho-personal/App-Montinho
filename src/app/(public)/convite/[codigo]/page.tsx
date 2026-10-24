@@ -12,12 +12,15 @@ import { CadastroVisitanteClient } from "./CadastroVisitanteClient";
 
 export const metadata = { title: "Convite", robots: { index: false, follow: false } };
 
-export default async function ConvitePage({ params }: { params: Promise<{ codigo: string }> }) {
+export default async function ConvitePage({ params, searchParams }: { params: Promise<{ codigo: string }>; searchParams: Promise<{ d?: string }> }) {
   if (!FEATURES.modoVisitante) notFound();
   const { codigo: bruto } = await params;
   const codigo = normalizarCodigo(decodeURIComponent(bruto));
+  // Veio do link de um desafio (?d=CODIGO): depois do cadastro, volta para o desafio.
+  const { d } = await searchParams;
+  const desafio = d && /^[A-Za-z0-9]{6}$/.test(d) ? d.toUpperCase() : null;
   const s = await getSessao();
-  if (s) redirect(s.role === "treinador" ? "/treinador/visitantes" : "/aluno");
+  if (s) redirect(desafio && s.role === "aluno" ? `/desafio/${desafio}` : s.role === "treinador" ? "/treinador/visitantes" : "/aluno");
 
   const convite = codigoValido(codigo) ? await convitePublico(codigo) : null;
   const motivo = !convite ? "inexistente" : convite.situacao === "ok" ? null : convite.situacao;
@@ -47,7 +50,7 @@ export default async function ConvitePage({ params }: { params: Promise<{ codigo
             </p>
           </div>
         ) : (
-          <CadastroVisitanteClient codigo={codigo} />
+          <CadastroVisitanteClient codigo={codigo} depois={desafio ? `/desafio/${desafio}` : null} />
         )}
       </CardBody>
     </Card>

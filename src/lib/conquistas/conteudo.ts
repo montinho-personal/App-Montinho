@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -27,6 +27,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   tecnicas: "Técnicas avançadas",
   fases: "Fases do protocolo",
   compartilhar: "Compartilhar",
+  desafios: "Desafios",
 };
 
 /** Ícone de cada categoria (abas do topo da tela Conquistas). */
@@ -42,6 +43,7 @@ export const CATEGORIA_EMOJI: Record<Categoria, string> = {
   tecnicas: "⚡",
   fases: "🧩",
   compartilhar: "📣",
+  desafios: "⚔️",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -650,6 +652,50 @@ const BASE: Record<CodigoConquista, Base> = {
     explicacao: "Vale o cadastro pelo seu link de convite. Para visitantes, cada amigo também dá dias a mais de acesso.",
     proximoPasso: "Combine com o seu amigo um dia de treino na mesma semana.",
     fontes: ["habitos2024"],
+  },
+  criador_desafios: {
+    categoria: "desafios",
+    resumo: "Criou um desafio que foi até o fim com os amigos.",
+    mensagem: "Criador de Desafios! Você puxou a galera para treinar junto.",
+    comoConquistar: "Em Ranking → Desafios, crie um desafio, convide pelo menos uma pessoa e cheguem juntos até a data final.",
+    significado: "Você não só treinou: chamou outras pessoas para treinar também.",
+    importancia: "Combinar o treino com alguém aumenta o compromisso dos dois.",
+    explicacao: "Vale o primeiro desafio criado por você que terminou com pelo menos mais uma pessoa participando.",
+    proximoPasso: "Que tal um desafio de “Semana em dia” com quem treina com você?",
+    fontes: ["habitos2024"],
+  },
+  campeao_desafio: {
+    categoria: "desafios",
+    resumo: "Ficou em 1º lugar num desafio entre amigos.",
+    mensagem: "Campeão do Desafio! Ninguém treinou mais que você.",
+    comoConquistar: "Participe de um desafio “Quem treina mais” ou “Madrugadores” e termine em 1º lugar (empate no topo também vale).",
+    significado: "Você foi o mais constante do grupo no período.",
+    importancia: "Uma disputa saudável entre amigos ajuda a não pular treino.",
+    explicacao: "Conta só treino concluído, com séries, no máximo 1 por dia. Nada de quilos: ninguém sai na frente por ser mais forte.",
+    proximoPasso: "Chame mais gente para o próximo desafio.",
+    fontes: ["sdt2025"],
+  },
+  palavra_cumprida: {
+    categoria: "desafios",
+    resumo: "Cumpriu a meta de um desafio até o fim.",
+    mensagem: "Palavra Cumprida! O combinado foi feito.",
+    comoConquistar: "Participe de um desafio de “Meta de treinos” ou “Semana em dia” e cumpra a meta até a data final.",
+    significado: "Você combinou e cumpriu, mesmo com a rotina corrida.",
+    importancia: "Cumprir pequenas metas com prazo é o que transforma intenção em hábito.",
+    explicacao: "Nesses desafios todo mundo pode ganhar: basta cumprir a meta. Conta treino concluído com séries, 1 por dia.",
+    proximoPasso: "Suba um pouco a meta no próximo desafio.",
+    fontes: ["habitos2024"],
+  },
+  desafiante_nato: {
+    categoria: "desafios",
+    resumo: "Participou de 3 desafios até o fim.",
+    mensagem: "Desafiante Nato! Desafio para você já virou rotina.",
+    comoConquistar: "Aceite e participe até o fim de 3 desafios entre amigos (criados por você ou por outras pessoas).",
+    significado: "Você gosta de treinar com objetivo e com companhia.",
+    importancia: "Metas curtas e seguidas mantêm a motivação ao longo dos meses.",
+    explicacao: "Conta cada desafio que você aceitou e que chegou à data final.",
+    proximoPasso: "Crie o próximo e chame quem ainda não participou.",
+    fontes: ["sdt2025"],
   },
   desafio_concluido: {
     categoria: "pratica",

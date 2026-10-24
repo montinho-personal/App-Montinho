@@ -8,6 +8,7 @@
 import { primeiraAvaliacao } from "@/lib/data/medidas";
 import { statusStrava } from "@/lib/data/strava";
 import { marcosCompartilhar, type EventoCompartilhar, type MarcosCompartilhar } from "@/lib/conquistas/compartilhar";
+import { marcosDosDesafios } from "@/lib/data/desafios";
 import { codigoDoLink } from "@/lib/chalala/link";
 import { relatorioDaConclusao, type RelatorioConclusao } from "@/lib/relatorios/conclusao";
 import { isDemoMode } from "@/lib/env";
@@ -17,7 +18,7 @@ import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes"
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
 import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
-import { CATALOGO, VERSAO_CRITERIO, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CATALOGO, VERSAO_CRITERIO, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
@@ -82,10 +83,10 @@ export async function listarConquistas(alunoId: string | null, opts: { desde?: s
  * Pode ser chamada quantas vezes for: nunca duplica.
  */
 export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: ConquistaRow[]; novas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
-  const [completas, aderencia, existentes, resumo, desafios, avaliacao, strava, compartilhar] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => []), primeiraAvaliacao(aluno.id).catch(() => null), statusStrava(aluno.id).catch(() => null), marcosDoAluno(aluno.id).catch(() => null)]);
+  const [completas, aderencia, existentes, resumo, desafios, avaliacao, strava, compartilhar, desafiosAmigos] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => []), primeiraAvaliacao(aluno.id).catch(() => null), statusStrava(aluno.id).catch(() => null), marcosDoAluno(aluno.id).catch(() => null), marcosDosDesafios(aluno.id).catch(() => null)]);
   const sessoes = completas.map(paraConquista);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null, compartilhar });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null, compartilhar, desafiosAmigos });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
@@ -107,7 +108,8 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const novasSamurai = linhas.filter((l) => CODIGOS_SAMURAI.includes(l.codigo));
     const novasStrava = linhas.filter((l) => CODIGOS_STRAVA.includes(l.codigo));
     const novasCompartilhar = linhas.filter((l) => CODIGOS_COMPARTILHAR.includes(l.codigo));
-    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo));
+    const novasDesafios = linhas.filter((l) => CODIGOS_DESAFIOS.includes(l.codigo));
+    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo));
     if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasAlem.length) await db.from("conquistas_aluno").upsert(novasAlem, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasTecnica.length) await db.from("conquistas_aluno").upsert(novasTecnica, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
@@ -116,6 +118,7 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     if (novasSamurai.length) await db.from("conquistas_aluno").upsert(novasSamurai, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasStrava.length) await db.from("conquistas_aluno").upsert(novasStrava, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasCompartilhar.length) await db.from("conquistas_aluno").upsert(novasCompartilhar, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasDesafios.length) await db.from("conquistas_aluno").upsert(novasDesafios, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
   }
   const todas = await listarConquistas(aluno.id);
   const novas = todas.filter((c) => !ja.has(chave(c)));
