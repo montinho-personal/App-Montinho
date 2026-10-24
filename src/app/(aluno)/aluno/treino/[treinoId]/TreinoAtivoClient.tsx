@@ -618,6 +618,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     };
     enfileirar(storage, sessao.id, { tipo: "serie", sessionId: sessao.id, clientKey: s.clientKey, payload });
     atualizar(seId, idx, { concluida: true, sincronizada: false, ...(emBlocos ? { carga: carga != null ? String(carga).replace(".", ",") : "", reps: reps != null ? String(reps) : "" } : {}) });
+    // Última série do exercício: leva a pessoa ao botão “Concluir exercício e ir para o próximo”.
+    if (!silencioso && (series[seId] ?? []).every((x, k) => k === idx || x.tipo === "aquecimento" || x.concluida)) {
+      setTimeout(() => document.getElementById(`concluir-${seId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
+    }
     setPendentes((n) => n + 1);
     setSync("pendente");
     const ordem = sessao.exercicios.map((x) => x.id);
@@ -1352,8 +1356,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           const nomeTecnica = METODOS.find((m) => m.v === ex.tecnica)?.l ?? "";
           const pend = pendencias.find((p) => p.seId === se.id);
           const statusAtual = statusEx[se.id] ?? se.status;
+          // O servidor marca o exercício como “concluído” já na 1ª série gravada (para guardar o
+          // histórico). Para o aluno, finalizado = tocou em “Concluir exercício” (ou escolheu o esforço).
+          const finalizado = statusEx[se.id] === "concluido" || !!(percepcaoEx[se.id] ?? se.percepcao);
           const podeTrocar = opcoesTroca.length > 0 && statusAtual !== "concluido" && !lista.some((x) => x.tipo !== "aquecimento" && x.concluida);
-          const convite = completo && statusAtual !== "concluido" ? conviteSerieExtra(perdidas[ex.id] ?? { exercicio: 0, grupo: 0 }, { rotuloGrupo: ex.grupo_muscular ? GRUPO_LABEL[ex.grupo_muscular] : null, cuidado: sessao.checkin_pre === "desconforto" || sessao.checkin_pre === "cansado" }) : null;
+          const convite = completo && !finalizado ? conviteSerieExtra(perdidas[ex.id] ?? { exercicio: 0, grupo: 0 }, { rotuloGrupo: ex.grupo_muscular ? GRUPO_LABEL[ex.grupo_muscular] : null, cuidado: sessao.checkin_pre === "desconforto" || sessao.checkin_pre === "cansado" }) : null;
           return (
             <Card key={se.id} id={`ex-${se.id}`} className={`scroll-mt-20 ${conferindo && pend ? "border-warning ring-1 ring-warning/50" : completo ? "border-success/40" : expandido ? "border-accent/40" : ""}`}>
               <CardBody className="p-0">
@@ -1378,7 +1385,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         {ex.tecnica_config ? ` · ${resumoTecnica(ex.tecnica, ex.tecnica_config)}` : ""}
                       </span>
                     ) : null}
-                    {statusAtual === "concluido" ? (
+                    {finalizado || (statusAtual === "concluido" && completo && !expandido) ? (
                       <span className="block text-[11px] font-semibold text-success mt-0.5">✓ Finalizado{(percepcaoEx[se.id] ?? se.percepcao) ? ` · ${ROTULO_ESFORCO[(percepcaoEx[se.id] ?? se.percepcao)!]}` : ""}</span>
                     ) : statusAtual === "pulado" || statusAtual === "nao_consegui" ? (
                       <span className="block text-[11px] text-fg-subtle mt-0.5">{statusAtual === "pulado" ? "Pulado hoje" : "Não consegui (pedido enviado)"}</span>
@@ -1603,9 +1610,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         </div>
                       )
                     ) : null}
-                    {completo && statusAtual !== "concluido" ? (
-                      <button type="button" onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
-                        <Icon name="check" size={18} /> Finalizar exercício
+                    {completo && !finalizado ? (
+                      <button type="button" id={`concluir-${se.id}`} onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
+                        <Icon name="check" size={18} /> Concluir exercício e ir para o próximo
                       </button>
                     ) : null}
                     <div className="flex flex-wrap gap-2 pt-1">
