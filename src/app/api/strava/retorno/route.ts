@@ -2,7 +2,9 @@
 // “state”, troca o código pelas chaves e guarda a conexão (RLS: só dele).
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAlunoApi } from "@/lib/auth/session";
-import { salvarConexao } from "@/lib/data/strava";
+import { salvarConexao, sincronizarCardios } from "@/lib/data/strava";
+import { sincronizarConquistas } from "@/lib/data/conquistas";
+import { getAluno } from "@/lib/db";
 import { trocarCodigo } from "@/lib/strava/cliente";
 
 export async function GET(request: NextRequest) {
@@ -25,6 +27,10 @@ export async function GET(request: NextRequest) {
   try {
     const t = await trocarCodigo(code);
     await salvarConexao(sessao.alunoId, t, escopo, consentimento);
+    // Troféu “Relógio no Pulso” e os cardios dos últimos 30 dias já na volta.
+    const aluno = await getAluno(sessao.alunoId).catch(() => null);
+    if (aluno) await sincronizarConquistas(aluno).catch(() => null);
+    await sincronizarCardios(sessao.alunoId, { forcar: true }).catch(() => null);
     return fim("ok");
   } catch {
     return fim("erro");

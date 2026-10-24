@@ -83,6 +83,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "protocolo_completo", selo: "Ciclo" },
   // Além do necessário: madrugada
   { codigo: "treino_samurai", selo: "4h30" },
+  { codigo: "strava_conectado", selo: "⌚" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
@@ -210,6 +211,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
           ? { atual: Math.min(naFase, LIMITES_FASE.minTreinos), alvo: LIMITES_FASE.minTreinos, falta: naFase < LIMITES_FASE.minTreinos ? `${faltaN(LIMITES_FASE.minTreinos - naFase, "treino", "treinos")} nesta fase. A medalha sai quando o Montinho passar para a próxima.` : "Treinos da fase feitos! A medalha sai quando o Montinho passar para a próxima fase.", disponivel: true }
           : { atual: null, alvo: null, falta: "As fases são definidas pelo Montinho no seu protocolo. Conclua pelo menos 4 treinos na fase e a medalha sai quando ela mudar.", disponivel: true };
       }
+      case "strava_conectado":
+        return { atual: null, alvo: null, falta: "No Perfil, em “Relógio (pelo Strava)”, marque a autorização e toque em “Conectar com o Strava”.", disponivel: true };
       case "treino_samurai":
         return { atual: null, alvo: null, falta: "O app confere sozinho o horário de início do treino. Dica: só vale a pena madrugar com o sono em dia.", disponivel: true };
       case "protocolo_completo":

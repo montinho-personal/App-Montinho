@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { primeiraAvaliacao } from "@/lib/data/medidas";
+import { statusStrava } from "@/lib/data/strava";
 import { relatorioDaConclusao, type RelatorioConclusao } from "@/lib/relatorios/conclusao";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
@@ -14,7 +15,7 @@ import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes"
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
 import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
-import { CATALOGO, VERSAO_CRITERIO, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CATALOGO, VERSAO_CRITERIO, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
@@ -79,10 +80,10 @@ export async function listarConquistas(alunoId: string | null, opts: { desde?: s
  * Pode ser chamada quantas vezes for: nunca duplica.
  */
 export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: ConquistaRow[]; novas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
-  const [completas, aderencia, existentes, resumo, desafios, avaliacao] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => []), primeiraAvaliacao(aluno.id).catch(() => null)]);
+  const [completas, aderencia, existentes, resumo, desafios, avaliacao, strava] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => []), primeiraAvaliacao(aluno.id).catch(() => null), statusStrava(aluno.id).catch(() => null)]);
   const sessoes = completas.map(paraConquista);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
@@ -102,13 +103,15 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const novasFase = linhas.filter((l) => CODIGOS_FASE.includes(l.codigo));
     const novasDesafio = linhas.filter((l) => CODIGOS_DESAFIO.includes(l.codigo));
     const novasSamurai = linhas.filter((l) => CODIGOS_SAMURAI.includes(l.codigo));
-    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo));
+    const novasStrava = linhas.filter((l) => CODIGOS_STRAVA.includes(l.codigo));
+    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo));
     if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasAlem.length) await db.from("conquistas_aluno").upsert(novasAlem, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasTecnica.length) await db.from("conquistas_aluno").upsert(novasTecnica, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasFase.length) await db.from("conquistas_aluno").upsert(novasFase, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasDesafio.length) await db.from("conquistas_aluno").upsert(novasDesafio, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasSamurai.length) await db.from("conquistas_aluno").upsert(novasSamurai, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasStrava.length) await db.from("conquistas_aluno").upsert(novasStrava, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
   }
   const todas = await listarConquistas(aluno.id);
   const novas = todas.filter((c) => !ja.has(chave(c)));

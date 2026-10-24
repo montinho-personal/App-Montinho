@@ -12,7 +12,7 @@ const LARANJA = "#FC4C02";
 const dia = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" }).format(new Date(iso)) : "");
 
 const AVISOS: Record<string, string> = {
-  ok: "Strava conectado! No fim de cada treino, o app busca o batimento do seu relógio.",
+  ok: "Strava conectado! Você ganhou o troféu ⌚ Relógio no Pulso. No fim de cada treino, o app busca o batimento do relógio, e seus cardios aparecem em Evolução.",
   negado: "Você não autorizou no Strava. Quando quiser, é só tentar de novo.",
   escopo: "Para achar seus treinos, deixe marcada no Strava a opção de ver as atividades (inclusive as privadas).",
   erro: "Não foi possível conectar agora. Tente de novo em instantes.",
@@ -38,7 +38,7 @@ export function ConectarStrava({ status, ultimos, aviso }: { status: StatusStrav
         <span aria-hidden className="text-lg">⌚</span>
         <div className="min-w-0 flex-1">
           <p className="font-bold">Relógio (pelo Strava)</p>
-          <p className="text-xs text-fg-muted">Garmin, Apple Watch, Polar, Coros, Samsung, Amazfit… Se o seu relógio manda o treino para o Strava, o app mostra seu batimento em cada treino.</p>
+          <p className="text-xs text-fg-muted">Garmin, Apple Watch, Polar, Coros, Samsung, Amazfit… Se o seu relógio manda o treino para o Strava, o app mostra seu batimento em cada treino e traz seus cardios (corrida, bike, caminhada…). Conectar vale o troféu ⌚ Relógio no Pulso!</p>
         </div>
       </div>
       {aviso && AVISOS[aviso] ? <p className={`rounded-lg px-3 py-2 text-xs ${aviso === "ok" ? "bg-accent/15 text-fg" : "bg-bg text-fg-muted"}`} role="status">{AVISOS[aviso]}</p> : null}
@@ -63,7 +63,7 @@ export function ConectarStrava({ status, ultimos, aviso }: { status: StatusStrav
         <>
           <label className="flex items-start gap-2 text-xs text-fg-muted">
             <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-accent)]" />
-            <span>Autorizo o app a importar do Strava os dados das minhas atividades (batimento cardíaco, duração e calorias) para o acompanhamento com o Montinho. São dados de saúde: o Montinho vê, e mais ninguém. Posso desconectar quando quiser (<a href="/privacidade" target="_blank" className="underline">privacidade</a>).</span>
+            <span>Autorizo o app a importar do Strava os dados das minhas atividades (batimento cardíaco, duração, distância e calorias, inclusive dos cardios como corrida e bike) para o acompanhamento com o Montinho. São dados de saúde: o Montinho vê, e mais ninguém. Posso desconectar quando quiser (<a href="/privacidade" target="_blank" className="underline">privacidade</a>).</span>
           </label>
           <a
             href={aceito ? "/api/strava/conectar?consentimento=1" : undefined}

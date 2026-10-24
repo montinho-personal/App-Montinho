@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { listarCardio } from "@/lib/data/strava";
+import { listarCardio, listarCardiosStrava } from "@/lib/data/strava";
+import { CardiosStrava } from "@/components/strava/CardiosStrava";
 import { textoCardio } from "@/lib/strava/combinar";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -82,7 +83,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
-  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => [])]);
+  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio, cardiosStrava] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => []), listarCardiosStrava(aluno.id, 10).catch(() => [])]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
   // Mesmos alertas do painel inicial, agora também na ficha (topo da aba Evolução).
@@ -226,6 +227,8 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           </CardBody>
         </Card>
       ) : null}
+
+      <CardiosStrava cardios={cardiosStrava} hoje={hojeLocal} />
 
       {a?.lesoes || a?.dores_atuais || aluno.observacoes ? (
         <Card className="border-gold/20 bg-gold/5">

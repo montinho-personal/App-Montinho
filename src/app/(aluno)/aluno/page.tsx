@@ -1,4 +1,5 @@
 import { saudacao as saudacaoSP } from "@/components/brand/BrandLockup";
+import { SincronizarCardios } from "@/components/strava/SincronizarCardios";
 import { CODIGOS_MANUAIS, LENDARIAS } from "@/lib/conquistas/regras";
 import { CelebrarAtivadas } from "@/components/conquistas/CelebrarAtivadas";
 import Link from "next/link";
@@ -103,6 +104,7 @@ export default async function AlunoHomePage() {
       <CelebrarAtivadas conquistas={conquistas.filter((c) => CODIGOS_MANUAIS.includes(c.codigo) && !c.vista_em)} nome={primeiroNome} />
       {/* Treinos guardados no celular para abrir sem internet na academia. */}
       <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento && emAndamento.treino_id ? [hrefDaSessao(emAndamento)] : [])]} />
+      <SincronizarCardios />
       <header>
         <p className="text-xs text-fg-subtle uppercase tracking-wider">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1 className="text-2xl font-bold leading-tight mt-1">

@@ -583,6 +583,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Se madrugar funciona para você, combine com o Montinho um horário fixo de treino.",
     fontes: ["habitos2024"],
   },
+  strava_conectado: {
+    categoria: "acompanhamento",
+    resumo: "Relógio conectado ao app pelo Strava.",
+    mensagem: "Relógio no Pulso! Agora seus batimentos e cardios entram no seu acompanhamento.",
+    comoConquistar: "No Perfil, em “Relógio (pelo Strava)”, marque a autorização e toque em “Conectar com o Strava”. Funciona com Garmin, Apple Watch, Polar, Coros, Samsung, Amazfit e outros que mandam o treino para o Strava.",
+    significado: "Você deu ao Montinho uma visão mais completa do seu esforço: o batimento de cada treino e os cardios que você faz fora do app.",
+    importancia: "O batimento mostra o quanto o treino exigiu de você, e os cardios (corrida, bike, caminhada) completam a foto da sua semana. Com isso, o acompanhamento fica mais preciso.",
+    explicacao: "No fim de cada treino, o app busca no Strava a atividade do relógio no mesmo horário e guarda o batimento médio e máximo, a duração e as calorias. Os cardios que você registra no Strava aparecem em Evolução. Batimento é dado de saúde: só você e o Montinho veem, e você pode desconectar quando quiser.",
+    proximoPasso: "Treine com o relógio e termine o treino no app: o batimento aparece sozinho no resumo.",
+    fontes: ["sdt2025"],
+  },
   desafio_concluido: {
     categoria: "pratica",
     resumo: "Concluir um desafio do Montinho dentro do prazo.",

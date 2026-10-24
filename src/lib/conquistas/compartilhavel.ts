@@ -59,6 +59,7 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   protocolo_completo: { frase: "Protocolo completo. Do começo ao fim.", porque: "Adaptação, intensificação e consolidação em sequência, sem parar: disciplina de meses." },
   completou_consolidacao: { frase: "Ciclo fechado.", porque: "Consolidar os ganhos prepara o próximo ciclo de evolução." },
   treino_samurai: { frase: "Treino do Samurai. Antes das 4h30.", porque: "Começar o treino de madrugada, antes de o dia começar, é disciplina de samurai." },
+  strava_conectado: { frase: "Relógio no pulso, treino no app.", porque: "Batimento e cardio no acompanhamento: o esforço inteiro aparece." },
   desafio_concluido: { frase: "Desafio concluído!", porque: "Cumprir o combinado dentro do prazo mostra que dá para encaixar o treino na rotina." },
   mestre_tecnicas: { frase: "Mestre das técnicas.", porque: "Fazer todas as técnicas avançadas é coisa de quem leva o treino a sério." },
 };
@@ -140,6 +141,8 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
       return "Adaptação → intensificação → consolidação, sem parar";
     case "treino_samurai":
       return "Treino começado até as 4h30 da manhã";
+    case "strava_conectado":
+      return "Relógio conectado pelo Strava";
     default:
       return null;
   }

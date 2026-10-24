@@ -1470,4 +1470,32 @@ begin
 end $$;
 select test_logout();
 \echo 'T46 OK: Strava — chaves só do aluno, batimento lido pelo personal'
+-- T47 — 0087: cardios do Strava — aluno só os dele; personal lê; troféu Relógio no Pulso aceito
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean;
+begin
+  insert into cardios_strava (atividade_id, aluno_id, tipo, inicio, duracao_seg) values (900001, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Run', now(), 1800);
+  ok := false;
+  begin insert into cardios_strava (atividade_id, aluno_id, tipo, inicio, duracao_seg) values (900002, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Run', now(), 10); exception when others then ok := true; end;
+  if not ok then raise exception 'T47a: gravou cardio de outro aluno'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from cardios_strava) then raise exception 'T47b: aluno viu o cardio de outro'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  if not exists (select 1 from cardios_strava) then raise exception 'T47c: personal não leu o cardio'; end if;
+end $$;
+select test_logout();
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'strava_conectado', '1', 'Relógio no Pulso', now());
+end $$;
+\echo 'T47 OK: cardios do Strava e troféu Relógio no Pulso'
 \echo 'TODOS OS TESTES PASSARAM'

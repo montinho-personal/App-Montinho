@@ -30,7 +30,7 @@ export default function PrivacidadePage() {
               <li>As respostas do questionário inicial: objetivo, experiência, frequência, local e tempo de treino.</li>
               <li>Os treinos que você registra: exercícios, cargas, repetições, datas e comentários.</li>
               <li>Medalhas, marcos da Jornada e preferências do app (por exemplo, notificações).</li>
-              <li>Se você conectar o Strava (opcional, só com a sua autorização): o resumo do relógio de cada treino — batimento médio e máximo, duração, calorias, nome do aparelho — e as chaves de acesso da conexão.</li>
+              <li>Se você conectar o Strava (opcional, só com a sua autorização): o resumo do relógio de cada treino — batimento médio e máximo, duração, calorias, nome do aparelho —, os cardios registrados no Strava (tipo, data, duração, distância, batimento e subida) e as chaves de acesso da conexão.</li>
             </ul>
             <p className="mt-2">Não pedimos documentos, endereço nem dados de pagamento no cadastro por convite.</p>
           </section>
@@ -47,7 +47,7 @@ export default function PrivacidadePage() {
           <section>
             <h2>Relógio e Strava (dados de saúde)</h2>
             <p>
-              Batimento cardíaco é dado de saúde. Só é importado se você marcar a autorização e conectar o Strava no Perfil. O app lê apenas as atividades no horário dos seus treinos, para mostrar o batimento a você e ao {BRAND.name} no acompanhamento. As chaves da conexão só o seu login acessa: nem o {BRAND.name} as vê. Você pode desconectar a qualquer momento no Perfil (o app avisa o Strava e apaga as chaves); os resumos já importados ficam no histórico dos treinos e podem ser apagados a seu pedido, pelo e-mail abaixo.
+              Batimento cardíaco é dado de saúde. Só é importado se você marcar a autorização e conectar o Strava no Perfil. O app lê as atividades no horário dos seus treinos (para mostrar o batimento) e os seus cardios (corrida, bike, caminhada e outros, a partir de 30 dias antes da conexão), para você e o {BRAND.name} acompanharem. As chaves da conexão só o seu login acessa: nem o {BRAND.name} as vê. Você pode desconectar a qualquer momento no Perfil (o app avisa o Strava e apaga as chaves); os resumos já importados ficam no histórico dos treinos e podem ser apagados a seu pedido, pelo e-mail abaixo.
             </p>
           </section>
           <section>

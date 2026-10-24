@@ -41,7 +41,7 @@ async function get<T>(caminho: string, accessToken: string): Promise<T> {
   return (await r.json()) as T;
 }
 
-export const listarAtividades = (accessToken: string, after: number, before: number) => get<AtividadeStrava[]>(`/athlete/activities?after=${after}&before=${before}&per_page=30`, accessToken);
+export const listarAtividades = (accessToken: string, after: number, before: number, pagina = 1, porPagina = 30) => get<Array<AtividadeStrava & { distance?: number | null; total_elevation_gain?: number | null }>>(`/athlete/activities?after=${after}&before=${before}&per_page=${porPagina}&page=${pagina}`, accessToken);
 
 export type AtividadeDetalhe = AtividadeStrava & { calories?: number | null; device_name?: string | null };
 export const detalheAtividade = (accessToken: string, id: number) => get<AtividadeDetalhe>(`/activities/${id}`, accessToken);

@@ -9,16 +9,17 @@ import { getDb } from "@/lib/supabase/rls";
 import { getSessao } from "./sessoes";
 import { detalheAtividade, desautorizar, listarAtividades, renovarToken, type TokensStrava } from "@/lib/strava/cliente";
 import { escolherAtividade, janelaDeBusca } from "@/lib/strava/combinar";
+import { cardiosDasAtividades, type CardioStrava } from "@/lib/strava/cardio";
 
-export type ConexaoStrava = { aluno_id: string; athlete_id: number; atleta_nome: string | null; access_token: string; refresh_token: string; expira_em: string; escopo: string | null; consentido_em: string; conectado_em: string };
+export type ConexaoStrava = { aluno_id: string; athlete_id: number; atleta_nome: string | null; access_token: string; refresh_token: string; expira_em: string; escopo: string | null; consentido_em: string; conectado_em: string; cardios_sync_em?: string | null };
 export type CardioSessao = { session_id: string; aluno_id: string; fonte: "strava"; atividade_id: number; nome_atividade: string | null; dispositivo: string | null; fc_media: number | null; fc_max: number | null; duracao_seg: number | null; calorias: number | null; inicio_atividade: string | null; importado_em: string };
 /** O que a tela do aluno pode saber da conexão (sem as chaves). */
 export type StatusStrava = { conectado: boolean; atleta: string | null; desde: string | null };
 
-type Demo = { conexoes: Map<string, ConexaoStrava>; cardio: CardioSessao[] };
+type Demo = { conexoes: Map<string, ConexaoStrava>; cardio: CardioSessao[]; cardios: CardioStrava[] };
 const demo = (): Demo => {
   const g = globalThis as unknown as { __montinhoStrava?: Demo };
-  g.__montinhoStrava ??= { conexoes: new Map(), cardio: [] };
+  g.__montinhoStrava ??= { conexoes: new Map(), cardio: [], cardios: [] };
   return g.__montinhoStrava;
 };
 const num = (v: unknown) => (v == null ? null : Number(v));
@@ -148,4 +149,59 @@ export async function sincronizarSessao(alunoId: string, sessionId: string): Pro
   const { data, error } = await db.from("sessao_cardio").upsert(linha, { onConflict: "session_id" }).select("*").single();
   if (error) throw new Error(`Não foi possível guardar o resumo do relógio: ${error.message}`);
   return { conectado: true, cardio: paraCardio(data as Record<string, unknown>) };
+}
+
+// ---------------------------------------------------------------------------
+// Cardios (0087): corridas, bikes, caminhadas… registradas no Strava.
+// ---------------------------------------------------------------------------
+const paraCardioStrava = (r: Record<string, unknown>): CardioStrava => ({ ...(r as CardioStrava), atividade_id: Number(r.atividade_id), fc_media: num(r.fc_media), fc_max: num(r.fc_max) });
+
+export async function listarCardiosStrava(alunoId: string, limite = 20): Promise<CardioStrava[]> {
+  if (isDemoMode()) return demo().cardios.filter((c) => c.aluno_id === alunoId).sort((a, b) => b.inicio.localeCompare(a.inicio)).slice(0, limite);
+  const db = await getDb();
+  const { data } = await db.from("cardios_strava").select("*").eq("aluno_id", alunoId).order("inicio", { ascending: false }).limit(limite);
+  return ((data ?? []) as Record<string, unknown>[]).map(paraCardioStrava);
+}
+
+/**
+ * Busca no Strava os cardios novos (no máximo 1 vez por hora; na 1ª vez, os
+ * últimos 30 dias antes da conexão). Devolve quantos entraram.
+ */
+export async function sincronizarCardios(alunoId: string, opts: { forcar?: boolean } = {}): Promise<{ conectado: boolean; novos: number }> {
+  const c = await getConexao(alunoId);
+  if (!c) return { conectado: false, novos: 0 };
+  if (!opts.forcar && c.cardios_sync_em && Date.now() - Date.parse(c.cardios_sync_em) < 60 * 60 * 1000) return { conectado: true, novos: 0 };
+  const agora = new Date().toISOString();
+  if (isDemoMode()) {
+    const d = demo();
+    c.cardios_sync_em = agora;
+    if (d.cardios.some((x) => x.aluno_id === alunoId)) return { conectado: true, novos: 0 };
+    const dia = (n: number, h: number) => new Date(Date.now() - n * 86_400_000 + h * 3_600_000).toISOString();
+    d.cardios.push(
+      { aluno_id: alunoId, atividade_id: 7001, tipo: "Run", nome: "Corrida no parque", inicio: dia(1, -2), duracao_seg: 1860, distancia_m: 5230, fc_media: 151, fc_max: 172, elevacao_m: 24 },
+      { aluno_id: alunoId, atividade_id: 7002, tipo: "Ride", nome: "Pedal de domingo", inicio: dia(4, 0), duracao_seg: 4320, distancia_m: 31400, fc_media: 132, fc_max: 158, elevacao_m: 210 },
+      { aluno_id: alunoId, atividade_id: 7003, tipo: "Walk", nome: "Caminhada", inicio: dia(6, 1), duracao_seg: 2700, distancia_m: 3600, fc_media: 104, fc_max: 121, elevacao_m: null },
+    );
+    return { conectado: true, novos: 3 };
+  }
+  const token = await tokenValido(c);
+  const desde = c.cardios_sync_em ? Date.parse(c.cardios_sync_em) - 2 * 86_400_000 : Date.parse(c.conectado_em) - 30 * 86_400_000;
+  const after = Math.floor(desde / 1000);
+  const before = Math.floor(Date.now() / 1000);
+  const atividades: Awaited<ReturnType<typeof listarAtividades>> = [];
+  for (let pagina = 1; pagina <= 3; pagina++) {
+    const xs = await listarAtividades(token, after, before, pagina, 50);
+    atividades.push(...xs);
+    if (xs.length < 50) break;
+  }
+  const db = await getDb();
+  const { data: doTreino } = await db.from("sessao_cardio").select("atividade_id").eq("aluno_id", alunoId);
+  const ja = new Set(((doTreino ?? []) as Array<{ atividade_id: number }>).map((x) => Number(x.atividade_id)));
+  const cardios = cardiosDasAtividades(alunoId, atividades, ja);
+  if (cardios.length) {
+    const { error } = await db.from("cardios_strava").upsert(cardios, { onConflict: "atividade_id" });
+    if (error) throw new Error(`Não foi possível guardar os cardios: ${error.message}`);
+  }
+  await db.from("strava_conexoes").update({ cardios_sync_em: agora }).eq("aluno_id", alunoId);
+  return { conectado: true, novos: cardios.length };
 }

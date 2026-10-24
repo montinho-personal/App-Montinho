@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { listarCardiosStrava } from "@/lib/data/strava";
+import { CardiosStrava } from "@/components/strava/CardiosStrava";
+import { SincronizarCardios } from "@/components/strava/SincronizarCardios";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { listCheckIns, listEvolucao } from "@/lib/db";
 import { getPlanoAtivo, listVersoes } from "@/lib/data/programas";
@@ -29,7 +32,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   const sessao = await requireAlunoPage();
   const { dias: d } = await searchParams;
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
-  const [plano, sessoes, evolucao, checkIns, versoes, intervencoes, historicoResumo] = await Promise.all([
+  const [plano, sessoes, evolucao, checkIns, versoes, intervencoes, historicoResumo, cardios] = await Promise.all([
     getPlanoAtivo(sessao.alunoId),
     listSessoes(sessao.alunoId, { limite: 400 }),
     listEvolucao(sessao.alunoId),
@@ -37,6 +40,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
     listVersoes(sessao.alunoId, 10),
     listIntervencoes(sessao.alunoId, 5),
     listarHistoricoResumo(sessao.alunoId),
+    listarCardiosStrava(sessao.alunoId, 10).catch(() => []),
   ]);
   const aluno = await getAluno(sessao.alunoId);
   const aderencia = aluno ? await aderenciaDoAluno(aluno) : null;
@@ -59,6 +63,8 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
           <span><span className="font-bold text-accent">Seu relatório completo de evolução</span><span className="block text-xs text-fg-muted">Carga músculo a músculo, marcas pessoais e constância. Dá para baixar em PDF.</span></span>
           <span aria-hidden className="text-accent">→</span>
         </Link>
+        <SincronizarCardios />
+        <div className="mt-3"><CardiosStrava cardios={cardios} hoje={dataLocal(new Date())} titulo="Seus cardios (Strava)" /></div>
         <Link href="/aluno/medidas" className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
           <span><span className="font-bold">📏 Medidas e avaliações</span><span className="block text-xs text-fg-muted">Peso, medidas, bioimpedância ou o arquivo (PDF/foto) da sua avaliação.</span></span>
           <span aria-hidden className="text-accent">→</span>

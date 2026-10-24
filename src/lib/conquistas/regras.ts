@@ -81,6 +81,7 @@ export type CodigoConquista =
   | "protocolo_completo"
   // Treino do Samurai: musculação começada até as 4h30 da manhã (horário de Brasília)
   | "treino_samurai"
+  | "strava_conectado"
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -131,6 +132,8 @@ export const CODIGOS_FASE: CodigoConquista[] = ["chegou_intensificacao", "comple
  */
 export const LIMITES_SAMURAI = { inicioMin: 3 * 60 + 59, limiteMin: 4 * 60 + 30 } as const;
 export const CODIGOS_SAMURAI: CodigoConquista[] = ["treino_samurai"];
+/** Relógio no Pulso (0087): conectar o Strava. Gravado à parte, como os outros troféus novos. */
+export const CODIGOS_STRAVA: CodigoConquista[] = ["strava_conectado"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
 export function minutosBrasilia(iso: string): number {
@@ -200,6 +203,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   mestre_tecnicas: { titulo: "Mestre das técnicas", criterio: `Já ter feito pelo menos uma série de cada uma das ${TOTAL_TECNICAS} técnicas avançadas (${Object.values(TECNICAS_MEDALHA).join(", ")}).`, repete: false },
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
   treino_samurai: { titulo: "Treino do Samurai", criterio: "Começar um treino de musculação entre 3h59 e 4h30 da manhã (horário de Brasília) e concluí-lo. Vale o horário em que você tocou em “Começar treino”, registrado pelo app (não o relógio do celular): começou às 4h30, conta; às 4h31, já não conta.", repete: false },
+  strava_conectado: { titulo: "Relógio no Pulso", criterio: "Conectar o seu relógio ao app pelo Strava (Perfil → Relógio), autorizando a importação dos batimentos e dos cardios.", repete: false },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -335,6 +339,8 @@ export type EntradaConquistas = {
   hoje?: string;
   /** Primeira avaliação/medida registrada (ISO) — “Ponto de Partida”. */
   primeiraAvaliacao?: string | null;
+  /** Quando o aluno conectou o Strava pela primeira vez (Relógio no Pulso). */
+  stravaConectadoEm?: string | null;
   /** Modo Visitante: desafios em que a pessoa entrou. */
   desafios?: DesafioConquista[];
 };
@@ -418,6 +424,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   const comCargas = doApp.find((s) => exerciciosComCarga(s) >= LIMITES_COMECO.exerciciosComCarga);
   if (comCargas) out.push(nova("cada_quilo_conta", "1", comCargas.iniciado_em, comCargas.id, `Cargas anotadas em ${exerciciosComCarga(comCargas)} exercícios no mesmo treino.`));
   if (e.primeiraAvaliacao) out.push(nova("ponto_de_partida", "1", e.primeiraAvaliacao, null, "Primeira avaliação registrada: o ponto de partida da sua evolução."));
+  if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {
     const d0 = dataLocal(validasDoApp[0].iniciado_em);
