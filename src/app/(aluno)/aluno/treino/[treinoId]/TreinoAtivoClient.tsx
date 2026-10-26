@@ -69,6 +69,10 @@ import { SerieEmBlocos, type BlocoDigitado } from "./SerieEmBlocos";
 import { arredondarCarga, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
+import { samuraiNoTreino, trofeusNoTreino, type ItemAlcance } from "@/lib/conquistas/ao-alcance";
+import { ehHorarioSamurai } from "@/lib/conquistas/regras";
+import type { DadosAlcance } from "@/lib/data/conquistas";
+import { TrofeusDoTreino } from "@/components/conquistas/TrofeusDoTreino";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 import { PRAZO_LEITURA_MS, fetchComPrazo } from "@/lib/sync/rede";
@@ -118,6 +122,8 @@ type Props = {
   confianca?: { concluidas: number; diasDesdeUltimo: number | null; fichaNova: boolean } | null;
   /** Como o aluno anota o peso de anilhas e halteres (0070). */
   padraoCarga?: PadraoCarga;
+  /** Troféus ao alcance: aviso de quantos dá para ganhar ao começar o treino. */
+  alcance?: DadosAlcance | null;
 };
 
 const METRICA: Record<Descoberta["tipo"], string> = { recorde_carga: "recorde", recorde_reps: "recorde", mais_carga: "mais_carga", mais_reps: "mais_reps", acima_media: "acima_media" };
@@ -203,7 +209,7 @@ function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[
 const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
   Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, padraoCarga }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, padraoCarga, alcance = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -212,6 +218,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // início, incentivo de progressão e técnica avançada. No máx. 2 por treino.
   const [chalalaAviso, setChalalaAviso] = useState<string | null>(null);
   const [inicioChalala, setInicioChalala] = useState<string | null>(null);
+  const [trofeusAgora, setTrofeusAgora] = useState<ItemAlcance[] | null>(null);
   const [confiancaFim, setConfiancaFim] = useState<string | null>(null);
   const [progressaoChalala, setProgressaoChalala] = useState<Record<string, string>>({});
   const [tecnicaChalala, setTecnicaChalala] = useState<Record<string, number>>({});
@@ -541,6 +548,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       if (!res.ok) throw new Error(data.error ?? "Não foi possível iniciar");
       setSessao(data as SessaoCompleta);
       setAberto((data as SessaoCompleta).exercicios[0]?.id ?? null);
+      // Troféus que este treino pode dar (o Samurai vale pelo horário gravado pelo servidor).
+      if (alcance && !presencial) {
+        const reduzido = !extra && possivel?.status === "reduzido";
+        const adiados = new Set(reduzido && possivel?.status === "reduzido" ? possivel.adiados.map((a) => a.id) : []);
+        const itens = trofeusNoTreino({ medalhas: alcance.medalhas, aderencia: alcance.aderencia, tecnicasFeitas: new Set(alcance.tecnicasFeitas), treino: { exercicios: exercicios.filter((x) => !adiados.has(x.id)), extra: !!extra, reduzido } });
+        const samurai = samuraiNoTreino(alcance.medalhas, ehHorarioSamurai((data as SessaoCompleta).iniciado_em));
+        if (samurai) itens.push(samurai);
+        if (itens.length) setTrofeusAgora(itens);
+      }
       window.history.replaceState(null, "", `?sessao=${(data as SessaoCompleta).id}`);
       // Guarda no celular a tela do treino já começado (abre mesmo se a internet cair).
       if (!presencial) void guardarTela(window.location.pathname + window.location.search);
@@ -1327,6 +1343,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       ) : null}
 
       {aviso ? <AvisoEvolucao d={aviso} chalala={chalalaAviso} animar={prefsEvo.animacoes} onFechar={() => { setAviso(null); setChalalaAviso(null); }} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
+      {trofeusAgora ? <TrofeusDoTreino itens={trofeusAgora} onFechar={() => setTrofeusAgora(null)} /> : null}
       {leitura ? <LeituraRapida item={leitura} onFechar={() => setLeitura(null)} /> : null}
       {perguntandoEsforco ? <PerguntaEsforco nome={(() => { const i = sessao.exercicios.findIndex((x) => x.id === perguntandoEsforco); const se = sessao.exercicios[i]; return (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício"; })()} onEscolher={(p) => finalizarExercicio(perguntandoEsforco, p)} onFechar={() => setPerguntandoEsforco(null)} /> : null}
 
