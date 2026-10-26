@@ -12,6 +12,7 @@ import * as dublinHybrid from "./operacao-dublin-hybrid-queen";
 import * as mrArena from "./operacao-mr-arena-18";
 import * as pernasPoderosas from "./operacao-pernas-poderosas";
 import * as galloMaromba from "./operacao-gallo-maromba";
+import * as musaGreenValley from "./missao-musa-green-valley";
 
 export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[]; /** Treinos extras liberados criados junto no cadastro (sem duplicar pelo título). */ extras?: ExtraInput[] };
 
@@ -25,6 +26,7 @@ export const PRESCRICOES: PrescricaoPronta[] = [
   { id: mrArena.ID_PRESCRICAO, titulo: `${mrArena.ROTULO} — Push/Legs/Pull em sequência (A → C)`, alunoNome: mrArena.NOME_ALUNO, plano: mrArena.PRESCRICAO, pendencias: mrArena.PENDENCIAS },
   { id: pernasPoderosas.ID_PRESCRICAO, titulo: `${pernasPoderosas.ROTULO} — 3 treinos em sequência (A → C) + Treino D (abdômen) como extra`, alunoNome: pernasPoderosas.NOME_ALUNA, plano: pernasPoderosas.PRESCRICAO, pendencias: pernasPoderosas.PENDENCIAS, extras: pernasPoderosas.EXTRAS },
   { id: galloMaromba.ID_PRESCRICAO, titulo: `${galloMaromba.ROTULO} — Push/Pull/Legs/Superiores em sequência (A → D)`, alunoNome: galloMaromba.NOME_ALUNO, plano: galloMaromba.PRESCRICAO, pendencias: galloMaromba.PENDENCIAS },
+  { id: musaGreenValley.ID_PRESCRICAO, titulo: `${musaGreenValley.ROTULO} — Lower/Upper/Lower/Full Body em sequência (A → D)`, alunoNome: musaGreenValley.NOME_ALUNA, plano: musaGreenValley.PRESCRICAO, pendencias: musaGreenValley.PENDENCIAS },
 ];
 
 export function prescricoesParaAluno(nome: string | null | undefined): PrescricaoPronta[] {
