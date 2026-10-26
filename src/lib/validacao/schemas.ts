@@ -757,3 +757,9 @@ export const convidarDesafioSchema = z.object({ alunos: z.array(idAluno).min(1).
 export const responderDesafioSchema = z.object({ aceitar: z.boolean() });
 export const cutucarSchema = z.object({ para: idAluno, emoji: z.enum(["🔥", "💪", "😈", "⏰", "👀"]) });
 export const entrarDesafioSchema = z.object({ codigo: z.string().trim().regex(/^[A-Za-z0-9]{6}$/, "Código inválido") });
+
+// “Treinando agora”: recado do personal no meio do treino.
+export const recadoAoVivoSchema = z.object({
+  sessao_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
+  texto: z.string().trim().min(1, "Escreva o recado").max(200),
+});

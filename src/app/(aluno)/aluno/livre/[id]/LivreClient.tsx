@@ -3,6 +3,7 @@
 // Treino livre em andamento: a pessoa escolhe o exercício na hora, anota as
 // séries (carga × repetições, normal/aquecimento/técnica), a técnica do
 // exercício e uma anotação. Cada série é gravada ao tocar no ✓.
+import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -114,6 +115,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
 
   return (
     <div className="space-y-4 pb-24">
+      <RecadosAoVivo sessaoId={sessaoId} />
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">🎲 {extra ? "Treino extra · livre" : "Treino livre"}</p>

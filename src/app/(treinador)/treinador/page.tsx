@@ -16,6 +16,7 @@ import { salvarDesempate } from "@/lib/data/ranking";
 import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBarras";
 import { AnelPercentual } from "@/components/graficos/AnelPercentual";
 import { AcessosDoDia } from "@/components/painel/AcessosDoDia";
+import { treinandoAgora } from "@/lib/data/ao-vivo";
 import { resumoDeAcessos } from "@/lib/data/acessos";
 import { ExerciciosSemVideo } from "@/components/painel/ExerciciosSemVideo";
 import { listarSemVideo } from "@/lib/data/sem-video";
@@ -24,7 +25,7 @@ export const metadata = { title: "Visão geral" };
 
 export default async function TreinadorDashboardPage() {
   const sessao = await requireTreinadorPage();
-  const [m, alunos, adaptacoes, acessos, semVideo] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null), listarSemVideo().catch(() => [])]);
+  const [m, alunos, adaptacoes, acessos, semVideo, aoVivo] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null), listarSemVideo().catch(() => []), treinandoAgora().catch(() => [])]);
   const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   // Dados por aluno ativo (limitado para manter o painel rápido)
@@ -96,6 +97,14 @@ export default async function TreinadorDashboardPage() {
         <StatCard label="Pendentes / pausados" value={`${m.pendentes} / ${m.pausados}`} hint="cadastro ou acesso" tone="neutral" />
       </div>
 
+      <Link href="/treinador/ao-vivo" className="flex items-center gap-3 rounded-2xl border border-success/40 bg-success/5 px-4 py-3 hover:border-success">
+        <span className={`h-3 w-3 shrink-0 rounded-full ${aoVivo.length ? "bg-success motion-safe:animate-pulse" : "bg-border"}`} aria-hidden />
+        <span className="flex-1">
+          <span className="block font-bold">{aoVivo.length ? `${aoVivo.length} ${aoVivo.length === 1 ? "pessoa treinando" : "pessoas treinando"} agora` : "Ninguém treinando agora"}</span>
+          <span className="block text-xs text-fg-muted">{aoVivo.length ? aoVivo.slice(0, 3).map((t) => t.nome.split(" ")[0]).join(", ") + (aoVivo.length > 3 ? "…" : "") + " · toque para ver e mandar um recado" : "Toque para acompanhar ao vivo"}</span>
+        </span>
+        <span aria-hidden className="text-fg-muted">›</span>
+      </Link>
       {acessos ? <AcessosDoDia r={acessos} /> : null}
 
       <ExerciciosSemVideo lista={semVideo} />

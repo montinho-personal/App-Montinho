@@ -279,3 +279,8 @@
 @media (prefers-reduced-motion: reduce) {
   .chalala-lanterna, .chalala-vagalume, .chalala-nuvem, .chalala-voar, .chalala-agua, .chalala-balanco, .chalala-fala, .chalala-revelar { animation: none; }
 }
+
+/* Recado ao vivo do personal no treino */
+@keyframes recado-entra { from { opacity: 0; transform: translateY(-24px) scale(.97); } to { opacity: 1; transform: none; } }
+.recado-entra { animation: recado-entra .35s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .recado-entra { animation: none; } }

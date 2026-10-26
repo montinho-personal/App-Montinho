@@ -10,6 +10,7 @@
 //  • "Não consegui" → pedido de adaptação. Finalização com resumo real.
 // ============================================================================
 
+import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
 import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
 import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
@@ -1257,6 +1258,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
   return (
     <div className={`space-y-4 ${timer ? "pb-24" : ""}`}>
+      {sessao && sessao.status === "em_andamento" && !presencial ? <RecadosAoVivo sessaoId={sessao.id} /> : null}
       <div className="flex items-center justify-between gap-3">
         <Link href={voltarHref} className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
           ← {presencial ? presencial.nomeAluno : "Treinos"}
