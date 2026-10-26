@@ -10,9 +10,9 @@
 //  • Padrão de toda ficha (./regras): até a falha (RIR 0) e aquecimento no 1º
 //    exercício (no Treino A, a prancha fica fora e o aquecimento vai na
 //    elevação pélvica). Prancha por tempo: "60s".
+// v2 (26/10/2026): o personal confirmou que a elevação pélvica é NA MÁQUINA.
 // Correspondências: “Abdominal prancha” = Prancha frontal; “Elevação pélvica”
-// = Hip thrust com barra (sinônimo “elevação pélvica com barra”; a ponte no
-// solo não tem vídeo); “Remada baixa pegada aberta” = Remada sentada pegada
+// = Hip thrust na máquina (sinônimo “elevação pélvica máquina”); “Remada baixa pegada aberta” = Remada sentada pegada
 // aberta; “Puxada frontal pegada aberta pronada” = Puxada frontal aberta
 // (pulley); “Crucifixo máquina” = peck deck; “Elevação frontal com halter
 // pegada pronada” = Elevação frontal com halteres; “Tríceps francês com halter
@@ -29,7 +29,7 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
 import { comRegras } from "./regras";
 
-export const ID_PRESCRICAO = "missao-musa-green-valley-v1";
+export const ID_PRESCRICAO = "missao-musa-green-valley-v2";
 export const NOME_ALUNA = "Carol Zorzi (Carolina)";
 export const ROTULO = "Missão Musa do Green Valley";
 
@@ -38,7 +38,7 @@ type Lib = { id: string; nome: string; grupo: GrupoMuscular };
 /** Correspondência com a biblioteca (produção). */
 export const BIBLIOTECA: Record<string, Lib> = {
   "Prancha frontal": { id: "f96c1647-c28a-4b98-99e0-ff89bea743d1", nome: "Prancha frontal", grupo: "core" },
-  "Hip thrust com barra": { id: "92cc0e3b-48ea-454a-b872-8bac4bc30d28", nome: "Hip thrust com barra", grupo: "gluteo" },
+  "Hip thrust na máquina": { id: "9c4fa6e6-b6d2-4516-b9e4-a87cda088150", nome: "Hip thrust na máquina", grupo: "gluteo" },
   "Leg press 45°": { id: "7c787c53-d34f-44a6-bed7-8873f3766db1", nome: "Leg press 45°", grupo: "quadriceps" },
   "Cadeira extensora": { id: "ce624289-c6c3-436f-9ecb-7f82c3bcac6d", nome: "Cadeira extensora", grupo: "quadriceps" },
   "Cadeira abdutora": { id: "ffd14873-53a6-48f9-afc3-a743531ab9d0", nome: "Cadeira abdutora", grupo: "gluteo" },
@@ -126,7 +126,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
   treinos: [
     treino("A", "Lower — Glúteo, quadríceps e panturrilha", [
       ex("Prancha frontal", ["60s"], null, { tecnica: "isometria", obs: "Abdominal prancha: 60 segundos." }),
-      pir("Hip thrust com barra", P20, `Elevação pélvica. ${ISO_TODAS}`),
+      pir("Hip thrust na máquina", P20, `Elevação pélvica na máquina. ${ISO_TODAS}`),
       pir("Leg press 45°", P15),
       pir("Cadeira extensora", P20, ISO_TODAS),
       pir("Cadeira abdutora", P20, ISO_TODAS),
@@ -155,7 +155,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       ex("Panturrilha no leg press", x(4, "20"), null, { obs: `Leg press 180. 10 repetições isométricas e o restante normal. ${AUMENTAR}` }),
     ]),
   ],
-  motivo: "Cadastro da prescrição Missão Musa do Green Valley (Lower/Upper/Lower/Full Body em sequência) a partir da ficha do personal",
+  motivo: "Cadastro da prescrição Missão Musa do Green Valley (Lower/Upper/Lower/Full Body em sequência) a partir da ficha do personal; elevação pélvica na máquina",
 };
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
