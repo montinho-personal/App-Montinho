@@ -129,6 +129,39 @@ export type CheckIn = {
   estresse: number | null;
   notas: string | null;
   created_at: string;
+  /** 0096 — Montinho Pulso (respostas do cardápio de src/lib/pulso/perguntas.ts). */
+  origem?: "diario" | "pulso";
+  pulso_energia?: string | null;
+  pulso_recuperacao?: string | null;
+  pulso_motivacao?: string | null;
+  pulso_sono?: string | null;
+  pulso_dificuldades?: string[] | null;
+  pulso_pulou?: boolean;
+  sessao_id?: string | null;
+  respondido_em?: string | null;
+};
+
+/** 0096 — consentimento do Pulso para dado de saúde (corpo e sono). */
+export type PulsoPreferencias = {
+  aluno_id: string;
+  consentimento_saude_em: string | null;
+  consentimento_revogado_em: string | null;
+  compartilhar_tendencias: boolean;
+  updated_at: string;
+};
+
+/** 0096 — o que o personal fez com um alerta (evita repetir o mesmo alerta). */
+export type AcompanhamentoAlerta = {
+  id: string;
+  aluno_id: string;
+  origem: "pulso" | "aderencia";
+  chave: string;
+  estado: "acompanhado" | "dispensado" | "adiado";
+  adiado_ate: string | null;
+  nota: string | null;
+  autor_id: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type MensagemTipo = "texto" | "imagem" | "audio" | "sistema";

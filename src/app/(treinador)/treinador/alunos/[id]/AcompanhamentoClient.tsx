@@ -18,6 +18,7 @@ const TIPO_LABEL: Record<Intervencao["tipo"], string> = {
   mensagem: "Mensagem ao aluno",
   decisao: "Decisão registrada",
   resposta_adaptacao: "Resposta a pedido",
+  contato: "Contato registrado",
 };
 
 export function AcompanhamentoClient({ alunoId, adaptacoes, intervencoes }: { alunoId: string; adaptacoes: Adaptacao[]; intervencoes: Intervencao[] }) {

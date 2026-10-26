@@ -225,7 +225,7 @@ export type Intervencao = {
   id: string;
   aluno_id: string;
   autor_id: string;
-  tipo: "nota" | "revisao_treino" | "ajuste_programa" | "mensagem" | "decisao" | "resposta_adaptacao";
+  tipo: "nota" | "revisao_treino" | "ajuste_programa" | "mensagem" | "decisao" | "resposta_adaptacao" | "contato";
   titulo: string | null;
   descricao: string;
   referencia: Record<string, unknown>;

@@ -1588,4 +1588,82 @@ begin
   end;
 end $$;
 \echo 'T50 OK: notificações dos desafios'
+-- T51 — 0096: Montinho Pulso — aluno grava/lê só o próprio Pulso e consentimento; alertas e registro de acesso só o personal
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  insert into check_ins (aluno_id, data, origem, pulso_energia, pulso_recuperacao, pulso_dificuldades, respondido_em)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 1, 'pulso', 'baixa', 'desconforto', array['falta_tempo'], now());
+  insert into pulso_preferencias (aluno_id, consentimento_saude_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', now());
+  begin
+    insert into check_ins (aluno_id, data, origem, pulso_energia) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', current_date + 1, 'pulso', 'alta');
+    raise exception 'T51a: gravou Pulso de outro aluno';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  begin
+    insert into check_ins (aluno_id, data, origem, pulso_energia) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 2, 'pulso', 'otima');
+    raise exception 'T51b: aceitou valor fora do cardápio';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into check_ins (aluno_id, data, origem, pulso_dificuldades) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 3, 'pulso', array['inventada']);
+    raise exception 'T51c: aceitou dificuldade fora do cardápio';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into pulso_preferencias (aluno_id) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+    raise exception 'T51d: gravou consentimento de outro aluno';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  begin
+    insert into acompanhamento_alertas (aluno_id, origem, chave, estado) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pulso', 'pulso:teste', 'dispensado');
+    raise exception 'T51e: aluno gravou estado de alerta';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  if exists (select 1 from acompanhamento_alertas) then raise exception 'T51f: aluno vê alertas'; end if;
+  if exists (select 1 from dados_saude_acessos) then raise exception 'T51g: aluno vê registro de acesso'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from check_ins where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T51h: aluno B viu o Pulso do aluno A'; end if;
+  if exists (select 1 from pulso_preferencias) then raise exception 'T51i: aluno B viu consentimento alheio'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  if not exists (select 1 from check_ins where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and origem = 'pulso') then raise exception 'T51j: personal não lê o Pulso'; end if;
+  insert into acompanhamento_alertas (aluno_id, origem, chave, estado, adiado_ate) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pulso', 'pulso:desconforto:teste', 'adiado', current_date + 3);
+  begin
+    insert into acompanhamento_alertas (aluno_id, origem, chave, estado) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pulso', 'pulso:desconforto:teste', 'acompanhado');
+    raise exception 'T51k: duplicou o mesmo alerta';
+  exception when unique_violation then null;
+  end;
+  begin
+    insert into acompanhamento_alertas (aluno_id, origem, chave, estado) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pulso', 'pulso:outro', 'adiado');
+    raise exception 'T51l: adiou sem data';
+  exception when check_violation then null;
+  end;
+  insert into dados_saude_acessos (aluno_id, recurso) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pulso_historico');
+  begin
+    insert into check_ins (aluno_id, data, origem, pulso_energia) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 4, 'pulso', 'alta');
+    raise exception 'T51m: personal respondeu o Pulso no lugar do aluno';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  insert into intervencoes (aluno_id, autor_id, tipo, descricao) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'contato', 'Contato pelo WhatsApp');
+end $$;
+select test_logout();
+do $$
+begin
+  perform public.pulso_limpar_notas_antigas('chave-teste');
+  begin
+    perform public.pulso_limpar_notas_antigas('errada');
+    raise exception 'T51n: limpou com chave errada';
+  exception when raise_exception then
+    if sqlerrm like 'T51n%' then raise; end if;
+  end;
+end $$;
+\echo 'T51 OK: Montinho Pulso'
 \echo 'TODOS OS TESTES PASSARAM'
