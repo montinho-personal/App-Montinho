@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoMeta, lerMeta, metasPorSerie, rotuloMeta, situacaoMeta, seriesQuePassaram, textoSubirPeso } from "./meta-reps";
+import { avisoMeta, lerMeta, metasPorSerie, rotuloMeta, situacaoMeta, seriesQuePassaram, textoSubirPeso, linhasSubirPeso } from "./meta-reps";
 
 describe("meta de repetições", () => {
   it("lê número, faixa e ignora texto livre", () => {
@@ -42,9 +42,9 @@ describe("passou da meta → subir o peso", () => {
     ];
     const p = seriesQuePassaram(hoje, metas, ultima);
     expect(p.map((x) => x.serie)).toEqual([1, 2]);
-    expect(textoSubirPeso(p)).toBe(
-      "Na última vez você passou da meta — série 1: 20 reps com 10 kg (meta 15) e série 2: 20 reps com 20 kg (meta 12). Hoje dá para subir um pouco o peso nessas séries (a próxima anilha ou o próximo halter) e fazer dentro da faixa. Se a execução não ficar firme, volte ao peso anterior."
-    );
+    expect(textoSubirPeso(p)).toBe("Na última vez você fez mais repetições que a meta. Hoje, coloque um pouco mais de peso nas séries com ↑.");
+    expect(linhasSubirPeso(p)).toEqual(["Série 1: fez 20 reps (meta 15) com 10 kg", "Série 2: fez 20 reps (meta 12) com 20 kg"]);
+    expect(textoSubirPeso(p.slice(1))).toBe("Na última vez você fez mais repetições que a meta. Hoje, coloque um pouco mais de peso na série 2.");
   });
 
   it("faixa 10–12: 12 não passa, 13 passa; sem meta ou na meta, nada", () => {

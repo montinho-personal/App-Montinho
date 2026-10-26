@@ -79,8 +79,13 @@ const kgBR = (n: number) => `${String(Math.round(n * 100) / 100).replace(".", ",
 /** Texto do aviso no topo do exercício. */
 export function textoSubirPeso(passou: SeriePassou[]): string | null {
   if (!passou.length) return null;
-  const partes = passou.map((p) => `série ${p.serie}: ${p.reps} reps com ${kgBR(p.cargaKg)} (meta ${rotuloMeta(p.meta)})`);
-  const lista = partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join("; ")} e ${partes.at(-1)}`;
-  const onde = passou.length === 1 ? "nessa série" : "nessas séries";
-  return `Na última vez você passou da meta — ${lista}. Hoje dá para subir um pouco o peso ${onde} (a próxima anilha ou o próximo halter) e fazer dentro da faixa. Se a execução não ficar firme, volte ao peso anterior.`;
+  const onde = passou.length === 1 ? `na série ${passou[0].serie}` : "nas séries com ↑";
+  return `Na última vez você fez mais repetições que a meta. Hoje, coloque um pouco mais de peso ${onde}.`;
 }
+
+/** Uma linha por série, curta: “Série 2: fez 20 reps (meta 15) com 80 kg”. */
+export function linhasSubirPeso(passou: SeriePassou[]): string[] {
+  return passou.map((p) => `Série ${p.serie}: fez ${p.reps} reps (meta ${rotuloMeta(p.meta)}) com ${kgBR(p.cargaKg)}`);
+}
+
+export const DICA_SUBIR_PESO = "Suba só um pouco (a próxima anilha ou o próximo halter). Se perder a execução, volte ao peso anterior.";

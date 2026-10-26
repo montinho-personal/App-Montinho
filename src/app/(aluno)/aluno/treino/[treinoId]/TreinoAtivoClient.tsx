@@ -39,7 +39,7 @@ import { descansoDaRodada, mesclarParametros, type ParametrosTempo } from "@/lib
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
 import { dataBR } from "@/lib/format";
 import type { SessaoCompleta, UltimaExecucao } from "@/lib/data/sessoes";
-import { lerMeta, rotuloMeta, seriesQuePassaram, textoSubirPeso } from "@/lib/treino/meta-reps";
+import { DICA_SUBIR_PESO, lerMeta, linhasSubirPeso, rotuloMeta, seriesQuePassaram, textoSubirPeso } from "@/lib/treino/meta-reps";
 import { guardarTela } from "@/lib/offline/paginas";
 import { conviteLiberado } from "@/lib/visitante/campanhas";
 import type { CampanhaVisitante } from "@/lib/data/campanhas";
@@ -1477,9 +1477,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       </div>
                     ) : null}
                     {subirPeso && !completo ? (
-                      <div role="note" className="rounded-md border border-success/50 bg-success/10 px-3 py-2">
-                        <p className="text-sm font-bold text-success">⬆️ Dá para subir o peso</p>
-                        <p className="text-xs text-fg-muted">{subirPeso}</p>
+                      <div role="note" className="space-y-1.5 rounded-md border border-success/50 bg-success/10 px-3 py-2.5">
+                        <p className="text-base font-bold text-success">⬆️ Hora de subir o peso!</p>
+                        <p className="text-sm">{subirPeso}</p>
+                        <ul className="space-y-0.5 text-sm">
+                          {linhasSubirPeso(passou).map((l) => (
+                            <li key={l} className="flex gap-1.5"><span className="font-bold text-success" aria-hidden>↑</span><span>{l}</span></li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-fg-muted">{DICA_SUBIR_PESO}</p>
                       </div>
                     ) : null}
                     {tecnicaTxt ? <p className="text-xs text-fg-muted">{tecnicaTxt}</p> : null}
