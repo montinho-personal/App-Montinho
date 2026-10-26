@@ -17,7 +17,8 @@ import { getConfigEvolucao, historicoParaEvolucao } from "@/lib/data/evolucao";
 import { normalizarTecnica } from "@/lib/evolucao/adaptar";
 import { desbloqueiaParaTreino } from "@/lib/data/desbloqueia";
 import { trocasParaExercicios } from "@/lib/data/trocas";
-import { progressoesRecentes } from "@/lib/data/conquistas";
+import { dadosAlcance, progressoesRecentes } from "@/lib/data/conquistas";
+import { getAluno } from "@/lib/db";
 import { dadosConfianca } from "@/lib/data/confianca";
 import { ehFichaNova } from "@/lib/chalala/confianca";
 import { ehExtraGerado } from "@/lib/data/extra-gerado";
@@ -47,7 +48,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   const gerado = ehExtraGerado(sessaoPedida) ? (sessaoPedida!.snapshot as { treino?: { nome?: string }; exercicios?: typeof treinoPlano.exercicios }) : null;
   const treino = gerado?.exercicios?.length ? { ...treinoPlano, letra: "+", nome: gerado.treino?.nome ?? "Treino extra", observacoes: null, ativo: true, exercicios: gerado.exercicios } : treinoPlano;
 
-  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf, padraoCarga] = await Promise.all([
+  const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf, padraoCarga, alcance] = await Promise.all([
     sessaoPedida ? Promise.resolve(sessaoPedida) : sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
     ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
     listarBiblioteca(),
@@ -61,6 +62,8 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
     presencial ? Promise.resolve([]) : progressoesRecentes(alunoId).catch(() => []),
     presencial ? Promise.resolve(null) : dadosConfianca(alunoId).catch(() => null),
     getPadraoCarga(alunoId).catch(() => ({ anilhas: null, halteres: null })),
+    // Troféus ao alcance (aviso ao começar o treino). Falhou: o treino abre sem o aviso.
+    presencial ? Promise.resolve(null) : getAluno(alunoId).then((a) => (a ? dadosAlcance(a) : null)).catch(() => null),
   ]);
   const agora = new Date(agoraServidorMs());
   const confianca = conf
@@ -131,6 +134,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       confianca={confianca}
       campanha={campanha}
       padraoCarga={padraoCarga}
+      alcance={alcance}
       extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor_leve", "dor_moderada", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );

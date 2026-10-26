@@ -13,6 +13,10 @@ import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
 import { paraVisao } from "@/components/desbloqueia/visao";
 import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
 import { CategoriasTrofeus } from "@/components/conquistas/CategoriasTrofeus";
+import { TrofeusAoAlcance } from "@/components/conquistas/TrofeusAoAlcance";
+import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
+import { tecnicasFeitas } from "@/lib/conquistas/regras";
+import { getPlanoAtivo } from "@/lib/data/programas";
 
 export const metadata = { title: "Conquistas" };
 
@@ -20,11 +24,13 @@ export default async function ConquistasPage() {
   const sessao = await requireAlunoPage();
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
-  const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
+  const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos, plano] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), getPlanoAtivo(aluno.id).catch(() => null)]);
   const hoje = dataLocal(new Date());
   const album = await albumParaAluno(aluno, conquistas);
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje });
+  // Troféus que dá para ganhar nos próximos dias, com o que fazer em cada um.
+  const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
   // Mensagem escrita pelo personal ligada a uma medalha (a mais recente).
@@ -46,6 +52,7 @@ export default async function ConquistasPage() {
           Evolução →
         </Link>
       </div>
+      <TrofeusAoAlcance itens={aoAlcance} />
       <section className="space-y-2" aria-labelledby="categorias-titulo">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id="categorias-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Troféus por categoria</h2>
