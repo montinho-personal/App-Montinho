@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
+import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
 import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
 import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
 import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
@@ -1272,6 +1273,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           ) : null}
         </p>
       </div>
+      {sessao && sessao.status === "em_andamento" ? <div className="-mt-2 flex justify-end"><TelaAcesaTreino /></div> : null}
       {!online ? (
         <div role="note" className="rounded-xl border border-warning/60 bg-warning/10 px-4 py-3">
           <p className="text-sm font-bold">📶 Sem internet? Pode continuar marcando.</p>

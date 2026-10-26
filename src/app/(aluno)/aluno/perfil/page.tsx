@@ -14,6 +14,7 @@ import { getPreferencias } from "@/lib/data/notificacoes";
 import { appMode } from "@/lib/env";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
 import { PadraoCargaPerfil } from "@/components/treinos/PadraoCarga";
+import { TelaAcesaPerfil } from "@/components/treinos/TelaAcesa";
 import { getRankingVisivel } from "@/lib/data/ranking";
 import { RankingVisivel } from "@/components/ranking/RankingVisivel";
 import { ConectarStrava } from "@/components/strava/ConectarStrava";
@@ -52,6 +53,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
 
       <NotificacoesChalala inicial={prefsNotif} />
 
+      <TelaAcesaPerfil />
       <PadraoCargaPerfil inicial={padraoCarga} />
       <Link href="/aluno/medidas" className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
         <span><span className="font-bold">📏 Medidas e avaliações</span><span className="block text-xs text-fg-muted">Peso, medidas, bioimpedância ou o arquivo (PDF/foto) da sua avaliação.</span></span>
