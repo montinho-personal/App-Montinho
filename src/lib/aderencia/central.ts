@@ -14,7 +14,7 @@ export type Sinal = {
 
 /** Sugestão para o PERSONAL (nunca enviada automaticamente; rascunho editável). */
 export type Sugestao = {
-  tipo: "ausencia" | "plano_alterado" | "registro" | "queda" | "retomada" | "sequencia" | "pausa";
+  tipo: "ausencia" | "plano_alterado" | "registro" | "queda" | "retomada" | "sequencia" | "pausa" | "sem_carga" | "avaliacao";
   titulo: string;
   /** Regra que gerou a sugestão, em linguagem simples. */
   regra: string;
@@ -45,9 +45,15 @@ export type ContextoCentral = {
   pausaTipo?: string | null;
   /** Agora (para horas desde a sessão aberta). */
   agora?: Date;
+  /** Últimos treinos concluídos seguidos, com séries, sem nenhuma carga anotada. */
+  treinosSemCarga?: number;
+  /** Data (AAAA-MM-DD) da última avaliação (medidas ou arquivo); null = nunca. */
+  ultimaAvaliacao?: string | null;
+  /** Desde quando acompanha (AAAA-MM-DD), para não cobrar avaliação de quem acabou de entrar. */
+  inicio?: string | null;
 };
 
-export type RegrasCentral = { diasSemTreino: number; quedaPontos: number; pausaParaRetomada: number; janelaRetomada: number; sequenciaReconhecer: number; horasRegistroAberto: number; diasPlanoAlterado: number };
+export type RegrasCentral = { diasSemTreino: number; quedaPontos: number; pausaParaRetomada: number; janelaRetomada: number; sequenciaReconhecer: number; horasRegistroAberto: number; diasPlanoAlterado: number; treinosSemCarga: number; diasAvaliacao: number };
 
 /** Padrões; o personal pode ajustar (preferencias_treinador.regras_acompanhamento). */
 export const REGRAS_CENTRAL: RegrasCentral = {
@@ -58,6 +64,8 @@ export const REGRAS_CENTRAL: RegrasCentral = {
   sequenciaReconhecer: 4,
   horasRegistroAberto: 12,
   diasPlanoAlterado: 14,
+  treinosSemCarga: 3,
+  diasAvaliacao: 60,
 };
 
 export function mesclarRegras(r: Partial<RegrasCentral> | null | undefined): RegrasCentral {
@@ -126,6 +134,14 @@ export function linhaCentral(
       else if (tipos.has("queda_frequencia"))
         sugestoes.push({ tipo: "queda", titulo: "Frequência abaixo do próprio histórico", regra: `Aderência das últimas 4 semanas ${REGRAS_CENTRAL.quedaPontos}+ pontos abaixo das 4 anteriores. Sessões feitas em outro dia (remanejadas) contam normalmente.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Percebi que as últimas semanas ficaram mais corridas. Quer que a gente ajuste a meta ou o treino para ficar mais viável?` });
     }
+  }
+  if (!emPausa && (ctx.treinosSemCarga ?? 0) >= REGRAS_CENTRAL.treinosSemCarga)
+    sugestoes.push({ tipo: "sem_carga", titulo: `${ctx.treinosSemCarga} treinos seguidos sem anotar as cargas`, regra: `Os últimos ${REGRAS_CENTRAL.treinosSemCarga}+ treinos concluídos têm séries marcadas, mas nenhum peso anotado. Sem carga, o app não consegue mostrar evolução nem avisar quando subir o peso.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Vi que você está treinando, que ótimo! 💪 Uma dica: anota o peso de cada série no app. Assim eu acompanho sua evolução e o app te avisa quando dá para subir a carga.` });
+  {
+    const base = ctx.ultimaAvaliacao ?? ctx.inicio ?? null;
+    const diasAv = base ? dias(base, hoje) : null;
+    if (!emPausa && diasAv !== null && diasAv >= REGRAS_CENTRAL.diasAvaliacao)
+      sugestoes.push({ tipo: "avaliacao", titulo: ctx.ultimaAvaliacao ? `Última avaliação há ${diasAv} dias` : "Ainda sem avaliação registrada", regra: `Sem medidas nem arquivo de avaliação há ${REGRAS_CENTRAL.diasAvaliacao}+ dias. Avaliar de tempos em tempos mostra a evolução além do peso na barra.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Que tal a gente marcar uma nova avaliação? Faz um tempinho desde a última, e é muito legal ver o quanto você evoluiu. 📏` });
   }
   if (tipos.has("retomou"))
     sugestoes.push({ tipo: "retomada", titulo: "Voltou a treinar", regra: `Treinou nos últimos ${REGRAS_CENTRAL.janelaRetomada} dias depois de ${REGRAS_CENTRAL.pausaParaRetomada}+ dias sem treino.`, acao: "reconhecer", rascunho: `Bom ter você de volta, ${primeiro}! Vamos reorganizar a rotina juntos, no seu ritmo.` });

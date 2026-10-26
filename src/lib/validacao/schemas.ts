@@ -409,6 +409,8 @@ export const regrasAcompanhamentoSchema = z
     sequenciaReconhecer: z.coerce.number().int().min(2).max(26),
     horasRegistroAberto: z.coerce.number().int().min(2).max(72),
     diasPlanoAlterado: z.coerce.number().int().min(3).max(60),
+    treinosSemCarga: z.coerce.number().int().min(2).max(10),
+    diasAvaliacao: z.coerce.number().int().min(14).max(365),
   })
   .partial()
   .strict();

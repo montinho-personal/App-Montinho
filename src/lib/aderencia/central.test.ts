@@ -81,3 +81,19 @@ describe("sugestões de acompanhamento — distinguem o motivo", () => {
     expect(l.sinais.map((x) => x.tipo)).not.toContain("sem_treino_recente");
   });
 });
+
+describe("central — cargas e avaliação (26/10/2026)", () => {
+  const base = ["2026-10-13", "2026-10-14", "2026-10-20"];
+  const r = calcularAderencia({ inicio: "2026-08-03", hoje, metas, sessoes: base.map(s) });
+  const com = (ctx: Parameters<typeof linhaCentral>[5]) => linhaCentral({ id: "a", nome: "Maria Souza" }, r, "2026-10-20T13:00:00Z", hoje, base, ctx).sugestoes.map((x) => x.tipo);
+  it("3 treinos seguidos sem carga sugere orientar; 2 não", () => {
+    expect(com({ treinosSemCarga: 3, ultimaAvaliacao: "2026-10-01" })).toContain("sem_carga");
+    expect(com({ treinosSemCarga: 2, ultimaAvaliacao: "2026-10-01" })).not.toContain("sem_carga");
+  });
+  it("avaliação há 60+ dias (ou nunca, depois de 60 dias de acompanhamento) sugere marcar", () => {
+    expect(com({ ultimaAvaliacao: "2026-08-01" })).toContain("avaliacao");
+    expect(com({ ultimaAvaliacao: "2026-10-01" })).not.toContain("avaliacao");
+    expect(com({ ultimaAvaliacao: null, inicio: "2026-10-01" })).not.toContain("avaliacao");
+    expect(com({ ultimaAvaliacao: null, inicio: "2026-07-01" })).toContain("avaliacao");
+  });
+});

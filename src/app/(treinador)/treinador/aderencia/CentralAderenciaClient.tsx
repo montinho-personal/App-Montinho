@@ -7,8 +7,9 @@ import Link from "next/link";
 import { ordenarCentral, REGRAS_CENTRAL, type LinhaCentral, type OrdemCentral, type RegrasCentral, type Sugestao } from "@/lib/aderencia/central";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBarras";
+import { linkWhatsApp } from "@/lib/acesso/mensagem";
 
-type Linha = LinhaCentral & { semanas?: SemanaBarra[] };
+type Linha = LinhaCentral & { semanas?: SemanaBarra[]; telefone?: string | null };
 
 const ORDENS: Array<{ v: OrdemCentral; l: string }> = [
   { v: "queda", l: "Maior redução de frequência" },
@@ -29,9 +30,11 @@ const ROT_REGRA: Array<{ k: keyof RegrasCentral; l: string; u: string }> = [
   { k: "sequenciaReconhecer", l: "Sequência para reconhecer", u: "semanas" },
   { k: "horasRegistroAberto", l: "Treino aberto sem finalizar", u: "horas" },
   { k: "diasPlanoAlterado", l: "Plano alterado recentemente", u: "dias" },
+  { k: "treinosSemCarga", l: "Treinos seguidos sem anotar carga", u: "treinos" },
+  { k: "diasAvaliacao", l: "Avaliação desatualizada após", u: "dias" },
 ];
 
-function Sugestoes({ l }: { l: LinhaCentral }) {
+function Sugestoes({ l }: { l: Linha }) {
   const toast = useToast();
   const [textos, setTextos] = useState<Record<string, string>>({});
   const acionaveis = l.sugestoes.filter((x) => x.acao !== "nenhuma");
@@ -59,6 +62,9 @@ function Sugestoes({ l }: { l: LinhaCentral }) {
                 </label>
                 <textarea id={`m-${l.alunoId}-${sg.tipo}`} rows={3} value={textos[sg.tipo] ?? sg.rascunho} onChange={(e) => setTextos({ ...textos, [sg.tipo]: e.target.value.slice(0, 600) })} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
                 <div className="flex flex-wrap gap-3">
+                  <a href={linkWhatsApp(l.telefone, textos[sg.tipo] ?? sg.rascunho)} target="_blank" rel="noopener noreferrer" className="alvo inline-flex items-center gap-1 rounded-md bg-[#25D366] px-3 py-1.5 font-bold text-black">
+                    💬 Enviar no WhatsApp
+                  </a>
                   <button type="button" onClick={() => void copiar(sg)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
                     Copiar mensagem
                   </button>
@@ -124,8 +130,9 @@ function RegrasForm({ regras }: { regras: RegrasCentral }) {
 export function CentralAderenciaClient({ linhas, regras }: { linhas: Linha[]; regras: RegrasCentral }) {
   const [ordem, setOrdem] = useState<OrdemCentral>("queda");
   const [soSinais, setSoSinais] = useState(false);
-  const lista = useMemo(() => ordenarCentral(soSinais ? linhas.filter((l) => l.sinais.some((s) => s.natureza !== "info")) : linhas, ordem), [linhas, ordem, soSinais]);
-  const acompanhar = linhas.filter((l) => l.sinais.some((s) => s.natureza === "acompanhar")).length;
+  const lista = useMemo(() => ordenarCentral(soSinais ? linhas.filter((l) => l.sinais.some((s) => s.natureza !== "info") || l.sugestoes.some((s) => s.acao !== "nenhuma")) : linhas, ordem), [linhas, ordem, soSinais]);
+  // Conta também as sugestões novas (cargas não anotadas, avaliação desatualizada).
+  const acompanhar = linhas.filter((l) => l.sinais.some((s) => s.natureza === "acompanhar") || l.sugestoes.some((s) => s.acao === "mensagem" || s.acao === "verificar_registro")).length;
   const reconhecer = linhas.filter((l) => l.sinais.some((s) => s.natureza === "reconhecer")).length;
 
   if (!linhas.length) return <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">Nenhum aluno ativo ainda.</p>;
