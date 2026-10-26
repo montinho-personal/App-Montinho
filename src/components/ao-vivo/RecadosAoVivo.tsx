@@ -4,6 +4,7 @@
 // (só com a tela aberta) e mostra o recado novo no topo, como notificação.
 import { useEffect, useRef, useState } from "react";
 import type { RecadoAoVivo } from "@/lib/data/ao-vivo";
+import { RECADO_ACOMPANHANDO } from "@/lib/ao-vivo/regras";
 
 const INTERVALO_MS = 20_000;
 const chaveVistos = (sessaoId: string) => `montinho-recados-vistos:${sessaoId}`;
@@ -61,7 +62,7 @@ export function RecadosAoVivo({ sessaoId }: { sessaoId: string }) {
   return (
     <div role="alert" aria-live="assertive" className="fixed inset-x-0 top-0 z-[80] flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="recado-entra w-full max-w-md rounded-2xl border-2 border-accent bg-[linear-gradient(160deg,#3a3016_0%,#171717_80%)] p-4 shadow-2xl">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-accent">💬 Recado do Montinho · agora</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-accent">{atual.texto === RECADO_ACOMPANHANDO ? "👀 O Montinho está acompanhando ao vivo" : "💬 Recado do Montinho · agora"}</p>
         <p className="mt-1 text-lg font-bold leading-snug">{atual.texto}</p>
         <button type="button" onClick={() => setFila((f) => f.slice(1))} className="alvo mt-3 w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-bg">
           {fila.length > 1 ? `Valeu! (mais ${fila.length - 1})` : "Valeu! 💪"}

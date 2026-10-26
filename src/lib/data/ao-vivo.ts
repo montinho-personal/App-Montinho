@@ -8,7 +8,7 @@ import { getDb } from "@/lib/supabase/rls";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
 import { inscricoesPushDoAluno } from "@/lib/data/conquistas";
 import { configurarVapid, enviarAosAparelhos } from "@/lib/push/enviar";
-import { estadoAoVivo, MINUTOS_AO_VIVO, type EstadoAoVivo } from "@/lib/ao-vivo/regras";
+import { estadoAoVivo, MINUTOS_AO_VIVO, RECADO_ACOMPANHANDO, type EstadoAoVivo } from "@/lib/ao-vivo/regras";
 import type { Intervencao, SessionExercise, SessionSet, TrainingSession } from "@/lib/supabase/types-sessoes";
 
 export type TreinandoAgora = {
@@ -106,7 +106,7 @@ export async function enviarRecadoAoVivo(autorId: string, sessaoId: string, text
   let notificados = 0;
   if (!isDemoMode() && configurarVapid()) {
     const aparelhos = await inscricoesPushDoAluno(s.aluno_id).catch(() => []);
-    const res = await enviarAosAparelhos(aparelhos, { titulo: "💬 Recado do Montinho", corpo: texto, url: "/aluno", tag: `recado-${r.id}` }, { ttl: MINUTOS_AO_VIVO.esquecido * 60 });
+    const res = await enviarAosAparelhos(aparelhos, { titulo: texto === RECADO_ACOMPANHANDO ? "👀 O Montinho está acompanhando seu treino" : "💬 Recado do Montinho", corpo: texto, url: "/aluno", tag: `recado-${r.id}` }, { ttl: MINUTOS_AO_VIVO.esquecido * 60 });
     notificados = res.ok;
   }
   return { id: r.id, notificados };

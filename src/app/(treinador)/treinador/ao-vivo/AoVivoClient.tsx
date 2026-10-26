@@ -3,15 +3,35 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
-import { haQuanto, LIMITES_RECADO, RECADOS_PRONTOS } from "@/lib/ao-vivo/regras";
+import { haQuanto, LIMITES_RECADO, RECADO_ACOMPANHANDO, RECADOS_PRONTOS } from "@/lib/ao-vivo/regras";
 import type { TreinandoAgora } from "@/lib/data/ao-vivo";
 
 const ATUALIZAR_MS = 15_000;
+
+async function mandarRecado(sessaoId: string, texto: string): Promise<{ ok: boolean; notificados: number; error?: string }> {
+  const r = await fetch("/api/ao-vivo/recado", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessao_id: sessaoId, texto }) }).catch(() => null);
+  const d = (await r?.json().catch(() => null)) as { notificados?: number; error?: string } | null;
+  return { ok: !!r?.ok, notificados: d?.notificados ?? 0, error: d?.error };
+}
 
 export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgora[]; agoraInicial: string }) {
   const [lista, setLista] = useState(inicial);
   const [agora, setAgora] = useState(() => Date.parse(agoraInicial));
   const [aberto, setAberto] = useState<string | null>(null);
+  const [avisando, setAvisando] = useState<string | null>(null);
+  const toast = useToast();
+
+  /** “Tô de olho”: avisa que o personal está acompanhando ao vivo (um ou todos que estão treinando). */
+  async function avisarAcompanhando(alvos: TreinandoAgora[], chave: string) {
+    if (!alvos.length) return;
+    setAvisando(chave);
+    const rs = await Promise.all(alvos.map((t) => mandarRecado(t.sessaoId, RECADO_ACOMPANHANDO)));
+    setAvisando(null);
+    const ok = rs.filter((r) => r.ok).length;
+    if (!ok) return toast.error(rs[0]?.error ?? "Não foi possível avisar agora.");
+    toast.success(alvos.length === 1 ? `${alvos[0].nome.split(" ")[0]} já sabe que você está de olho! 👀` : `${ok} ${ok === 1 ? "pessoa avisada" : "pessoas avisadas"} de que você está de olho! 👀`);
+    void atualizar();
+  }
 
   async function atualizar() {
     const r = await fetch("/api/ao-vivo", { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { agora: string; lista: TreinandoAgora[] } | null;
@@ -35,7 +55,14 @@ export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgor
       </div>
     );
   }
+  const semAviso = lista.filter((t) => !t.presencial && !t.recados.some((r) => r.texto === RECADO_ACOMPANHANDO));
   return (
+    <div className="space-y-3">
+    {semAviso.length > 1 ? (
+      <button type="button" disabled={!!avisando} onClick={() => void avisarAcompanhando(semAviso, "todos")} className="alvo flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-bg disabled:opacity-60">
+        {avisando === "todos" ? "Avisando…" : `👀 Avisar os ${semAviso.length} que estou acompanhando ao vivo`}
+      </button>
+    ) : null}
     <ul className="grid gap-3 md:grid-cols-2" aria-live="polite">
       {lista.map((t) => {
         const pct = t.series.planejadas ? Math.min(100, Math.round((t.series.feitas / t.series.planejadas) * 100)) : 0;
@@ -74,6 +101,13 @@ export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgor
                 {t.recados.slice(-3).map((r) => <li key={r.id}>💬 “{r.texto}” · {haQuanto(r.em, agora)}</li>)}
               </ul>
             ) : null}
+            {t.presencial ? null : t.recados.some((r) => r.texto === RECADO_ACOMPANHANDO) ? (
+              <p className="text-center text-xs font-semibold text-success">👀 Já sabe que você está acompanhando ao vivo</p>
+            ) : (
+              <button type="button" disabled={!!avisando} onClick={() => void avisarAcompanhando([t], t.sessaoId)} className="alvo w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-bg disabled:opacity-60">
+                {avisando === t.sessaoId ? "Avisando…" : "👀 Avisar que estou acompanhando ao vivo"}
+              </button>
+            )}
             {t.presencial ? null : aberto === t.sessaoId ? (
               <Recado sessaoId={t.sessaoId} nome={t.nome.split(" ")[0]} onFechar={() => setAberto(null)} onEnviado={() => { setAberto(null); void atualizar(); }} />
             ) : (
@@ -85,6 +119,7 @@ export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgor
         );
       })}
     </ul>
+    </div>
   );
 }
 
@@ -95,11 +130,10 @@ function Recado({ sessaoId, nome, onFechar, onEnviado }: { sessaoId: string; nom
   async function enviar(t: string) {
     if (!t.trim() || enviando) return;
     setEnviando(true);
-    const r = await fetch("/api/ao-vivo/recado", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessao_id: sessaoId, texto: t }) }).catch(() => null);
-    const d = (await r?.json().catch(() => null)) as { notificados?: number; error?: string } | null;
+    const d = await mandarRecado(sessaoId, t);
     setEnviando(false);
-    if (!r?.ok) return toast.error(d?.error ?? "Não foi possível enviar agora.");
-    toast.success(d?.notificados ? `Recado enviado! Chegou no celular de ${nome}.` : `Recado enviado! Aparece na tela do treino de ${nome}.`);
+    if (!d.ok) return toast.error(d.error ?? "Não foi possível enviar agora.");
+    toast.success(d.notificados ? `Recado enviado! Chegou no celular de ${nome}.` : `Recado enviado! Aparece na tela do treino de ${nome}.`);
     onEnviado();
   }
   return (

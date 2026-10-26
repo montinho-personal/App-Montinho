@@ -13,6 +13,9 @@ export const RECADOS_PRONTOS = [
   "Orgulho de você! Chalalá! 🎉",
 ] as const;
 
+/** Aviso de um toque: o personal está acompanhando o treino ao vivo. */
+export const RECADO_ACOMPANHANDO = "Tô acompanhando seu treino ao vivo! Tô de olho 👀🔥";
+
 export const LIMITES_RECADO = { maxCaracteres: 200 };
 
 /** Sem série há mais que isso: “parado”. Sem nada há mais que `esquecido`: fora da lista (treino esquecido aberto). */
