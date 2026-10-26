@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
+import { linkExecucao, textoExecucao } from "@/lib/treino/execucao-whatsapp";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
 import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
 import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
@@ -1649,6 +1650,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       <button type="button" id={`concluir-${se.id}`} onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
                         <Icon name="check" size={18} /> Concluir exercício e ir para o próximo
                       </button>
+                    ) : null}
+                    {!presencial ? (
+                      <a
+                        href={linkExecucao(textoExecucao({ nomeAluno, exercicio: ex.nome, treino: `Treino ${treino.letra} · ${treino.nome}`, dataISO: new Date(sessao?.iniciado_em ?? Date.now()).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }), series: lista.filter((x) => x.concluida && x.tipo !== "aquecimento").map((x) => ({ carga: x.carga, reps: x.reps })) }))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="touch flex w-full items-center justify-center gap-2 rounded-lg border border-[#25D366]/60 bg-[#25D366]/10 px-4 py-2.5 text-sm font-bold text-[#25D366]"
+                      >
+                        🎥 Enviar minha execução ao {BRAND.name}
+                      </a>
                     ) : null}
                     <div className="flex flex-wrap gap-2 pt-1">
                       <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
