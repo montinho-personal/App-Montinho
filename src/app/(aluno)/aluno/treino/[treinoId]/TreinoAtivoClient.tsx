@@ -132,6 +132,9 @@ type SerieLocal = {
   blocos?: BlocoDigitado[];
   carga: string;
   reps: string;
+  /** O que fez da última vez: aparece apagadinho no campo e vale se tocar no ✓ sem digitar. */
+  sugCarga?: string;
+  sugReps?: string;
   rir: string;
   desconforto: string;
   concluida: boolean;
@@ -325,7 +328,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       const pendentesPorKey = new Map(fila.filter((f) => f.tipo === "serie").map((f) => [f.clientKey, f]));
       const next: Record<string, SerieLocal[]> = {};
       for (const [idx, se] of s.exercicios.entries()) {
-        // Já vem preenchido com o que o aluno fez da última vez (ele só ajusta, se precisar).
+        // O que o aluno fez da última vez aparece apagadinho no campo (não precisa apagar para digitar);
+        // tocar no ✓ sem digitar usa esse valor.
         const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[idx];
         const anterior = se.substituido_de && se.biblioteca_id ? (ultimasTroca[se.biblioteca_id] ?? null) : exDoPlano ? ultimas[exDoPlano.id] : null;
         // Série a série do último treino: 1ª com a 1ª, 2ª com a 2ª… (aquecimentos fora); série a mais repete a última.
@@ -349,8 +353,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
             serie: i,
             tipo: salvo ? salvo.tipo : i <= aquec ? "aquecimento" : i > planejadas && i <= planejadas + nFin ? tipoFin : "valida",
             blocos: blocosDoSalvo(p?.blocos ?? salvo?.blocos),
-            carga: p?.carga_kg != null ? String(p.carga_kg) : salvo?.carga_kg != null ? String(salvo.carga_kg) : salvo || i <= aquec || daUltimaVez(i - aquec)?.carga_kg == null ? "" : String(daUltimaVez(i - aquec)!.carga_kg).replace(".", ","),
-            reps: p?.reps != null ? String(p.reps) : salvo?.reps != null ? String(salvo.reps) : salvo || i <= aquec || daUltimaVez(i - aquec)?.reps == null ? "" : String(daUltimaVez(i - aquec)!.reps),
+            carga: p?.carga_kg != null ? String(p.carga_kg) : salvo?.carga_kg != null ? String(salvo.carga_kg) : "",
+            reps: p?.reps != null ? String(p.reps) : salvo?.reps != null ? String(salvo.reps) : "",
+            sugCarga: i <= aquec || daUltimaVez(i - aquec)?.carga_kg == null ? undefined : String(daUltimaVez(i - aquec)!.carga_kg).replace(".", ","),
+            sugReps: i <= aquec || daUltimaVez(i - aquec)?.reps == null ? undefined : String(daUltimaVez(i - aquec)!.reps),
             rir: p?.rir != null ? String(p.rir) : salvo?.rir != null ? String(salvo.rir) : "",
             desconforto: p?.desconforto != null ? String(p.desconforto) : salvo?.desconforto != null ? String(salvo.desconforto) : "",
             concluida: Boolean(salvo) || Boolean(pend),
@@ -578,7 +584,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
   function concluirSerie(seId: string, idx: number, ex: ExercicioView, silencioso = false, confirmado = false, correcao?: { carga?: number; reps?: number }) {
     if (!sessao || !storage) return;
-    const s0 = series[seId][idx];
+    const sLocal = series[seId][idx];
+    // Campo vazio + ✓ = repetiu o da última vez (o valor que aparece apagadinho).
+    const usarSug = !sLocal.blocos?.length && ((!sLocal.carga.trim() && !!sLocal.sugCarga) || (!sLocal.reps.trim() && !!sLocal.sugReps));
+    const s0 = usarSug ? { ...sLocal, carga: sLocal.carga.trim() || sLocal.sugCarga || "", reps: sLocal.reps.trim() || sLocal.sugReps || "" } : sLocal;
+    if (usarSug && !correcao) atualizar(seId, idx, { carga: s0.carga, reps: s0.reps });
     const s = correcao ? { ...s0, ...(correcao.carga != null ? { carga: String(correcao.carga).replace(".", ",") } : {}), ...(correcao.reps != null ? { reps: String(correcao.reps) } : {}) } : s0;
     if (correcao) atualizar(seId, idx, { carga: s.carga, reps: s.reps });
     // Série em blocos: reps = soma dos pedaços; carga = a do 1º pedaço (drop-set guarda cada uma).
@@ -715,7 +725,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         [se.id]: (cur[se.id] ?? []).map((x) => {
           if (x.concluida || x.tipo === "aquecimento") return x;
           const u = validasAntes[n++] ?? validasAntes.at(-1) ?? null;
-          return { ...x, carga: u?.carga_kg != null ? String(u.carga_kg).replace(".", ",") : "", reps: u?.reps != null ? String(u.reps) : "" };
+          return { ...x, carga: "", reps: "", sugCarga: u?.carga_kg != null ? String(u.carga_kg).replace(".", ",") : undefined, sugReps: u?.reps != null ? String(u.reps) : undefined };
         }),
       };
     });
@@ -1566,9 +1576,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                               aria-label={outro ? `Carga da série ${s.serie}: não anotada (outro aparelho hoje)` : `Carga da série ${s.serie} em quilos`}
                               value={outro ? "" : s.carga}
                               disabled={outro}
-                              placeholder={outro ? "—" : ref?.carga_kg != null ? String(ref.carga_kg) : "kg"}
+                              placeholder={outro ? "—" : s.sugCarga ?? (ref?.carga_kg != null ? String(ref.carga_kg).replace(".", ",") : "kg")}
                               onChange={(e) => atualizar(se.id, i, { carga: e.target.value, concluida: false, sincronizada: false })}
-                              className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
+                              className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base placeholder:text-fg-muted/45 ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                             />
                             <div className="relative">
                               <input
@@ -1576,9 +1586,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                                 inputMode="numeric"
                                 aria-label={ehPorTempo(ex) ? `Tempo da série ${s.serie} em segundos` : `Repetições da série ${s.serie}${metas[i] ? ` (meta ${rotuloMeta(metas[i]!)})` : ""}`}
                                 value={s.reps}
-                                placeholder={ref?.reps != null ? String(ref.reps) : ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps"}
+                                placeholder={s.sugReps ?? (ref?.reps != null ? String(ref.reps) : null) ?? (ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps")}
                                 onChange={(e) => atualizar(se.id, i, { reps: e.target.value, concluida: false, sincronizada: false })}
-                                className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
+                                className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base placeholder:text-fg-muted/45 ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                               />
                             </div>
                             <button
