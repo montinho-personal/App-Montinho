@@ -167,7 +167,9 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     setOcupado(false);
   }
 
-  const metricas = metricasDisponiveis(cfg.modelo, dados);
+  // Evolução do treino tem a sua própria chave, em destaque (a pessoa escolhe se mostra).
+  const temEvolucao = cfg.modelo !== "mensal" && !!dados.evolucaoTreino?.length && metricasDisponiveis(cfg.modelo, dados).includes("evolucao");
+  const metricas = metricasDisponiveis(cfg.modelo, dados).filter((k) => cfg.modelo === "mensal" || k !== "evolucao");
   const { w, h } = FORMATOS[cfg.formato];
   const fundoXadrez = cfg.fundo === "transparente" ? { backgroundImage: "repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%)", backgroundSize: "24px 24px" } : undefined;
 
@@ -198,6 +200,16 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
                   ))}
                 </div>
               </fieldset>
+            ) : null}
+
+            {temEvolucao ? (
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/5 p-3">
+                <span>
+                  <span className="block font-semibold">📈 Mostrar quanto eu evoluí</span>
+                  <span className="block text-xs text-fg-muted">{(dados.evolucaoTreino ?? []).join(" · ")}</span>
+                </span>
+                <input type="checkbox" role="switch" checked={!!cfg.metricas.evolucao} onChange={(e) => mudar({ metricas: { ...cfg.metricas, evolucao: e.target.checked } })} aria-label="Mostrar no card quanto eu evoluí desde o último treino" className="h-6 w-6 shrink-0 accent-[var(--color-accent)]" />
+              </label>
             ) : null}
 
             <fieldset className="space-y-1.5">
