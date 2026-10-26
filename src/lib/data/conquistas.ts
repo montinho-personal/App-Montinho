@@ -18,6 +18,8 @@ import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes"
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
 import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/calcular";
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
+import { tecnicasFeitas, type FamiliaTecnica } from "@/lib/conquistas/regras";
+import type { Medalha } from "@/lib/conquistas/vitrine";
 import { CATALOGO, VERSAO_CRITERIO, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
@@ -239,6 +241,14 @@ export async function resumoMensalDoAluno(aluno: AlunoBase): Promise<{ mensal: R
   const primeira = sessoes.map((s) => dataLocal(s.iniciado_em)).sort()[0];
   const inicio = [aluno.data_inicio ?? dataLocal(aluno.created_at), primeira].filter(Boolean).sort()[0] ?? hoje;
   return { mensal: resumoMensal({ sessoes, aderencia, conquistas: todas, inicioAcompanhamento: inicio, hoje }), conquistas: todas, sessoes, aderencia };
+}
+
+/** Troféus ao alcance (ao-alcance.ts): progresso da vitrine + técnicas já feitas. */
+export type DadosAlcance = { medalhas: Medalha[]; aderencia: Pick<AderenciaAluno, "sequencia" | "semanaAtual">; tecnicasFeitas: FamiliaTecnica[]; hoje: string };
+export async function dadosAlcance(aluno: AlunoBase): Promise<DadosAlcance> {
+  const { todas, sessoes, aderencia } = await sincronizarConquistas(aluno);
+  const hoje = dataLocal(new Date());
+  return { medalhas: vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje }), aderencia: { sequencia: aderencia.sequencia, semanaAtual: aderencia.semanaAtual }, tecnicasFeitas: tecnicasFeitas(sessoes).map((t) => t.familia), hoje };
 }
 
 // ---------------------------------------------------------------------------
