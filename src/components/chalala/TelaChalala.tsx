@@ -2,7 +2,9 @@
 
 // “CHALALÁ! TREINO CONCLUÍDO!” — celebração breve, resumo REAL da sessão,
 // progresso da meta semanal, conquista desta sessão e mensagem automática
-// (identificada como tal). Compartilhar é opcional e nunca automático.
+// (identificada como tal). Depois das medalhas, o card do treino (editar,
+// pôr foto, compartilhar) abre sozinho, 1× por treino (pedido do Montinho,
+// 26/10/2026), também na aula presencial. Compartilhar continua opcional.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -101,6 +103,21 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
     }
   }
   const dados: DadosCard = r ? dadosDoResumo(r) : { nomeTreino: base.nomeTreino, data: base.data, duracaoMin: base.duracaoMin, series: base.series };
+
+  // Medalhas mostradas (ou nenhuma) → abre o card do treino sozinho, uma vez por sessão.
+  const medalhasPendentes = celebrar && medalhasNovas.length > 0;
+  useEffect(() => {
+    if (!r || medalhasPendentes || base.status !== "concluida") return;
+    const chave = `montinho-card-auto:${base.sessaoId}`;
+    try {
+      if (sessionStorage.getItem(chave)) return;
+      sessionStorage.setItem(chave, "1");
+    } catch {
+      // sem armazenamento: abre do mesmo jeito
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- abre o card logo depois da celebração
+    setEditor(true);
+  }, [r, medalhasPendentes, base.status, base.sessaoId]);
 
   return (
     <div className={`space-y-4 ${animacoes ? "" : "sem-animacao"}`}>
@@ -212,9 +229,14 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
       {children}
 
       {presencial ? (
-        <Link href={presencial.voltarHref} className="touch flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
-          Voltar para {presencial.nomeAluno}
-        </Link>
+        <div className="space-y-2">
+          <button type="button" onClick={() => setEditor(true)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg border border-accent/60 px-5 py-3 font-bold text-accent">
+            📸 Card do treino de {presencial.nomeAluno.split(" ")[0]}
+          </button>
+          <Link href={presencial.voltarHref} className="touch flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 font-bold text-bg">
+            Voltar para {presencial.nomeAluno}
+          </Link>
+        </div>
       ) : (
       <div className="space-y-2">
         <button type="button" onClick={() => setEditor(true)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 font-bold text-bg">
@@ -240,7 +262,7 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
 
       {celebrar && medalhasNovas.length ? <CelebracaoMedalha conquistas={medalhasNovas} nome={presencial ? presencial.nomeAluno : nome} animacoes={animacoes} onFechar={fecharCelebracao} /> : null}
 
-      {editor ? <EditorCard dados={dados} modeloInicial={r?.modeloSugerido ?? "A"} nome={nome} origem="conclusao" onFechar={() => setEditor(false)} /> : null}
+      {editor ? <EditorCard dados={dados} modeloInicial={r?.modeloSugerido ?? "A"} nome={presencial ? presencial.nomeAluno : nome} origem="conclusao" registrarEventos={!presencial} onFechar={() => setEditor(false)} /> : null}
     </div>
   );
 }
