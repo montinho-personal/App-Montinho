@@ -70,6 +70,8 @@ export type DadosCard = {
   medalhaSelo?: string | null;
   conquistaFrase?: string | null;
   retomada?: boolean;
+  /** Resumo curto da evolução vs o último treino (só o que melhorou; texto pronto). */
+  evolucaoTreino?: string[] | null;
   mensal?: { rotuloPeriodo: string; treinos?: number | null; aderenciaPct?: number | null; tempoTotalMin?: number | null; metasCumpridas?: number | null; evolucao?: string | null; conquista?: string | null };
   reconhecimento?: { mensagem: string; autor: string; conquista?: string | null };
 };
@@ -116,13 +118,39 @@ export function metricasDisponiveis(modelo: ModeloId, d: DadosCard): MetricaChav
     if (m.conquista) out.push("conquista");
     return out;
   }
+  if (modelo === "C" && d.recordes?.length && d.evolucaoTreino?.some((l) => !l.startsWith("Recorde:"))) return [...(d.nomeTreino ? (["treino"] as MetricaChave[]) : []), "evolucao"];
   if (modelo !== "A") return d.nomeTreino ? ["treino"] : [];
   const out: MetricaChave[] = [];
   if (d.duracaoMin) out.push("duracao");
   if (d.exercicios) out.push("exercicios");
   if (d.series) out.push("series");
   if (d.nomeTreino) out.push("treino");
+  if (d.evolucaoTreino?.length) out.push("evolucao");
   return out;
+}
+
+type RelatorioLike = {
+  anterior: { volumePct: number | null } | null;
+  exercicios: { melhorou: number; comparaveis: number };
+  recordesVida: Array<{ exercicio: string; carga: number }>;
+};
+/**
+ * Evolução de um treino para o outro, para o card (pedido do Montinho, 26/10/2026).
+ * Só o que melhorou (o card é para comemorar); até 2 linhas curtas.
+ */
+export function evolucaoParaCard(r: RelatorioLike | null | undefined, letra?: string | null): string[] {
+  if (!r) return [];
+  const out: string[] = [];
+  const v = r.anterior?.volumePct;
+  // Acima de +100% costuma ser treino anterior incompleto: não vale como comparação.
+  if (v != null && v > 0 && v <= 100) out.push(`+${v}% de carga total vs o último treino${letra ? ` ${letra}` : ""}`);
+  const rec = r.recordesVida[0];
+  if (rec) out.push(`Recorde: ${rec.exercicio} com ${fmtNum(rec.carga)} kg`);
+  if (out.length < 2 && r.exercicios.comparaveis > 0 && r.exercicios.melhorou > 0) {
+    const n = r.exercicios.melhorou;
+    out.push(`${n} de ${r.exercicios.comparaveis} ${r.exercicios.comparaveis === 1 ? "exercício evoluiu" : "exercícios evoluíram"} desde a última vez`);
+  }
+  return out.slice(0, 2);
 }
 
 export function configPadrao(modelo: ModeloId, d: DadosCard, nome: string): ConfigCard {
@@ -242,6 +270,10 @@ function blocosDoModelo(cfg: ConfigCard, d: DadosCard, p: Paleta): Bloco[] {
         b.push({ k: "metricas", itens, cor: p.texto, corRotulo: p.suave, depois: 30 });
       }
       if (on("treino") && d.nomeTreino) sub(d.nomeTreino, 40, 2, p.texto);
+      if (on("evolucao") && d.evolucaoTreino?.length) {
+        b.push({ k: "texto", texto: "EVOLUÇÃO", max: 28, min: 22, peso: 700, cor: p.destaque, maxLinhas: 1, depois: 10 });
+        for (const linha of d.evolucaoTreino) sub(linha, 36, 2, p.texto);
+      }
       break;
     }
     case "B": {
@@ -263,6 +295,9 @@ function blocosDoModelo(cfg: ConfigCard, d: DadosCard, p: Paleta): Bloco[] {
         titulo(x.grande, 130, 2);
         sub(x.detalhe, 40, 2, p.texto);
         sub("Novo recorde pessoal", 36, 1, p.destaque);
+        // O que mais melhorou no treino (sem repetir o recorde, que já é o destaque).
+        const extra = (d.evolucaoTreino ?? []).filter((l) => !l.startsWith("Recorde:"));
+        if (on("evolucao") && extra.length) for (const linha of extra) sub(linha, 34, 2, p.texto);
       } else {
         if (d.medalhaSelo) b.push({ k: "medalha", selo: d.medalhaSelo, cor: p.destaque, fundo: p.trilho, texto: p.texto, depois: 30 });
         titulo((d.conquistaTitulo ?? "Mais consistência").toUpperCase(), 120, 3);
