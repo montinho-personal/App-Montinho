@@ -1227,14 +1227,24 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             <button type="button" onClick={addDia} disabled={!proximaLetraLivre(estado.treinos)} className="touch rounded-md border border-dashed border-border-strong px-4 text-sm font-semibold text-fg-muted hover:text-accent disabled:opacity-40 inline-flex items-center gap-1"><Icon name="plus" size={14} /> Adicionar dia ({proximaLetraLivre(estado.treinos) ?? "—"})</button>
           </div>
 
+          {/* “Finalizados” aqui = fichas antigas arquivadas. Os treinos FEITOS pelo aluno ficam na ficha (abas Evolução e Consistência). */}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Link href={`/treinador/alunos/${alunoId}#evolucao`} className="touch flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold">
+              <span>📋 Treinos que {alunoNome.split(" ")[0]} já fez</span><span aria-hidden className="text-accent">→</span>
+            </Link>
+            <Link href={`/treinador/alunos/${alunoId}#cardio`} className="touch flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold">
+              <span>❤️ Cardio de {alunoNome.split(" ")[0]}</span><span aria-hidden className="text-accent">→</span>
+            </Link>
+          </div>
+
           <section className="rounded-xl border border-border bg-card">
             <button type="button" onClick={() => setShowFinalizados((v) => !v)} className="w-full px-4 py-3 text-left text-sm font-bold flex items-center justify-between" aria-expanded={showFinalizados}>
-              <span>Treinos finalizados ({finalizados.length})</span>
+              <span>Fichas antigas arquivadas ({finalizados.length})</span>
               <span className="text-fg-subtle text-xs">{showFinalizados ? "▲" : "▼"}</span>
             </button>
             {showFinalizados ? (
               <ul className="divide-y divide-border">
-                {finalizados.length === 0 ? <li className="px-4 py-3 text-sm text-fg-subtle">Nenhum treino finalizado.</li> : finalizados.map((t) => (
+                {finalizados.length === 0 ? <li className="px-4 py-3 text-sm text-fg-subtle">Nenhuma ficha antiga. (Os treinos que a pessoa já fez estão em “Treinos que … já fez”, acima.)</li> : finalizados.map((t) => (
                   <li key={t.id} className="px-4 py-3 text-sm text-fg-muted flex items-center gap-2"><span className="font-bold text-fg">{t.letra}</span> · {t.nome} <span className="text-fg-subtle text-xs">({t.exercicios} exercícios)</span></li>
                 ))}
               </ul>
