@@ -6,8 +6,9 @@ import { demoStore, uid } from "@/lib/mock/store";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
-import { volumeRealizadoPorGrupo, type MetaVolume } from "@/lib/volume/calcular";
-import { inicioDaSemanaDe, placarDaSemana, sugestaoDeAgora, type LinhaPlacar, type Sugestao } from "@/lib/treino/livre-metas";
+import { calcularVolumeSemanal, volumeRealizadoPorGrupo, type MetaVolume, type Tecnica } from "@/lib/volume/calcular";
+import { inicioDaSemanaDe, metasDaFicha, placarDaSemana, resumoDaSemana, sugestaoDeAgora, type LinhaPlacar, type Sugestao } from "@/lib/treino/livre-metas";
+import { referenciasPorNivel } from "@/lib/volume/referencias";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { Programa } from "@/lib/supabase/types-sessoes";
 
@@ -38,19 +39,49 @@ export async function salvarLivreMetas(alunoId: string, metas: Metas, ligado: bo
   if (error) throw new Error(/estilo/.test(error.message) ? "O banco ainda não tem o treino livre por metas (falta aplicar a 0100)." : error.message);
 }
 
+function referenciaIniciante(): Metas {
+  const r = referenciasPorNivel("iniciante");
+  return Object.fromEntries(PRINCIPAIS.filter((g) => r[g]).map((g) => [g, r[g]!]));
+}
+
 export const ehLivreMetas = (p: Pick<Programa, "estilo"> | null | undefined) => p?.estilo === "livre_metas";
 
-export type PlacarDoAluno = { placar: LinhaPlacar[]; sugestao: Sugestao | null; metas: Metas; feitas: Partial<Record<GrupoMuscular, number>>; recentes: GrupoMuscular[] };
+/** De onde veio a meta: o treino livre por metas, as metas que o personal pôs no montador, ou as séries previstas na ficha. */
+export type OrigemMetas = "livre_metas" | "metas" | "ficha" | "referencia";
+const PRINCIPAIS: GrupoMuscular[] = ["peito", "costas", "ombros", "biceps", "triceps", "quadriceps", "posteriores", "gluteo", "panturrilha", "abdomen"];
+export type PlacarDoAluno = { placar: LinhaPlacar[]; sugestao: Sugestao | null; resumo: string; origem: OrigemMetas; metas: Metas; feitas: Partial<Record<GrupoMuscular, number>>; recentes: GrupoMuscular[] };
 
 /**
  * Placar da semana (segunda a hoje) do aluno com treino livre por metas.
  * `sessaoAtualId`: o treino em andamento entra na conta e os músculos dele
  * não são sugeridos de novo.
  */
-export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | null): Promise<PlacarDoAluno | null> {
-  const { programa } = await getPlanoAtivo(alunoId);
-  if (!ehLivreMetas(programa) || !programa) return null;
-  const metas = programa.metas_volume ?? {};
+export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | null, opts: { qualquerPlano?: boolean } = {}): Promise<PlacarDoAluno | null> {
+  const { programa, treinos } = await getPlanoAtivo(alunoId);
+  if (!programa && !opts.qualquerPlano) return null;
+  let origem: OrigemMetas = "livre_metas";
+  let metas: Metas = programa?.metas_volume ?? {};
+  if (!programa) {
+    origem = "referencia";
+    metas = referenciaIniciante();
+  } else if (!ehLivreMetas(programa)) {
+    // “Não está a fim desses treinos?” — treino livre de quem treina pelas fichas.
+    if (!opts.qualquerPlano) return null;
+    const definidas = Object.values(metas).some((m) => m && m.max > 0);
+    origem = definidas ? "metas" : "ficha";
+    if (!definidas) {
+      const ativos = treinos.filter((t) => t.ativo && t.exercicios.length > 0);
+      const freq = programa.frequencia && Object.keys(programa.frequencia).length ? programa.frequencia : Object.fromEntries(ativos.map((t) => [t.letra, 1]));
+      const dias = ativos.map((t) => ({ letra: t.letra, nome: t.nome, exercicios: t.exercicios.map((e) => ({ id: e.id, nome: e.nome, grupo: e.grupo_muscular ?? "nao_classificado", series: e.series, seriesAquecimento: e.series_aquecimento, tecnica: e.tecnica as Tecnica | null, contaVolume: e.conta_volume })) }));
+      metas = metasDaFicha(calcularVolumeSemanal(dias, { frequencia: freq }).linhas);
+      // Ainda sem ficha: faixa de referência de iniciante nos músculos principais.
+      if (!Object.keys(metas).length) {
+        origem = "referencia";
+        metas = referenciaIniciante();
+      }
+    }
+    if (!Object.keys(metas).length) return null;
+  }
   const hoje = dataLocal(new Date());
   const inicio = inicioDaSemanaDe(hoje);
   const desde = somarDias(inicio < somarDias(hoje, -2) ? inicio : somarDias(hoje, -2), 0);
@@ -63,5 +94,5 @@ export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | nu
   const jaHoje = Object.keys(volumeRealizadoPorGrupo(series(atual ? [atual] : []), agruparOmbros)) as GrupoMuscular[];
   const recentes = Object.entries(volumeRealizadoPorGrupo(series(sessoes.filter((s) => s.id !== sessaoAtualId && dataLocal(s.iniciado_em) >= somarDias(hoje, -2) && dataLocal(s.iniciado_em) < hoje)), agruparOmbros)).filter(([, n]) => (n ?? 0) >= 3).map(([g]) => g as GrupoMuscular);
   const placar = placarDaSemana(metas, feitas);
-  return { placar, sugestao: sugestaoDeAgora(placar, { hoje, recentes, jaHoje }), metas, feitas, recentes };
+  return { placar, sugestao: sugestaoDeAgora(placar, { hoje, recentes, jaHoje }), resumo: resumoDaSemana(placar), origem, metas, feitas, recentes };
 }

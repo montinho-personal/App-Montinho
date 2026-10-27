@@ -6,6 +6,7 @@ import { requireAlunoPage } from "@/lib/auth/session";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { LivreMetasCard } from "@/components/livre-metas/LivreMetasCard";
+import { FacaOQueQuiser } from "@/components/livre-metas/FacaOQueQuiser";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { estadoSemana } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
@@ -27,7 +28,10 @@ export default async function TreinarPage() {
   // Modo Visitante: quem monta os próprios treinos vê o atalho do montador.
   const visitante = FEATURES.modoVisitante && ehVisitante(sessao);
   const podeMontar = visitante && podeRegistrar("visitante", sessao.acessoFim ?? null);
-  const livreMetas = emAndamento ? null : await placarDoAluno(sessao.alunoId).catch(() => null);
+  const placar = emAndamento ? null : await placarDoAluno(sessao.alunoId, null, { qualquerPlano: true }).catch(() => null);
+  const livreMetas = placar?.origem === "livre_metas" ? placar : null;
+  // Treino livre para quem não está a fim de nenhum dos treinos (acesso em dia).
+  const mostrarLivre = !emAndamento && !livreMetas && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null);
   const ultimaPorLetra = new Map<string, string>();
   for (const s of sessoes) if (s.letra && !ultimaPorLetra.has(s.letra)) ultimaPorLetra.set(s.letra, s.finalizado_em ?? s.iniciado_em);
 
@@ -62,13 +66,6 @@ export default async function TreinarPage() {
       ) : null}
 
       {livreMetas ? <LivreMetasCard p={livreMetas} /> : null}
-
-      {podeMontar && !emAndamento && !livreMetas ? (
-        <Link href="/aluno/livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
-          <span className="text-2xl" aria-hidden>🎲</span>
-          <span><span className="block font-bold">Treino livre</span><span className="block text-xs text-fg-muted">Sem ficha: decida cada exercício na hora e anote tudo.</span></span>
-        </Link>
-      ) : null}
 
       <Link href="/aluno/cardio" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
         <span className="text-2xl" aria-hidden>❤️‍🔥</span>
@@ -122,6 +119,8 @@ export default async function TreinarPage() {
           {extra?.habilitado ? <CardExtra ctx={extra} /> : null}
         </ul>
       )}
+
+      {mostrarLivre ? <FacaOQueQuiser p={placar} /> : null}
     </div>
   );
 }

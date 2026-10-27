@@ -13,6 +13,7 @@ import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { LivreMetasCard } from "@/components/livre-metas/LivreMetasCard";
+import { FacaOQueQuiser } from "@/components/livre-metas/FacaOQueQuiser";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
 import { estadoSemana, resumoPeriodo } from "@/lib/relatorios/calcular";
@@ -116,7 +117,8 @@ export default async function AlunoHomePage() {
   const [desafios, cutucadas] = await Promise.all([listarMeusDesafios(alunoId).catch(() => []), minhasCutucadas(alunoId).catch(() => [])]);
   const recadosDesafio = await recadosDosDesafios(alunoId, desafios).catch(() => []);
   // Treino livre por metas (0100): o cartão substitui o “próximo treino” das fichas.
-  const livreMetas = emAndamento ? null : await placarDoAluno(alunoId).catch(() => null);
+  const placarSemana = emAndamento ? null : await placarDoAluno(alunoId, null, { qualquerPlano: true }).catch(() => null);
+  const livreMetas = placarSemana?.origem === "livre_metas" ? placarSemana : null;
 
   return (
     <div className="space-y-5">
@@ -186,6 +188,7 @@ export default async function AlunoHomePage() {
                 Prefere outro treino hoje? Ver todos
               </Link>
             ) : null}
+            {podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null) ? <FacaOQueQuiser p={placarSemana} compacto /> : null}
           </CardBody>
         </Card>
       ) : (

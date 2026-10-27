@@ -42,6 +42,30 @@ export function placarDaSemana(metas: Partial<Record<GrupoMuscular, MetaVolume>>
     });
 }
 
+/** Folga da meta tirada da ficha: até 25% a mais que o previsto ainda está na faixa. */
+export const FOLGA_FICHA = 0.25;
+
+/**
+ * Meta da semana a partir da ficha (A/B/C…): séries válidas previstas por músculo
+ * (volume programado). Para quem treina pelas fichas e quer fazer um treino livre hoje.
+ */
+export function metasDaFicha(linhas: Array<{ grupo: GrupoMuscular; total: number }>): Partial<Record<GrupoMuscular, MetaVolume>> {
+  const out: Partial<Record<GrupoMuscular, MetaVolume>> = {};
+  for (const l of linhas) {
+    const min = Math.round(l.total);
+    if (min >= 1) out[l.grupo] = { min, max: Math.max(min + 1, Math.ceil(min * (1 + FOLGA_FICHA))) };
+  }
+  return out;
+}
+
+/** “Nesta semana você já fez…”: os músculos com mais séries (até 3). */
+export function resumoDaSemana(placar: LinhaPlacar[]): string {
+  const feitos = placar.filter((l) => l.feitas > 0).sort((a, b) => b.feitas - a.feitas);
+  if (!feitos.length) return "Nesta semana você ainda não treinou nenhum músculo da sua meta.";
+  const top = feitos.slice(0, 3).map((l, i) => `${l.nome} (${fmt(l.feitas)} ${i === 0 ? (l.feitas === 1 ? "série" : "séries") : ""})`.replace(" )", ")"));
+  return `Nesta semana você já fez ${juntar(top)}${feitos.length > 3 ? ` e mais ${feitos.length - 3}` : ""}.`;
+}
+
 /** Dias que ainda restam na semana (contando hoje). Segunda = 7 … domingo = 1. */
 export function diasRestantes(hoje: string): number {
   const dow = diaDaSemana(hoje); // 0 = domingo

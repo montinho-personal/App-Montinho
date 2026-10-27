@@ -9,10 +9,11 @@ const COR: Record<LinhaPlacar["status"], string> = {
   acima: "bg-red",
 };
 
-export function PlacarMetas({ placar, sugestao, titulo = "🎯 Sua semana por músculo", compacto }: { placar: LinhaPlacar[]; sugestao?: Sugestao | null; titulo?: string; compacto?: boolean }) {
+export function PlacarMetas({ placar, sugestao, titulo = "🎯 Sua semana por músculo", compacto, resumo, nota }: { placar: LinhaPlacar[]; sugestao?: Sugestao | null; titulo?: string; compacto?: boolean; resumo?: string; nota?: string | null }) {
   return (
     <section className="rounded-xl border border-border bg-card p-4" aria-label="Placar da semana">
       <p className="text-sm font-bold">{titulo}</p>
+      {resumo ? <p className="mt-1 text-sm text-fg-muted">{resumo}</p> : null}
       {sugestao ? <p className="mt-1 rounded-lg bg-accent/10 px-3 py-2 text-sm text-fg">💡 {sugestao.texto}</p> : null}
       <ul className={`mt-3 grid gap-x-4 gap-y-2 ${compacto ? "grid-cols-2" : "sm:grid-cols-2"}`}>
         {placar.map((l) => {
@@ -35,6 +36,7 @@ export function PlacarMetas({ placar, sugestao, titulo = "🎯 Sua semana por m�
           );
         })}
       </ul>
+      {nota ? <p className="mt-2 text-[11px] text-fg-muted">{nota}</p> : null}
       <p className="mt-2 text-[10px] text-fg-subtle">⚪ ainda não fez · 🟡 abaixo da faixa · ✅ na faixa · 🔴 no limite ou passou (só aviso)</p>
     </section>
   );

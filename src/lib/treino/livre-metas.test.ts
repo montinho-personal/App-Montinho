@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoDaSerie, linhaDoGrupo, somarNoPlacar, diasRestantes, placarDaSemana, prioridadeDoGrupo, statusDaMeta, sugestaoDeAgora } from "./livre-metas";
+import { metasDaFicha, resumoDaSemana, avisoDaSerie, linhaDoGrupo, somarNoPlacar, diasRestantes, placarDaSemana, prioridadeDoGrupo, statusDaMeta, sugestaoDeAgora } from "./livre-metas";
 
 const metas = { peito: { min: 10, max: 14 }, costas: { min: 12, max: 16 }, quadriceps: { min: 10, max: 14 }, posteriores: { min: 8, max: 12 } };
 
@@ -46,5 +46,11 @@ describe("treino livre por metas", () => {
     const depois = somarNoPlacar(p, "ombro_lateral", 1);
     expect(depois[0]).toMatchObject({ feitas: 8, status: "na_faixa", faltam: 0 });
     expect(somarNoPlacar(p, "biceps", 1)).toBe(p);
+  });
+  it("meta tirada da ficha e o resumo da semana", () => {
+    expect(metasDaFicha([{ grupo: "peito", total: 12 }, { grupo: "biceps", total: 0.4 }, { grupo: "costas", total: 2 }])).toEqual({ peito: { min: 12, max: 15 }, costas: { min: 2, max: 3 } });
+    const p = placarDaSemana(metas, { peito: 8, costas: 6 });
+    expect(resumoDaSemana(p)).toBe("Nesta semana você já fez Peitoral (8 séries) e Costas (6).");
+    expect(resumoDaSemana(placarDaSemana(metas, {}))).toMatch(/ainda não treinou/);
   });
 });
