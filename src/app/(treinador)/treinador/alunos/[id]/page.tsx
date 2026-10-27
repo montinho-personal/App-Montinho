@@ -35,12 +35,8 @@ import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { HistoricoPulso } from "@/components/pulso/HistoricoPulso";
 import { cardioDoAluno } from "@/lib/data/cardio";
-import { pendentesHoje } from "@/lib/cardio/regras";
-import { PrescricaoCardio } from "@/components/cardio/PrescricaoCardio";
-import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
-import { HistoricoCardio, SemanasCardio } from "@/components/cardio/HistoricoCardio";
-import { SinaisCardio } from "@/components/cardio/SinaisCardio";
-import { CardioHoje } from "@/components/cardio/CardioHoje";
+import { CardioDoAlunoPersonal, resumoDoCardio } from "@/components/cardio/CardioDoAlunoPersonal";
+import { AbasTreinoCardio } from "@/components/cardio/AbasTreinoCardio";
 import { historicoPulso, registrarAcessoSaude } from "@/lib/data/pulso";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
@@ -167,16 +163,12 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             </div>
             {/* Ações: as duas principais em destaque e atalhos com ícone (fácil de achar no celular). */}
             <div className="mt-5 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Link href={`/treinador/alunos/${id}/aula`} className="touch flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent px-3 py-3 text-center font-bold text-bg hover:bg-accent-hover">
-                  <span aria-hidden className="text-xl">👥</span>
-                  <span className="text-sm">Dar aula agora</span>
-                </Link>
-                <Link href={`/treinador/alunos/${id}/treinos`} className="touch flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-accent/70 px-3 py-3 text-center font-bold text-accent hover:bg-accent/10">
-                  <span aria-hidden className="text-xl">📝</span>
-                  <span className="text-sm">Revisar treino</span>
-                </Link>
-              </div>
+              <Link href={`/treinador/alunos/${id}/aula`} className="touch flex items-center justify-center gap-2 rounded-xl bg-accent px-3 py-3 text-center font-bold text-bg hover:bg-accent-hover">
+                <span aria-hidden className="text-xl">👥</span>
+                <span className="text-sm">Dar aula agora</span>
+              </Link>
+              {/* Montar/revisar o treino: duas portas, musculação e cardio. */}
+              <AbasTreinoCardio alunoId={id} resumoCardio={resumoDoCardio(cardioAluno)} />
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🏆</span>
@@ -385,29 +377,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           {
             key: "cardio",
             label: "❤️ Cardio",
-            content: cardioAluno ? (
-              <div className="space-y-4">
-                <SinaisCardio sinais={cardioAluno.sinais} />
-                <SemanaCardioCard semana={cardioAluno.semanas.find((w) => w.atual) ?? null} />
-                <Card>
-                  <CardBody className="space-y-3">
-                    <p className="font-bold">Prescrição de cardio</p>
-                    <PrescricaoCardio alunoId={id} prescricoes={cardioAluno.prescricoes} treinos={treinosAtivos.map((t) => ({ id: t.id, letra: t.letra, nome: t.nome }))} />
-                  </CardBody>
-                </Card>
-                <SemanasCardio semanas={cardioAluno.semanas} />
-                <div className="space-y-2">
-                  <p className="font-bold">Registrar pelo aluno</p>
-                  <CardioHoje pendentes={pendentesHoje(cardioAluno.prescricoes, cardioAluno.feitos, hojeLocal)} titulo="Prescrito para hoje" compacto rota={`/api/alunos/${id}/cardio/registros`} />
-                </div>
-                <div className="space-y-2">
-                  <p className="font-bold">Histórico ({cardioAluno.marco.feitos} {cardioAluno.marco.feitos === 1 ? "cardio" : "cardios"})</p>
-                  <HistoricoCardio feitos={cardioAluno.feitos} rotaCorrecao={`/api/alunos/${id}/cardio/registros`} personal />
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-fg-muted">Não foi possível carregar o cardio agora.</p>
-            ),
+            content: <CardioDoAlunoPersonal alunoId={id} c={cardioAluno} treinos={treinosAtivos.map((t) => ({ id: t.id, letra: t.letra, nome: t.nome }))} hoje={hojeLocal} />,
           },
           {
             key: "dieta",

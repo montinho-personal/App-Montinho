@@ -10,12 +10,14 @@ import { CODIGOS_CARDIO } from "@/lib/cardio/regras";
 import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { PainelCardioClient } from "./PainelCardioClient";
+import { EscolherAlunoCardio } from "./EscolherAlunoCardio";
+import { listAlunos } from "@/lib/db";
 
 export const metadata = { title: "Montinho Cardio" };
 
 export default async function PainelCardioPage() {
   const sessao = await requireTreinadorPage();
-  const [linhas, conquistas, modelos] = await Promise.all([painelCardio(), listarConquistas(null, { desde: `${somarDias(dataLocal(new Date()), -14)}T00:00:00-03:00`, limite: 300 }), lerModelosMensagem(sessao.userId)]);
+  const [linhas, conquistas, modelos, alunos] = await Promise.all([painelCardio(), listarConquistas(null, { desde: `${somarDias(dataLocal(new Date()), -14)}T00:00:00-03:00`, limite: 300 }), lerModelosMensagem(sessao.userId), listAlunos()]);
   const nomes = new Map(linhas.map((l) => [l.alunoId, l.nome]));
   const trofeus = conquistas.filter((c) => (CODIGOS_CARDIO as string[]).includes(c.codigo) && nomes.has(c.aluno_id)).slice(0, 12);
   const comPrescricao = linhas.filter((l) => l.prescricoes.length);
@@ -29,8 +31,9 @@ export default async function PainelCardioPage() {
       <header>
         <p className="text-xs font-bold uppercase tracking-wider text-accent">Acompanhamento</p>
         <h1 className="text-2xl font-bold">❤️‍🔥 Montinho Cardio</h1>
-        <p className="mt-1 text-sm text-fg-muted">Cardio prescrito × realizado de cada aluno. Os sinais mostram o que aconteceu; não são diagnóstico. A prescrição fica na ficha do aluno, aba “❤️ Cardio”.</p>
+        <p className="mt-1 text-sm text-fg-muted">Cardio prescrito × realizado de cada aluno. Os sinais mostram o que aconteceu; não são diagnóstico.</p>
       </header>
+      <EscolherAlunoCardio alunos={alunos.filter((a) => a.status !== "arquivado").map((a) => ({ id: a.id, nome: a.profile?.nome ?? "Aluno", temCardio: linhas.some((l) => l.alunoId === a.id && l.prescricoes.length > 0) })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))} />
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi rotulo="Com cardio prescrito" valor={String(comPrescricao.length)} />
         <Kpi rotulo="Minutos da semana" valor={`${feito} de ${previsto}`} />
@@ -41,8 +44,7 @@ export default async function PainelCardioPage() {
         <PainelCardioClient linhas={linhas} modelos={modelos} />
       ) : (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">
-          Nenhum aluno com cardio ainda. Abra a ficha de um aluno → aba “❤️ Cardio” → “Prescrever cardio”.
-          <Link href="/treinador/alunos" className="mt-2 block text-accent underline-offset-2 hover:underline">Ir para os alunos</Link>
+          Nenhum aluno com cardio ainda. Escolha um aluno acima e toque em “❤️ Prescrever”.
         </div>
       )}
       {trofeus.length ? (

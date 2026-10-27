@@ -1,3 +1,4 @@
+import { AbasTreinoCardio } from "@/components/cardio/AbasTreinoCardio";
 import { notFound } from "next/navigation";
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { getAluno, getAnamnese } from "@/lib/db";
@@ -43,6 +44,10 @@ export default async function MontadorPage({ params }: PageProps) {
   const realizadoSemanal = Object.fromEntries(Object.entries(realizadoBruto).map(([g, v]) => [g, Math.round(((v ?? 0) / 4) * 10) / 10]));
 
   return (
+    <>
+    <div className="mb-4">
+      <AbasTreinoCardio alunoId={id} ativo="musculacao" />
+    </div>
     <MontadorClient
       temposTreinador={temposTreinador}
       alunoId={id}
@@ -63,5 +68,6 @@ export default async function MontadorPage({ params }: PageProps) {
       focoEstrategia={focoEstrategia}
       porques={porques}
     />
+    </>
   );
 }

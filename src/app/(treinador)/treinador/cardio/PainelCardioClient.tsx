@@ -63,7 +63,7 @@ function Cartao({ l, modelos }: { l: LinhaPainelCardio; modelos: ModelosMensagem
     <article className="space-y-2 rounded-xl border border-border bg-card p-3 text-sm">
       <header className="flex items-start justify-between gap-2">
         <div>
-          <Link href={`/treinador/alunos/${l.alunoId}`} className="font-bold hover:underline">{l.nome}</Link>
+          <Link href={`/treinador/alunos/${l.alunoId}/cardio`} className="font-bold hover:underline">{l.nome}</Link>
           {l.visitante ? <span className="ml-1 rounded-full bg-surface px-2 py-0.5 text-[10px]">visitante</span> : null}
           <p className="text-xs text-fg-muted">
             {l.prescricoes.length ? l.prescricoes.map((p) => `${MODALIDADES[p.modalidade].emoji} ${p.duracao_min} min ${p.frequencia_semanal}×`).join(" · ") : "Sem prescrição (cardio livre)"}
