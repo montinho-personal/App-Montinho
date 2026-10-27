@@ -422,9 +422,9 @@ export const CATALOGO: ExercicioCatalogo[] = [
     err: ["Puxar para o pescoço ou peito.", "Usar o tronco.", "Carga alta perdendo a rotação."],
     sub: ["crucifixo-invertido-maquina", "crucifixo-invertido-halteres"],
   }),
-  ex("remada-alta", "Remada alta", "ombro_lateral", {
-    s: ["remada alta barra", "upright row", "remada alta polia"],
-    p: { trapezio: 0.5, biceps: 0.25 }, pad: "abducao_ombro", art: ["ombro", "cotovelo", "escapula"], t: "multi", eq: ["barra", "polia"], n: "intermediario",
+  ex("remada-alta", "Remada alta com barra", "ombro_lateral", {
+    s: ["remada alta", "remada alta barra", "upright row"],
+    p: { trapezio: 0.5, biceps: 0.25 }, pad: "abducao_ombro", art: ["ombro", "cotovelo", "escapula"], t: "multi", eq: ["barra"], n: "intermediario",
     exe: ["Pegada um pouco mais aberta que os ombros.", "Puxe a barra até a parte baixa do peito com os cotovelos à frente.", "Desça controlando."],
     err: ["Pegada muito fechada.", "Subir os cotovelos acima dos ombros com dor.", "Impulso do quadril."],
     sub: ["elevacao-lateral-halteres", "elevacao-lateral-polia"], est: ["ombro"],
