@@ -207,7 +207,7 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
     const marcoCardio = MARCOS_CARDIO_ALCANCE.map((n) => aberta(`cardio_${n}` as CodigoConquista)).find((m) => !!m);
     if (marcoCardio && falta(marcoCardio) <= 3) {
       const n = falta(marcoCardio);
-      out.push(item(marcoCardio, `Faça mais ${plural(n, "cardio", "cardios")} de 10 minutos ou mais (1 por dia) no Montinho Cardio.`, n === 1 ? "No próximo cardio" : `Em ${plural(n, "cardio", "cardios")}`));
+      out.push(item(marcoCardio, c.feitos === 0 ? "Faça seu primeiro cardio de 10 minutos ou mais no Montinho Cardio." : `Faça mais ${plural(n, "cardio", "cardios")} de 10 minutos ou mais (1 por dia) no Montinho Cardio.`, n === 1 ? "No próximo cardio" : `Em ${plural(n, "cardio", "cardios")}`));
     }
     // Já bateu a meta de minutos da semana: o Fôlego Extra (150%) e o Dobro (200%) ficam ao alcance.
     const sm = c.semanaMin;
@@ -227,7 +227,8 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
       const ritmo = aberta("cardio_semana_ritmo");
       if (ritmo && s.faltaSessoes > 0 && s.faltaSessoes <= diasRestantes) out.push(item(ritmo, oQue, "Até domingo"));
       const plano = aberta("cardio_meta_semana");
-      if (plano && s.faltaMin > 0) out.push(item(plano, oQue, "Até domingo"));
+      // 100% no Plano é pelos minutos da semana.
+      if (plano && s.faltaMin > 0) out.push(item(plano, `Faltam ${s.faltaMin} min de cardio para bater 100% da semana.`, "Até domingo"));
       const ferro = aberta("cardio_4_semanas");
       if (ferro && (c.seguidas ?? 0) === 3) out.push(item(ferro, `${oQue} São 4 semanas seguidas de cardio.`, "Até domingo"));
     }

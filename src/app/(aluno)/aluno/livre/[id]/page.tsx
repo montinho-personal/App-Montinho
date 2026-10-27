@@ -11,7 +11,7 @@ import { podeRegistrar } from "@/lib/visitante/acesso";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { LivreClient, type ExercicioTela } from "./LivreClient";
-import { ResumoLivreClient } from "./ResumoLivreClient";
+import { FimLivreClient } from "./FimLivreClient";
 
 export const metadata = { title: "Treino livre" };
 
@@ -27,7 +27,10 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
 
   if (s.status !== "em_andamento") {
     const exercicios: ExercicioLivre[] = s.exercicios.filter((e) => e.status !== "pulado").map((e) => ({ nome: e.nome, biblioteca_id: e.biblioteca_id, tecnica: tecnicaDe(e.prescricao), series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) }));
-    return <ResumoLivreClient resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null} />;
+    const duracaoMin = s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null;
+    // Mesma tela de fim de todos os treinos: medalhas, card, relatório e cardio.
+    const base = { sessaoId: s.id, status: s.status === "abandonada" ? ("abandonada" as const) : ("concluida" as const), nomeTreino: s.nome_treino ?? (s.modo === "extra" ? "Treino extra livre" : "Treino livre"), series: s.series_concluidas, seriesPlanejadas: s.series_planejadas, duracaoMin, data: dataLocal(new Date(s.finalizado_em ?? s.iniciado_em)) };
+    return <FimLivreClient base={base} nome={sessao.nome.split(" ")[0]} resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={duracaoMin} dor={s.feedback_percepcao === "dor" || s.checkin_pre === "desconforto"} />;
   }
 
   const [biblioteca, metas, ultimas] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id, { qualquerPlano: true }).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);

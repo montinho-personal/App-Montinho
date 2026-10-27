@@ -173,7 +173,8 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
               <dt className="text-[11px] text-fg-subtle">Séries</dt>
               <dd className="font-mono text-lg font-bold">
                 {base.series}
-                <span className="text-xs font-normal text-fg-subtle">/{base.seriesPlanejadas}</span>
+                {/* Treino livre não tem séries previstas: mostra só as feitas. */}
+                {base.seriesPlanejadas > 0 ? <span className="text-xs font-normal text-fg-subtle">/{base.seriesPlanejadas}</span> : null}
               </dd>
             </div>
           </dl>
