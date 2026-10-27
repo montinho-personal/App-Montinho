@@ -62,6 +62,8 @@ export type Programa = {
   observacoes: string | null;
   /** 0044 — fase do protocolo. */
   fase?: "adaptacao" | "intensificacao" | "consolidacao" | null;
+  /** 0100 — 'livre_metas' = sem fichas: só a faixa de séries por semana de cada músculo. */
+  estilo?: "fichas" | "livre_metas";
   versao: number;
   ativo: boolean;
   created_at: string;

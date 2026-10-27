@@ -12,7 +12,7 @@ psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HERE/sql/supabase-stub.sql"
 for f in "$MIG"/000[1-7]_*.sql; do psql -v ON_ERROR_STOP=1 -q --single-transaction -d "$DB" -f "$f" 2>&1 | grep -v NOTICE || true; done
 psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HERE/sql/seed-legado.sql"
 # 2) migrations novas (0008+) em transação única cada
-for f in "$MIG"/000[89]_*.sql "$MIG"/00[1-9][0-9]_*.sql; do
+for f in "$MIG"/000[89]_*.sql "$MIG"/00[1-9][0-9]_*.sql "$MIG"/0[1-9][0-9][0-9]_*.sql; do
   [ -e "$f" ] || continue
   echo "== $(basename "$f")"
   psql -v ON_ERROR_STOP=1 -q --single-transaction -d "$DB" -f "$f" 2>&1 | grep -v NOTICE || true

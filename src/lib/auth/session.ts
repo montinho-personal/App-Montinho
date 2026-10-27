@@ -15,6 +15,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DEMO_PERSONAS } from "@/lib/mock/personas";
 import { podeAcessarAluno, sessaoDoCookieDemo, type SessaoApp } from "./guards";
 import { CABECALHO_ALUNO } from "./cabecalho";
+import { COMO_ALUNO_COOKIE } from "./como-aluno";
+import { demoStore } from "@/lib/mock/store";
 
 export type { SessaoApp } from "./guards";
 
@@ -24,7 +26,12 @@ export async function getSessao(): Promise<SessaoApp | null> {
 
   if (mode === "demo") {
     const jar = await cookies();
-    return sessaoDoCookieDemo(jar.get(DEMO_COOKIE)?.value, DEMO_PERSONAS);
+    const s = sessaoDoCookieDemo(jar.get(DEMO_COOKIE)?.value, DEMO_PERSONAS);
+    if (s?.role === "treinador" && jar.get(COMO_ALUNO_COOKIE)?.value === "1") {
+      const meu = demoStore().alunos.find((a) => a.profile_id === s.userId);
+      if (meu) return { mode: "demo", userId: s.userId, nome: s.nome, role: "aluno", alunoId: meu.id, modalidade: "consultoria", comoPersonal: true };
+    }
+    return s;
   }
 
   const supabase = await createSupabaseServerClient();
@@ -41,6 +48,11 @@ export async function getSessao(): Promise<SessaoApp | null> {
   if (!profile) return null;
 
   if (profile.role === "treinador") {
+    // “Meu treino”: o personal no app do aluno, com a própria ficha.
+    if ((await cookies()).get(COMO_ALUNO_COOKIE)?.value === "1") {
+      const { data: meu } = await supabase.from("alunos").select("id").eq("profile_id", user.id).maybeSingle();
+      if (meu) return { mode: "live", userId: user.id, nome: profile.nome, role: "aluno", alunoId: meu.id, modalidade: "consultoria", comoPersonal: true };
+    }
     return { mode: "live", userId: user.id, nome: profile.nome, role: "treinador", alunoId: null };
   }
   const { data: aluno } = await supabase.from("alunos").select("id, modalidade").eq("profile_id", user.id).maybeSingle();
@@ -61,7 +73,8 @@ export async function requireAlunoPage(): Promise<Extract<SessaoApp, { role: "al
   if (appMode() === "nao_configurado") redirect("/login");
   const s = await getSessao();
   if (!s) redirect("/login?next=/aluno");
-  if (s.role !== "aluno") redirect("/treinador");
+  // Cookie do “Meu treino” sem ficha de aluno: limpa e volta ao painel (sem laço de redirecionamento).
+  if (s.role !== "aluno") redirect("/api/meu-treino?sair=1");
   return s;
 }
 

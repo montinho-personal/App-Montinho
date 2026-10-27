@@ -5,7 +5,7 @@
 // exercício e uma anotação. Cada série é gravada ao tocar no ✓.
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -14,6 +14,8 @@ import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherEx
 import { TECNICAS_LIVRE, lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
 import type { SerieTipo } from "@/lib/supabase/types-sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
+import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
+import { avisoDaSerie, contaNoPlacar, linhaDoGrupo, somarNoPlacar, sugestaoDeAgora, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
 export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean };
 export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; tecnica: string; observacao: string; ultima: string | null; series: SerieTela[] };
@@ -36,7 +38,7 @@ async function chamar(url: string, metodo: string, corpo: unknown): Promise<{ ok
   }
 }
 
-export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno" }: { sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string }) {
+export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas }: { sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
   const router = useRouter();
   const [exs, setExs] = useState<ExercicioTela[]>(inicial);
   const [aberto, setAberto] = useState<string | null>(inicial.at(-1)?.seId ?? null);
@@ -48,6 +50,24 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [terminando, setTerminando] = useState(false);
   const [feedback, setFeedback] = useState<(typeof FEEDBACK)[number]["id"] | null>(null);
   const [comentario, setComentario] = useState("");
+  const [placar, setPlacar] = useState<LinhaPlacar[]>(metas?.placar ?? []);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [verPlacar, setVerPlacar] = useState(false);
+  const jaHoje = [...new Set(exs.filter((e) => e.series.some((s) => s.salva && contaNoPlacar(s.tipo))).map((e) => linhaDoGrupo(placar, e.grupo)?.grupo).filter((g): g is GrupoMuscular => !!g))];
+  const sugestao = metas && placar.length ? sugestaoDeAgora(placar, { hoje: metas.hoje, recentes: metas.recentes, jaHoje }) : null;
+  // Séries que já estão no placar (as salvas antes de abrir a tela já vêm na conta do servidor).
+  const contadas = useRef(new Set(inicial.flatMap((e) => e.series.filter((x) => x.salva && contaNoPlacar(x.tipo)).map((x) => x.key))));
+  /** Põe/tira a série do placar (só uma vez por série) e avisa quando entra na faixa ou chega no limite. */
+  function contarNoPlacar(e: ExercicioTela, s: SerieTela, conta: boolean) {
+    const ja = contadas.current.has(s.key);
+    if (!placar.length || ja === conta) return;
+    const antes = linhaDoGrupo(placar, e.grupo);
+    if (!antes) return;
+    if (conta) contadas.current.add(s.key);
+    else contadas.current.delete(s.key);
+    setPlacar(somarNoPlacar(placar, e.grupo, conta ? 1 : -1));
+    if (conta) setAviso(avisoDaSerie(antes.feitas, antes.feitas + 1, antes));
+  }
 
   useEffect(() => {
     const t = window.setInterval(() => setAgora(Date.now()), 1000);
@@ -85,6 +105,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     setErro(null);
     const r = await chamar(`/api/sessoes/${sessaoId}/series`, "POST", { session_exercise_id: e.seId, client_key: `livre:${s.key}`, serie: s.serie, tipo: s.tipo, carga_kg: carga, reps });
     if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível salvar a série."));
+    contarNoPlacar(e, s, contaNoPlacar(s.tipo));
     mudarSerie(e.seId, s.key, { salva: true });
     setUltimaSerieEm(Date.now());
     if (navigator.vibrate) navigator.vibrate(30);
@@ -94,6 +115,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     if (s.salva) {
       const r = await chamar(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
       if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível apagar a série."));
+      contarNoPlacar(e, s, false);
     }
     mudarEx(e.seId, (x) => ({ ...x, series: x.series.filter((y) => y.key !== s.key).map((y, i) => ({ ...y, serie: i + 1 })) }));
   }
@@ -132,6 +154,22 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
 
       {descanso != null && descanso < 600 ? (
         <p className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm" aria-live="polite">⏱️ Descansando há <span className="font-mono font-bold tabular-nums">{relogio(descanso)}</span></p>
+      ) : null}
+
+      {placar.length ? (
+        <div className="space-y-2">
+          {aviso ? (
+            <div role="status" className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-sm ${aviso.startsWith("✅") ? "border-success/50 bg-success/10" : "border-red/50 bg-red/10"}`}>
+              <span className="flex-1">{aviso}</span>
+              <button type="button" onClick={() => setAviso(null)} aria-label="Fechar aviso" className="text-fg-muted"><Icon name="x" size={14} /></button>
+            </div>
+          ) : null}
+          {sugestao ? <p className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm">💡 {sugestao.texto}</p> : null}
+          <button type="button" onClick={() => setVerPlacar((v) => !v)} aria-expanded={verPlacar} className="alvo text-sm font-semibold text-accent underline underline-offset-4">
+            {verPlacar ? "Esconder o placar da semana" : "🎯 Ver o placar da semana por músculo"}
+          </button>
+          {verPlacar ? <PlacarMetas placar={placar} compacto /> : null}
+        </div>
       ) : null}
 
       {erro ? <p role="alert" className="rounded-xl border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erro}</p> : null}
@@ -216,7 +254,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       </ol>
 
       {buscando ? (
-        <EscolherExercicio itens={itens} onEscolher={(it) => void adicionar({ biblioteca_id: it.id })} onMeuNome={(nome) => void adicionar({ nome_livre: nome })} onFechar={() => setBuscando(false)} />
+        <EscolherExercicio itens={itens} placar={placar.length ? placar : undefined} onEscolher={(it) => void adicionar({ biblioteca_id: it.id })} onMeuNome={(nome) => void adicionar({ nome_livre: nome })} onFechar={() => setBuscando(false)} />
       ) : (
         <button type="button" disabled={ocupado} onClick={() => setBuscando(true)} className="alvo flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-bold text-bg disabled:opacity-60">
           <Icon name="plus" size={20} /> {exs.length ? "Próximo exercício" : "Escolher o primeiro exercício"}

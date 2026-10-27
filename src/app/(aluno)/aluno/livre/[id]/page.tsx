@@ -8,6 +8,8 @@ import { getSessao, ultimasExecucoes } from "@/lib/data/sessoes";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { ehSessaoLivre, resumoLivre, textoUltimaVez, type ExercicioLivre } from "@/lib/treino/livre";
 import { podeRegistrar } from "@/lib/visitante/acesso";
+import { placarDoAluno } from "@/lib/data/livre-metas";
+import { dataLocal } from "@/lib/aderencia/calcular";
 import { LivreClient, type ExercicioTela } from "./LivreClient";
 import { ResumoLivreClient } from "./ResumoLivreClient";
 
@@ -28,7 +30,7 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     return <ResumoLivreClient resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null} />;
   }
 
-  const [biblioteca, ultimas] = await Promise.all([listarBiblioteca(), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);
+  const [biblioteca, metas, ultimas] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);
   const itens = biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento, video: Boolean(i.midia?.verificada), midia: i.midia?.verificada ? { provider: i.midia.provider, id: i.midia.id } : null, passos: i.execucao.slice(0, 3) }));
   // Retomar: as séries já salvas voltam marcadas (a chave “livre:<key>” vem do aparelho).
   const inicial: ExercicioTela[] = [...s.exercicios].sort((a, b) => a.ordem - b.ordem).map((e) => ({
@@ -40,5 +42,5 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     ultima: textoUltimaVez(ultimas[e.id]),
     series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: x.carga_kg != null ? String(x.carga_kg).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "", salva: true })),
   }));
-  return <LivreClient sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} />;
+  return <LivreClient sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} metas={metas?.placar.length ? { placar: metas.placar, hoje: dataLocal(new Date()), recentes: metas.recentes } : null} />;
 }

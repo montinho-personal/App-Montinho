@@ -9,6 +9,7 @@ import { GRUPO_LABEL } from "@/lib/grupos";
 import { filtrarExercicios, filtrosComItens } from "@/lib/visitante/busca-exercicios";
 import { VerExercicio, type MidiaExercicio } from "@/components/ui/VerExercicio";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
+import { linhaDoGrupo, prioridadeDoGrupo, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
 export type ItemBusca = { id: string; nome: string; grupo: GrupoMuscular; sinonimos: string[]; equipamento: string[]; video: boolean; midia: MidiaExercicio; passos: string[] };
 
@@ -25,10 +26,22 @@ async function fotoReduzida(f: File): Promise<string> {
 
 type Foto = { fase: "livre" } | { fase: "lendo" } | { fase: "achou"; aparelho: string | null; itens: ItemBusca[] } | { fase: "nada"; motivo: string };
 
-export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar }: { itens: ItemBusca[]; onEscolher: (i: ItemBusca) => void; onMeuNome: (nome: string) => void; onFechar: () => void }) {
+/** Selo do treino livre por metas ao lado de cada exercício. */
+function seloDaMeta(placar: LinhaPlacar[] | undefined, grupo: GrupoMuscular) {
+  const l = placar ? linhaDoGrupo(placar, grupo) : null;
+  if (!l) return null;
+  if (l.status === "limite" || l.status === "acima") return <span className="rounded-full bg-red/15 px-2 py-0.5 text-[10px] font-semibold text-red">🔴 {l.status === "acima" ? "passou do limite" : "no limite"}</span>;
+  if (l.status === "na_faixa") return <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">✅ na faixa</span>;
+  return <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold">faltam {l.faltam}</span>;
+}
+
+export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, placar }: { itens: ItemBusca[]; onEscolher: (i: ItemBusca) => void; onMeuNome: (nome: string) => void; onFechar: () => void; /** Treino livre por metas: o que mais falta primeiro, os do limite por último. */ placar?: LinhaPlacar[] }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<string | null>(null);
-  const resultados = useMemo(() => filtrarExercicios(itens, busca, filtro), [itens, busca, filtro]);
+  const resultados = useMemo(() => {
+    const r = filtrarExercicios(itens, busca, filtro);
+    return placar?.length && !busca.trim() ? [...r].sort((a, b) => prioridadeDoGrupo(placar, a.grupo) - prioridadeDoGrupo(placar, b.grupo)) : r;
+  }, [itens, busca, filtro, placar]);
   const filtros = useMemo(() => filtrosComItens(itens), [itens]);
   const meuNome = busca.trim().slice(0, 60);
   // “Não sei o nome”: foto do aparelho → a IA sugere até 3 exercícios da biblioteca.
@@ -109,7 +122,7 @@ export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar }: { 
             <button type="button" onClick={() => onEscolher(r)} className="alvo flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
               <span className="min-w-0 flex-1">
                 <span className="block text-sm">{r.nome}</span>
-                <span className="block text-xs text-fg-subtle">{GRUPO_LABEL[r.grupo]}</span>
+                <span className="flex flex-wrap items-center gap-1.5 text-xs text-fg-subtle">{GRUPO_LABEL[r.grupo]} {seloDaMeta(placar, r.grupo)}</span>
               </span>
               <Icon name="plus" size={18} className="shrink-0 text-accent" />
             </button>

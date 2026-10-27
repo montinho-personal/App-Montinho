@@ -9,6 +9,8 @@ import { getSessaoEmAndamento } from "@/lib/data/sessoes";
 import { ehSessaoLivre, hrefDaSessao } from "@/lib/treino/livre";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { ComecarLivre } from "./ComecarLivre";
+import { placarDoAluno } from "@/lib/data/livre-metas";
+import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 
 export const metadata = { title: "Treino livre" };
 
@@ -17,6 +19,7 @@ export default async function ComecarLivrePage() {
   const visitante = ehVisitante(sessao);
   const emAndamento = await getSessaoEmAndamento(sessao.alunoId).catch(() => null);
   if (emAndamento && ehSessaoLivre(emAndamento)) redirect(`/aluno/livre/${emAndamento.id}`);
+  const metas = await placarDoAluno(sessao.alunoId).catch(() => null);
   const pode = podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null);
 
   return (
@@ -27,6 +30,7 @@ export default async function ComecarLivrePage() {
         <h1 className="text-2xl font-bold">Treino livre</h1>
         <p className="text-sm text-fg-muted">Chegou na academia sem saber o que vai treinar? Sem problema. Você decide cada exercício na hora e o app anota tudo.</p>
       </header>
+      {metas?.placar.length ? <PlacarMetas placar={metas.placar} sugestao={metas.sugestao} /> : null}
       <ol className="space-y-2 text-sm">
         <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">1</span><span>Escolha o exercício (com vídeo) ou escreva o nome que você usa.</span></li>
         <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">2</span><span>Anote cada série: carga e repetições. Usou drop-set, rest-pause, bi-set? Marque a técnica.</span></li>

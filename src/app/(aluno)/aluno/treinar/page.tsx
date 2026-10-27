@@ -4,6 +4,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getPlanoAtivo } from "@/lib/data/programas";
+import { placarDoAluno } from "@/lib/data/livre-metas";
+import { LivreMetasCard } from "@/components/livre-metas/LivreMetasCard";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { estadoSemana } from "@/lib/relatorios/calcular";
 import { dataBR } from "@/lib/format";
@@ -25,6 +27,7 @@ export default async function TreinarPage() {
   // Modo Visitante: quem monta os próprios treinos vê o atalho do montador.
   const visitante = FEATURES.modoVisitante && ehVisitante(sessao);
   const podeMontar = visitante && podeRegistrar("visitante", sessao.acessoFim ?? null);
+  const livreMetas = emAndamento ? null : await placarDoAluno(sessao.alunoId).catch(() => null);
   const ultimaPorLetra = new Map<string, string>();
   for (const s of sessoes) if (s.letra && !ultimaPorLetra.has(s.letra)) ultimaPorLetra.set(s.letra, s.finalizado_em ?? s.iniciado_em);
 
@@ -58,7 +61,9 @@ export default async function TreinarPage() {
         </div>
       ) : null}
 
-      {podeMontar && !emAndamento ? (
+      {livreMetas ? <LivreMetasCard p={livreMetas} /> : null}
+
+      {podeMontar && !emAndamento && !livreMetas ? (
         <Link href="/aluno/livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
           <span className="text-2xl" aria-hidden>🎲</span>
           <span><span className="block font-bold">Treino livre</span><span className="block text-xs text-fg-muted">Sem ficha: decida cada exercício na hora e anote tudo.</span></span>

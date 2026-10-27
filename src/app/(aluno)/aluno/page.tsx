@@ -11,6 +11,8 @@ import { contextoPulsoAluno } from "@/lib/data/pulso";
 import { PulsoCard } from "@/components/pulso/PulsoCard";
 import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import { getPlanoAtivo } from "@/lib/data/programas";
+import { placarDoAluno } from "@/lib/data/livre-metas";
+import { LivreMetasCard } from "@/components/livre-metas/LivreMetasCard";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
 import { estadoSemana, resumoPeriodo } from "@/lib/relatorios/calcular";
@@ -113,6 +115,8 @@ export default async function AlunoHomePage() {
   // Convites para desafio entre amigos esperando resposta (0094).
   const [desafios, cutucadas] = await Promise.all([listarMeusDesafios(alunoId).catch(() => []), minhasCutucadas(alunoId).catch(() => [])]);
   const recadosDesafio = await recadosDosDesafios(alunoId, desafios).catch(() => []);
+  // Treino livre por metas (0100): o cartão substitui o “próximo treino” das fichas.
+  const livreMetas = emAndamento ? null : await placarDoAluno(alunoId).catch(() => null);
 
   return (
     <div className="space-y-5">
@@ -154,6 +158,8 @@ export default async function AlunoHomePage() {
             </div>
           </CardBody>
         </Card>
+      ) : livreMetas ? (
+        <LivreMetasCard p={livreMetas} />
       ) : proximo ? (
         <Card className="border-accent/40 bg-grain-strong">
           <CardBody className="space-y-3">

@@ -4,7 +4,7 @@ export type Papel = "treinador" | "aluno";
 
 export type SessaoApp =
   | { mode: "live" | "demo"; userId: string; nome: string; role: "treinador"; alunoId: null }
-  | { mode: "live" | "demo"; userId: string; nome: string; role: "aluno"; alunoId: string; modalidade?: "consultoria" | "visitante"; acessoFim?: string | null };
+  | { mode: "live" | "demo"; userId: string; nome: string; role: "aluno"; alunoId: string; modalidade?: "consultoria" | "visitante"; acessoFim?: string | null; /** O personal usando o app como aluno (“Meu treino”). */ comoPersonal?: boolean };
 
 /** Visitante (Modo Visitante, 0052)? Alunos da consultoria e treinador: false. */
 export function ehVisitante(sessao: SessaoApp | null): boolean {
@@ -16,6 +16,11 @@ export function podeAcessarAluno(sessao: SessaoApp | null, alunoId: string | nul
   if (!sessao || !alunoId) return false;
   if (sessao.role === "treinador") return true;
   return sessao.alunoId === alunoId;
+}
+
+/** Papel para as rotas: o personal no “Meu treino” navega como aluno. */
+export function papelEfetivo(role: Papel | null, comoAluno: boolean): Papel | null {
+  return role === "treinador" && comoAluno ? "aluno" : role;
 }
 
 /** Decide o destino de uma rota privada para o papel atual. Retorna null quando permitido. */

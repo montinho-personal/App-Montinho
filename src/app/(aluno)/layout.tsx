@@ -63,6 +63,14 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
         </div>
         <FioMarca />
       </header>
+      {sessao.comoPersonal ? (
+        <div className="bg-accent text-bg">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-2 px-4 py-1.5 text-xs font-semibold">
+            <span>🏋️ Você está no app como aluno</span>
+            <a href="/api/meu-treino?sair=1" className="rounded-full bg-bg/15 px-3 py-1 hover:bg-bg/25">↩ Voltar ao painel</a>
+          </div>
+        </div>
+      ) : null}
       {fechado ? (
         <main id="conteudo" className="flex-1 pb-12">
           <div className="max-w-md mx-auto space-y-4 px-4 py-6">

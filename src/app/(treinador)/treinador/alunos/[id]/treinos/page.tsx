@@ -11,6 +11,8 @@ import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular
 import { volumeRealizadoPorGrupo } from "@/lib/volume/calcular";
 import { lerAlternativasOcultas } from "@/lib/data/alternativas-ocultas";
 import { MontadorClient } from "./MontadorClient";
+import Link from "next/link";
+import { ehLivreMetas } from "@/lib/data/livre-metas";
 import { porquesDosExercicios } from "@/lib/data/desbloqueia";
 import { estrategiaVigente } from "@/lib/data/estrategias";
 import { diasDaEstrategia, focoDoDia } from "@/lib/estrategia/divisao";
@@ -47,6 +49,13 @@ export default async function MontadorPage({ params }: PageProps) {
     <>
     <div className="mb-4">
       <AbasTreinoCardio alunoId={id} ativo="musculacao" />
+      <Link href={`/treinador/alunos/${id}/livre-metas`} className={`touch mt-2 flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${ehLivreMetas(plano.programa) ? "border-success/60 bg-success/10" : "border-border bg-card"}`}>
+        <span>
+          <span className="block font-semibold">🎯 Treino livre por metas {ehLivreMetas(plano.programa) ? "· LIGADO" : ""}</span>
+          <span className="block text-xs text-fg-muted">Sem A/B/C: você define só as séries por semana de cada músculo e o aluno monta na hora.</span>
+        </span>
+        <span aria-hidden className="text-accent">→</span>
+      </Link>
     </div>
     <MontadorClient
       temposTreinador={temposTreinador}

@@ -1785,3 +1785,14 @@ begin
 end $$;
 select test_logout();
 \echo 'T53 OK: carimbos no desempate'
+-- T54 — 0100: estilo do programa (fichas | livre_metas)
+do $$
+begin
+  if (select estilo from programas limit 1) is distinct from 'fichas' and exists (select 1 from programas) then raise exception 'T54a: programa antigo não ficou como fichas'; end if;
+  begin
+    update programas set estilo = 'inventado' where id = (select id from programas limit 1);
+    if found then raise exception 'T54b: aceitou estilo fora da lista'; end if;
+  exception when check_violation then null;
+  end;
+end $$;
+\echo 'T54 OK: treino livre por metas'

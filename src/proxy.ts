@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { appMode, DEMO_COOKIE } from "@/lib/env";
-import { redirecionamentoPorPapel, sessaoDoCookieDemo } from "@/lib/auth/guards";
+import { papelEfetivo, redirecionamentoPorPapel, sessaoDoCookieDemo } from "@/lib/auth/guards";
+import { COMO_ALUNO_COOKIE } from "@/lib/auth/como-aluno";
 import { DEMO_PERSONAS } from "@/lib/mock/personas";
 
 // Proxy = checagem OTIMISTA de rota (Next 16). A autorização de verdade acontece
@@ -21,6 +22,7 @@ export async function proxy(request: NextRequest) {
   if (isPublicPath(pathname)) return NextResponse.next();
 
   const mode = appMode();
+  const comoAluno = request.cookies.get(COMO_ALUNO_COOKIE)?.value === "1";
 
   // Nada configurado: NUNCA libera páginas privadas (nem em dev).
   if (mode === "nao_configurado") {
@@ -35,7 +37,7 @@ export async function proxy(request: NextRequest) {
   // Demo: identidade vem do cookie explícito escolhido em /login.
   if (mode === "demo") {
     const sessao = sessaoDoCookieDemo(request.cookies.get(DEMO_COOKIE)?.value, DEMO_PERSONAS);
-    const destino = redirecionamentoPorPapel(sessao?.role ?? null, pathname);
+    const destino = redirecionamentoPorPapel(papelEfetivo(sessao?.role ?? null, comoAluno), pathname);
     if (destino && !pathname.startsWith("/api/")) {
       const url = request.nextUrl.clone();
       const [path, query] = destino.split("?");
@@ -82,7 +84,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/treinador") || pathname.startsWith("/aluno")) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    const destino = redirecionamentoPorPapel((profile?.role as "treinador" | "aluno" | undefined) ?? null, pathname);
+    const destino = redirecionamentoPorPapel(papelEfetivo((profile?.role as "treinador" | "aluno" | undefined) ?? null, comoAluno), pathname);
     if (destino) {
       const url = request.nextUrl.clone();
       url.pathname = destino.split("?")[0];
