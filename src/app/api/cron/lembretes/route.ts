@@ -9,6 +9,7 @@ import { MINUTOS_SEM_ATIVIDADE, mensagemTreinoAberto, type LembreteDevido } from
 import { TTL_SEG, agruparPorEnvio, mensagemChalala, topicoDoEnvio, type EnvioChalala } from "@/lib/push/chalala";
 import { configurarVapid, enviarAosAparelhos } from "@/lib/push/enviar";
 import { entregarWebhook } from "@/lib/crm/entregar";
+import { TTL_CARDIO_SEG, mensagemCardio, type DadosCardio } from "@/lib/push/cardio";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,25 @@ export async function POST(req: Request) {
       chalala.falhas += r.falha;
     }
   }
+  // 2a) Lembrete de cardio (0101): 17h–21h, só com cardio prescrito e ainda não feito hoje.
+  const cardio = { enviados: 0, falhas: 0 };
+  const { data: devCardio, error: e5 } = await db.rpc("cardio_notificacoes_devidas", { p_chave: chave });
+  if (!e5) {
+    const porEnvio = new Map<string, { dados: DadosCardio; aparelhos: Array<{ endpoint: string; p256dh: string; auth: string }> }>();
+    for (const r of (devCardio ?? []) as Array<{ envio_id: string; dados: DadosCardio; endpoint: string; p256dh: string; auth: string }>) {
+      const x = porEnvio.get(r.envio_id) ?? { dados: r.dados ?? {}, aparelhos: [] };
+      x.aparelhos.push({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth });
+      porEnvio.set(r.envio_id, x);
+    }
+    for (const [id, env] of porEnvio) {
+      const msg = mensagemCardio(id, env.dados);
+      const r = await enviarAosAparelhos(env.aparelhos, msg, { ttl: TTL_CARDIO_SEG, topic: topicoDoEnvio(id) });
+      await desativar(r.expirados);
+      await db.rpc("chalala_notificacao_resultado", { p_chave: chave, p_id: id, p_titulo: msg.titulo, p_corpo: msg.corpo, p_url: msg.url, p_ok: r.ok, p_falha: r.falha });
+      cardio.enviados += r.ok;
+      cardio.falhas += r.falha;
+    }
+  }
   // 2b) Desafios entre alunos (0095): convite, cutucada e “termina amanhã” — 1 por pessoa a cada 24 h.
   const desafios = { enviados: 0, falhas: 0 };
   const { data: devDesafio, error: e4 } = await db.rpc("desafio_notificacoes_devidas", { p_chave: chave });
@@ -81,5 +101,5 @@ export async function POST(req: Request) {
       else crm.falhas++;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, crm: e3 ? "indisponivel" : crm });
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, crm: e3 ? "indisponivel" : crm });
 }

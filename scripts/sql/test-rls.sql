@@ -1796,3 +1796,17 @@ begin
   end;
 end $$;
 \echo 'T54 OK: treino livre por metas'
+-- T55 — 0101: lembrete de cardio — a função do cron roda só com a chave; categoria 'cardio' aceita
+do $$
+begin
+  perform * from public.cardio_notificacoes_devidas('chave-teste');
+  begin
+    perform * from public.cardio_notificacoes_devidas('errada');
+    raise exception 'T55a: rodou com chave errada';
+  exception when raise_exception then
+    if sqlerrm like 'T55a%' then raise; end if;
+  end;
+  insert into notificacoes_envios (profile_id, categoria, dedupe, agendada_para, expira_em, dados)
+  select a.profile_id, 'cardio', 'cardio:teste', now() + interval '1 day', now() + interval '2 days', '{}'::jsonb from alunos a where a.profile_id is not null limit 1;
+end $$;
+\echo 'T55 OK: lembrete de cardio'
