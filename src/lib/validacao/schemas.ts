@@ -809,14 +809,14 @@ const fc = z.coerce.number().int().min(30).max(240).nullable().optional();
 
 export const prescricaoCardioSchema = z
   .object({
-    modalidade: modalidadeCardio,
+    modalidade: z.union([modalidadeCardio, z.literal("livre")]),
     nome: z.string().trim().min(1).max(60).nullable().optional(),
     tipo: z.enum(["continuo", "intervalado"]).default("continuo"),
     duracao_min: z.coerce.number().int().min(5).max(240),
     intensidade: intensidadeCardio.default("moderada"),
     frequencia_semanal: z.coerce.number().int().min(1).max(7),
     dias: z.array(z.coerce.number().int().min(0).max(6)).max(7).default([]),
-    vinculo: z.enum(["independente", "apos_treino", "antes_treino"]).default("independente"),
+    vinculo: z.enum(["qualquer", "independente", "apos_treino", "antes_treino"]).default("qualquer"),
     treino_id: z.string().uuid().nullable().optional(),
     fc_alvo_min: z.coerce.number().int().min(60).max(220).nullable().optional(),
     fc_alvo_max: z.coerce.number().int().min(60).max(220).nullable().optional(),

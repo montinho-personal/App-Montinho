@@ -1679,12 +1679,19 @@ begin
   exception when check_violation then null;
   end;
   begin
-    insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, ativo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 30, 3, false);
+    insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, ativo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'livre', 30, 3, false);
     raise exception 'T52b: desativou sem data';
   exception when check_violation then null;
   end;
   insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data)
     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'caminhada', 'concluido', 20, 'personal', 'personal-cardio-1', current_date);
+  -- “Livre: o aluno escolhe” + “Tanto faz” na prescrição; no registro a modalidade é a que ele fez.
+  insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, vinculo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'livre', 20, 2, 'qualquer');
+  begin
+    insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'livre', 'concluido', 20, 'personal', 'personal-cardio-livre', current_date);
+    raise exception 'T52m: registro sem dizer qual cardio fez';
+  exception when check_violation then null;
+  end;
 end $$;
 select test_logout();
 select test_login('22222222-2222-2222-2222-222222222222');

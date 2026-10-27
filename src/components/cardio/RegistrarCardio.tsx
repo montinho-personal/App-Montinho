@@ -20,16 +20,21 @@ type Props = {
   onRegistrado?: () => void;
   /** Personal registrando pelo aluno: `/api/alunos/<id>/cardio/registros`. */
   rota?: string;
+  /** Vindo do cronômetro: já sabe os minutos, a modalidade e se terminou. */
+  inicial?: { minutos?: number; modalidade?: ModalidadeCardio; status?: Status };
 };
 
 const novaChave = () => `cardio-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio" }: Props) {
+export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio", inicial }: Props) {
   const router = useRouter();
   const [chave] = useState(novaChave);
-  const [modalidade, setModalidade] = useState<ModalidadeCardio>(prescricao?.modalidade ?? "caminhada");
-  const [status, setStatus] = useState<Status | null>(null);
-  const [minutos, setMinutos] = useState<number>(prescricao?.duracao_min ?? 30);
+  const [modalidade, setModalidade] = useState<ModalidadeCardio>(inicial?.modalidade ?? (prescricao && prescricao.modalidade !== "livre" ? prescricao.modalidade : "caminhada"));
+  const [status, setStatus] = useState<Status | null>(inicial?.status ?? null);
+  const [minutos, setMinutos] = useState<number>(inicial?.minutos ?? prescricao?.duracao_min ?? 30);
+  // Prescrito, mas fez outro cardio no lugar (ex.: bike em vez de esteira): continua valendo pelo prescrito.
+  const livre = prescricao?.modalidade === "livre";
+  const [trocou, setTrocou] = useState(livre || (!!prescricao && !!inicial?.modalidade && inicial.modalidade !== prescricao.modalidade));
   const [intensidade, setIntensidade] = useState<IntensidadeCardio | null>(prescricao?.intensidade ?? null);
   const [esforco, setEsforco] = useState<number | null>(null);
   const [detalhes, setDetalhes] = useState(false);
@@ -94,11 +99,11 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
   const opcoesStatus = useMemo(
     () =>
       [
-        { v: "concluido" as const, t: planejado ? `✅ Fiz tudo (${planejado} min)` : "✅ Concluído" },
+        { v: "concluido" as const, t: planejado && !inicial?.minutos ? `✅ Fiz tudo (${planejado} min)` : "✅ Concluído" },
         { v: "parcial" as const, t: "🟡 Fiz uma parte" },
         { v: "nao_realizado" as const, t: "⏸️ Hoje não deu" },
       ],
-    [planejado]
+    [planejado, inicial?.minutos]
   );
 
   return (
@@ -122,10 +127,30 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
         ) : (
           <div className="space-y-4">
             {prescricao ? (
-              <p className="rounded-lg bg-surface px-3 py-2 text-sm">
-                Prescrito: <strong>{prescricao.duracao_min} min</strong> · {INTENSIDADES[prescricao.intensidade].nome.toLowerCase()}
-                {prescricao.tipo === "intervalado" && prescricao.intervalos ? ` · ${prescricao.intervalos}` : ""}
-              </p>
+              <div className="space-y-2">
+                <p className="rounded-lg bg-surface px-3 py-2 text-sm">
+                  Prescrito: <strong>{livre ? "cardio à sua escolha" : MODALIDADES[prescricao.modalidade as ModalidadeCardio].nome.toLowerCase()}, {prescricao.duracao_min} min</strong> · {INTENSIDADES[prescricao.intensidade].nome.toLowerCase()}
+                  {prescricao.tipo === "intervalado" && prescricao.intervalos ? ` · ${prescricao.intervalos}` : ""}
+                </p>
+                {livre ? (
+                  <p className="text-sm font-semibold">Qual cardio você fez?</p>
+                ) : (
+                  <button type="button" aria-expanded={trocou} onClick={() => { if (trocou && prescricao.modalidade !== "livre") setModalidade(prescricao.modalidade); setTrocou(!trocou); }} className="text-sm text-accent underline-offset-2 hover:underline">
+                    {trocou ? "↩ Fiz o que estava prescrito" : "🔁 Fiz outro cardio no lugar"}
+                  </button>
+                )}
+                {trocou ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {MODALIDADE_IDS.map((m) => (
+                      <button key={m} type="button" aria-pressed={modalidade === m} onClick={() => setModalidade(m)} className={`touch rounded-lg border px-2 py-2 text-xs font-semibold ${modalidade === m ? "border-accent bg-accent/15 text-accent" : "border-border"}`}>
+                        <span className="block text-lg">{MODALIDADES[m].emoji}</span>
+                        {MODALIDADES[m].nome}
+                      </button>
+                    ))}
+                    <p className="col-span-3 text-[11px] text-fg-subtle">{livre ? "O Montinho deixou você escolher: conta como o cardio prescrito." : "Conta como o cardio prescrito de hoje. O Montinho vê que você trocou."}</p>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <div>
                 <p className="mb-2 text-sm font-semibold">Qual cardio?</p>
@@ -143,7 +168,7 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
 
             <div className="grid gap-2" role="group" aria-label="Como foi?">
               {opcoesStatus.map((o) => (
-                <button key={o.v} type="button" aria-pressed={status === o.v} onClick={() => { setStatus(o.v); if (o.v === "concluido" && planejado) setMinutos(planejado); if (o.v === "parcial" && planejado && minutos >= planejado) setMinutos(Math.max(5, Math.round(planejado / 2))); }} className={`touch rounded-xl border px-4 py-3 text-left font-semibold ${status === o.v ? "border-accent bg-accent/15" : "border-border"}`}>
+                <button key={o.v} type="button" aria-pressed={status === o.v} onClick={() => { setStatus(o.v); if (o.v === "concluido" && planejado && !inicial?.minutos) setMinutos(planejado); if (o.v === "parcial" && planejado && minutos >= planejado) setMinutos(Math.max(5, Math.round(planejado / 2))); }} className={`touch rounded-xl border px-4 py-3 text-left font-semibold ${status === o.v ? "border-accent bg-accent/15" : "border-border"}`}>
                   {o.t}
                 </button>
               ))}

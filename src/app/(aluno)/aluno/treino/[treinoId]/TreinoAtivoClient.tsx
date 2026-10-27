@@ -1126,7 +1126,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     return (
       <TelaChalala base={base} nome={nomeAluno} confianca={confiancaFim}>
           {concluida.status === "concluida" ? <CardioDoTreino sessionId={concluida.id} /> : null}
-          {concluida.status === "concluida" ? <CardioAposTreino sessionId={concluida.id} nome={nomeAluno} /> : null}
+          {concluida.status === "concluida" ? <CardioAposTreino sessionId={concluida.id} nome={nomeAluno} dor={feedback === "dor" || checkinPre === "desconforto"} /> : null}
           <Card>
             <CardBody className="space-y-3">
               <p className="font-semibold text-sm">Como foi o treino? (opcional)</p>

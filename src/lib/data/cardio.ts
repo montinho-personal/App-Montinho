@@ -16,7 +16,7 @@ import { dataLocal, inicioDaSemana, somarDias } from "@/lib/aderencia/calcular";
 import { deRegistro, juntarCardios, semanasDeCardio, sinaisDoCardio, proximoMarco, type CardioFeito, type EntradaCardio, type SemanaCardio, type SinalCardio } from "@/lib/cardio/regras";
 import { modalidadeDoStrava, modalidadeDoTexto } from "@/lib/cardio/modalidades";
 import { listarCardiosStrava } from "@/lib/data/strava";
-import type { CardioPrescricao, CardioRegistro, IntensidadeCardio, ModalidadeCardio } from "@/lib/supabase/types-extended";
+import type { CardioPrescricao, CardioRegistro, IntensidadeCardio, ModalidadeCardio, ModalidadePrescricao } from "@/lib/supabase/types-extended";
 import type { TrainingSession } from "@/lib/supabase/types-sessoes";
 import type { ProgressoCardio } from "@/lib/conquistas/vitrine";
 
@@ -43,7 +43,7 @@ function semearDemo(d: Demo) {
   d.prescricoes.push(p1, p2);
   const reg = (data: string, p: CardioPrescricao, min: number, esforco: number, status: CardioRegistro["status"] = "concluido"): CardioRegistro => {
     const em = `${data}T19:00:00-03:00`;
-    return { id: uid(), aluno_id: aline.id, prescricao_id: p.id, modalidade: p.modalidade, status, duracao_min: status === "nao_realizado" ? 0 : min, planejado_min: p.duracao_min, intensidade_planejada: p.intensidade, intensidade: p.intensidade, esforco: status === "nao_realizado" ? null : esforco, distancia_km: null, velocidade_kmh: p.modalidade === "esteira" ? 6.5 : null, inclinacao_pct: p.modalidade === "esteira" ? 5 : null, fc_media: null, fc_max: null, observacoes: null, session_id: null, origem: "app", client_key: `demo-${uid()}`, data, realizado_em: em, removido_em: null, created_at: em, updated_at: em };
+    return { id: uid(), aluno_id: aline.id, prescricao_id: p.id, modalidade: p.modalidade === "livre" ? "outro" : p.modalidade, status, duracao_min: status === "nao_realizado" ? 0 : min, planejado_min: p.duracao_min, intensidade_planejada: p.intensidade, intensidade: p.intensidade, esforco: status === "nao_realizado" ? null : esforco, distancia_km: null, velocidade_kmh: p.modalidade === "esteira" ? 6.5 : null, inclinacao_pct: p.modalidade === "esteira" ? 5 : null, fc_media: null, fc_max: null, observacoes: null, session_id: null, origem: "app", client_key: `demo-${uid()}`, data, realizado_em: em, removido_em: null, created_at: em, updated_at: em };
   };
   const w = (n: number, dia: number) => somarDias(inicioDaSemana(hoje), -7 * n + dia);
   for (const n of [3, 2, 1]) {
@@ -57,14 +57,14 @@ function semearDemo(d: Demo) {
 // Prescrição
 // ---------------------------------------------------------------------------
 export type EntradaPrescricao = {
-  modalidade: ModalidadeCardio;
+  modalidade: ModalidadePrescricao;
   nome?: string | null;
   tipo: "continuo" | "intervalado";
   duracao_min: number;
   intensidade: IntensidadeCardio;
   frequencia_semanal: number;
   dias: number[];
-  vinculo: "independente" | "apos_treino" | "antes_treino";
+  vinculo: "qualquer" | "independente" | "apos_treino" | "antes_treino";
   treino_id?: string | null;
   fc_alvo_min?: number | null;
   fc_alvo_max?: number | null;
@@ -85,7 +85,7 @@ export async function listarPrescricoesCardio(alunoId: string, opts: { todas?: b
 /** Cria (ou, com `substituiId`, troca: a antiga é desativada, nunca apagada). Só o personal (RLS). */
 export async function salvarPrescricaoCardio(alunoId: string, e: EntradaPrescricao, substituiId?: string | null): Promise<CardioPrescricao> {
   const agora = new Date().toISOString();
-  const linha = { aluno_id: alunoId, nome: e.nome ?? null, treino_id: e.vinculo === "independente" ? null : (e.treino_id ?? null), fc_alvo_min: e.fc_alvo_min ?? null, fc_alvo_max: e.fc_alvo_max ?? null, intervalos: e.tipo === "intervalado" ? (e.intervalos ?? null) : null, observacoes: e.observacoes ?? null, modalidade: e.modalidade, tipo: e.tipo, duracao_min: e.duracao_min, intensidade: e.intensidade, frequencia_semanal: e.frequencia_semanal, dias: [...new Set(e.dias)].sort(), vinculo: e.vinculo };
+  const linha = { aluno_id: alunoId, nome: e.nome ?? null, treino_id: e.vinculo === "independente" || e.vinculo === "qualquer" ? null : (e.treino_id ?? null), fc_alvo_min: e.fc_alvo_min ?? null, fc_alvo_max: e.fc_alvo_max ?? null, intervalos: e.tipo === "intervalado" ? (e.intervalos ?? null) : null, observacoes: e.observacoes ?? null, modalidade: e.modalidade, tipo: e.tipo, duracao_min: e.duracao_min, intensidade: e.intensidade, frequencia_semanal: e.frequencia_semanal, dias: [...new Set(e.dias)].sort(), vinculo: e.vinculo };
   if (isDemoMode()) {
     const d = demo();
     if (substituiId) {

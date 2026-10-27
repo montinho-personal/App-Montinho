@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 0098 — Montinho Cardio (aprovado pelo Montinho em 27/10/2026).
 -- * cardio_prescricoes: o cardio que o PERSONAL prescreve para cada aluno
---   (modalidade, duração, intensidade, vezes por semana, dias, FC-alvo,
+--   (modalidade ou “livre: o aluno escolhe”, duração, intensidade, vezes por semana, dias, FC-alvo,
 --   contínuo/intervalado, depois de um treino ou sessão independente).
 --   Mudar a prescrição = desativar a antiga (desativado_em) e criar outra:
 --   as semanas passadas continuam com a meta que valia na época. Nunca apaga.
@@ -23,14 +23,16 @@
 create table if not exists cardio_prescricoes (
   id uuid primary key default gen_random_uuid(),
   aluno_id uuid not null references alunos(id) on delete cascade,
-  modalidade text not null check (modalidade in ('caminhada','corrida','esteira','bike_ergometrica','bike','eliptico','escada','remo','natacao','corda','hiit','outro')),
+  -- 'livre' = o personal deixa o aluno escolher (ele marca qual fez ao registrar).
+  modalidade text not null check (modalidade in ('livre','caminhada','corrida','esteira','bike_ergometrica','bike','eliptico','escada','remo','natacao','corda','hiit','outro')),
   nome text check (nome is null or length(nome) between 1 and 60),
   tipo text not null default 'continuo' check (tipo in ('continuo','intervalado')),
   duracao_min smallint not null check (duracao_min between 5 and 240),
   intensidade text not null default 'moderada' check (intensidade in ('leve','moderada','forte')),
   frequencia_semanal smallint not null check (frequencia_semanal between 1 and 7),
   dias smallint[] not null default '{}' check (dias <@ array[0,1,2,3,4,5,6]::smallint[]),
-  vinculo text not null default 'independente' check (vinculo in ('independente','apos_treino','antes_treino')),
+  -- 'qualquer' = tanto faz (cardio bom é cardio bem feito).
+  vinculo text not null default 'qualquer' check (vinculo in ('qualquer','independente','apos_treino','antes_treino')),
   treino_id uuid references treinos(id) on delete set null,
   fc_alvo_min smallint check (fc_alvo_min is null or fc_alvo_min between 60 and 220),
   fc_alvo_max smallint check (fc_alvo_max is null or fc_alvo_max between 60 and 220),

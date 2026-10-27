@@ -167,11 +167,13 @@ export type AcompanhamentoAlerta = {
 /** 0098 — Montinho Cardio. */
 export type ModalidadeCardio = "caminhada" | "corrida" | "esteira" | "bike_ergometrica" | "bike" | "eliptico" | "escada" | "remo" | "natacao" | "corda" | "hiit" | "outro";
 export type IntensidadeCardio = "leve" | "moderada" | "forte";
+/** Na prescrição, “livre” = o aluno escolhe a modalidade e marca qual fez. */
+export type ModalidadePrescricao = ModalidadeCardio | "livre";
 
 export type CardioPrescricao = {
   id: string;
   aluno_id: string;
-  modalidade: ModalidadeCardio;
+  modalidade: ModalidadePrescricao;
   nome: string | null;
   tipo: "continuo" | "intervalado";
   duracao_min: number;
@@ -179,7 +181,7 @@ export type CardioPrescricao = {
   frequencia_semanal: number;
   /** 0 = domingo … 6 = sábado. */
   dias: number[];
-  vinculo: "independente" | "apos_treino" | "antes_treino";
+  vinculo: "qualquer" | "independente" | "apos_treino" | "antes_treino";
   treino_id: string | null;
   fc_alvo_min: number | null;
   fc_alvo_max: number | null;

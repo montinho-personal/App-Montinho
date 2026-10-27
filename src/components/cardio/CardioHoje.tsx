@@ -5,14 +5,16 @@
 // no Início e no fim da musculação.
 import { useEffect, useState } from "react";
 import { RegistrarCardio } from "./RegistrarCardio";
+import { CronometroCardio } from "./CronometroCardio";
 import { eventoGa } from "@/components/analytics/ga";
-import { MODALIDADES, INTENSIDADES } from "@/lib/cardio/modalidades";
+import { INTENSIDADES, infoModalidade } from "@/lib/cardio/modalidades";
 import type { CardioPrescricao } from "@/lib/supabase/types-extended";
 
 type P = Pick<CardioPrescricao, "id" | "modalidade" | "nome" | "duracao_min" | "intensidade" | "tipo" | "intervalos" | "observacoes" | "fc_alvo_min" | "fc_alvo_max">;
 
 export function CardioHoje({ pendentes, nome, sessionId, livre = true, titulo = "Cardio de hoje", compacto = false, rota }: { pendentes: P[]; nome?: string; sessionId?: string | null; livre?: boolean; titulo?: string; compacto?: boolean; rota?: string }) {
   const [aberto, setAberto] = useState<P | "livre" | null>(null);
+  const [cronometro, setCronometro] = useState<P | null>(null);
   const [feitos, setFeitos] = useState<string[]>([]);
   const lista = pendentes.filter((p) => !feitos.includes(p.id));
   useEffect(() => {
@@ -27,7 +29,7 @@ export function CardioHoje({ pendentes, nome, sessionId, livre = true, titulo = 
     <section className="space-y-2" aria-label={titulo}>
       {lista.length ? <h2 className={`${compacto ? "text-sm" : "text-base"} font-bold`}>❤️‍🔥 {titulo}</h2> : null}
       {lista.map((p) => {
-        const m = MODALIDADES[p.modalidade];
+        const m = infoModalidade(p.modalidade);
         return (
           <div key={p.id} className="rounded-xl border border-accent/40 bg-accent/5 p-3">
             <div className="flex items-start gap-3">
@@ -42,7 +44,10 @@ export function CardioHoje({ pendentes, nome, sessionId, livre = true, titulo = 
                 {p.observacoes && !compacto ? <p className="mt-1 text-xs text-fg-muted">📝 {p.observacoes}</p> : null}
               </div>
             </div>
-            <button type="button" onClick={() => abrir(p)} className="alvo mt-3 w-full rounded-xl bg-accent px-4 py-3 font-bold text-bg">Registrar este cardio</button>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => abrir(p)} className="alvo rounded-xl bg-accent px-3 py-3 text-sm font-bold text-bg">Já fiz: registrar</button>
+              {rota ? null : <button type="button" onClick={() => setCronometro(p)} className="alvo rounded-xl border border-accent/60 px-3 py-3 text-sm font-bold text-accent">⏱ Fazer agora</button>}
+            </div>
           </div>
         );
       })}
@@ -51,6 +56,7 @@ export function CardioHoje({ pendentes, nome, sessionId, livre = true, titulo = 
           ➕ Registrar {lista.length ? "outro " : ""}cardio{lista.length ? "" : " (livre)"}
         </button>
       ) : null}
+      {cronometro ? <CronometroCardio minutos={cronometro.duracao_min} prescricao={cronometro} sessionId={sessionId} nome={nome} onFechar={() => setCronometro(null)} /> : null}
       {aberto ? (
         <RegistrarCardio
           prescricao={aberto === "livre" ? null : aberto}

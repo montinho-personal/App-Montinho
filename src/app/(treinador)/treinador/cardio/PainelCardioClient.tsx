@@ -8,7 +8,7 @@ import Link from "next/link";
 import { linkWhatsApp } from "@/lib/acesso/mensagem";
 import { eventoGa } from "@/components/analytics/ga";
 import { preencherModelo, type ModeloId, type ModelosMensagem } from "@/lib/acompanhamento/modelos";
-import { MODALIDADES } from "@/lib/cardio/modalidades";
+import { infoModalidade } from "@/lib/cardio/modalidades";
 import type { LinhaPainelCardio } from "@/lib/data/cardio";
 
 type Filtro = "todos" | "atencao" | "acompanhar" | "reconhecer";
@@ -66,7 +66,7 @@ function Cartao({ l, modelos }: { l: LinhaPainelCardio; modelos: ModelosMensagem
           <Link href={`/treinador/alunos/${l.alunoId}/cardio`} className="font-bold hover:underline">{l.nome}</Link>
           {l.visitante ? <span className="ml-1 rounded-full bg-surface px-2 py-0.5 text-[10px]">visitante</span> : null}
           <p className="text-xs text-fg-muted">
-            {l.prescricoes.length ? l.prescricoes.map((p) => `${MODALIDADES[p.modalidade].emoji} ${p.duracao_min} min ${p.frequencia_semanal}×`).join(" · ") : "Sem prescrição (cardio livre)"}
+            {l.prescricoes.length ? l.prescricoes.map((p) => `${infoModalidade(p.modalidade).emoji} ${p.duracao_min} min ${p.frequencia_semanal}×`).join(" · ") : "Sem prescrição (cardio livre)"}
           </p>
         </div>
         {nivel ? <span aria-label={nivel}>{EMOJI[nivel]}</span> : null}

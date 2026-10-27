@@ -30,7 +30,8 @@ export async function GET() {
   const { sessao, error } = await requireAlunoApi();
   if (error) return error;
   const c = await cardioDoAluno(sessao.alunoId).catch(() => null);
-  if (!c) return NextResponse.json({ pendentes: [] });
-  const pendentes = pendentesHoje(c.prescricoes, c.feitos, dataLocal(new Date()));
-  return NextResponse.json({ pendentes });
+  if (!c) return NextResponse.json({ pendentes: [], jaFezHoje: false });
+  const hoje = dataLocal(new Date());
+  const pendentes = pendentesHoje(c.prescricoes, c.feitos, hoje);
+  return NextResponse.json({ pendentes, jaFezHoje: c.feitos.some((f) => f.data === hoje && f.status !== "nao_realizado") });
 }

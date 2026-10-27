@@ -5,19 +5,19 @@
 // nova passa a valer (as semanas passadas mantêm a meta da época).
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DIAS_SEMANA, INTENSIDADES, MODALIDADES, MODALIDADE_IDS } from "@/lib/cardio/modalidades";
-import type { CardioPrescricao, IntensidadeCardio, ModalidadeCardio } from "@/lib/supabase/types-extended";
+import { DIAS_SEMANA, INTENSIDADES, MODALIDADES, MODALIDADE_IDS, MODALIDADE_LIVRE, VINCULOS, infoModalidade } from "@/lib/cardio/modalidades";
+import type { CardioPrescricao, IntensidadeCardio, ModalidadePrescricao } from "@/lib/supabase/types-extended";
 
 type Treino = { id: string; letra: string; nome: string };
 type Form = {
-  modalidade: ModalidadeCardio;
+  modalidade: ModalidadePrescricao;
   nome: string;
   tipo: "continuo" | "intervalado";
   duracao_min: number;
   intensidade: IntensidadeCardio;
   frequencia_semanal: number;
   dias: number[];
-  vinculo: "independente" | "apos_treino" | "antes_treino";
+  vinculo: keyof typeof VINCULOS;
   treino_id: string;
   fc_alvo_min: string;
   fc_alvo_max: string;
@@ -25,8 +25,8 @@ type Form = {
   observacoes: string;
 };
 
-const VAZIO: Form = { modalidade: "esteira", nome: "", tipo: "continuo", duracao_min: 30, intensidade: "moderada", frequencia_semanal: 3, dias: [], vinculo: "apos_treino", treino_id: "", fc_alvo_min: "", fc_alvo_max: "", intervalos: "", observacoes: "" };
-const VINCULO = { independente: "Sessão independente", apos_treino: "Depois da musculação", antes_treino: "Antes da musculação" } as const;
+const VAZIO: Form = { modalidade: "esteira", nome: "", tipo: "continuo", duracao_min: 30, intensidade: "moderada", frequencia_semanal: 3, dias: [], vinculo: "qualquer", treino_id: "", fc_alvo_min: "", fc_alvo_max: "", intervalos: "", observacoes: "" };
+const VINCULO = VINCULOS;
 
 const doRegistro = (p: CardioPrescricao): Form => ({ modalidade: p.modalidade, nome: p.nome ?? "", tipo: p.tipo, duracao_min: p.duracao_min, intensidade: p.intensidade, frequencia_semanal: p.frequencia_semanal, dias: p.dias, vinculo: p.vinculo, treino_id: p.treino_id ?? "", fc_alvo_min: p.fc_alvo_min ? String(p.fc_alvo_min) : "", fc_alvo_max: p.fc_alvo_max ? String(p.fc_alvo_max) : "", intervalos: p.intervalos ?? "", observacoes: p.observacoes ?? "" });
 
@@ -50,7 +50,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
     const corpo = {
       ...f,
       nome: f.nome.trim() || null,
-      treino_id: f.vinculo !== "independente" && f.treino_id ? f.treino_id : null,
+      treino_id: (f.vinculo === "apos_treino" || f.vinculo === "antes_treino") && f.treino_id ? f.treino_id : null,
       fc_alvo_min: n(f.fc_alvo_min),
       fc_alvo_max: n(f.fc_alvo_max),
       intervalos: f.tipo === "intervalado" ? f.intervalos.trim() || null : null,
@@ -85,7 +85,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
             <li key={p.id} className="rounded-xl border border-border p-3 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold">{MODALIDADES[p.modalidade].emoji} {p.nome ?? MODALIDADES[p.modalidade].nome} · {p.duracao_min} min · {p.frequencia_semanal}×/semana</p>
+                  <p className="font-semibold">{infoModalidade(p.modalidade).emoji} {p.nome ?? infoModalidade(p.modalidade).nome} · {p.duracao_min} min · {p.frequencia_semanal}×/semana</p>
                   <p className="text-xs text-fg-muted">
                     {INTENSIDADES[p.intensidade].nome} · {p.tipo === "intervalado" ? `intervalado${p.intervalos ? ` (${p.intervalos})` : ""}` : "contínuo"} · {VINCULO[p.vinculo]}
                     {p.treino_id ? ` (treino ${treinos.find((t) => t.id === p.treino_id)?.letra ?? "?"})` : ""}
@@ -110,6 +110,9 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
         <div className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm">
           <p className="font-bold">{editando === "nova" ? "Prescrever cardio" : "Ajustar prescrição (a anterior fica no histórico)"}</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <button type="button" aria-pressed={f.modalidade === "livre"} onClick={() => setF({ ...f, modalidade: "livre" })} className={`touch col-span-3 rounded-lg border px-2 py-2 text-xs sm:col-span-4 ${f.modalidade === "livre" ? "border-accent bg-accent/15 font-bold" : "border-border"}`}>
+              {MODALIDADE_LIVRE.emoji} Livre: o aluno escolhe e marca qual fez
+            </button>
             {MODALIDADE_IDS.map((m) => (
               <button key={m} type="button" aria-pressed={f.modalidade === m} onClick={() => setF({ ...f, modalidade: m })} className={`touch rounded-lg border px-2 py-2 text-xs ${f.modalidade === m ? "border-accent bg-accent/15 font-bold" : "border-border"}`}>
                 {MODALIDADES[m].emoji} {MODALIDADES[m].nome}
@@ -142,7 +145,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
               <Chip key={v} ativo={f.vinculo === v} onClick={() => setF({ ...f, vinculo: v })}>{VINCULO[v]}</Chip>
             ))}
           </Grupo>
-          {f.vinculo !== "independente" && treinos.length ? (
+          {(f.vinculo === "apos_treino" || f.vinculo === "antes_treino") && treinos.length ? (
             <label className="block"><span className="text-xs text-fg-muted">Ligado a um treino (opcional)</span>
               <select value={f.treino_id} onChange={(e) => setF({ ...f, treino_id: e.target.value })} className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2">
                 <option value="">Qualquer treino</option>

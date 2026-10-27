@@ -223,6 +223,15 @@ export default async function AlunoHomePage() {
           <SemanaCardioCard semana={cardio.semanas.find((w) => w.atual) ?? null} link />
           <CardioHoje pendentes={cardioPendentes} nome={primeiroNome} livre={false} compacto />
         </div>
+      ) : cardio ? (
+        // Sem cardio no protocolo: dá para anotar o que fizer por conta própria.
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-bold">❤️‍🔥 Fez algum cardio?</p>
+            <p className="text-xs text-fg-muted">{cardio.marco.feitos ? `${cardio.marco.feitos} ${cardio.marco.feitos === 1 ? "cardio anotado" : "cardios anotados"}. ` : ""}Anote aqui e ganhe troféus de cardio.</p>
+          </div>
+          <Link href="/aluno/cardio" className="touch shrink-0 rounded-lg border border-accent/60 px-3 py-2 text-sm font-semibold text-accent">Anotar</Link>
+        </div>
       ) : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
       {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}

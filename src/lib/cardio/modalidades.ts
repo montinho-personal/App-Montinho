@@ -3,7 +3,7 @@
 // + o valor no check do banco). Rótulos e o que cada uma pede no registro.
 // ============================================================================
 
-import type { IntensidadeCardio, ModalidadeCardio } from "@/lib/supabase/types-extended";
+import type { IntensidadeCardio, ModalidadeCardio, ModalidadePrescricao } from "@/lib/supabase/types-extended";
 
 export type InfoModalidade = { nome: string; emoji: string; distancia: boolean; velocidade: boolean; inclinacao: boolean };
 
@@ -23,6 +23,13 @@ export const MODALIDADES: Record<ModalidadeCardio, InfoModalidade> = {
 };
 
 export const MODALIDADE_IDS = Object.keys(MODALIDADES) as ModalidadeCardio[];
+
+/** Prescrição “livre”: o personal deixa o aluno escolher. */
+export const MODALIDADE_LIVRE: InfoModalidade = { nome: "Livre (o aluno escolhe)", emoji: "🎯", distancia: true, velocidade: false, inclinacao: false };
+export const infoModalidade = (m: ModalidadePrescricao): InfoModalidade => (m === "livre" ? MODALIDADE_LIVRE : MODALIDADES[m]);
+
+/** Quando fazer o cardio. “Tanto faz” é o padrão: cardio bom é cardio bem feito. */
+export const VINCULOS = { qualquer: "Tanto faz", independente: "Sessão separada", apos_treino: "Depois da musculação", antes_treino: "Antes da musculação" } as const;
 
 export const INTENSIDADES: Record<IntensidadeCardio, { nome: string; dica: string; esforco: [number, number] }> = {
   leve: { nome: "Leve", dica: "Dá para conversar tranquilo", esforco: [1, 4] },

@@ -7,7 +7,7 @@ import { cardioDoAluno } from "@/lib/data/cardio";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { esforcoPorSemana, pendentesHoje } from "@/lib/cardio/regras";
-import { DIAS_SEMANA, INTENSIDADES, MODALIDADES } from "@/lib/cardio/modalidades";
+import { DIAS_SEMANA, INTENSIDADES, infoModalidade } from "@/lib/cardio/modalidades";
 import { CATALOGO, type CodigoConquista } from "@/lib/conquistas/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
@@ -16,7 +16,7 @@ import { Colombo, Oogway } from "@/components/jornada-chalala/Personagens";
 
 export const metadata = { title: "Montinho Cardio" };
 
-const VINCULO = { independente: "sessão independente", apos_treino: "depois da musculação", antes_treino: "antes da musculação" } as const;
+const VINCULO = { qualquer: "quando for melhor para você", independente: "sessão separada", apos_treino: "depois da musculação", antes_treino: "antes da musculação" } as const;
 
 export default async function CardioPage() {
   const sessao = await requireAlunoPage();
@@ -75,7 +75,7 @@ export default async function CardioPage() {
           <ul className="space-y-2">
             {c.prescricoes.map((p) => (
               <li key={p.id} className="rounded-xl border border-border p-3 text-sm">
-                <p className="font-semibold">{MODALIDADES[p.modalidade].emoji} {p.nome ?? MODALIDADES[p.modalidade].nome} · {p.duracao_min} min · {p.frequencia_semanal}× por semana</p>
+                <p className="font-semibold">{infoModalidade(p.modalidade).emoji} {p.nome ?? (p.modalidade === "livre" ? "Cardio à sua escolha" : infoModalidade(p.modalidade).nome)} · {p.duracao_min} min · {p.frequencia_semanal}× por semana</p>
                 <p className="text-xs text-fg-muted">
                   {INTENSIDADES[p.intensidade].nome} · {p.tipo === "intervalado" ? `intervalado${p.intervalos ? ` (${p.intervalos})` : ""}` : "contínuo"} · {VINCULO[p.vinculo]}
                   {p.dias.length ? ` · ${p.dias.map((d) => DIAS_SEMANA[d]).join(", ")}` : ""}
