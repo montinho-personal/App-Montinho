@@ -9,6 +9,7 @@ import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno, listDieta } from "@/lib/db";
 import { contextoPulsoAluno } from "@/lib/data/pulso";
 import { PulsoCard } from "@/components/pulso/PulsoCard";
+import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
@@ -141,6 +142,9 @@ export default async function AlunoHomePage() {
             <Link href={hrefDaSessao(emAndamento)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
               <Icon name="play" /> Continuar treino
             </Link>
+            <div className="text-center">
+              <CancelarTreino sessaoId={emAndamento.id} series={emAndamento.series_concluidas ?? 0} rotulo="Começou o treino errado? Cancelar este treino" />
+            </div>
           </CardBody>
         </Card>
       ) : proximo ? (

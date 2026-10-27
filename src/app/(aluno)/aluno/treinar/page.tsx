@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { requireAlunoPage } from "@/lib/auth/session";
@@ -36,6 +37,7 @@ export default async function TreinarPage() {
       </header>
 
       {emAndamento ? (
+        <div className="space-y-1">
         <Link href={hrefDaSessao(emAndamento)} className="block">
           <Card className="border-accent/50 bg-accent-soft">
             <CardBody className="flex items-center gap-3">
@@ -50,6 +52,10 @@ export default async function TreinarPage() {
             </CardBody>
           </Card>
         </Link>
+        <div className="text-right">
+          <CancelarTreino sessaoId={emAndamento.id} series={emAndamento.series_concluidas ?? 0} rotulo="Cancelar (começou o treino errado)" />
+        </div>
+        </div>
       ) : null}
 
       {podeMontar && !emAndamento ? (

@@ -120,6 +120,23 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
     setEditor(true);
   }, [r, medalhasPendentes, base.status, base.sessaoId]);
 
+  // Encerrado sem nenhuma série = treino cancelado (começou o treino errado):
+  // não conta na semana nem gera medalha; nada de “Treino registrado”.
+  if (base.series === 0 && base.status === "abandonada") {
+    return (
+      <Card className="border-border">
+        <CardBody className="space-y-3 py-8 text-center">
+          <p className="text-3xl" aria-hidden>✖</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Treino cancelado</h1>
+          <p className="text-fg-muted">Nenhuma série foi marcada, então ele não conta na semana. Pode começar o treino certo quando quiser!</p>
+          <Link href={presencial ? "/treinador/alunos" : "/aluno/treinar"} className="touch inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 font-bold text-bg">
+            {presencial ? "Voltar" : "Escolher o treino"}
+          </Link>
+        </CardBody>
+      </Card>
+    );
+  }
+
   return (
     <div className={`space-y-4 ${animacoes ? "" : "sem-animacao"}`}>
       <Card className="relative overflow-hidden border-success/40 bg-grain-strong">

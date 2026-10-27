@@ -126,7 +126,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       trocas={trocas}
       ultimasTroca={ultimasTroca}
       sessaoInicial={sessaoAtiva}
-      outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino } : null}
+      outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino, series: outraSessao.series_concluidas ?? 0 } : null}
       sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
       nomeAluno={nomeAluno.split(" ")[0]}
       presencial={presencial}

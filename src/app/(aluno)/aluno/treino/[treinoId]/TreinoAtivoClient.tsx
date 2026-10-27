@@ -51,6 +51,7 @@ import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/t
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
 import { PulsoCard } from "@/components/pulso/PulsoCard";
+import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import type { ContextoPulsoAluno } from "@/lib/data/pulso";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
 import { CardioDoTreino } from "@/components/strava/CardioDoTreino";
@@ -108,7 +109,7 @@ type Props = {
   /** Última execução de cada opção de troca (para vir preenchido). */
   ultimasTroca?: Record<string, UltimaExecucao | null>;
   sessaoInicial: SessaoCompleta | null;
-  outraSessao: { id: string; treinoId: string | null; nome: string | null } | null;
+  outraSessao: { id: string; treinoId: string | null; nome: string | null; series?: number } | null;
   sessaoConcluida: SessaoCompleta | null;
   /** Primeiro nome (só aparece no card se o aluno ativar). */
   nomeAluno?: string;
@@ -1150,6 +1151,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                   Continuar aquele
                 </Link>{" "}
                 ou comece este agora.
+                {(outraSessao.series ?? 0) === 0 ? (
+                  <div className="mt-2">
+                    <CancelarTreino sessaoId={outraSessao.id} series={0} cabecalho={cab} rotulo="Cancelar aquele treino (nenhuma série marcada)" />
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {pulso && !presencial ? (
@@ -1833,9 +1839,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               </Button>
             </>
           )}
-          <button type="button" onClick={() => finalizar("abandonada")} className="w-full text-xs text-fg-subtle hover:text-fg py-2">
-            Encerrar sem concluir (guarda o que foi feito)
-          </button>
+          {totalFeito === 0 ? (
+            <button type="button" disabled={finalizando} onClick={() => { if (window.confirm("Cancelar este treino? Nenhuma série foi marcada: ele não conta na semana e você pode começar outro.")) void finalizar("abandonada"); }} className="w-full py-2 text-sm font-semibold text-red underline underline-offset-4">
+              ✖ Cancelar este treino (começou o treino errado?)
+            </button>
+          ) : (
+            <button type="button" onClick={() => finalizar("abandonada")} className="w-full text-xs text-fg-subtle hover:text-fg py-2">
+              Encerrar sem concluir (guarda o que foi feito)
+            </button>
+          )}
         </CardBody>
       </Card>
     </div>
