@@ -179,6 +179,10 @@ export type CardioPrescricao = {
   duracao_min: number;
   intensidade: IntensidadeCardio;
   frequencia_semanal: number;
+  /** Meta da semana em minutos (ex.: 120 em 5 dias); null = vezes × duração. */
+  minutos_semana?: number | null;
+  /** 'proprio' = montado pelo visitante. */
+  autoria?: "personal" | "proprio";
   /** 0 = domingo … 6 = sábado. */
   dias: number[];
   vinculo: "qualquer" | "independente" | "apos_treino" | "antes_treino";

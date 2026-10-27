@@ -5,9 +5,10 @@ import { getDb } from "@/lib/supabase/rls";
 import { desempateDaAderencia, type LinhaRanking } from "@/lib/ranking/trofeus";
 import type { ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { sincronizarConquistas } from "@/lib/data/conquistas";
+import { contaCarimbo } from "@/lib/conquistas/carimbos";
 
 // Demonstração: pessoas fictícias (Aline e Diego empatam em troféus: o desempate decide).
-const DEMO: Array<{ id: string; nome: string; trofeus: number; semana: number | null; seguidas: number; pct4: number | null; visitante?: boolean }> = [
+const DEMO: Array<{ id: string; nome: string; trofeus: number; semana: number | null; carimbos?: number; seguidas: number; pct4: number | null; visitante?: boolean }> = [
   { id: "x-carla", nome: "Carla M.", trofeus: 17, semana: 100, seguidas: 6, pct4: 94 },
   { id: "aline", nome: "Aline S.", trofeus: 14, semana: 75, seguidas: 2, pct4: 80 },
   { id: "x-diego", nome: "Diego P.", trofeus: 14, semana: 100, seguidas: 3, pct4: 88 },
@@ -19,7 +20,7 @@ const DEMO: Array<{ id: string; nome: string; trofeus: number; semana: number | 
 
 export async function getRanking(meuAlunoId: string | null): Promise<LinhaRanking[]> {
   if (isDemoMode()) {
-    const chave = (d: (typeof DEMO)[number]) => [d.trofeus, d.semana ?? -1, d.seguidas, d.pct4 ?? -1];
+    const chave = (d: (typeof DEMO)[number]) => [d.trofeus, d.semana ?? -1, d.carimbos ?? 0, d.seguidas, d.pct4 ?? -1];
     const cmp = (a: (typeof DEMO)[number], b: (typeof DEMO)[number]) => {
       const [x, y] = [chave(a), chave(b)];
       for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i];
@@ -39,19 +40,35 @@ export async function getRanking(meuAlunoId: string | null): Promise<LinhaRankin
   return ((data ?? []) as Linha[]).map((r) => ({ posicao: Number(r.posicao), nome: r.nome, trofeus: Number(r.trofeus), eu: !!r.eu, visitante: !!r.visitante, aderenciaSemana: r.aderencia_semana ?? null, mesmoTotalAcima: !!r.mesmo_total_acima }));
 }
 
+/** Carimbos (treinos concluídos desde sempre) de cada aluno. */
+export async function carimbosDe(alunoIds: string[]): Promise<Record<string, number>> {
+  const db = await getDb();
+  const out: Record<string, number> = {};
+  for (let i = 0; i < alunoIds.length; i += 50) {
+    const { data, error } = await db.from("training_sessions").select("id, aluno_id, iniciado_em, status, modo, origem, series_planejadas, series_concluidas, duracao_seg, conta_aderencia").in("aluno_id", alunoIds.slice(i, i + 50)).neq("status", "em_andamento").limit(20000);
+    if (error) throw new Error(error.message);
+    for (const s of (data ?? []) as Array<Parameters<typeof contaCarimbo>[0] & { aluno_id: string }>) if (contaCarimbo(s)) out[s.aluno_id] = (out[s.aluno_id] ?? 0) + 1;
+  }
+  return out;
+}
+
 /**
  * Grava os números de desempate (0079). Só o personal grava (RLS): a conta é a
  * mesma da Evolução, feita no app, e nenhum aluno consegue alterar a própria.
  */
 export async function salvarDesempate(aderencias: Record<string, Pick<ResultadoAderencia, "semanas" | "sequencia" | "indices">>): Promise<void> {
   if (isDemoMode()) return;
+  const ids = Object.keys(aderencias);
+  if (!ids.length) return;
+  const db = await getDb();
+  const carimbos = await carimbosDe(ids).catch(() => null);
   const linhas = Object.entries(aderencias).map(([alunoId, r]) => {
     const d = desempateDaAderencia(r);
-    return { aluno_id: alunoId, pct_semana: d.pctSemana, semana_inicio: d.semanaInicio, semanas_seguidas: d.semanasSeguidas, pct_4sem: d.pct4Semanas, atualizado_em: new Date().toISOString() };
+    return { aluno_id: alunoId, pct_semana: d.pctSemana, semana_inicio: d.semanaInicio, semanas_seguidas: d.semanasSeguidas, pct_4sem: d.pct4Semanas, atualizado_em: new Date().toISOString(), ...(carimbos ? { carimbos: carimbos[alunoId] ?? 0 } : {}) };
   });
-  if (!linhas.length) return;
-  const db = await getDb();
-  const { error } = await db.from("ranking_desempate").upsert(linhas, { onConflict: "aluno_id" });
+  let { error } = await db.from("ranking_desempate").upsert(linhas, { onConflict: "aluno_id" });
+  // Banco sem a 0099 (coluna carimbos): grava o resto.
+  if (error && /carimbos/.test(error.message)) ({ error } = await db.from("ranking_desempate").upsert(linhas.map((l) => { const c = { ...l } as Record<string, unknown>; delete c.carimbos; return c; }), { onConflict: "aluno_id" }));
   if (error) throw new Error(error.message);
 }
 

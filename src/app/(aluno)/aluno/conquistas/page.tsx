@@ -14,6 +14,8 @@ import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
 import { paraVisao } from "@/components/desbloqueia/visao";
 import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
 import { CategoriasTrofeus } from "@/components/conquistas/CategoriasTrofeus";
+import { CartaoCarimbos } from "@/components/conquistas/CartaoCarimbos";
+import { contarCarimbos } from "@/lib/conquistas/carimbos";
 import { TrofeusAoAlcance } from "@/components/conquistas/TrofeusAoAlcance";
 import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
 import { tecnicasFeitas } from "@/lib/conquistas/regras";
@@ -54,6 +56,7 @@ export default async function ConquistasPage() {
         </Link>
       </div>
       <TrofeusAoAlcance itens={aoAlcance} />
+      <CartaoCarimbos total={contarCarimbos(sessoes)} />
       <section className="space-y-2" aria-labelledby="categorias-titulo">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id="categorias-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Troféus por categoria</h2>

@@ -63,6 +63,8 @@ export type EntradaPrescricao = {
   duracao_min: number;
   intensidade: IntensidadeCardio;
   frequencia_semanal: number;
+  /** Meta da semana em minutos (o app divide pelos dias). */
+  minutos_semana?: number | null;
   dias: number[];
   vinculo: "qualquer" | "independente" | "apos_treino" | "antes_treino";
   treino_id?: string | null;
@@ -83,13 +85,14 @@ export async function listarPrescricoesCardio(alunoId: string, opts: { todas?: b
 }
 
 /** Cria (ou, com `substituiId`, troca: a antiga é desativada, nunca apagada). Só o personal (RLS). */
-export async function salvarPrescricaoCardio(alunoId: string, e: EntradaPrescricao, substituiId?: string | null): Promise<CardioPrescricao> {
+/** `autoria: "proprio"` = o visitante montando o próprio cardio (só troca/encerra os dele). */
+export async function salvarPrescricaoCardio(alunoId: string, e: EntradaPrescricao, substituiId?: string | null, autoria: "personal" | "proprio" = "personal"): Promise<CardioPrescricao> {
   const agora = new Date().toISOString();
-  const linha = { aluno_id: alunoId, nome: e.nome ?? null, treino_id: e.vinculo === "independente" || e.vinculo === "qualquer" ? null : (e.treino_id ?? null), fc_alvo_min: e.fc_alvo_min ?? null, fc_alvo_max: e.fc_alvo_max ?? null, intervalos: e.tipo === "intervalado" ? (e.intervalos ?? null) : null, observacoes: e.observacoes ?? null, modalidade: e.modalidade, tipo: e.tipo, duracao_min: e.duracao_min, intensidade: e.intensidade, frequencia_semanal: e.frequencia_semanal, dias: [...new Set(e.dias)].sort(), vinculo: e.vinculo };
+  const linha = { aluno_id: alunoId, nome: e.nome ?? null, treino_id: e.vinculo === "independente" || e.vinculo === "qualquer" ? null : (e.treino_id ?? null), fc_alvo_min: e.fc_alvo_min ?? null, fc_alvo_max: e.fc_alvo_max ?? null, intervalos: e.tipo === "intervalado" ? (e.intervalos ?? null) : null, observacoes: e.observacoes ?? null, modalidade: e.modalidade, tipo: e.tipo, duracao_min: e.duracao_min, intensidade: e.intensidade, frequencia_semanal: e.frequencia_semanal, minutos_semana: e.minutos_semana ?? null, dias: [...new Set(e.dias)].sort(), vinculo: e.vinculo, autoria };
   if (isDemoMode()) {
     const d = demo();
     if (substituiId) {
-      const old = d.prescricoes.find((p) => p.id === substituiId && p.aluno_id === alunoId);
+      const old = d.prescricoes.find((p) => p.id === substituiId && p.aluno_id === alunoId && (autoria === "personal" || p.autoria === "proprio"));
       if (old) Object.assign(old, { ativo: false, desativado_em: agora, updated_at: agora });
     }
     const p: CardioPrescricao = { id: uid(), ...linha, ativo: true, desativado_em: null, autor_id: null, created_at: agora, updated_at: agora };
@@ -97,21 +100,23 @@ export async function salvarPrescricaoCardio(alunoId: string, e: EntradaPrescric
     return p;
   }
   const db = await getDb();
-  if (substituiId) await desativarPrescricaoCardio(alunoId, substituiId);
+  if (substituiId) await desativarPrescricaoCardio(alunoId, substituiId, autoria);
   const { data, error } = await db.from("cardio_prescricoes").insert(linha).select("*").single();
   if (error) throw new Error(`Não foi possível salvar a prescrição: ${error.message}`);
   return data as CardioPrescricao;
 }
 
-export async function desativarPrescricaoCardio(alunoId: string, id: string): Promise<void> {
+export async function desativarPrescricaoCardio(alunoId: string, id: string, autoria: "personal" | "proprio" = "personal"): Promise<void> {
   const agora = new Date().toISOString();
   if (isDemoMode()) {
-    const p = demo().prescricoes.find((x) => x.id === id && x.aluno_id === alunoId);
+    const p = demo().prescricoes.find((x) => x.id === id && x.aluno_id === alunoId && (autoria === "personal" || x.autoria === "proprio"));
     if (p) Object.assign(p, { ativo: false, desativado_em: agora, updated_at: agora });
     return;
   }
   const db = await getDb();
-  const { error } = await db.from("cardio_prescricoes").update({ ativo: false, desativado_em: agora }).eq("id", id).eq("aluno_id", alunoId).eq("ativo", true);
+  let q = db.from("cardio_prescricoes").update({ ativo: false, desativado_em: agora }).eq("id", id).eq("aluno_id", alunoId).eq("ativo", true);
+  if (autoria === "proprio") q = q.eq("autoria", "proprio");
+  const { error } = await q;
   if (error) throw new Error(`Não foi possível encerrar a prescrição: ${error.message}`);
 }
 

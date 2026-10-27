@@ -124,7 +124,10 @@ export function diasDeCardio(feitos: CardioFeito[]): DiaCardio[] {
     });
 }
 
-type PrescricaoVigencia = Pick<CardioPrescricao, "id" | "frequencia_semanal" | "duracao_min" | "created_at" | "desativado_em" | "ativo">;
+type PrescricaoVigencia = Pick<CardioPrescricao, "id" | "frequencia_semanal" | "duracao_min" | "created_at" | "desativado_em" | "ativo"> & { minutos_semana?: number | null };
+
+/** Minutos da semana de uma prescrição (o total que o personal/visitante definiu, ou vezes × duração). */
+export const minutosDaPrescricao = (p: Pick<PrescricaoVigencia, "frequencia_semanal" | "duracao_min" | "minutos_semana">) => p.minutos_semana ?? p.frequencia_semanal * p.duracao_min;
 
 /** Prescrições que valiam no fim da semana (as trocas no meio da semana valem para a semana toda). */
 export function prescricoesDaSemana<T extends PrescricaoVigencia>(prescricoes: T[], inicio: string, hoje: string): T[] {
@@ -143,6 +146,8 @@ export type SemanaCardio = {
   /** Dia em que bateu as sessões / os minutos (para a data do troféu). */
   sessoesEm: string | null;
   minutosEm: string | null;
+  /** Semana cumprida: todas as sessões OU os minutos (em menos dias também vale). */
+  cumpridaEm: string | null;
   metaMinutos: boolean;
   status: StatusSemanaCardio;
   atual: boolean;
@@ -162,7 +167,7 @@ export function semanasDeCardio(entrada: { prescricoes: PrescricaoVigencia[]; fe
     const fim = somarDias(w, 6);
     const vale = prescricoesDaSemana(prescricoes, w, hoje);
     const alvoSessoes = Math.min(7, vale.reduce((t, p) => t + p.frequencia_semanal, 0));
-    const alvoMin = vale.reduce((t, p) => t + p.frequencia_semanal * p.duracao_min, 0);
+    const alvoMin = vale.reduce((t, p) => t + minutosDaPrescricao(p), 0);
     const daSemana = dias.filter((d) => d.data >= w && d.data <= fim);
     const validos = daSemana.filter((d) => d.valido).sort((a, b) => ((a.validoEm ?? "") < (b.validoEm ?? "") ? -1 : 1));
     const minutos = daSemana.reduce((t, d) => t + d.minutos, 0);
@@ -178,18 +183,19 @@ export function semanasDeCardio(entrada: { prescricoes: PrescricaoVigencia[]; fe
     }
     const ehAtual = w === atual;
     const inicioPrescricao = vale.some((p) => dataLocal(p.created_at) > w);
+    const cumpridaEm = [sessoesEm, minutosEm].filter((x): x is string => !!x).sort()[0] ?? null;
     const status: StatusSemanaCardio = !alvoSessoes
       ? "sem_prescricao"
       : pausadas.has(w)
         ? "pausada"
-        : sessoesEm
+        : cumpridaEm
           ? "cumprida"
           : ehAtual
             ? "em_andamento"
             : validos.length
               ? "parcial"
               : "sem_cardio";
-    out.push({ inicio: w, alvoSessoes, alvoMin, sessoes: validos.length, minutos, sessoesEm, minutosEm, metaMinutos: !!minutosEm, status, atual: ehAtual, inicioPrescricao });
+    out.push({ inicio: w, alvoSessoes, alvoMin, sessoes: validos.length, minutos, sessoesEm, minutosEm, cumpridaEm, metaMinutos: !!minutosEm, status, atual: ehAtual, inicioPrescricao });
   }
   return out;
 }
@@ -197,10 +203,11 @@ export function semanasDeCardio(entrada: { prescricoes: PrescricaoVigencia[]; fe
 /** Resumo da semana para a tela do aluno (“Sua semana de cardio”). */
 export function resumoSemana(s: SemanaCardio | undefined): { pct: number | null; faltamMin: number; faltamSessoes: number } {
   if (!s || !s.alvoMin) return { pct: null, faltamMin: 0, faltamSessoes: 0 };
+  const batida = s.status === "cumprida";
   return {
-    pct: Math.min(100, Math.round((s.minutos / s.alvoMin) * 100)),
-    faltamMin: Math.max(0, s.alvoMin - s.minutos),
-    faltamSessoes: Math.max(0, s.alvoSessoes - s.sessoes),
+    pct: batida ? 100 : Math.min(100, Math.round((s.minutos / s.alvoMin) * 100)),
+    faltamMin: batida ? 0 : Math.max(0, s.alvoMin - s.minutos),
+    faltamSessoes: batida ? 0 : Math.max(0, s.alvoSessoes - s.sessoes),
   };
 }
 
@@ -251,7 +258,7 @@ export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] 
     if (s.status === "cumprida") {
       seq++;
       if (seq === LIMITES_CARDIO.semanasFerro) {
-        out.push({ codigo: "cardio_4_semanas", referencia: "1", data: s.sessoesEm!, descricao: `${LIMITES_CARDIO.semanasFerro} semanas seguidas cumprindo o cardio prescrito.`, evidencia: { ate: s.inicio } });
+        out.push({ codigo: "cardio_4_semanas", referencia: "1", data: s.cumpridaEm!, descricao: `${LIMITES_CARDIO.semanasFerro} semanas seguidas cumprindo o cardio prescrito.`, evidencia: { ate: s.inicio } });
         break;
       }
     } else if (s.status === "parcial" || s.status === "sem_cardio") {
@@ -334,9 +341,13 @@ export function esforcoPorSemana(feitos: CardioFeito[]): Array<{ inicio: string;
 }
 
 /** O cardio prescrito de hoje que ainda falta (pelos dias recomendados; sem dias = qualquer dia até bater a semana). */
-export function pendentesHoje<T extends Pick<CardioPrescricao, "id" | "dias" | "frequencia_semanal" | "ativo">>(prescricoes: T[], feitos: CardioFeito[], hoje: string): T[] {
+export function pendentesHoje<T extends Pick<CardioPrescricao, "id" | "dias" | "frequencia_semanal" | "ativo" | "duracao_min"> & { minutos_semana?: number | null }>(prescricoes: T[], feitos: CardioFeito[], hoje: string): T[] {
   const dow = new Date(`${hoje}T12:00:00Z`).getUTCDay();
   const w = inicioDaSemana(hoje);
+  // Meta de minutos da semana já batida (mesmo em menos dias): nada pendente.
+  const alvo = prescricoes.filter((p) => p.ativo).reduce((t, p) => t + minutosDaPrescricao(p), 0);
+  const feitosSemana = feitos.filter((f) => f.data >= w && f.data <= hoje && f.status !== "nao_realizado").reduce((t, f) => t + f.duracaoMin, 0);
+  if (alvo && feitosSemana >= alvo * (1 - LIMITES_CARDIO.toleranciaMeta)) return [];
   return prescricoes.filter((p) => {
     if (!p.ativo) return false;
     if (feitos.some((f) => f.data === hoje && f.prescricaoId === p.id)) return false;

@@ -815,6 +815,7 @@ export const prescricaoCardioSchema = z
     duracao_min: z.coerce.number().int().min(5).max(240),
     intensidade: intensidadeCardio.default("moderada"),
     frequencia_semanal: z.coerce.number().int().min(1).max(7),
+    minutos_semana: z.coerce.number().int().min(10).max(1680).nullable().optional(),
     dias: z.array(z.coerce.number().int().min(0).max(6)).max(7).default([]),
     vinculo: z.enum(["qualquer", "independente", "apos_treino", "antes_treino"]).default("qualquer"),
     treino_id: z.string().uuid().nullable().optional(),

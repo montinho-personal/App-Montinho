@@ -30,7 +30,7 @@ export function SemanaCardioCard({ semana, link = false }: { semana: SemanaCardi
       <p className="mt-2 text-sm">
         {cumprida ? "✅ Meta da semana batida." : `Próximo objetivo: ${r.faltamMin} min restantes`}
         {!cumprida && r.faltamSessoes ? ` · ${r.faltamSessoes} ${r.faltamSessoes === 1 ? "cardio" : "cardios"} pendente${r.faltamSessoes === 1 ? "" : "s"}` : ""}
-        <span className="block text-xs text-fg-muted">Sessões: {semana.sessoes} de {semana.alvoSessoes} · {frase}</span>
+        <span className="block text-xs text-fg-muted">Dias com cardio: {semana.sessoes} de {semana.alvoSessoes} · {frase}</span>
       </p>
     </div>
   );

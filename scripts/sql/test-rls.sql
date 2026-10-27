@@ -1743,4 +1743,45 @@ begin
   if exists (select 1 from cardio_prescricoes where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T52l: aluno B viu prescrição do aluno A'; end if;
 end $$;
 select test_logout();
+-- Visitante em dia monta o próprio cardio (autoria 'proprio'); consultoria não; nunca como se fosse do personal.
+update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update acessos_visitante set fim = now() + interval '30 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, minutos_semana, autoria) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'livre', 24, 5, 120, 'proprio');
+  begin insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 30, 3); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T52n: visitante criou cardio como se fosse do personal'; end if;
+  ok := false;
+  begin insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, autoria) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'corrida', 30, 3, 'proprio'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T52o: visitante criou cardio para outro aluno'; end if;
+end $$;
+select test_logout();
+update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, autoria) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 30, 3, 'proprio'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T52p: aluno da consultoria montou o próprio cardio'; end if;
+end $$;
+select test_logout();
 \echo 'T52 OK: Montinho Cardio'
+-- T53 — 0099: carimbos no desempate — só o personal grava; aluno não altera
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into ranking_desempate (aluno_id, carimbos) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 999); exception when others then ok := true; end;
+  if not ok then raise exception 'T53a: aluno gravou os próprios carimbos'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  insert into ranking_desempate (aluno_id, carimbos) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 12) on conflict (aluno_id) do update set carimbos = 12;
+  perform * from public.ranking_trofeus_v2();
+end $$;
+select test_logout();
+\echo 'T53 OK: carimbos no desempate'

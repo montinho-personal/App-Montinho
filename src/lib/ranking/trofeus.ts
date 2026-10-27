@@ -17,7 +17,7 @@ export type LinhaRanking = {
 
 /** Critérios de desempate, na ordem (texto do asterisco embaixo do ranking). */
 export const DESEMPATE =
-  "* Empatou em troféus? Fica na frente quem cumpriu melhor a meta de treinos da semana passada. Se continuar empatado, ganha quem está há mais semanas seguidas cumprindo a meta; depois, quem cumpriu melhor a meta nas últimas 4 semanas; e, por último, quem chegou primeiro a esse número de troféus.";
+  "* Empatou em troféus? Fica na frente quem cumpriu melhor a meta de treinos da semana passada. Se continuar empatado, ganha quem tem mais carimbos (treinos concluídos desde o começo); depois, quem está há mais semanas seguidas cumprindo a meta; depois, quem cumpriu melhor a meta nas últimas 4 semanas; e, por último, quem chegou primeiro a esse número de troféus.";
 
 export type Desempate = { pctSemana: number | null; semanaInicio: string | null; semanasSeguidas: number; pct4Semanas: number | null };
 

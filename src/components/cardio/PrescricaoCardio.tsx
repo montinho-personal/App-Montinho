@@ -14,6 +14,8 @@ type Form = {
   nome: string;
   tipo: "continuo" | "intervalado";
   duracao_min: number;
+  /** Meta da semana (o app divide pelos dias). */
+  minutos_semana: number;
   intensidade: IntensidadeCardio;
   frequencia_semanal: number;
   dias: number[];
@@ -25,12 +27,17 @@ type Form = {
   observacoes: string;
 };
 
-const VAZIO: Form = { modalidade: "esteira", nome: "", tipo: "continuo", duracao_min: 30, intensidade: "moderada", frequencia_semanal: 3, dias: [], vinculo: "qualquer", treino_id: "", fc_alvo_min: "", fc_alvo_max: "", intervalos: "", observacoes: "" };
+const VAZIO: Form = { modalidade: "esteira", nome: "", tipo: "continuo", duracao_min: 40, minutos_semana: 120, intensidade: "moderada", frequencia_semanal: 3, dias: [], vinculo: "qualquer", treino_id: "", fc_alvo_min: "", fc_alvo_max: "", intervalos: "", observacoes: "" };
 const VINCULO = VINCULOS;
 
-const doRegistro = (p: CardioPrescricao): Form => ({ modalidade: p.modalidade, nome: p.nome ?? "", tipo: p.tipo, duracao_min: p.duracao_min, intensidade: p.intensidade, frequencia_semanal: p.frequencia_semanal, dias: p.dias, vinculo: p.vinculo, treino_id: p.treino_id ?? "", fc_alvo_min: p.fc_alvo_min ? String(p.fc_alvo_min) : "", fc_alvo_max: p.fc_alvo_max ? String(p.fc_alvo_max) : "", intervalos: p.intervalos ?? "", observacoes: p.observacoes ?? "" });
+const doRegistro = (p: CardioPrescricao): Form => ({ modalidade: p.modalidade, nome: p.nome ?? "", tipo: p.tipo, duracao_min: p.duracao_min, minutos_semana: p.minutos_semana ?? p.frequencia_semanal * p.duracao_min, intensidade: p.intensidade, frequencia_semanal: p.frequencia_semanal, dias: p.dias, vinculo: p.vinculo, treino_id: p.treino_id ?? "", fc_alvo_min: p.fc_alvo_min ? String(p.fc_alvo_min) : "", fc_alvo_max: p.fc_alvo_max ? String(p.fc_alvo_max) : "", intervalos: p.intervalos ?? "", observacoes: p.observacoes ?? "" });
 
-export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: string; prescricoes: CardioPrescricao[]; treinos: Treino[] }) {
+/** Minutos por dia = meta da semana ÷ dias (mínimo 5). */
+const porDia = (min: number, dias: number) => Math.max(5, Math.ceil(min / Math.max(1, dias)));
+
+export function PrescricaoCardio({ alunoId, prescricoes, treinos, modo = "personal" }: { alunoId: string; prescricoes: CardioPrescricao[]; treinos: Treino[]; /** "visitante" = a pessoa monta o próprio cardio. */ modo?: "personal" | "visitante" }) {
+  const rota = modo === "visitante" ? "/api/cardio/prescricao" : `/api/alunos/${alunoId}/cardio`;
+  const personal = modo === "personal";
   const router = useRouter();
   const [editando, setEditando] = useState<string | "nova" | null>(prescricoes.length ? null : "nova");
   const [f, setF] = useState<Form>(VAZIO);
@@ -49,6 +56,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
     const n = (v: string) => (v.trim() ? Number(v) : null);
     const corpo = {
       ...f,
+      duracao_min: porDia(f.minutos_semana, f.frequencia_semanal),
       nome: f.nome.trim() || null,
       treino_id: (f.vinculo === "apos_treino" || f.vinculo === "antes_treino") && f.treino_id ? f.treino_id : null,
       fc_alvo_min: n(f.fc_alvo_min),
@@ -57,7 +65,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
       observacoes: f.observacoes.trim() || null,
       substitui_id: editando && editando !== "nova" ? editando : null,
     };
-    const r = await fetch(`/api/alunos/${alunoId}/cardio`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
+    const r = await fetch(rota, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
     setSalvando(false);
     if (!r?.ok) {
       const d = await r?.json().catch(() => ({}));
@@ -70,12 +78,12 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
 
   async function encerrar(id: string) {
     if (!confirm("Encerrar esta prescrição de cardio? O histórico continua guardado.")) return;
-    const r = await fetch(`/api/alunos/${alunoId}/cardio`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prescricao_id: id }) }).catch(() => null);
+    const r = await fetch(rota, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prescricao_id: id }) }).catch(() => null);
     if (r?.ok) router.refresh();
     else setErro("Não foi possível encerrar agora.");
   }
 
-  const total = prescricoes.reduce((t, p) => t + p.frequencia_semanal * p.duracao_min, 0);
+  const total = prescricoes.reduce((t, p) => t + (p.minutos_semana ?? p.frequencia_semanal * p.duracao_min), 0);
 
   return (
     <div className="space-y-3">
@@ -85,7 +93,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
             <li key={p.id} className="rounded-xl border border-border p-3 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold">{infoModalidade(p.modalidade).emoji} {p.nome ?? infoModalidade(p.modalidade).nome} · {p.duracao_min} min · {p.frequencia_semanal}×/semana</p>
+                  <p className="font-semibold">{infoModalidade(p.modalidade).emoji} {p.nome ?? infoModalidade(p.modalidade).nome} · {p.minutos_semana ?? p.frequencia_semanal * p.duracao_min} min/semana em {p.frequencia_semanal} {p.frequencia_semanal === 1 ? "dia" : "dias"} (≈ {p.duracao_min} min/dia)</p>
                   <p className="text-xs text-fg-muted">
                     {INTENSIDADES[p.intensidade].nome} · {p.tipo === "intervalado" ? `intervalado${p.intervalos ? ` (${p.intervalos})` : ""}` : "contínuo"} · {VINCULO[p.vinculo]}
                     {p.treino_id ? ` (treino ${treinos.find((t) => t.id === p.treino_id)?.letra ?? "?"})` : ""}
@@ -108,10 +116,10 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
 
       {editando ? (
         <div className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm">
-          <p className="font-bold">{editando === "nova" ? "Prescrever cardio" : "Ajustar prescrição (a anterior fica no histórico)"}</p>
+          <p className="font-bold">{editando === "nova" ? (personal ? "Prescrever cardio" : "Montar meu cardio") : "Ajustar (o anterior fica no histórico)"}</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             <button type="button" aria-pressed={f.modalidade === "livre"} onClick={() => setF({ ...f, modalidade: "livre" })} className={`touch col-span-3 rounded-lg border px-2 py-2 text-xs sm:col-span-4 ${f.modalidade === "livre" ? "border-accent bg-accent/15 font-bold" : "border-border"}`}>
-              {MODALIDADE_LIVRE.emoji} Livre: o aluno escolhe e marca qual fez
+              {MODALIDADE_LIVRE.emoji} {personal ? "Livre: o aluno escolhe e marca qual fez" : "Livre: escolho na hora e marco qual fiz"}
             </button>
             {MODALIDADE_IDS.map((m) => (
               <button key={m} type="button" aria-pressed={f.modalidade === m} onClick={() => setF({ ...f, modalidade: m })} className={`touch rounded-lg border px-2 py-2 text-xs ${f.modalidade === m ? "border-accent bg-accent/15 font-bold" : "border-border"}`}>
@@ -120,10 +128,15 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
             ))}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Num rotulo="Duração (min)" valor={f.duracao_min} min={5} max={240} onChange={(v) => setF({ ...f, duracao_min: v })} />
-            <Num rotulo="Vezes por semana" valor={f.frequencia_semanal} min={1} max={7} onChange={(v) => setF({ ...f, frequencia_semanal: v })} />
+            <Num rotulo="Minutos por semana" valor={f.minutos_semana} min={10} max={1680} onChange={(v) => setF({ ...f, minutos_semana: v })} />
+            <Num rotulo="Em quantos dias?" valor={f.frequencia_semanal} min={1} max={7} onChange={(v) => setF({ ...f, frequencia_semanal: v })} />
+            <p className="col-span-2 rounded-lg bg-surface px-3 py-2 text-sm sm:col-span-4">
+              ≈ <strong>{porDia(f.minutos_semana, f.frequencia_semanal)} min por dia</strong>. Se fizer os {f.minutos_semana} min em menos dias, a meta da semana também vale.
+            </p>
+            {personal ? (<>
             <label className="block"><span className="text-xs text-fg-muted">FC-alvo mín.</span><input inputMode="numeric" value={f.fc_alvo_min} onChange={(e) => setF({ ...f, fc_alvo_min: e.target.value.replace(/\D/g, "").slice(0, 3) })} className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2" placeholder="opcional" /></label>
             <label className="block"><span className="text-xs text-fg-muted">FC-alvo máx.</span><input inputMode="numeric" value={f.fc_alvo_max} onChange={(e) => setF({ ...f, fc_alvo_max: e.target.value.replace(/\D/g, "").slice(0, 3) })} className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2" placeholder="opcional" /></label>
+            </>) : null}
           </div>
           <Grupo rotulo="Intensidade">
             {(Object.keys(INTENSIDADES) as IntensidadeCardio[]).map((k) => (
@@ -145,7 +158,7 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
               <Chip key={v} ativo={f.vinculo === v} onClick={() => setF({ ...f, vinculo: v })}>{VINCULO[v]}</Chip>
             ))}
           </Grupo>
-          {(f.vinculo === "apos_treino" || f.vinculo === "antes_treino") && treinos.length ? (
+          {personal && (f.vinculo === "apos_treino" || f.vinculo === "antes_treino") && treinos.length ? (
             <label className="block"><span className="text-xs text-fg-muted">Ligado a um treino (opcional)</span>
               <select value={f.treino_id} onChange={(e) => setF({ ...f, treino_id: e.target.value })} className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2">
                 <option value="">Qualquer treino</option>
@@ -154,15 +167,15 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos }: { alunoId: s
             </label>
           ) : null}
           <label className="block"><span className="text-xs text-fg-muted">Nome (opcional)</span><input value={f.nome} maxLength={60} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Caminhada do sábado" className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2" /></label>
-          <label className="block"><span className="text-xs text-fg-muted">Observações para o aluno</span><textarea rows={2} maxLength={500} value={f.observacoes} onChange={(e) => setF({ ...f, observacoes: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-card p-2" /></label>
+          <label className="block"><span className="text-xs text-fg-muted">{personal ? "Observações para o aluno" : "Anotação (opcional)"}</span><textarea rows={2} maxLength={500} value={f.observacoes} onChange={(e) => setF({ ...f, observacoes: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-card p-2" /></label>
           {erro ? <p className="text-danger" role="alert">{erro}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={salvando} onClick={() => void salvar()} className="alvo rounded-md bg-accent px-4 py-2 font-bold text-bg disabled:opacity-50">{salvando ? "Salvando…" : "Salvar prescrição"}</button>
+            <button type="button" disabled={salvando} onClick={() => void salvar()} className="alvo rounded-md bg-accent px-4 py-2 font-bold text-bg disabled:opacity-50">{salvando ? "Salvando…" : personal ? "Salvar prescrição" : "Salvar meu cardio"}</button>
             {prescricoes.length ? <button type="button" onClick={() => setEditando(null)} className="alvo rounded-md border border-border px-4 py-2">Cancelar</button> : null}
           </div>
         </div>
       ) : (
-        <button type="button" onClick={() => abrir(null)} className="alvo rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent">➕ Prescrever cardio</button>
+        <button type="button" onClick={() => abrir(null)} className="alvo rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent">{personal ? "➕ Prescrever cardio" : "➕ Montar meu cardio"}</button>
       )}
     </div>
   );

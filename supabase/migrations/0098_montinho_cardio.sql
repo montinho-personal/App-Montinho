@@ -16,7 +16,8 @@
 --   a Respirar” (repete, como o “Eu voltei”) e 500/1.000 (ainda desligados).
 --   “Uma Hora de Chalalá” conta: só sai cumprindo a prescrição, sem passar dela.
 -- * acompanhamento_alertas aceita origem 'cardio'.
--- RLS: aluno lê/grava só o próprio; o personal lê e grava de todos.
+-- RLS: aluno lê/grava só o próprio; o personal lê e grava de todos; o visitante
+-- em dia monta o próprio cardio (autoria 'proprio').
 -- FC é dado de saúde: nunca vai para analytics, CRM ou leads.
 -- ============================================================================
 
@@ -30,6 +31,10 @@ create table if not exists cardio_prescricoes (
   duracao_min smallint not null check (duracao_min between 5 and 240),
   intensidade text not null default 'moderada' check (intensidade in ('leve','moderada','forte')),
   frequencia_semanal smallint not null check (frequencia_semanal between 1 and 7),
+  -- Meta da semana em minutos (ex.: 120 min em 5 dias). Bater os minutos em menos dias também cumpre a semana.
+  minutos_semana smallint check (minutos_semana is null or minutos_semana between 10 and 1680),
+  -- 'proprio' = o visitante montou o próprio cardio (Modo Visitante).
+  autoria text not null default 'personal' check (autoria in ('personal','proprio')),
   dias smallint[] not null default '{}' check (dias <@ array[0,1,2,3,4,5,6]::smallint[]),
   -- 'qualquer' = tanto faz (cardio bom é cardio bem feito).
   vinculo text not null default 'qualquer' check (vinculo in ('qualquer','independente','apos_treino','antes_treino')),
@@ -94,6 +99,15 @@ drop policy if exists cardio_presc_treinador on cardio_prescricoes;
 create policy cardio_presc_treinador on cardio_prescricoes for all using ((select public.is_treinador())) with check ((select public.is_treinador()));
 drop policy if exists cardio_presc_aluno_le on cardio_prescricoes;
 create policy cardio_presc_aluno_le on cardio_prescricoes for select using (aluno_id = (select public.aluno_id_atual()));
+
+-- Visitante em dia monta e ajusta o PRÓPRIO cardio (autoria 'proprio'), como os treinos dele (0054).
+drop policy if exists cardio_presc_visitante_grava on cardio_prescricoes;
+create policy cardio_presc_visitante_grava on cardio_prescricoes for insert
+  with check (autoria = 'proprio' and aluno_id = (select public.aluno_id_atual()) and (select public.visitante_em_dia()));
+drop policy if exists cardio_presc_visitante_ajusta on cardio_prescricoes;
+create policy cardio_presc_visitante_ajusta on cardio_prescricoes for update
+  using (autoria = 'proprio' and aluno_id = (select public.aluno_id_atual()) and (select public.visitante_em_dia()))
+  with check (autoria = 'proprio' and aluno_id = (select public.aluno_id_atual()) and (select public.visitante_em_dia()));
 
 drop policy if exists cardio_reg_treinador on cardio_registros;
 create policy cardio_reg_treinador on cardio_registros for all using ((select public.is_treinador())) with check ((select public.is_treinador()));

@@ -10,6 +10,8 @@ import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquista
 import { vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
+import { CartaoCarimbos } from "@/components/conquistas/CartaoCarimbos";
+import { contarCarimbos } from "@/lib/conquistas/carimbos";
 import { Card, CardBody } from "@/components/ui/Card";
 import { AtivarOlharDeAguia } from "@/components/conquistas/AtivarOlharDeAguia";
 
@@ -39,6 +41,7 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
       <Link href={`/treinador/alunos/${id}`} className="inline-flex min-h-6 items-center text-sm text-fg-muted hover:text-fg">
         ← {nome}
       </Link>
+      <CartaoCarimbos total={contarCarimbos(sessoes)} titulo={`Carimbos de ${nome.split(" ")[0]}`} />
       <div className="rounded-2xl border border-accent/40 bg-grain-strong p-4">
         <p className="text-[11px] font-bold uppercase tracking-wider text-accent">🏆 Sala de troféus</p>
         <h1 className="text-2xl font-bold">{nome}</h1>

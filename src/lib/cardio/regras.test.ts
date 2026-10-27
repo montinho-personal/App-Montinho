@@ -92,6 +92,22 @@ describe("semana de cardio", () => {
   });
 });
 
+describe("meta por minutos na semana", () => {
+  it("120 min em 5 dias, feitos em 2 dias de 60: semana cumprida e nada mais pendente", () => {
+    const p = { ...presc({ frequencia_semanal: 5, duracao_min: 24 }), minutos_semana: 120, dias: [] as number[] };
+    const feitos = [feito("2026-10-05", 60), feito("2026-10-07", 60)];
+    const atual = semanasDeCardio({ prescricoes: [p], feitos, hoje: "2026-10-08" }).at(-1)!;
+    expect(atual).toMatchObject({ alvoMin: 120, alvoSessoes: 5, sessoes: 2, status: "cumprida" });
+    expect(resumoSemana(atual)).toEqual({ pct: 100, faltamMin: 0, faltamSessoes: 0 });
+    expect(pendentesHoje([p], feitos, "2026-10-08")).toHaveLength(0);
+  });
+  it("Fôlego de Ferro também vale batendo os minutos em menos dias", () => {
+    const p = { ...presc({ frequencia_semanal: 5, duracao_min: 24 }), minutos_semana: 120 };
+    const feitos = ["2026-09-29", "2026-10-06", "2026-10-13", "2026-10-20"].flatMap((d) => [feito(d, 60), feito(`${d.slice(0, 8)}${String(+d.slice(8) + 2).padStart(2, "0")}`, 60)]);
+    expect(trofeusDoCardio({ prescricoes: [p], feitos }, "2026-10-27").map((x) => x.codigo)).toContain("cardio_4_semanas");
+  });
+});
+
 describe("troféus de cardio", () => {
   it("quantidade acumulada, 1 por dia", () => {
     const feitos = [feito("2026-10-01", 30), feito("2026-10-01", 30), feito("2026-10-02", 30), feito("2026-10-03", 30)];
@@ -154,7 +170,7 @@ describe("sinais para o personal", () => {
 
 describe("pendentes de hoje e modalidades", () => {
   it("prescrito para segunda e ainda não feito aparece; já feito some", () => {
-    const p = [{ id: "p1", dias: [1], frequencia_semanal: 3, ativo: true }];
+    const p = [{ id: "p1", dias: [1], frequencia_semanal: 3, duracao_min: 30, ativo: true }];
     expect(pendentesHoje(p, [], "2026-10-05")).toHaveLength(1);
     expect(pendentesHoje(p, [feito("2026-10-05", 30, { prescricaoId: "p1" })], "2026-10-05")).toHaveLength(0);
     expect(pendentesHoje(p, [], "2026-10-06")).toHaveLength(0);

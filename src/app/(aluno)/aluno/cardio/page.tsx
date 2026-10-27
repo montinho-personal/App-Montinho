@@ -13,6 +13,10 @@ import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
 import { HistoricoCardio, SemanasCardio } from "@/components/cardio/HistoricoCardio";
 import { Colombo, Oogway } from "@/components/jornada-chalala/Personagens";
+import { PrescricaoCardio } from "@/components/cardio/PrescricaoCardio";
+import { ehVisitante } from "@/lib/auth/guards";
+import { FEATURES } from "@/lib/env";
+import { podeRegistrar } from "@/lib/visitante/acesso";
 
 export const metadata = { title: "Montinho Cardio" };
 
@@ -40,6 +44,7 @@ export default async function CardioPage() {
     return n;
   })();
   const nome = (sessao.nome ?? "").split(" ")[0];
+  const visitante = FEATURES.modoVisitante && ehVisitante(sessao);
 
   return (
     <div className="mx-auto max-w-xl space-y-5 px-4 py-5">
@@ -69,13 +74,19 @@ export default async function CardioPage() {
         </div>
       ) : null}
 
-      {c.prescricoes.length ? (
+      {visitante ? (
+        <section className="space-y-2 rounded-xl border border-border p-3">
+          <h2 className="text-base font-bold">🎯 Meu cardio da semana</h2>
+          <p className="text-xs text-fg-muted">Diga quantos minutos quer fazer na semana e em quantos dias. Bateu os minutos em menos dias? A meta vale do mesmo jeito.</p>
+          {podeRegistrar("visitante", sessao.acessoFim ?? null) ? <PrescricaoCardio alunoId={aluno.id} prescricoes={c.prescricoes} treinos={[]} modo="visitante" /> : <p className="text-sm text-fg-muted">Seu acesso terminou.</p>}
+        </section>
+      ) : c.prescricoes.length ? (
         <section className="space-y-2">
           <h2 className="text-base font-bold">O que o Montinho prescreveu</h2>
           <ul className="space-y-2">
             {c.prescricoes.map((p) => (
               <li key={p.id} className="rounded-xl border border-border p-3 text-sm">
-                <p className="font-semibold">{infoModalidade(p.modalidade).emoji} {p.nome ?? (p.modalidade === "livre" ? "Cardio à sua escolha" : infoModalidade(p.modalidade).nome)} · {p.duracao_min} min · {p.frequencia_semanal}× por semana</p>
+                <p className="font-semibold">{infoModalidade(p.modalidade).emoji} {p.nome ?? (p.modalidade === "livre" ? "Cardio à sua escolha" : infoModalidade(p.modalidade).nome)} · {p.minutos_semana ?? p.duracao_min * p.frequencia_semanal} min por semana em {p.frequencia_semanal} {p.frequencia_semanal === 1 ? "dia" : "dias"} (≈ {p.duracao_min} min/dia)</p>
                 <p className="text-xs text-fg-muted">
                   {INTENSIDADES[p.intensidade].nome} · {p.tipo === "intervalado" ? `intervalado${p.intervalos ? ` (${p.intervalos})` : ""}` : "contínuo"} · {VINCULO[p.vinculo]}
                   {p.dias.length ? ` · ${p.dias.map((d) => DIAS_SEMANA[d]).join(", ")}` : ""}
