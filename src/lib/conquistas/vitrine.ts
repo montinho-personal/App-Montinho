@@ -108,6 +108,10 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "cardio_folego_extra", selo: "150%" },
   { codigo: "cardio_dobro", selo: "2×" },
   { codigo: "cardio_uma_hora", selo: "60′" },
+  // Dia em dobro
+  { codigo: "dois_folegos", selo: "2❤️‍🔥" },
+  { codigo: "combo_completo", selo: "💪❤️" },
+  { codigo: "dose_dupla", selo: "2💪" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
@@ -292,6 +296,12 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return e.cardio?.temPrescricao
           ? { atual: null, alvo: null, falta: c === "cardio_dobro" ? "Some numa semana o dobro dos minutos de cardio prescritos." : "Some numa semana o prescrito e mais a metade (150% dos minutos).", disponivel: true }
           : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, dá para ir além da meta da semana.", disponivel: false };
+      case "dois_folegos":
+        return { atual: null, alvo: null, falta: "Faça 2 cardios no mesmo dia, cada um com 10 minutos ou mais (ex.: um de manhã e outro à noite).", disponivel: true };
+      case "combo_completo":
+        return { atual: null, alvo: null, falta: "No mesmo dia, conclua um treino de musculação e faça 10 minutos ou mais de cardio.", disponivel: true };
+      case "dose_dupla":
+        return { atual: null, alvo: null, falta: "Conclua 2 treinos de musculação no mesmo dia (o extra e o treino livre com séries também contam). Só com a recuperação em dia.", disponivel: true };
       case "cardio_uma_hora":
         return e.cardio?.prescricaoLonga
           ? { atual: null, alvo: null, falta: "Conclua o cardio de 60+ minutos prescrito, sem passar do tempo combinado.", disponivel: true }

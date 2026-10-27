@@ -17,6 +17,7 @@ import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
 import { trofeusDoCardio, LIMITES_CARDIO, type CodigoCardio, type EntradaCardio } from "@/lib/cardio/regras";
+import { trofeusDoDiaDuplo, type CodigoDiaDuplo } from "./dia-duplo";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
@@ -96,6 +97,8 @@ export type CodigoConquista =
   | "desafiante_nato"
   // Montinho Cardio (src/lib/cardio/regras.ts)
   | CodigoCardio
+  // Dia em dobro: 2 cardios, musculação + cardio, 2 musculações no mesmo dia (src/lib/conquistas/dia-duplo.ts)
+  | CodigoDiaDuplo
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -153,6 +156,8 @@ export const CODIGOS_COMPARTILHAR: CodigoConquista[] = ["compartilhou_primeiro",
 /** Troféus dos desafios entre alunos (0094). Gravados à parte, como os outros novos. */
 /** Montinho Cardio (0098): gravadas à parte, como as outras famílias novas. */
 export { CODIGOS_CARDIO } from "@/lib/cardio/regras";
+/** Dia em dobro (0107): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_DIA_DUPLO } from "./dia-duplo";
 export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -249,6 +254,9 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   cardio_4_semanas: { titulo: "Fôlego de Ferro", criterio: `Cumprir os cardios prescritos em ${LIMITES_CARDIO.semanasFerro} semanas seguidas (pausas combinadas não quebram).`, repete: false },
   cardio_folego_extra: { titulo: "Fôlego Extra", criterio: `Somar ${Math.round(LIMITES_CARDIO.extra150 * 100)}% dos minutos de cardio prescritos numa semana (o prescrito + metade).`, repete: false },
   cardio_dobro: { titulo: "Dobro de Fôlego", criterio: "Somar o dobro dos minutos de cardio prescritos numa semana.", repete: false },
+  dois_folegos: { titulo: "Dois Fôlegos", criterio: `Fazer 2 cardios no mesmo dia, cada um com ${LIMITES_CARDIO.minutosMin} minutos ou mais.`, repete: false },
+  combo_completo: { titulo: "Combo Completo", criterio: `Fazer musculação e cardio (${LIMITES_CARDIO.minutosMin} minutos ou mais) no mesmo dia.`, repete: false },
+  dose_dupla: { titulo: "Dose Dupla", criterio: "Concluir 2 treinos de musculação no mesmo dia (treino extra e treino livre com séries também contam).", repete: false },
   cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
@@ -488,6 +496,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (da?.palavra) out.push(nova("palavra_cumprida", "1", da.palavra, null, "Meta do desafio cumprida até o fim."));
   if (da?.nato) out.push(nova("desafiante_nato", "1", da.nato, null, `${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos até o fim.`));
   if (e.cardio) for (const t of trofeusDoCardio(e.cardio, hoje)) out.push(nova(t.codigo, t.referencia, t.data, null, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDoDiaDuplo(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

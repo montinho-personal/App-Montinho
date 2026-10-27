@@ -1907,3 +1907,12 @@ begin
 end $$;
 select test_logout();
 \echo 'T59 OK: Fôlego Extra/Dobro e protocolo livre do visitante'
+
+-- T60 — 0107: troféus do dia em dobro aceitos (Dois Fôlegos, Combo Completo, Dose Dupla)
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dois_folegos', '1', 'Dois Fôlegos', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'combo_completo', '1', 'Combo Completo', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dose_dupla', '1', 'Dose Dupla', now()) on conflict do nothing;
+end $$;
+\echo 'T60 OK: troféus do dia em dobro'
