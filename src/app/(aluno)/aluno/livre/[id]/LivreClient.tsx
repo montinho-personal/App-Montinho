@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { RestTimer } from "@/components/ui/RestTimer";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
 import { TECNICAS_LIVRE, lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
@@ -21,6 +22,9 @@ export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: st
 export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; tecnica: string; observacao: string; ultima: string | null; series: SerieTela[] };
 
 const novaChave = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+/** Descanso depois da série, igual ao treino normal (aquecimento descansa menos). */
+const DESCANSO_SEG = { valida: 90, aquecimento: 60 } as const;
+
 const relogio = (seg: number) => `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`;
 const FEEDBACK = [
   { id: "leve", rotulo: "😌 Leve" },
@@ -46,7 +50,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [agora, setAgora] = useState(() => Date.now());
-  const [ultimaSerieEm, setUltimaSerieEm] = useState<number | null>(null);
+  const [timer, setTimer] = useState<{ seg: number; key: number } | null>(null);
   const [terminando, setTerminando] = useState(false);
   const [feedback, setFeedback] = useState<(typeof FEEDBACK)[number]["id"] | null>(null);
   const [comentario, setComentario] = useState("");
@@ -74,7 +78,6 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     return () => window.clearInterval(t);
   }, []);
   const decorrido = Math.max(0, Math.round((agora - new Date(iniciadoEm).getTime()) / 1000));
-  const descanso = ultimaSerieEm ? Math.max(0, Math.round((agora - ultimaSerieEm) / 1000)) : null;
   const seriesFeitas = exs.reduce((n, e) => n + e.series.filter((s) => s.salva && s.tipo !== "aquecimento").length, 0);
 
   const mudarEx = (seId: string, f: (e: ExercicioTela) => ExercicioTela) => setExs((l) => l.map((e) => (e.seId === seId ? f(e) : e)));
@@ -107,7 +110,8 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível salvar a série."));
     contarNoPlacar(e, s, contaNoPlacar(s.tipo));
     mudarSerie(e.seId, s.key, { salva: true });
-    setUltimaSerieEm(Date.now());
+    const seg = s.tipo === "aquecimento" ? DESCANSO_SEG.aquecimento : DESCANSO_SEG.valida;
+    setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }));
     if (navigator.vibrate) navigator.vibrate(30);
   }
 
@@ -152,8 +156,11 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
         </div>
       </header>
 
-      {descanso != null && descanso < 600 ? (
-        <p className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm" aria-live="polite">⏱️ Descansando há <span className="font-mono font-bold tabular-nums">{relogio(descanso)}</span></p>
+      {timer ? (
+        // Mesmo descanso do treino normal: flutua embaixo, perto do polegar, acima do menu.
+        <div className="fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4">
+          <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => setTimer(null)} onDismiss={() => setTimer(null)} />
+        </div>
       ) : null}
 
       {placar.length ? (
