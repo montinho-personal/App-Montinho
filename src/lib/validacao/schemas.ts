@@ -753,6 +753,7 @@ export const novoDesafioSchema = z.object({
   exercicios: z.array(z.object({ id: idAluno, nome: z.string().trim().min(1).max(80) })).max(10).nullable().optional(),
   modelo: z.string().regex(/^[a-z0-9_]{1,40}$/).nullable().optional(),
   revancheDe: idAluno.nullable().optional(),
+  atividades: z.enum(["musculacao", "cardio", "ambos"]).nullable().optional(),
   convidar: z.array(idAluno).max(29).default([]),
 });
 export const convidarDesafioSchema = z.object({ alunos: z.array(idAluno).min(1).max(29) });

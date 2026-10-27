@@ -15,6 +15,24 @@ describe("placar dos desafios", () => {
     expect(r[0].rotulo).toBe("2 treinos");
   });
 
+  it("o que conta: só musculação (padrão), só cardio ou os dois (até 2 por dia)", () => {
+    const base = { tipo: "mais_treinos" as const, meta: null, inicio: "2026-10-01", fim: "2026-10-03" };
+    const ps = [
+      p("Ana", ["2026-10-01T12:00:00Z", "2026-10-02T12:00:00Z"], { cardios: ["2026-10-01T22:00:00Z", "2026-10-01T23:00:00Z"] }),
+      p("Bia", ["2026-10-02T12:00:00Z"], { cardios: ["2026-10-01T12:00:00Z", "2026-10-02T12:00:00Z", "2026-10-03T12:00:00Z"] }),
+    ];
+    expect(placarDesafio(base, ps).map((l) => [l.nome, l.pontos])).toEqual([["Ana", 2], ["Bia", 1]]);
+    const cardio = placarDesafio({ ...base, atividades: "cardio" }, ps);
+    expect(cardio.map((l) => [l.nome, l.pontos])).toEqual([["Bia", 3], ["Ana", 1]]);
+    expect(cardio[0].rotulo).toBe("3 cardios");
+    const ambos = placarDesafio({ ...base, atividades: "ambos" }, ps);
+    expect(ambos.map((l) => [l.nome, l.pontos])).toEqual([["Bia", 4], ["Ana", 3]]);
+    expect(ambos[0].rotulo).toBe("4 atividades (1 musc. + 3 cardio)");
+    // Tipos de peso ignoram a escolha.
+    expect(placarDesafio({ ...base, tipo: "madrugador", atividades: "cardio" }, ps)[0].rotulo).toContain("treino");
+    expect(resumoDesafio({ ...base, atividades: "ambos" })).toContain("musculação e cardio");
+  });
+
   it("empate no 1º lugar: os dois são campeões; sozinho no desafio não é campeão", () => {
     const d = { tipo: "mais_treinos" as const, meta: null, inicio: "2026-10-01", fim: "2026-10-07" };
     const r = placarDesafio(d, [p("A", ["2026-10-02T12:00:00Z"]), p("B", ["2026-10-03T12:00:00Z"])]);

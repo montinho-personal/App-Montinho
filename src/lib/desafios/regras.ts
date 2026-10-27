@@ -96,7 +96,20 @@ export function gerarCodigoDesafio(aleatorio: () => number = Math.random): strin
 }
 
 export type ExercicioDesafio = { id: string; nome: string };
-export type DesafioBase = { tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null };
+/**
+ * O que conta nos desafios de contar treinos (pedido do Montinho, 28/10/2026):
+ * só musculação (padrão), só cardio, ou os dois — aí cada dia vale até 2
+ * (1 musculação + 1 cardio). Cardio = 10 min ou mais, 1 por dia.
+ */
+export type AtividadesDesafio = "musculacao" | "cardio" | "ambos";
+export const ATIVIDADES_DESAFIO: Record<AtividadesDesafio, { rotulo: string; emoji: string; ajuda: string }> = {
+  musculacao: { rotulo: "Só musculação", emoji: "🏋️", ajuda: "Conta 1 treino de musculação por dia." },
+  cardio: { rotulo: "Só cardio", emoji: "❤️‍🔥", ajuda: "Conta 1 cardio por dia (10 minutos ou mais)." },
+  ambos: { rotulo: "Musculação e cardio", emoji: "💪❤️", ajuda: "Musculação e cardio contam: o dia vale até 2 (1 de cada)." },
+};
+/** Tipos que contam treinos (onde dá para escolher musculação, cardio ou os dois). */
+export const TIPOS_COM_ATIVIDADES: TipoDesafio[] = ["mais_treinos", "corrida", "meta_fixa", "semanas", "dupla"];
+export type DesafioBase = { tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; atividades?: AtividadesDesafio | null };
 /** Série registrada (só para os tipos de peso/músculo). `em` = início do treino. */
 export type SerieDesafio = { em: string; bibliotecaId: string | null; grupo: string | null; carga: number | null; reps: number | null };
 export type ParticipanteDados = {
@@ -107,6 +120,8 @@ export type ParticipanteDados = {
   criador: boolean;
   /** Início de cada treino concluído com séries no período. */
   treinos: string[];
+  /** Cardios de 10+ min no período (só quando o desafio conta cardio). */
+  cardios?: string[];
   /** Séries do período (e das 4 semanas antes, para a evolução). */
   series?: SerieDesafio[];
   /** Datas dos recordes pessoais no período. */
@@ -152,10 +167,16 @@ export function placarDesafio(d: DesafioBase, participantes: ParticipanteDados[]
 
   type Linha = LinhaPlacar & { desempate: number };
   const linhas: Linha[] = aceitos.map((p) => {
-    const dias = [...new Set(p.treinos.filter(noPeriodo).map(diaBrasilia))].sort();
+    const atv = TIPOS_COM_ATIVIDADES.includes(d.tipo) ? (d.atividades ?? "musculacao") : "musculacao";
+    const diasMusc = [...new Set(p.treinos.filter(noPeriodo).map(diaBrasilia))].sort();
+    const diasCardio = [...new Set((p.cardios ?? []).filter(noPeriodo).map(diaBrasilia))].sort();
+    // Cada dia conta 1 musculação e/ou 1 cardio, conforme a regra escolhida.
+    const dias = atv === "cardio" ? diasCardio : atv === "ambos" ? [...diasMusc, ...diasCardio].sort() : diasMusc;
+    const unidade = atv === "cardio" ? (["cardio", "cardios"] as const) : atv === "ambos" ? (["atividade", "atividades"] as const) : (["treino", "treinos"] as const);
+    const detalhe = atv === "ambos" && dias.length ? ` (${diasMusc.length} musc. + ${diasCardio.length} cardio)` : "";
     const series = (p.series ?? []).filter((s) => noPeriodo(s.em));
     let pontos = dias.length;
-    let rotulo = plural(pontos, "treino", "treinos");
+    let rotulo = plural(pontos, unidade[0], unidade[1]) + detalhe;
     let cumpriu = false;
     let desempate = dias.length;
     switch (d.tipo) {
@@ -168,13 +189,13 @@ export function placarDesafio(d: DesafioBase, participantes: ParticipanteDados[]
       case "corrida": {
         const chegou = dias.length >= meta ? dias[meta - 1] : null;
         pontos = Math.min(dias.length, meta);
-        rotulo = chegou ? `🏁 chegou aos ${meta} em ${chegou.split("-").reverse().slice(0, 2).join("/")}` : `${pontos} de ${meta} treinos`;
+        rotulo = chegou ? `🏁 chegou aos ${meta} em ${chegou.split("-").reverse().slice(0, 2).join("/")}` : `${pontos} de ${meta} ${unidade[1]}`;
         // Quem chegou antes fica na frente: desempate pelo dia (quanto antes, maior).
         desempate = chegou ? -diasEntre(d.inicio, chegou) : -9999;
         break;
       }
       case "meta_fixa":
-        rotulo = `${Math.min(pontos, meta)} de ${meta} treinos`;
+        rotulo = `${Math.min(pontos, meta)} de ${meta} ${unidade[1]}`;
         cumpriu = pontos >= meta;
         break;
       case "semanas": {
@@ -266,8 +287,9 @@ export function resumoDesafio(d: DesafioBase): string {
     : d.tipo === "musculo" ? ` · ${FOCOS[d.foco ?? "pernas"].rotulo}`
     : d.tipo === "treino_desafio" ? ` · ${plural((d.exercicios ?? []).length, "exercício", "exercícios")}`
     : "";
+  const atv = TIPOS_COM_ATIVIDADES.includes(d.tipo) && d.atividades && d.atividades !== "musculacao" ? ` · ${ATIVIDADES_DESAFIO[d.atividades].rotulo.toLowerCase()}` : "";
   const quando = d.inicio === d.fim ? `só em ${br(d.inicio)}` : `${br(d.inicio)} a ${br(d.fim)}`;
-  return `${t.titulo}${extra} · ${quando}`;
+  return `${t.titulo}${extra}${atv} · ${quando}`;
 }
 
 /** Mensagem do convite no WhatsApp (link com o código). */

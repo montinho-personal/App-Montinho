@@ -17,7 +17,9 @@ import {
   type ParticipanteDados,
   recadoDoPlacar,
   TIPOS_DESAFIO,
+  TIPOS_COM_ATIVIDADES,
   TIPOS_SERIE_VOLUME,
+  type AtividadesDesafio,
   type ExercicioDesafio,
   type FocoMuscular,
   type ResultadoDesafio,
@@ -26,20 +28,21 @@ import {
   type TipoDesafio,
 } from "@/lib/desafios/regras";
 
-export type Desafio = { id: string; codigo: string; criadorAlunoId: string; nome: string; tipo: TipoDesafio; meta: number | null; foco: FocoMuscular | null; exercicios: ExercicioDesafio[] | null; modelo: string | null; revancheDe: string | null; inicio: string; fim: string; cancelado: boolean };
+export type Desafio = { id: string; codigo: string; criadorAlunoId: string; nome: string; tipo: TipoDesafio; meta: number | null; foco: FocoMuscular | null; exercicios: ExercicioDesafio[] | null; modelo: string | null; revancheDe: string | null; inicio: string; fim: string; cancelado: boolean; atividades: AtividadesDesafio };
 export type ResumoDesafio = Desafio & { situacao: SituacaoDesafio; meuStatus: "convidado" | "aceito" | "recusado" | null; souCriador: boolean; aceitos: number };
 export type DetalheDesafio = ResumoDesafio & { placar: LinhaPlacar[]; convidados: Array<{ nome: string }>; criadorNome: string };
 export type DesafioPublico = { nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; fim: string; criador: string; participantes: number; encerrado: boolean };
-export type NovoDesafio = { nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; dias: number; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; modelo?: string | null; revancheDe?: string | null };
+export type NovoDesafio = { nome: string; tipo: TipoDesafio; meta: number | null; inicio: string; dias: number; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; modelo?: string | null; revancheDe?: string | null; atividades?: AtividadesDesafio | null };
 export type Cutucada = { id: string; desafioId: string; desafio: string; de: string; emoji: string; em: string };
 
-type Linha = { id: string; codigo: string; criador_aluno_id: string; nome: string; tipo: TipoDesafio; meta: number | null; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; modelo?: string | null; revanche_de?: string | null; inicio: string; fim: string; cancelado_em: string | null };
-const COLUNAS = "id, codigo, criador_aluno_id, nome, tipo, meta, foco, exercicios, modelo, revanche_de, inicio, fim, cancelado_em";
+type Linha = { id: string; codigo: string; criador_aluno_id: string; nome: string; tipo: TipoDesafio; meta: number | null; foco?: FocoMuscular | null; exercicios?: ExercicioDesafio[] | null; modelo?: string | null; revanche_de?: string | null; inicio: string; fim: string; cancelado_em: string | null; atividades?: AtividadesDesafio | null };
+// "*": funciona antes e depois da 0108 (coluna atividades).
+const COLUNAS = "*";
 type Part = { desafio_id: string; aluno_id: string; status: "convidado" | "aceito" | "recusado"; convidado_por: string | null };
 
 const hoje = () => diaBrasilia(new Date());
 const somar = (dia: string, n: number) => new Date(Date.parse(`${dia}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
-const doBanco = (l: Linha): Desafio => ({ id: l.id, codigo: l.codigo, criadorAlunoId: l.criador_aluno_id, nome: l.nome, tipo: l.tipo, meta: l.meta, foco: l.foco ?? null, exercicios: l.exercicios ?? null, modelo: l.modelo ?? null, revancheDe: l.revanche_de ?? null, inicio: String(l.inicio), fim: String(l.fim), cancelado: !!l.cancelado_em });
+const doBanco = (l: Linha): Desafio => ({ id: l.id, codigo: l.codigo, criadorAlunoId: l.criador_aluno_id, nome: l.nome, tipo: l.tipo, meta: l.meta, foco: l.foco ?? null, exercicios: l.exercicios ?? null, modelo: l.modelo ?? null, revancheDe: l.revanche_de ?? null, inicio: String(l.inicio), fim: String(l.fim), cancelado: !!l.cancelado_em, atividades: l.atividades ?? "musculacao" });
 /** Primeiro nome + inicial do último sobrenome (“Aline de Souza” → “Aline S.”), como no banco. */
 const nomeCurto = (nome: string) => {
   const partes = nome.replace(/\(.*?\)/g, "").trim().split(/\s+/).filter(Boolean);
@@ -85,6 +88,7 @@ function dadosDemo(desafioId: string, eu: string | null, personal: boolean): Par
       eu: p.aluno_id === eu,
       criador: p.aluno_id === d.criador_aluno_id,
       treinos: st.sessions.filter((s) => s.aluno_id === p.aluno_id && s.status === "concluida" && (s.series_concluidas ?? 0) > 0).map((s) => s.iniciado_em),
+      cardios: [], // a demonstração não tem cardios nos desafios
       series: seriesDemo(p.aluno_id),
       recordes: [],
     }));
@@ -149,7 +153,7 @@ export async function detalheDesafio(desafioId: string, alunoId: string | null):
   const { data: l } = await db.from("desafios").select(COLUNAS).eq("id", desafioId).maybeSingle();
   if (!l) return null;
   const { data: rows } = await db.rpc("dados_desafio", { p_desafio: desafioId });
-  type Bruta = { aluno_id: string; nome: string; status: Part["status"]; eu: boolean; criador: boolean; treinos: string[] | null; series: Array<{ em: string; b: string | null; g: string | null; c: number | string | null; r: number | null }> | null; recordes: string[] | null };
+  type Bruta = { aluno_id: string; nome: string; status: Part["status"]; eu: boolean; criador: boolean; treinos: string[] | null; cardios?: string[] | null; series: Array<{ em: string; b: string | null; g: string | null; c: number | string | null; r: number | null }> | null; recordes: string[] | null };
   const dados = ((rows ?? []) as Bruta[]).map((r) => ({
     alunoId: r.aluno_id,
     nome: r.nome,
@@ -157,6 +161,7 @@ export async function detalheDesafio(desafioId: string, alunoId: string | null):
     eu: r.eu,
     criador: r.criador,
     treinos: r.treinos ?? [],
+    cardios: r.cardios ?? [],
     series: (r.series ?? []).map((x) => ({ em: x.em, bibliotecaId: x.b, grupo: x.g, carga: x.c != null ? Number(x.c) : null, reps: x.r })),
     recordes: r.recordes ?? [],
   }));
@@ -223,7 +228,9 @@ export async function listarTodosDesafios(): Promise<Array<ResumoDesafio & { par
 export async function criarDesafio(alunoId: string, n: NovoDesafio, convidar: string[]): Promise<{ id: string; codigo: string }> {
   const fim = somar(n.inicio, n.dias - 1);
   const meta = ["meta_fixa", "semanas", "corrida", "dupla"].includes(n.tipo) ? n.meta : null;
-  const extras = { foco: n.tipo === "musculo" ? (n.foco ?? "pernas") : null, exercicios: n.tipo === "treino_desafio" ? (n.exercicios ?? null) : null, modelo: n.modelo ?? null, revanche_de: n.revancheDe ?? null };
+  // Só grava “atividades” quando não é o padrão (assim criar continua funcionando antes da 0108).
+  const atividades = TIPOS_COM_ATIVIDADES.includes(n.tipo) && n.atividades && n.atividades !== "musculacao" ? { atividades: n.atividades } : {};
+  const extras = { foco: n.tipo === "musculo" ? (n.foco ?? "pernas") : null, exercicios: n.tipo === "treino_desafio" ? (n.exercicios ?? null) : null, modelo: n.modelo ?? null, revanche_de: n.revancheDe ?? null, ...atividades };
   if (isDemoMode()) {
     const id = uid();
     const codigo = gerarCodigoDesafio();

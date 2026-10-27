@@ -42,7 +42,7 @@ export default async function NovoDesafioPage({ searchParams }: { searchParams: 
     const d = await detalheDesafio(revanche, sessao.alunoId).catch(() => null);
     if (d) {
       const dias = Math.round((Date.parse(`${d.fim}T00:00:00Z`) - Date.parse(`${d.inicio}T00:00:00Z`)) / 86_400_000) + 1;
-      inicial.revanche = { id: d.id, nome: d.nome, tipo: d.tipo, meta: d.meta, dias: [1, 3, 7, 14, 28, 30].includes(dias) ? dias : 7, foco: d.foco, exercicios: d.exercicios };
+      inicial.revanche = { id: d.id, nome: d.nome, tipo: d.tipo, meta: d.meta, dias: [1, 3, 7, 14, 28, 30].includes(dias) ? dias : 7, foco: d.foco, exercicios: d.exercicios, atividades: d.atividades };
       inicial.convidar = d.placar.filter((l) => !l.eu).map((l) => l.alunoId);
     }
   }

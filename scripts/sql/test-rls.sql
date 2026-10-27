@@ -1916,3 +1916,23 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dose_dupla', '1', 'Dose Dupla', now()) on conflict do nothing;
 end $$;
 \echo 'T60 OK: troféus do dia em dobro'
+
+-- T61 — 0108: desafio escolhe o que conta (musculação, cardio, os dois); placar traz os cardios
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v_id uuid; v_m uuid; c timestamptz[];
+begin
+  insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim, atividades) values ('CAR108', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Cardio e musculação', 'mais_treinos', current_date - 1, current_date + 2, 'ambos') returning id into v_id;
+  select cardios into c from public.dados_desafio(v_id) where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if coalesce(array_length(c, 1), 0) = 0 then raise exception 'T61a: placar sem os cardios'; end if;
+  insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim) values ('MUS108', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Só musculação', 'mais_treinos', current_date - 1, current_date + 2) returning id into v_m;
+  select cardios into c from public.dados_desafio(v_m) where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if coalesce(array_length(c, 1), 0) <> 0 then raise exception 'T61b: desafio só de musculação trouxe cardios'; end if;
+  begin
+    insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim, atividades) values ('BAD108', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Inválido', 'mais_treinos', current_date, current_date, 'natacao');
+    raise exception 'T61c: atividade inválida aceita';
+  exception when check_violation then null;
+  end;
+end $$;
+select test_logout();
+\echo 'T61 OK: desafio com musculação e/ou cardio'

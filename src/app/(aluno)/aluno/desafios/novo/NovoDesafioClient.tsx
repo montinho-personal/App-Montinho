@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { SorteioMontinho } from "@/components/desafios/SorteioMontinho";
-import { DESAFIOS_PRONTOS, DURACOES_DESAFIO, FOCOS, TIPOS_DESAFIO, type DesafioPronto, type ExercicioDesafio, type FocoMuscular, type TipoDesafio } from "@/lib/desafios/regras";
+import { ATIVIDADES_DESAFIO, DESAFIOS_PRONTOS, DURACOES_DESAFIO, FOCOS, TIPOS_COM_ATIVIDADES, TIPOS_DESAFIO, type AtividadesDesafio, type DesafioPronto, type ExercicioDesafio, type FocoMuscular, type TipoDesafio } from "@/lib/desafios/regras";
 
 // “Quem mais evolui” aparece como uma opção dentro de “Quem pega mais peso” (o criador escolhe).
 const TIPOS = (Object.keys(TIPOS_DESAFIO) as TipoDesafio[]).filter((t) => t !== "evolucao");
@@ -14,7 +14,7 @@ export type InicialDesafio = {
   convidar?: string[];
   busca?: string;
   /** Revanche: mesma regra e mesmas pessoas do desafio anterior. */
-  revanche?: { id: string; nome: string; tipo: TipoDesafio; meta: number | null; dias: number; foco: FocoMuscular | null; exercicios: ExercicioDesafio[] | null };
+  revanche?: { id: string; nome: string; tipo: TipoDesafio; meta: number | null; dias: number; foco: FocoMuscular | null; exercicios: ExercicioDesafio[] | null; atividades?: AtividadesDesafio | null };
 };
 
 export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, biblioteca, inicial = {} }: { hoje: string; maximo: string; primeiroNome: string; pessoas: Array<{ alunoId: string; nome: string }>; biblioteca: Array<{ id: string; nome: string }>; inicial?: InicialDesafio }) {
@@ -26,6 +26,7 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
   const [meta, setMeta] = useState<number>(rv?.meta ?? 12);
   const [dias, setDias] = useState<number>(rv?.dias ?? 7);
   const [foco, setFoco] = useState<FocoMuscular>(rv?.foco ?? "pernas");
+  const [atividades, setAtividades] = useState<AtividadesDesafio>(rv?.atividades ?? "musculacao");
   const [exercicios, setExercicios] = useState<ExercicioDesafio[]>(rv?.exercicios ?? []);
   const [buscaEx, setBuscaEx] = useState("");
   const [inicio, setInicio] = useState(hoje);
@@ -61,7 +62,7 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
     if (nome.trim().length < 3) return setErro("Dê um nome ao desafio.");
     if (tipo === "treino_desafio" && !exercicios.length) return setErro("Escolha pelo menos 1 exercício do treino do desafio.");
     setOcupado(true);
-    const corpo = { nome: nome.trim(), tipo, meta: info.meta ? meta : null, inicio, dias, foco: tipo === "musculo" ? foco : null, exercicios: tipo === "treino_desafio" ? exercicios : null, modelo, revancheDe: rv?.id ?? null, convidar };
+    const corpo = { nome: nome.trim(), tipo, meta: info.meta ? meta : null, inicio, dias, foco: tipo === "musculo" ? foco : null, exercicios: tipo === "treino_desafio" ? exercicios : null, modelo, revancheDe: rv?.id ?? null, atividades: TIPOS_COM_ATIVIDADES.includes(tipo) ? atividades : "musculacao", convidar };
     const r = await fetch("/api/desafios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
     const j = ((await r?.json().catch(() => ({}))) ?? {}) as { id?: string; error?: string };
     if (!r?.ok || !j.id) {
@@ -140,6 +141,19 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
                 <span className="text-sm text-fg-muted">{info.meta.rotulo}</span>
               </div>
             </div>
+          ) : null}
+          {TIPOS_COM_ATIVIDADES.includes(tipo) ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-semibold">O que conta</legend>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {(Object.keys(ATIVIDADES_DESAFIO) as AtividadesDesafio[]).map((a) => (
+                  <button key={a} type="button" aria-pressed={atividades === a} onClick={() => setAtividades(a)} className={`alvo flex flex-col items-start rounded-xl border px-3 py-2 text-left ${atividades === a ? "border-accent bg-accent/10" : "border-border bg-card"}`}>
+                    <span className="text-sm font-semibold">{ATIVIDADES_DESAFIO[a].emoji} {ATIVIDADES_DESAFIO[a].rotulo}</span>
+                    <span className="text-xs text-fg-muted">{ATIVIDADES_DESAFIO[a].ajuda}</span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
           ) : null}
           {tipo === "musculo" ? (
             <fieldset className="space-y-2">

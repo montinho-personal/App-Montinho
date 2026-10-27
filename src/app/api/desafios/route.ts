@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   if (info.meta && (data.meta == null || data.meta > info.meta.max)) return NextResponse.json({ error: `Escolha a meta (até ${info.meta.max} ${info.meta.rotulo}).` }, { status: 400 });
   if (data.tipo === "treino_desafio" && !data.exercicios?.length) return NextResponse.json({ error: "Escolha os exercícios do treino do desafio." }, { status: 400 });
   try {
-    const r = await criarDesafio(sessao.alunoId, { nome: data.nome, tipo: data.tipo, meta: info.meta ? data.meta : null, inicio: data.inicio, dias: data.dias, foco: data.foco ?? null, exercicios: data.exercicios ?? null, modelo: data.modelo ?? null, revancheDe: data.revancheDe ?? null }, data.convidar);
+    const r = await criarDesafio(sessao.alunoId, { nome: data.nome, tipo: data.tipo, meta: info.meta ? data.meta : null, inicio: data.inicio, dias: data.dias, foco: data.foco ?? null, exercicios: data.exercicios ?? null, modelo: data.modelo ?? null, revancheDe: data.revancheDe ?? null, atividades: data.atividades ?? "musculacao" }, data.convidar);
     return NextResponse.json(r);
   } catch {
     return NextResponse.json({ error: "Não foi possível criar o desafio agora." }, { status: 500 });
