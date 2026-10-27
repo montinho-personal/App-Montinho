@@ -381,7 +381,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       }
       // Volta de onde parou: valores digitados, séries extras, exercício aberto e descanso.
       const primeiraVez = hidratadaRef.current !== s.id;
-      const rascunho = primeiraVez && storage ? lerRascunho(storage, s.id) : null;
+      // O que foi digitado e ainda não marcado volta sempre do aparelho (também quando a
+      // sessão é recarregada do servidor), para nada sumir.
+      const rascunho = storage ? lerRascunho(storage, s.id) : null;
       const { series: comRascunho, restaurou } = aplicarRascunho(next, rascunho);
       setSeries(comRascunho);
       setPendentes(fila.length);
@@ -460,6 +462,41 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const id = window.setTimeout(() => hidratar(sessao), 0);
     return () => window.clearTimeout(id);
   }, [sessao, hidratar]);
+
+  // Ao abrir ou voltar para a tela (botão “voltar”, trocar de app, desbloquear o celular),
+  // busca a sessão no servidor: a página pode ter vindo de uma cópia antiga do navegador,
+  // sem as séries já gravadas (aula do Denis, 27/10/2026). Sem internet, segue com o que tem.
+  // A cópia antiga pode ser até de ANTES do “Começar” (sessão vazia): aí o id vem do endereço (?sessao=…).
+  const sessaoId = sessao?.id ?? null;
+  useEffect(() => {
+    let vivo = true;
+    const atualizar = () => {
+      const id = sessaoId ?? new URLSearchParams(window.location.search).get("sessao");
+      if (!id) return;
+      fetchComPrazo(`/api/sessoes/${id}`, { headers: cab }, PRAZO_LEITURA_MS)
+        .then((r) => (r.ok ? (r.json() as Promise<SessaoCompleta>) : null))
+        .then((d) => {
+          if (!vivo || !d || d.id !== id || d.status !== "em_andamento" || d.treino_id !== treino.id) return;
+          setSessao((cur) => {
+            if (cur && cur.id !== d.id) return cur;
+            if (!cur) return d;
+            const n = (x: SessaoCompleta) => x.exercicios.reduce((t, e) => t + e.series.length, 0) + x.exercicios.length * 1000;
+            return n(d) !== n(cur) ? d : cur;
+          });
+        })
+        .catch(() => undefined);
+    };
+    atualizar();
+    const aoMostrar = (e: PageTransitionEvent) => { if (e.persisted) atualizar(); };
+    const aoVer = () => { if (document.visibilityState === "visible") atualizar(); };
+    window.addEventListener("pageshow", aoMostrar);
+    document.addEventListener("visibilitychange", aoVer);
+    return () => {
+      vivo = false;
+      window.removeEventListener("pageshow", aoMostrar);
+      document.removeEventListener("visibilitychange", aoVer);
+    };
+  }, [sessaoId, cab, treino.id]);
 
   const online = useSyncExternalStore(
     (cb) => {

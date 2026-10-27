@@ -79,6 +79,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - “⇄ Trocar exercício” SEMPRE disponível (27/10/2026, pedido do Montinho): aparece enquanto o exercício tiver série a fazer e não estiver finalizado; vale para todos os alunos (opções de `trocasParaExercicios`/`opcoesDeTroca`, só da biblioteca). Com séries já feitas, `trocarExercicioSessao` DIVIDE: o exercício atual fecha com as séries feitas (`series_planejadas` = feitas, `concluido`) e um novo `session_exercises` (mesmo `exercicio_id`/`ordem`, `substituido_de`, sem aquecimento) recebe as que faltam; a tela recarrega a sessão. Voltar ao original só antes de marcar séries. Sessão ordenada por `ordem` + `created_at`.
 
+- Voltar para a tela do treino (27/10/2026, aula do Denis: saiu para o Ranking, voltou e a tela mostrava menos séries): `TreinoAtivoClient` busca a sessão de novo ao abrir, no `pageshow` (página restaurada do cache) e ao voltar a ficar visível (usa `?sessao=` da URL quando a cópia é de antes do “Começar”), e sempre reaplica o rascunho local. As séries já estavam salvas no servidor; era só a tela velha.
+
 - Lupa do personal: `/treinador/busca` (menu “Buscar” + lupa na barra do celular); regras em `src/lib/busca/alunos.ts` (nome/sobrenome por pedaço e sem acento; estrutura do treino com motivo; “treino parecido” por exercícios em comum); índice em `src/lib/data/busca.ts`.
 
 ## Ao editar
