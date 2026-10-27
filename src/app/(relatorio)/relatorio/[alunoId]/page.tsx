@@ -156,20 +156,23 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   }
 
   return (
-    <div className="py-6 print:py-0">
+    <div className="pb-6 pt-2 print:py-0">
       <style>{CSS}</style>
 
       {/* Barra de ações (só na tela) */}
-      <div className="so-tela mx-auto mb-5 flex w-[210mm] max-w-full flex-wrap items-center gap-3 px-4 text-sm text-[#1a1814] md:px-0">
-        <Link href={voltar} className="alvo font-semibold underline-offset-2 hover:underline">← Voltar</Link>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Período do relatório">
+      {/* Grudada no topo: “Voltar” sempre à mão enquanto rola o relatório. */}
+      <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full space-y-2 bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
+        <div className="flex items-center justify-between gap-2">
+          <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
+          <BaixarPdf />
+        </div>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Período do relatório">
           {PERIODOS_PREMIUM.map((o) => (
-            <Link key={o.v} href={`/relatorio/${alunoId}${o.v === "tudo" ? "" : `?periodo=${o.v}`}`} aria-current={periodo === o.v ? "true" : undefined} className={`touch inline-flex items-center rounded-full border px-3 text-xs font-semibold ${periodo === o.v ? "border-[#ba9e50] bg-[#ba9e50]/15" : "border-[#c9c2b2] text-[#625c4f]"}`}>
+            <Link key={o.v} href={`/relatorio/${alunoId}${o.v === "tudo" ? "" : `?periodo=${o.v}`}`} aria-current={periodo === o.v ? "true" : undefined} className={`inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-xs font-semibold ${periodo === o.v ? "border-[#ba9e50] bg-[#ba9e50]/15" : "border-[#c9c2b2] text-[#625c4f]"}`}>
               {o.rotulo}
             </Link>
           ))}
         </div>
-        <span className="ml-auto"><BaixarPdf /></span>
       </div>
 
       {/* 1 — Capa */}

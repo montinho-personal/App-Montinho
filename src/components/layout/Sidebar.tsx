@@ -86,7 +86,7 @@ export function Sidebar({ items, usuario }: SidebarProps) {
   return (
     <>
       {/* Mobile: barra superior + gaveta */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between bg-[linear-gradient(180deg,#161616_0%,rgba(10,10,10,0.94)_100%)] backdrop-blur px-4">
+      <div className="md:hidden fixed top-safe left-0 right-0 z-40 flex h-16 items-center justify-between bg-[linear-gradient(180deg,#161616_0%,rgba(10,10,10,0.94)_100%)] backdrop-blur px-4">
         <Link href={inicio} aria-label="Ir para a visão geral" className="rounded-md">
           <BrandLockup priority />
         </Link>

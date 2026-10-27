@@ -53,6 +53,28 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* App instalado no iPhone (tela cheia, viewportFit "cover"): o conteúdo
+     começa abaixo do relógio/bateria e uma faixa escura fica atrás deles,
+     para nada (como o “Voltar”) ficar escondido lá em cima. */
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    background: #0a0a0a;
+    z-index: 100;
+    pointer-events: none;
+  }
+  @media print {
+    body { padding-top: 0; }
+    body::before { display: none; }
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -163,6 +185,20 @@
   .touch {
     min-height: var(--spacing-touch);
     min-width: var(--spacing-touch);
+  }
+
+  /* Janelas de tela cheia (medalha, card, vídeo, sorteio…): o conteúdo e o
+     botão de fechar começam abaixo do relógio/bateria do celular. */
+  .fixed.inset-0:not(.sem-safe-top) {
+    padding-top: max(env(safe-area-inset-top, 0px), 0.75rem);
+  }
+
+  /* Topo fixo/grudado abaixo do relógio/bateria do celular */
+  .top-safe {
+    top: env(safe-area-inset-top, 0px);
+  }
+  .pt-safe-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
   }
 
   /* Área segura em celulares com barra inferior */

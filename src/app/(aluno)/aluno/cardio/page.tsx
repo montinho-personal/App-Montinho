@@ -1,6 +1,7 @@
 // Montinho Cardio do aluno: o que o Montinho prescreveu, registro rápido,
 // semana, histórico, evolução do esforço e o próximo troféu de cardio.
 import Link from "next/link";
+import { Voltar } from "@/components/ui/Voltar";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { cardioDoAluno } from "@/lib/data/cardio";
@@ -49,7 +50,7 @@ export default async function CardioPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5 px-4 py-5">
       <header>
-        <p className="text-xs text-fg-muted"><Link href="/aluno" className="hover:underline">Início</Link> › Cardio</p>
+        <Voltar href="/aluno" />
         <h1 className="text-2xl font-bold">❤️‍🔥 Montinho Cardio</h1>
         <p className="text-sm text-fg-muted">O objetivo não é fazer mais cardio. É cumprir o cardio certo, com constância.</p>
       </header>

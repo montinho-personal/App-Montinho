@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { Voltar } from "@/components/ui/Voltar";
 import { notFound } from "next/navigation";
 import { FEATURES, isDemoMode } from "@/lib/env";
 import { requireAlunoPage } from "@/lib/auth/session";
@@ -44,6 +45,7 @@ export default async function MeusTreinosPage() {
 
   return (
     <div className="space-y-5">
+      <Voltar href="/aluno/treinar" />
       <header>
         <h1 className="text-2xl font-bold">Meus treinos</h1>
         <p className="text-sm text-fg-muted mt-1">Monte pela biblioteca do Montinho (com vídeo de execução) ou suba o treino que você já tem: escrevendo, colando, ditando ou por foto/PDF. Até 8 treinos (A a H).</p>

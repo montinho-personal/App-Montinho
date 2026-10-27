@@ -69,8 +69,15 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
   const R = 88;
   const C = 2 * Math.PI * R;
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-5 bg-bg px-5 pb-8 pt-6 text-center" role="dialog" aria-modal="true" aria-label="Cronômetro de cardio">
-      <button type="button" onClick={onFechar} className="alvo absolute right-3 top-3 rounded-md px-3 py-2 text-fg-muted" aria-label="Fechar">✕</button>
+    <div className="sem-safe-top fixed inset-0 z-[70] overflow-y-auto bg-bg text-center" role="dialog" aria-modal="true" aria-label="Cronômetro de cardio">
+      {/* Barra fixa no topo: sempre dá para voltar, mesmo com a tela rolada. */}
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg/95 px-3 py-2 backdrop-blur" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+        <button type="button" onClick={() => { if (!inicio || window.confirm("Sair do cronômetro? O tempo de agora não é registrado.")) onFechar(); }} className="alvo inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm font-semibold text-fg-muted">
+          <span aria-hidden>←</span> Voltar
+        </button>
+        <span className="text-xs text-fg-subtle">Cronômetro de cardio</span>
+      </div>
+      <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-5 px-5 pb-8 pt-4">
       <p className="text-sm font-semibold text-accent">❤️‍🔥 {minutos} minutos de {MODALIDADES[modalidade].nome.toLowerCase()}</p>
       {!inicio ? (
         <div className="w-full max-w-sm space-y-2">
@@ -113,6 +120,7 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
       ) : (
         <button type="button" onClick={() => setRegistrar({ minutos: minutosDoCronometro(seg), completo: false })} className="alvo w-full max-w-sm rounded-xl border border-border px-4 py-3 font-semibold">⏹ Parar e registrar ({minutosDoCronometro(seg)} min)</button>
       )}
+      </div>
     </div>
   );
 }

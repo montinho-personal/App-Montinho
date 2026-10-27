@@ -1,6 +1,7 @@
 // Pequena vitória da semana: o dado de origem, a comparação e a explicação —
 // e o histórico das últimas semanas. Sem evidência, nada é inventado.
 import Link from "next/link";
+import { Voltar } from "@/components/ui/Voltar";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { vitoriasDoAluno } from "@/lib/data/evolucao";
@@ -18,6 +19,7 @@ export default async function VitoriasPage() {
   const { atual, historico } = await vitoriasDoAluno(aluno);
   return (
     <div className="space-y-5">
+      <Voltar href="/aluno" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Sua evolução da semana</h1>
         <Link href="/aluno/evolucao" className="alvo text-sm text-fg-muted hover:text-fg">Evolução →</Link>

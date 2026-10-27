@@ -1,6 +1,7 @@
 // Montinho Desbloqueia — álbum de descobertas (colecionável) e biblioteca
 // livre. O progresso é recompensa por aprender, nunca bloqueio de saúde.
 import Link from "next/link";
+import { Voltar } from "@/components/ui/Voltar";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { albumParaAluno } from "@/lib/data/desbloqueia";
@@ -18,6 +19,7 @@ export default async function DescobertasPage() {
   const { explorados, total } = progressoAlbum(itens);
   return (
     <div className="space-y-5">
+      <Voltar href="/aluno/conquistas" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Montinho Desbloqueia</h1>
         <Link href="/aluno/conquistas" className="alvo text-sm text-fg-muted hover:text-fg">Conquistas →</Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Voltar } from "@/components/ui/Voltar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input, Label } from "@/components/ui/Input";
@@ -179,6 +180,7 @@ export function MontadorVisitante({ itens, inicial, iniciante, copia = false, de
 
   return (
     <div className="space-y-5">
+      <Voltar href="/aluno/meus-treinos" />
       <header>
         <h1 className="text-2xl font-bold">{editando ? "Editar treino" : copia ? "Copiar treino" : "Montar treino"}</h1>
         <p className="mt-1 text-sm text-fg-muted">{copia ? "É uma cópia: troque o nome e os exercícios que quiser e salve como um treino novo." : "Escolha os exercícios e ajuste séries, repetições e descanso."}</p>
