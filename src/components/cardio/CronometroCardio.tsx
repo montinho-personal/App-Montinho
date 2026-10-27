@@ -15,7 +15,11 @@ type Sentinela = { release: () => Promise<void> };
 
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-export function CronometroCardio({ minutos, prescricao, sessionId, nome, onFechar }: { minutos: number; prescricao?: Prescricao | null; sessionId?: string | null; nome?: string; onFechar: () => void }) {
+/** Minutos para escolher no “Iniciar cardio agora” (sem prescrição). */
+const MINUTOS_LIVRES = [10, 15, 20, 30, 45, 60];
+
+export function CronometroCardio({ minutos: minutosIniciais, prescricao, sessionId, nome, onFechar, escolherMinutos = false }: { minutos: number; prescricao?: Prescricao | null; sessionId?: string | null; nome?: string; onFechar: () => void; /** Iniciar cardio por conta própria: a pessoa escolhe os minutos antes de começar. */ escolherMinutos?: boolean }) {
+  const [minutos, setMinutos] = useState(minutosIniciais);
   const alvo = minutos * 60;
   const [modalidade, setModalidade] = useState<ModalidadeCardio>(prescricao && prescricao.modalidade !== "livre" ? prescricao.modalidade : "esteira");
   const [inicio, setInicio] = useState<number | null>(null);
@@ -70,6 +74,16 @@ export function CronometroCardio({ minutos, prescricao, sessionId, nome, onFecha
       <p className="text-sm font-semibold text-accent">❤️‍🔥 {minutos} minutos de {MODALIDADES[modalidade].nome.toLowerCase()}</p>
       {!inicio ? (
         <div className="w-full max-w-sm space-y-2">
+          {escolherMinutos ? (
+            <>
+              <p className="text-sm text-fg-muted">Quantos minutos?</p>
+              <div className="mb-2 grid grid-cols-6 gap-1.5">
+                {MINUTOS_LIVRES.map((m) => (
+                  <button key={m} type="button" aria-pressed={minutos === m} onClick={() => setMinutos(m)} className={`touch rounded-lg border py-2 text-sm font-bold ${minutos === m ? "border-accent bg-accent/15 text-accent" : "border-border"}`}>{m}</button>
+                ))}
+              </div>
+            </>
+          ) : null}
           <p className="text-sm text-fg-muted">Qual vai ser?</p>
           <div className="grid grid-cols-3 gap-2">
             {MODALIDADE_IDS.filter((m) => m !== "natacao").map((m) => (

@@ -14,7 +14,7 @@ type P = Pick<CardioPrescricao, "id" | "modalidade" | "nome" | "duracao_min" | "
 
 export function CardioHoje({ pendentes, nome, sessionId, livre = true, titulo = "Cardio de hoje", compacto = false, rota }: { pendentes: P[]; nome?: string; sessionId?: string | null; livre?: boolean; titulo?: string; compacto?: boolean; rota?: string }) {
   const [aberto, setAberto] = useState<P | "livre" | null>(null);
-  const [cronometro, setCronometro] = useState<P | null>(null);
+  const [cronometro, setCronometro] = useState<P | "livre" | null>(null);
   const [feitos, setFeitos] = useState<string[]>([]);
   const lista = pendentes.filter((p) => !feitos.includes(p.id));
   useEffect(() => {
@@ -52,11 +52,19 @@ export function CardioHoje({ pendentes, nome, sessionId, livre = true, titulo = 
         );
       })}
       {livre ? (
-        <button type="button" onClick={() => abrir("livre")} className="alvo w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold">
-          ➕ Registrar {lista.length ? "outro " : ""}cardio{lista.length ? "" : " (livre)"}
-        </button>
+        // Sem prescrição para agora: “Iniciar cardio agora” (cronômetro) ou anotar o que já fez.
+        <div className={rota ? "" : "grid grid-cols-2 gap-2"}>
+          {rota ? null : (
+            <button type="button" onClick={() => setCronometro("livre")} className={`alvo rounded-xl px-3 py-3 text-sm font-bold ${lista.length ? "border border-accent/60 text-accent" : "bg-accent text-bg"}`}>
+              ⏱ Iniciar {lista.length ? "outro " : ""}cardio agora
+            </button>
+          )}
+          <button type="button" onClick={() => abrir("livre")} className="alvo w-full rounded-xl border border-border px-3 py-3 text-sm font-semibold">
+            ➕ {rota ? `Registrar ${lista.length ? "outro " : ""}cardio` : "Já fiz: registrar"}
+          </button>
+        </div>
       ) : null}
-      {cronometro ? <CronometroCardio minutos={cronometro.duracao_min} prescricao={cronometro} sessionId={sessionId} nome={nome} onFechar={() => setCronometro(null)} /> : null}
+      {cronometro === "livre" ? <CronometroCardio minutos={20} escolherMinutos sessionId={sessionId} nome={nome} onFechar={() => setCronometro(null)} /> : cronometro ? <CronometroCardio minutos={cronometro.duracao_min} prescricao={cronometro} sessionId={sessionId} nome={nome} onFechar={() => setCronometro(null)} /> : null}
       {aberto ? (
         <RegistrarCardio
           prescricao={aberto === "livre" ? null : aberto}
