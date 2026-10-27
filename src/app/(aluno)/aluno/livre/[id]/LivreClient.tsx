@@ -48,6 +48,11 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [aberto, setAberto] = useState<string | null>(inicial.at(-1)?.seId ?? null);
   const [buscando, setBuscando] = useState(inicial.length === 0);
   const [erro, setErro] = useState<string | null>(null);
+  // Erro de um exercício aparece dentro do cartão dele (perto do botão tocado), não lá no topo.
+  const [erroEx, setErroEx] = useState<{ seId: string; texto: string } | null>(null);
+  // Séries sendo salvas/apagadas agora: o botão mostra que está trabalhando e não aceita outro toque.
+  const [trabalhando, setTrabalhando] = useState<Set<string>>(() => new Set());
+  const marcar = (key: string, on: boolean) => setTrabalhando((t) => { const n = new Set(t); if (on) n.add(key); else n.delete(key); return n; });
   const [ocupado, setOcupado] = useState(false);
   const [agora, setAgora] = useState(() => Date.now());
   const [timer, setTimer] = useState<{ seg: number; key: number } | null>(null);
@@ -69,8 +74,12 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     if (!antes) return;
     if (conta) contadas.current.add(s.key);
     else contadas.current.delete(s.key);
-    setPlacar(somarNoPlacar(placar, e.grupo, conta ? 1 : -1));
-    if (conta) setAviso(avisoDaSerie(antes.feitas, antes.feitas + 1, antes));
+    // Atualização em cima do placar mais recente: salvar várias séries seguidas não perde nenhuma.
+    setPlacar((atual) => {
+      const linha = linhaDoGrupo(atual, e.grupo);
+      if (conta && linha) setAviso(avisoDaSerie(linha.feitas, linha.feitas + 1, linha));
+      return somarNoPlacar(atual, e.grupo, conta ? 1 : -1);
+    });
   }
 
   useEffect(() => {
@@ -110,24 +119,36 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   }
 
   async function salvarSerie(e: ExercicioTela, s: SerieTela) {
+    if (trabalhando.has(s.key)) return;
+    if (s.salva) return; // já salva e sem mudança: nada a fazer (não reinicia o descanso)
     const carga = lerCarga(s.carga);
     const reps = lerReps(s.reps);
-    if (reps == null && carga == null) return setErro("Anote pelo menos as repetições ou a carga da série.");
-    if (s.carga.trim() && carga == null) return setErro("Carga inválida. Use números, ex.: 42,5");
-    setErro(null);
+    if (reps == null && carga == null) return setErroEx({ seId: e.seId, texto: `Série ${s.serie}: anote as repetições ou a carga antes do ✓.` });
+    if (s.carga.trim() && carga == null) return setErroEx({ seId: e.seId, texto: `Série ${s.serie}: carga inválida. Use números, ex.: 42,5` });
+    setErroEx(null);
+    marcar(s.key, true);
     const r = await chamar(`/api/sessoes/${sessaoId}/series`, "POST", { session_exercise_id: e.seId, client_key: `livre:${s.key}`, serie: s.serie, tipo: s.tipo, carga_kg: carga, reps });
-    if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível salvar a série."));
+    marcar(s.key, false);
+    if (!r.ok) return setErroEx({ seId: e.seId, texto: `Série ${s.serie} não foi salva: ${String(r.json.error ?? "tente de novo.")}` });
     contarNoPlacar(e, s, contaNoPlacar(s.tipo));
-    mudarSerie(e.seId, s.key, { salva: true });
+    // Mudou o número enquanto salvava? Continua “a salvar” para o próximo ✓ gravar o valor novo.
+    mudarEx(e.seId, (x) => ({ ...x, series: x.series.map((y) => (y.key === s.key && y.carga === s.carga && y.reps === s.reps && y.tipo === s.tipo ? { ...y, salva: true } : y)) }));
     const seg = s.tipo === "aquecimento" ? DESCANSO_SEG.aquecimento : DESCANSO_SEG.valida;
     setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }));
     if (navigator.vibrate) navigator.vibrate(30);
   }
 
   async function apagarSerie(e: ExercicioTela, s: SerieTela) {
-    if (s.salva) {
+    if (trabalhando.has(s.key)) return;
+    // Série já salva some do histórico: pede confirmação (evita apagar sem querer ao mirar no ✓).
+    const salvaNoServidor = s.salva || contadas.current.has(s.key);
+    if (salvaNoServidor && !window.confirm(`Apagar a série ${s.serie} (${s.carga || "—"} kg × ${s.reps || "—"})?`)) return;
+    setErroEx(null);
+    if (salvaNoServidor) {
+      marcar(s.key, true);
       const r = await chamar(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
-      if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível apagar a série."));
+      marcar(s.key, false);
+      if (!r.ok) return setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível apagar a série.") });
       contarNoPlacar(e, s, false);
     }
     mudarEx(e.seId, (x) => ({ ...x, series: x.series.filter((y) => y.key !== s.key).map((y, i) => ({ ...y, serie: i + 1 })) }));
@@ -137,21 +158,21 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   async function tirar(e: ExercicioTela) {
     const salvas = e.series.filter((s) => s.salva);
     if (salvas.length && !window.confirm(`Tirar “${e.nome}” do treino? ${salvas.length === 1 ? "A série salva será apagada." : `As ${salvas.length} séries salvas serão apagadas.`}`)) return;
-    setErro(null);
+    setErroEx(null);
     for (const s of salvas) {
       const r = await chamar(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
-      if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível apagar a série."));
+      if (!r.ok) return setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível apagar a série.") });
       contarNoPlacar(e, s, false);
     }
     const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "DELETE", {});
-    if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível tirar agora."));
+    if (!r.ok) return setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível tirar agora.") });
     setExs((l) => l.filter((x) => x.seId !== e.seId));
     if (aberto === e.seId) setAberto(null);
   }
 
   async function ajustar(e: ExercicioTela, patch: { tecnica?: string; observacao?: string }) {
     const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "PATCH", patch);
-    if (!r.ok) setErro(String(r.json.error ?? "Não foi possível salvar agora."));
+    if (!r.ok) setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível salvar agora.") });
   }
 
   async function terminar(status: "concluida" | "abandonada") {
@@ -226,6 +247,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                 <Icon name="trash" size={18} />
               </button>
               </div>
+              {erroEx?.seId === e.seId ? <p role="alert" className="mx-4 mb-3 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erroEx.texto}</p> : null}
               {abertoAqui ? (
                 <div className="space-y-3 border-t border-border px-4 py-3">
                   {e.ultima ? <p className="text-xs text-fg-muted">📌 {e.ultima}</p> : null}
@@ -256,17 +278,17 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                           <span className="text-center font-mono text-sm text-fg-muted">{s.tipo === "aquecimento" ? "A" : s.serie}</span>
                           <input inputMode="decimal" value={s.carga} onChange={(ev) => mudarSerie(e.seId, s.key, { carga: ev.target.value, salva: false })} placeholder="kg" aria-label={`Carga da série ${s.serie}`} className="h-11 w-full rounded-lg border border-border bg-bg px-2 text-center text-base tabular-nums" />
                           <input inputMode="numeric" value={s.reps} onChange={(ev) => mudarSerie(e.seId, s.key, { reps: ev.target.value.replace(/\D/g, "").slice(0, 3), salva: false })} placeholder="reps" aria-label={`Repetições da série ${s.serie}`} className="h-11 w-full rounded-lg border border-border bg-bg px-2 text-center text-base tabular-nums" />
-                          <button type="button" onClick={() => void salvarSerie(e, s)} aria-label={s.salva ? "Série salva" : "Salvar série"} className={`grid h-11 w-11 place-items-center rounded-lg border ${s.salva ? "border-success bg-success/20 text-success" : "border-accent text-accent"}`}>
-                            <Icon name="check" size={18} />
+                          <button type="button" onClick={() => void salvarSerie(e, s)} aria-busy={trabalhando.has(s.key)} aria-label={trabalhando.has(s.key) ? "Salvando série" : s.salva ? "Série salva" : "Salvar série"} className={`grid h-11 w-11 place-items-center rounded-lg border ${trabalhando.has(s.key) ? "animate-pulse border-accent bg-accent/20 text-accent" : s.salva ? "border-success bg-success/20 text-success" : "border-accent text-accent"}`}>
+                            {trabalhando.has(s.key) ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden /> : <Icon name="check" size={18} />}
                           </button>
-                          <button type="button" onClick={() => void apagarSerie(e, s)} aria-label="Apagar série" className="grid h-9 w-9 place-items-center rounded-lg text-fg-subtle hover:text-red">
+                          <button type="button" disabled={trabalhando.has(s.key)} onClick={() => void apagarSerie(e, s)} aria-label={`Apagar série ${s.serie}`} className="grid h-11 w-9 place-items-center rounded-lg text-fg-subtle hover:text-red disabled:opacity-40">
                             <Icon name="x" size={16} />
                           </button>
                         </div>
                         {tipos.length > 1 ? (
                           <div className="ml-10 flex flex-wrap gap-1.5">
                             {tipos.map((t) => (
-                              <button key={t.id} type="button" onClick={() => mudarSerie(e.seId, s.key, { tipo: t.id, salva: false })} aria-pressed={s.tipo === t.id} className={`rounded-full border px-2.5 py-0.5 text-[11px] ${s.tipo === t.id ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-subtle"}`}>
+                              <button key={t.id} type="button" onClick={() => { if (s.tipo !== t.id) mudarSerie(e.seId, s.key, { tipo: t.id, salva: false }); }} aria-pressed={s.tipo === t.id} className={`min-h-9 rounded-full border px-3 text-xs ${s.tipo === t.id ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-subtle"}`}>
                                 {t.rotulo}
                               </button>
                             ))}
