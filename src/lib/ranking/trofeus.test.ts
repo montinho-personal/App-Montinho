@@ -51,3 +51,18 @@ describe("desempate pela constância", () => {
     expect(desempateDaAderencia({ ...base, semanas: [sem("2026-10-19", 4, 2, { atual: true })] }).pctSemana).toBeNull();
   });
 });
+
+describe("ranking sem a linha do personal (Meu treino)", () => {
+  const l = (posicao: number, nome: string, trofeus: number, eu = false) => ({ posicao, nome, trofeus, eu, visitante: false });
+  it("quem estava atrás sobe uma posição", async () => {
+    const { semMinhaLinha } = await import("./trofeus");
+    const r = semMinhaLinha([l(1, "Ana", 9), l(2, "Montinho", 8, true), l(3, "Bia", 7), l(3, "Caio", 7)]);
+    expect(r.map((x) => [x.nome, x.posicao])).toEqual([["Ana", 1], ["Bia", 2], ["Caio", 2]]);
+    expect(r[2].mesmoTotalAcima).toBe(true);
+  });
+  it("empatado com outro: ninguém muda de posição", async () => {
+    const { semMinhaLinha } = await import("./trofeus");
+    const r = semMinhaLinha([l(1, "Ana", 9), l(1, "Montinho", 9, true), l(3, "Bia", 7)]);
+    expect(r.map((x) => x.posicao)).toEqual([1, 3]);
+  });
+});

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { atualizarTrofeus, getRanking } from "@/lib/data/ranking";
 import { getAluno } from "@/lib/db";
-import { fraseDoRanking, podioDaPosicao, PODIO } from "@/lib/ranking/trofeus";
+import { fraseDoRanking, podioDaPosicao, PODIO, semMinhaLinha } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
 import { NarrativaRanking } from "@/components/ranking/NarrativaRanking";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
@@ -16,7 +16,9 @@ export default async function RankingPage() {
   const sessao = await requireAlunoPage();
   const aluno = await getAluno(sessao.alunoId);
   if (aluno) await atualizarTrofeus([aluno]);
-  const [linhas, desafios] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => [])]);
+  const [todas, desafios] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => [])]);
+  // Personal no “Meu treino”: vê o ranking como aluno, mas fica fora dele.
+  const linhas = sessao.comoPersonal ? semMinhaLinha(todas) : todas;
   const eu = linhas.find((l) => l.eu);
   const p = eu ? podioDaPosicao(eu.posicao) : null;
   return (
@@ -24,6 +26,7 @@ export default async function RankingPage() {
       <NarrativaRanking />
       <EntradaDesafios desafios={desafios} />
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
+        {sessao.comoPersonal ? <p className="text-xs text-fg-muted">🏋️ Você está como aluno pelo “Meu treino”: seus troféus contam para você, mas você fica fora do ranking.</p> : null}
         {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} {eu.trofeus === 1 ? "troféu" : "troféus"}</span></p> : null}
         <p className="text-sm font-semibold">{fraseDoRanking(linhas)}</p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs">

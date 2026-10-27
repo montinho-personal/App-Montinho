@@ -15,6 +15,22 @@ export type LinhaRanking = {
   mesmoTotalAcima?: boolean;
 };
 
+/**
+ * Tira a linha do próprio personal (“Meu treino”, a linha `eu` quando quem vê é o
+ * personal) e ajusta as posições: quem estava atrás dele sobe uma (empate não muda).
+ */
+export function semMinhaLinha(linhas: LinhaRanking[]): LinhaRanking[] {
+  const minha = linhas.find((l) => l.eu);
+  if (!minha) return linhas;
+  const empatado = linhas.some((l) => !l.eu && l.posicao === minha.posicao);
+  const resto = linhas.filter((l) => !l.eu);
+  return resto.map((l, i) => ({
+    ...l,
+    posicao: !empatado && l.posicao > minha.posicao ? l.posicao - 1 : l.posicao,
+    mesmoTotalAcima: i > 0 && resto[i - 1].trofeus === l.trofeus,
+  }));
+}
+
 /** Critérios de desempate, na ordem (texto do asterisco embaixo do ranking). */
 export const DESEMPATE =
   "* Empatou em troféus? Fica na frente quem cumpriu melhor a meta de treinos da semana passada. Se continuar empatado, ganha quem tem mais carimbos (treinos concluídos desde o começo); depois, quem está há mais semanas seguidas cumprindo a meta; depois, quem cumpriu melhor a meta nas últimas 4 semanas; e, por último, quem chegou primeiro a esse número de troféus.";
