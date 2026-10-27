@@ -1,5 +1,7 @@
 // Ranking de troféus dos alunos e visitantes (0076).
 import Link from "next/link";
+import { IncentivoIndicacao } from "@/components/indicacao/IncentivoIndicacao";
+import { incentivoIndicacao } from "@/lib/data/indicacao";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { atualizarTrofeus, getRanking } from "@/lib/data/ranking";
 import { getAluno } from "@/lib/db";
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function RankingPage() {
   const sessao = await requireAlunoPage();
+  const incentivo = await incentivoIndicacao(sessao).catch(() => null);
   const aluno = await getAluno(sessao.alunoId);
   if (aluno) await atualizarTrofeus([aluno]);
   const [todas, desafios] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => [])]);
@@ -35,6 +38,7 @@ export default async function RankingPage() {
         </div>
       </div>
       <RankingTrofeus linhas={linhas} desafiar />
+      {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
     </div>
   );

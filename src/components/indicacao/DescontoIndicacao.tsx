@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BRAND } from "@/config/brand";
 import { mensagemUsarDesconto, REGRAS_DESCONTO, type ResumoDesconto } from "@/lib/indicacao/desconto";
 
-export function DescontoIndicacao({ r, nome, link = false }: { r: ResumoDesconto; nome?: string | null; /** No Início: leva para a página da indicação. */ link?: boolean }) {
+export function DescontoIndicacao({ r, nome, link = false, aluno = false }: { r: ResumoDesconto; nome?: string | null; /** No Início: leva para a página da indicação. */ link?: boolean; /** Aluno: vale na próxima renovação. */ aluno?: boolean }) {
   if (r.pct <= 0) return null;
   const whats = BRAND.contact.whatsapp ? `https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(mensagemUsarDesconto(r.pct, nome))}` : null;
   return (
@@ -11,7 +11,7 @@ export function DescontoIndicacao({ r, nome, link = false }: { r: ResumoDesconto
       <p className="text-[11px] font-bold uppercase tracking-wider text-success">Indicação premiada</p>
       <h2 className="mt-1 text-2xl font-black">🎁 Você tem {r.pct}% de desconto</h2>
       <p className="mt-1 text-sm text-fg-muted">
-        {r.fecharam === 1 ? "1 amigo fechou" : `${r.fecharam} amigos fecharam`} com o {BRAND.name} pelo seu convite. Vale em qualquer plano, sem prazo para usar.
+        {r.fecharam === 1 ? "1 amigo fechou" : `${r.fecharam} amigos fecharam`} com o {BRAND.name} pelo seu convite. {aluno ? "Vale na sua próxima renovação, sem prazo para usar." : "Vale em qualquer plano, sem prazo para usar."}
         {r.guardado > 0 ? ` E tem mais ${r.guardado}% guardados para a próxima vez (o máximo é ${REGRAS_DESCONTO.maximo}% por plano).` : ""}
       </p>
       <div className="mt-3 space-y-2">

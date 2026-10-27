@@ -1840,3 +1840,18 @@ begin
 end $$;
 select test_logout();
 \echo 'T56 OK: indicação com desconto'
+-- T57 — 0103: aviso da indicação premiada — aluno recebe 1 aviso depois do treino concluído
+update alunos set modalidade = 'consultoria', status = 'ativo' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+do $$
+declare sid uuid;
+begin
+  insert into training_sessions (aluno_id, client_key, status) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 't57-1', 'em_andamento') returning id into sid;
+  update training_sessions set status = 'concluida' where id = sid;
+  if not exists (select 1 from notificacoes_envios where dedupe = 'indicacao_novidade:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and agendada_para > now()) then
+    raise exception 'T57a: aluno não recebeu o aviso da indicação premiada';
+  end if;
+  insert into training_sessions (aluno_id, client_key, status) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 't57-2', 'em_andamento') returning id into sid;
+  update training_sessions set status = 'concluida' where id = sid;
+  if (select count(*) from notificacoes_envios e join alunos a on a.profile_id = e.profile_id where a.id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and e.dedupe like 'indicacao_%') <> 1 then raise exception 'T57b: aviso repetido'; end if;
+end $$;
+\echo 'T57 OK: aviso da indicação premiada'

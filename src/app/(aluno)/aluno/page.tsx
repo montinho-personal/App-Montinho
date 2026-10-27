@@ -16,6 +16,7 @@ import { LivreMetasCard } from "@/components/livre-metas/LivreMetasCard";
 import { FacaOQueQuiser } from "@/components/livre-metas/FacaOQueQuiser";
 import { minhaIndicacao } from "@/lib/data/indicacao";
 import { DescontoIndicacao } from "@/components/indicacao/DescontoIndicacao";
+import { IncentivoIndicacao } from "@/components/indicacao/IncentivoIndicacao";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
 import { estadoSemana, resumoPeriodo } from "@/lib/relatorios/calcular";
@@ -247,17 +248,9 @@ export default async function AlunoHomePage() {
         </div>
       ) : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
-      {indicacao?.pct ? <DescontoIndicacao r={indicacao} nome={sessao.nome} link /> : null}
+      {indicacao?.pct ? <DescontoIndicacao r={indicacao} nome={sessao.nome} link aluno={!ehVisitante(sessao)} /> : null}
       {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}
-      {FEATURES.modoVisitante && !ehVisitante(sessao) && !sessao.comoPersonal && !indicacao?.pct ? (
-        <Link href="/aluno/indicar" className="flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-card px-4 py-3">
-          <span className="min-w-0">
-            <span className="block text-sm font-bold">🎁 Indique um amigo e ganhe 10% de desconto</span>
-            <span className="block text-xs text-fg-muted">Se ele fechar um plano, o desconto é seu. Mais amigos, até 30%.</span>
-          </span>
-          <span aria-hidden className="text-accent">→</span>
-        </Link>
-      ) : null}
+      {FEATURES.modoVisitante && !ehVisitante(sessao) && !sessao.comoPersonal && !indicacao?.pct ? <IncentivoIndicacao momento="inicio" aluno fecharam={indicacao?.fecharam ?? 0} /> : null}
       {/* No máximo um convite por tela: com campanha em destaque, sai o convite comum. */}
       {FEATURES.modoVisitante && ehVisitante(sessao) && !campanha?.oferta && !mostrarConvite ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
 

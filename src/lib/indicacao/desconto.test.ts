@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mensagemUsarDesconto, resumoDesconto, type LinhaIndicacao } from "./desconto";
+import { ESCADA_DESCONTO, mensagemUsarDesconto, resumoDesconto, textoDoMomento, type LinhaIndicacao } from "./desconto";
 
 const l = (id: string, fechou: string | null, usado: string | null = null): LinhaIndicacao => ({ id, created_at: "2026-10-01T10:00:00Z", fechou_em: fechou, desconto_pct: fechou ? 10 : 0, desconto_usado_em: usado });
 
@@ -20,5 +20,10 @@ describe("indicação com desconto", () => {
   });
   it("mensagem para o WhatsApp", () => {
     expect(mensagemUsarDesconto(20, "Ana Souza")).toBe("Oi, Montinho! Aqui é Ana. Ganhei 20% de desconto por indicação no app e quero usar no meu plano. 🎁");
+  });
+  it("escada 10/20/30 e texto do aluno fala da renovação", () => {
+    expect(ESCADA_DESCONTO.map((e) => e.pct)).toEqual([10, 20, 30]);
+    expect(textoDoMomento("fim_treino", true).texto).toMatch(/próxima renovação/);
+    expect(textoDoMomento("fim_treino", false).texto).toMatch(/qualquer plano/);
   });
 });

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { eventoGa } from "@/components/analytics/ga";
 import { mensagemConviteAmigo, REGRAS_INDICACAO } from "@/lib/visitante/campanhas";
-import { REGRAS_DESCONTO } from "@/lib/indicacao/desconto";
+import { ESCADA_DESCONTO, REGRAS_DESCONTO } from "@/lib/indicacao/desconto";
 
 /**
  * “Convide um amigo” (0068/0102). Visitante: +10 dias por amigo que cria a
@@ -52,7 +52,7 @@ export function ConviteAmigo({ amigos, diasGanhos, tela, aluno = false }: { amig
             Indique um amigo e ganhe <span className="text-accent">{REGRAS_DESCONTO.porAmigo}% de desconto</span>
           </h2>
           <p className="mt-2 text-sm text-fg-muted">
-            Seu amigo testa o app 30 dias de graça. Se ele fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto em qualquer plano. Indicou mais de um? Os descontos somam até {REGRAS_DESCONTO.maximo}%.
+            Seu amigo testa o app 30 dias de graça. Se ele fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto na sua próxima renovação. Indicou mais de um? Os descontos somam até {REGRAS_DESCONTO.maximo}%.
           </p>
         </>
       ) : (
@@ -63,11 +63,17 @@ export function ConviteAmigo({ amigos, diasGanhos, tela, aluno = false }: { amig
           <p className="mt-2 text-sm text-fg-muted">
             Mande o seu link para alguém que também quer treinar. Cada amigo que criar a conta te dá +{REGRAS_INDICACAO.diasPorAmigo} dias, até +{REGRAS_INDICACAO.maxDias} dias.
           </p>
-          <p className="mt-2 rounded-lg bg-accent/10 px-3 py-2 text-sm font-semibold">
-            🎁 E se o amigo fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto em qualquer plano (somam até {REGRAS_DESCONTO.maximo}%).
-          </p>
+          <p className="mt-2 text-sm font-semibold">🎁 E se o amigo fechar um plano com o Montinho, você ganha desconto em qualquer plano:</p>
         </>
       )}
+      <ol className="mt-3 grid grid-cols-3 gap-2" aria-label="Quanto você ganha">
+        {ESCADA_DESCONTO.map((e) => (
+          <li key={e.amigos} className="rounded-xl border border-accent/40 bg-bg/40 px-2 py-2 text-center">
+            <span className="block text-xl font-black text-accent">{e.pct}%</span>
+            <span className="block text-[11px] text-fg-muted">{e.amigos} {e.amigos === 1 ? "amigo fechou" : "amigos fecharam"}</span>
+          </li>
+        ))}
+      </ol>
       {amigos > 0 && !aluno ? (
         <p className="mt-3 rounded-lg bg-success/10 px-3 py-2 text-sm font-semibold text-success">
           🎉 {amigos} {amigos === 1 ? "amigo entrou" : "amigos entraram"} pelo seu convite: você já ganhou +{diasGanhos} dias.{restam ? ` Ainda dá para ganhar +${restam}.` : ""}

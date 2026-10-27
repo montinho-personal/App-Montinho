@@ -1,6 +1,8 @@
 // Minhas conquistas: histórico permanente, “Minha evolução em 30 dias” e
 // reconhecimentos escritos pelo personal.
 import Link from "next/link";
+import { IncentivoIndicacao } from "@/components/indicacao/IncentivoIndicacao";
+import { incentivoIndicacao } from "@/lib/data/indicacao";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { progressoCardio } from "@/lib/data/cardio";
@@ -25,6 +27,7 @@ export const metadata = { title: "Conquistas" };
 
 export default async function ConquistasPage() {
   const sessao = await requireAlunoPage();
+  const incentivo = await incentivoIndicacao(sessao).catch(() => null);
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
   const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos, plano, cardio] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), getPlanoAtivo(aluno.id).catch(() => null), progressoCardio(aluno.id).catch(() => null)]);
@@ -57,6 +60,7 @@ export default async function ConquistasPage() {
       </div>
       <TrofeusAoAlcance itens={aoAlcance} />
       <CartaoCarimbos total={contarCarimbos(sessoes)} />
+      {incentivo ? <IncentivoIndicacao momento="conquistas" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <section className="space-y-2" aria-labelledby="categorias-titulo">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id="categorias-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Troféus por categoria</h2>

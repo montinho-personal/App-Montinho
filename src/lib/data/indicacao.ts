@@ -69,3 +69,22 @@ export async function marcarDescontoUsado(indicadorId: string): Promise<number> 
   if (e2) throw new Error(e2.message);
   return r.pct;
 }
+
+/**
+ * Quem vê o incentivo da indicação: aluno (desconto na renovação) e visitante
+ * com o convite liberado (4+ treinos). Não aparece no “Meu treino” do personal
+ * nem para quem já juntou 3 amigos que fecharam.
+ */
+export async function incentivoIndicacao(s: { alunoId: string; modalidade?: string; comoPersonal?: boolean; acessoFim?: string | null }): Promise<{ aluno: boolean; fecharam: number } | null> {
+  const { FEATURES } = await import("@/lib/env");
+  if (!FEATURES.modoVisitante || s.comoPersonal) return null;
+  const aluno = s.modalidade !== "visitante";
+  if (!aluno) {
+    const { campanhaDoVisitante } = await import("@/lib/data/campanhas");
+    const { REGRAS_INDICACAO } = await import("@/lib/visitante/campanhas");
+    const c = await campanhaDoVisitante(s.alunoId, s.acessoFim ?? null).catch(() => null);
+    if (!c || c.treinosConcluidos < REGRAS_INDICACAO.treinosMinimos) return null;
+  }
+  const r = await minhaIndicacao(s.alunoId).catch(() => null);
+  return { aluno, fecharam: r?.fecharam ?? 0 };
+}

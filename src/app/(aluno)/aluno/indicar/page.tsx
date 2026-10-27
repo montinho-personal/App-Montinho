@@ -8,7 +8,7 @@ import { minhaIndicacao } from "@/lib/data/indicacao";
 import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
 import { DescontoIndicacao } from "@/components/indicacao/DescontoIndicacao";
-import { REGRAS_DESCONTO } from "@/lib/indicacao/desconto";
+import { ondeVale, REGRAS_DESCONTO } from "@/lib/indicacao/desconto";
 import { REGRAS_INDICACAO } from "@/lib/visitante/campanhas";
 
 export const metadata = { title: "Indique um amigo" };
@@ -26,7 +26,7 @@ export default async function IndicarPage() {
         <h1 className="text-2xl font-bold">🎁 Indique um amigo</h1>
         <p className="text-sm text-fg-muted">Treinar junto é melhor. E ainda vale desconto para você.</p>
       </header>
-      <DescontoIndicacao r={r} nome={sessao.nome} />
+      <DescontoIndicacao r={r} nome={sessao.nome} aluno={!visitante} />
       {sessao.comoPersonal ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-fg-muted">No “Meu treino” não há convite de indicação: esta é a tela que os alunos veem.</p>
       ) : !FEATURES.modoVisitante ? (
@@ -43,8 +43,8 @@ export default async function IndicarPage() {
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-fg-muted">
           <li>Mande o seu link para um amigo. Ele testa o app 30 dias de graça.</li>
           {visitante ? <li>Cada amigo que criar a conta te dá +{REGRAS_INDICACAO.diasPorAmigo} dias de app (até +{REGRAS_INDICACAO.maxDias}).</li> : null}
-          <li>Se o amigo fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto em qualquer plano.</li>
-          <li>Mais amigos, mais desconto: soma até {REGRAS_DESCONTO.maximo}% no mesmo plano. O desconto não tem prazo.</li>
+          <li>Se o amigo fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto {ondeVale(!visitante)}.</li>
+          <li>Mais amigos, mais desconto: 1 amigo = 10%, 2 amigos = 20%, 3 amigos = {REGRAS_DESCONTO.maximo}%. O desconto não tem prazo.</li>
         </ol>
         {r.cadastrados ? (
           <p className="mt-3 text-xs text-fg-subtle">

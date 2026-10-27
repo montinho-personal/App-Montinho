@@ -56,6 +56,7 @@ import type { ContextoPulsoAluno } from "@/lib/data/pulso";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
 import { CardioDoTreino } from "@/components/strava/CardioDoTreino";
 import { CardioAposTreino } from "@/components/cardio/CardioAposTreino";
+import { IncentivoIndicacao } from "@/components/indicacao/IncentivoIndicacao";
 import { OPCOES_TEMPO_MIN, encurtarDescanso, ganhoDescansoReduzido, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { avaliarSerie, podeAvisar, principal, resumirExercicio, type Descoberta, type ExecucaoAnterior, type SerieReg } from "@/lib/evolucao/motor";
@@ -105,6 +106,8 @@ type Props = {
   pulso?: ContextoPulsoAluno | null;
   /** Visitante: oferta do fim do acesso e convite de amigo (0068), no fim do treino. */
   campanha?: (CampanhaVisitante & { ofertaHref: string | null }) | null;
+  /** Aluno: incentivo da indicação premiada (0102/0103), alternando com o convite de desafio. */
+  indicacao?: { aluno: boolean; fecharam: number } | null;
   /** Opções de troca por exercício do plano (regras do personal/catálogo). */
   trocas?: Record<string, TrocasDoExercicio>;
   /** Última execução de cada opção de troca (para vir preenchido). */
@@ -216,7 +219,7 @@ function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[
 const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
   Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, padraoCarga, alcance = null, pulso = null }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, indicacao = null, padraoCarga, alcance = null, pulso = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -1154,7 +1157,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           ) : campanha && conviteLiberado(campanha.treinosConcluidos + (concluida.status === "concluida" && !sessaoConcluida ? 1 : 0), campanha.indicacao) ? (
             <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="fim_treino" />
           ) : null}
-          {concluida.status === "concluida" && feedback !== "dor" ? (
+          {concluida.status === "concluida" && feedback !== "dor" && indicacao && [...concluida.id].reduce((h, c) => h + c.charCodeAt(0), 0) % 2 === 0 ? (
+            // Um convite por tela: em metade dos treinos (pelo id da sessão), a indicação no lugar do desafio.
+            <IncentivoIndicacao momento="fim_treino" aluno={indicacao.aluno} fecharam={indicacao.fecharam} />
+          ) : concluida.status === "concluida" && feedback !== "dor" ? (
             <Link href="/aluno/desafios/novo" className="alvo flex items-center gap-3 rounded-2xl border border-accent/50 bg-card px-4 py-3">
               <span className="text-2xl" aria-hidden>⚔️</span>
               <span className="flex-1">

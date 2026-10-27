@@ -52,3 +52,28 @@ export function mensagemUsarDesconto(pct: number, nome?: string | null): string 
   const quem = nome?.trim() ? `Aqui é ${nome.trim().split(/\s+/)[0]}. ` : "";
   return `Oi, Montinho! ${quem}Ganhei ${pct}% de desconto por indicação no app e quero usar no meu plano. 🎁`;
 }
+
+/** Escada mostrada nos incentivos: 1 amigo que fecha = 10%, 2 = 20%, 3 = 30%. */
+export const ESCADA_DESCONTO = [1, 2, 3].map((amigos) => ({ amigos, pct: amigos * REGRAS_DESCONTO.porAmigo }));
+
+/** Onde o desconto vale: visitante fecha o 1º plano; aluno usa na próxima renovação. */
+export const ondeVale = (aluno: boolean) => (aluno ? "na sua próxima renovação" : "em qualquer plano");
+
+/** Momentos do app em que o convite aparece (texto conforme o momento). */
+export type MomentoIndicacao = "fim_treino" | "conquistas" | "ranking" | "inicio" | "cardio";
+
+export function textoDoMomento(m: MomentoIndicacao, aluno: boolean): { titulo: string; texto: string } {
+  const vale = ondeVale(aluno);
+  switch (m) {
+    case "fim_treino":
+      return { titulo: "Treino pago! Bora trazer alguém junto?", texto: `Amigo que treina junto não falta. E se ele fechar com o Montinho, você ganha desconto ${vale}.` };
+    case "conquistas":
+      return { titulo: "Conquista boa é conquista dividida", texto: `Chame um amigo para essa jornada. Cada amigo que fechar te dá 10% de desconto ${vale}.` };
+    case "ranking":
+      return { titulo: "Suba no ranking com um parceiro de treino", texto: `Indique quem você quer ver aqui. Se ele fechar, o desconto ${vale} é seu.` };
+    case "cardio":
+      return { titulo: "Cardio rende mais com companhia", texto: `Chame alguém para treinar junto: amigo que fecha vale desconto ${vale}.` };
+    default:
+      return { titulo: "Indique amigos e ganhe até 30%", texto: `Cada amigo que fechar com o Montinho te dá 10% de desconto ${vale}.` };
+  }
+}

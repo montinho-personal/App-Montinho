@@ -29,7 +29,7 @@ import { getPadraoCarga } from "@/lib/data/padrao-carga";
 import { contextoPulsoAluno } from "@/lib/data/pulso";
 
 
-export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null, visitante = null }: {
+export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null, visitante = null, indicacao = null }: {
   alunoId: string;
   nomeAluno: string;
   treinoId: string;
@@ -40,6 +40,8 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   presencial?: Presencial | null;
   /** Visitante (Modo Visitante): campanhas no fim do treino. */
   visitante?: { acessoFim: string | null } | null;
+  /** Aluno: incentivo da indicação premiada no fim do treino. */
+  indicacao?: { aluno: boolean; fecharam: number } | null;
 }) {
   const treinoPlano = await getTreinoComExercicios(treinoId);
   // Checagem explícita de vínculo: o treino precisa pertencer ao aluno logado (além da RLS).
@@ -137,6 +139,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       progressoesRecentes={progressoes}
       confianca={confianca}
       campanha={campanha}
+      indicacao={indicacao}
       padraoCarga={padraoCarga}
       alcance={alcance}
       pulso={pulso}
