@@ -13,6 +13,8 @@ import { CATEGORIA_ROTULO } from "@/lib/pulso/classificar";
 import { ordenarFila } from "@/lib/pulso/alertas";
 import type { PulsoDoAluno } from "@/lib/data/pulso";
 import { TendenciaPulso } from "@/components/pulso/TendenciaPulso";
+import { EditorModelos, EscolherModelo } from "@/components/acompanhamento/ModelosMensagem";
+import type { ModelosMensagem } from "@/lib/acompanhamento/modelos";
 
 type Filtro = "todos" | "atencao" | "acompanhar" | "reconhecer";
 const tipoDe = (p: PulsoDoAluno): Exclude<Filtro, "todos"> | "tudo_bem" => (p.resultado.categoria === "tudo_bem" ? (p.resultado.sugestao?.acao === "reconhecer" ? "reconhecer" : "tudo_bem") : p.resultado.categoria);
@@ -23,7 +25,7 @@ const ROTULO: Record<Exclude<Filtro, "todos">, { t: string; e: string; cor: stri
 };
 const dataBR = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : null);
 
-function CartaoPulso({ p }: { p: PulsoDoAluno }) {
+function CartaoPulso({ p, modelos }: { p: PulsoDoAluno; modelos: ModelosMensagem }) {
   const router = useRouter();
   const toast = useToast();
   const sg = p.resultado.sugestao;
@@ -70,6 +72,7 @@ function CartaoPulso({ p }: { p: PulsoDoAluno }) {
       {sg ? (
         <div className="space-y-2">
           <label className="block text-[11px] text-fg-muted" htmlFor={`pm-${p.alunoId}`}>Rascunho para você editar (nada é enviado sozinho; não cita saúde)</label>
+          <EscolherModelo modelos={modelos} nome={p.nome} dias={p.diasSemTreino} onEscolher={setTexto} />
           <textarea id={`pm-${p.alunoId}`} rows={3} value={texto} onChange={(e) => setTexto(e.target.value.slice(0, 600))} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
           {perguntar ? (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-bg p-2 text-xs" aria-live="polite">
@@ -99,7 +102,7 @@ function CartaoPulso({ p }: { p: PulsoDoAluno }) {
   );
 }
 
-export function CentralPulsoClient({ itens }: { itens: PulsoDoAluno[] }) {
+export function CentralPulsoClient({ itens, modelos }: { itens: PulsoDoAluno[]; modelos: ModelosMensagem }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const abertos = useMemo(() => itens.filter((p) => p.chave && p.situacao === "aberto"), [itens]);
   const conta = (t: Exclude<Filtro, "todos">) => abertos.filter((p) => tipoDe(p) === t).length;
@@ -122,7 +125,7 @@ export function CentralPulsoClient({ itens }: { itens: PulsoDoAluno[] }) {
       </div>
 
       {fila.length ? (
-        <div className="space-y-3">{fila.map((p) => <CartaoPulso key={p.alunoId} p={p} />)}</div>
+        <div className="space-y-3">{fila.map((p) => <CartaoPulso key={p.alunoId} p={p} modelos={modelos} />)}</div>
       ) : (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Nada na fila agora. 💛 Quando algum aluno contar uma dificuldade no Pulso, aparece aqui.</div>
       )}
@@ -157,6 +160,7 @@ export function CentralPulsoClient({ itens }: { itens: PulsoDoAluno[] }) {
           </ul>
         </details>
       ) : null}
+      <EditorModelos modelos={modelos} />
     </div>
   );
 }

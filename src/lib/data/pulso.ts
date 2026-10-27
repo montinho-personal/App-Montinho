@@ -11,6 +11,7 @@ import { escolherPerguntas, type EscolhaPulso, type MomentoPulso } from "@/lib/p
 import { classificarPulso, dificuldadesFrequentes, tendenciaSemanal, type ResultadoPulso, type SemanaPulso } from "@/lib/pulso/classificar";
 import { chaveAlertaPulso, situacaoAlerta, type EstadoAlerta, type SituacaoAlerta } from "@/lib/pulso/alertas";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
+import { preencherModelo, type ModelosMensagem } from "@/lib/acompanhamento/modelos";
 
 export type Consentimento = "sim" | "nao" | "nunca";
 export type RespostasHoje = Partial<Record<Dimensao, string | string[]>>;
@@ -303,8 +304,9 @@ export async function registrarAcessoSaude(leitorId: string, alunoIds: string[],
 
 /** Pulso de todos os alunos para a fila do personal. */
 export async function pulsoDeTodos(
-  alunos: Array<{ id: string; nome: string; telefone: string | null; quedaFrequencia?: boolean; frequenciaMantida?: boolean }>,
+  alunos: Array<{ id: string; nome: string; telefone: string | null; quedaFrequencia?: boolean; frequenciaMantida?: boolean; semanas?: number }>,
   agora = new Date(),
+  modelos?: ModelosMensagem,
 ): Promise<PulsoDoAluno[]> {
   const hoje = diaSP(agora);
   const desde = diaSP(new Date(agora.getTime() - 60 * 86_400_000));
@@ -314,6 +316,8 @@ export async function pulsoDeTodos(
     const l = linhas[a.id];
     const { respostas } = montarRespostas(l, hoje);
     const resultado = classificarPulso(a.nome, respostas, hoje, { quedaFrequencia: a.quedaFrequencia, frequenciaMantida: a.frequenciaMantida });
+    // Modelo do personal no lugar do rascunho padrão.
+    if (modelos && resultado.sugestao?.modelo) resultado.sugestao = { ...resultado.sugestao, rascunho: preencherModelo(modelos[resultado.sugestao.modelo], { nome: a.nome, semanas: a.semanas ?? null, dias: null }) };
     const chave = chaveAlertaPulso(resultado);
     const estado = chave ? (estados.get(`${a.id}|${chave}`) ?? null) : null;
     return {

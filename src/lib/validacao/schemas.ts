@@ -788,3 +788,16 @@ export const alertaPulsoSchema = z.object({
   acao: z.enum(["acompanhado", "dispensado", "adiado", "contato"]),
   dias: z.coerce.number().int().min(1).max(30).optional(),
 });
+
+// Modelos de mensagem do WhatsApp do personal (src/lib/acompanhamento/modelos.ts).
+const textoModelo = z.string().trim().max(500).refine((t) => !/\{(?!nome\}|dias\}|semanas\})[^}]*\}/.test(t), "Use só {nome}, {dias} ou {semanas}");
+export const modelosMensagemSchema = z
+  .object({ ausencia: textoModelo, queda: textoModelo, retorno: textoModelo, pouco_tempo: textoModelo, progresso: textoModelo, renovacao: textoModelo, apoio: textoModelo, cuidado: textoModelo })
+  .partial()
+  .strict();
+
+// Contato registrado pelo personal depois de enviar a mensagem (Central de aderência).
+export const contatoAcompanhamentoSchema = z.object({
+  aluno_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
+  motivo: z.enum(["ausencia", "plano_alterado", "registro", "queda", "retomada", "sequencia", "pausa", "sem_carga", "avaliacao"]),
+});

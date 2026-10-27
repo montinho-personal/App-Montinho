@@ -4,9 +4,10 @@
 // ============================================================================
 
 import { dataLocal, somarDias, tendencia, type ResultadoAderencia } from "./calcular";
+import { MODELOS_PADRAO, preencherModelo, type ModeloId, type ModelosMensagem } from "@/lib/acompanhamento/modelos";
 
 export type Sinal = {
-  tipo: "sem_treino_recente" | "queda_frequencia" | "retomou" | "meta_sequencia" | "em_pausa" | "sem_prescricao";
+  tipo: "sem_treino_recente" | "queda_frequencia" | "retomou" | "meta_sequencia" | "em_pausa" | "sem_prescricao" | "pulso";
   texto: string;
   /** reconhecer = sugestão de parabenizar; acompanhar = merece contato humano; info = contexto. */
   natureza: "acompanhar" | "reconhecer" | "info";
@@ -20,6 +21,8 @@ export type Sugestao = {
   regra: string;
   acao: "mensagem" | "reconhecer" | "verificar_registro" | "nenhuma";
   rascunho: string | null;
+  /** Modelo de mensagem usado (o personal edita os modelos). */
+  modelo?: ModeloId;
 };
 
 export type LinhaCentral = {
@@ -51,6 +54,10 @@ export type ContextoCentral = {
   ultimaAvaliacao?: string | null;
   /** Desde quando acompanha (AAAA-MM-DD), para não cobrar avaliação de quem acabou de entrar. */
   inicio?: string | null;
+  /** Modelos de mensagem do personal (padrão: MODELOS_PADRAO). */
+  modelos?: ModelosMensagem;
+  /** Montinho Pulso: categoria atual e se contou falta de tempo/rotina corrida (sem dado de saúde). */
+  pulso?: { categoria: "tudo_bem" | "acompanhar" | "atencao"; semTempo: boolean } | null;
 };
 
 export type RegrasCentral = { diasSemTreino: number; quedaPontos: number; pausaParaRetomada: number; janelaRetomada: number; sequenciaReconhecer: number; horasRegistroAberto: number; diasPlanoAlterado: number; treinosSemCarga: number; diasAvaliacao: number };
@@ -103,6 +110,9 @@ export function linhaCentral(
     sinais.push({ tipo: "sem_treino_recente", texto: desde === null ? "Nenhum treino registrado ainda" : `${desde} dias sem registrar treino`, natureza: "acompanhar" });
   if (tend !== null && tend <= -REGRAS_CENTRAL.quedaPontos) sinais.push({ tipo: "queda_frequencia", texto: `Aderência ${-tend} pontos abaixo das 4 semanas anteriores`, natureza: "acompanhar" });
 
+  if (ctx.pulso && ctx.pulso.categoria !== "tudo_bem")
+    sinais.push({ tipo: "pulso", texto: ctx.pulso.categoria === "atencao" ? "Pulso: precisa de atenção (ver aba Pulso)" : "Pulso: acompanhar (ver aba Pulso)", natureza: "acompanhar" });
+
   // Retomada: treinou nos últimos 7 dias depois de ≥ 14 dias sem treinar.
   const ord = [...new Set(datasSessoes)].sort();
   for (let i = ord.length - 1; i > 0; i--) {
@@ -116,6 +126,10 @@ export function linhaCentral(
 
   // Sugestões: distinguem ausência real de pausa, plano alterado e registro esquecido.
   const primeiro = aluno.nome.split(" ")[0];
+  const modelos = ctx.modelos ?? MODELOS_PADRAO;
+  const msg = (id: ModeloId) => preencherModelo(modelos[id], { nome: aluno.nome, dias: desde, semanas: r.sequencia.atual });
+  const semTempo = !!ctx.pulso?.semTempo;
+  const notaPulso = semTempo ? " No Pulso, contou que está sem tempo ou com a rotina corrida." : "";
   const sugestoes: Sugestao[] = [];
   const tipos = new Set(sinais.map((x) => x.tipo));
   const horasAberta = ctx.sessaoAbertaDesde ? ((ctx.agora ?? new Date()).getTime() - new Date(ctx.sessaoAbertaDesde).getTime()) / 3_600_000 : 0;
@@ -130,9 +144,9 @@ export function linhaCentral(
       if (planoRecente)
         sugestoes.push({ tipo: "plano_alterado", titulo: `Plano alterado há ${diasPlano} dia(s)`, regra: `A frequência caiu e o plano mudou nos últimos ${REGRAS_CENTRAL.diasPlanoAlterado} dias; pode haver relação com a mudança.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Como está sendo o treino novo? Se algo ficou difícil de encaixar na rotina, me conta que eu ajusto.` });
       else if (tipos.has("sem_treino_recente") && horasAberta < REGRAS_CENTRAL.horasRegistroAberto)
-        sugestoes.push({ tipo: "ausencia", titulo: desde === null ? "Ainda sem treino registrado" : `${desde} dias sem registrar treino`, regra: `Sem treino registrado há ${REGRAS_CENTRAL.diasSemTreino} dias ou mais, fora de pausa combinada e sem treino aberto.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Senti sua falta nos treinos. Está tudo bem? Se a rotina apertou, posso adaptar o treino para caber no seu tempo.` });
+        sugestoes.push({ tipo: "ausencia", titulo: desde === null ? "Ainda sem treino registrado" : `${desde} dias sem registrar treino`, regra: `Sem treino registrado há ${REGRAS_CENTRAL.diasSemTreino} dias ou mais, fora de pausa combinada e sem treino aberto.${notaPulso}`, acao: "mensagem", modelo: semTempo ? "pouco_tempo" : "ausencia", rascunho: msg(semTempo ? "pouco_tempo" : "ausencia") });
       else if (tipos.has("queda_frequencia"))
-        sugestoes.push({ tipo: "queda", titulo: "Frequência abaixo do próprio histórico", regra: `Aderência das últimas 4 semanas ${REGRAS_CENTRAL.quedaPontos}+ pontos abaixo das 4 anteriores. Sessões feitas em outro dia (remanejadas) contam normalmente.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Percebi que as últimas semanas ficaram mais corridas. Quer que a gente ajuste a meta ou o treino para ficar mais viável?` });
+        sugestoes.push({ tipo: "queda", titulo: "Frequência abaixo do próprio histórico", regra: `Aderência das últimas 4 semanas ${REGRAS_CENTRAL.quedaPontos}+ pontos abaixo das 4 anteriores. Sessões feitas em outro dia (remanejadas) contam normalmente.${notaPulso}`, acao: "mensagem", modelo: semTempo ? "pouco_tempo" : "queda", rascunho: msg(semTempo ? "pouco_tempo" : "queda") });
     }
   }
   if (!emPausa && (ctx.treinosSemCarga ?? 0) >= REGRAS_CENTRAL.treinosSemCarga)
@@ -144,9 +158,9 @@ export function linhaCentral(
       sugestoes.push({ tipo: "avaliacao", titulo: ctx.ultimaAvaliacao ? `Última avaliação há ${diasAv} dias` : "Ainda sem avaliação registrada", regra: `Sem medidas nem arquivo de avaliação há ${REGRAS_CENTRAL.diasAvaliacao}+ dias. Avaliar de tempos em tempos mostra a evolução além do peso na barra.`, acao: "mensagem", rascunho: `Oi, ${primeiro}! Que tal a gente marcar uma nova avaliação? Faz um tempinho desde a última, e é muito legal ver o quanto você evoluiu. 📏` });
   }
   if (tipos.has("retomou"))
-    sugestoes.push({ tipo: "retomada", titulo: "Voltou a treinar", regra: `Treinou nos últimos ${REGRAS_CENTRAL.janelaRetomada} dias depois de ${REGRAS_CENTRAL.pausaParaRetomada}+ dias sem treino.`, acao: "reconhecer", rascunho: `Bom ter você de volta, ${primeiro}! Vamos reorganizar a rotina juntos, no seu ritmo.` });
+    sugestoes.push({ tipo: "retomada", titulo: "Voltou a treinar", regra: `Treinou nos últimos ${REGRAS_CENTRAL.janelaRetomada} dias depois de ${REGRAS_CENTRAL.pausaParaRetomada}+ dias sem treino.`, acao: "reconhecer", modelo: "retorno", rascunho: msg("retorno") });
   if (tipos.has("meta_sequencia"))
-    sugestoes.push({ tipo: "sequencia", titulo: `${r.sequencia.atual} semanas seguidas com a meta`, regra: `Meta semanal cumprida ${REGRAS_CENTRAL.sequenciaReconhecer}+ semanas seguidas.`, acao: "reconhecer", rascunho: `Parabéns, ${primeiro}! ${r.sequencia.atual} semanas seguidas cumprindo a meta. Essa constância faz toda a diferença.` });
+    sugestoes.push({ tipo: "sequencia", titulo: `${r.sequencia.atual} semanas seguidas com a meta`, regra: `Meta semanal cumprida ${REGRAS_CENTRAL.sequenciaReconhecer}+ semanas seguidas.`, acao: "reconhecer", modelo: "progresso", rascunho: msg("progresso") });
 
   const proxima = Object.values(r.dias)
     .filter((d) => d.data >= hoje && d.data <= somarDias(hoje, 13) && d.tipos.includes("previsto"))

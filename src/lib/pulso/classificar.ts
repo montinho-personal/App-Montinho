@@ -21,7 +21,8 @@ export type MotivoPulso = { texto: string; categoria: CategoriaPulso; dimensao: 
 
 export type AcaoPulso = "revisao_humana" | "mensagem" | "revisar_treino" | "reconhecer";
 
-export type SugestaoPulso = { acao: AcaoPulso; titulo: string; rascunho: string };
+/** `modelo` = modelo de mensagem do personal que substitui o rascunho (src/lib/acompanhamento/modelos.ts). */
+export type SugestaoPulso = { acao: AcaoPulso; titulo: string; rascunho: string; modelo?: "cuidado" | "pouco_tempo" | "apoio" | "progresso" };
 
 export type ResultadoPulso = {
   categoria: CategoriaPulso;
@@ -32,6 +33,8 @@ export type ResultadoPulso = {
   semRespostas: boolean;
   ultimaResposta: string | null;
   sugestao: SugestaoPulso | null;
+  /** O que o aluno contou que está dificultando (resposta ainda valendo no painel). */
+  dificuldadesAtuais: string[];
 };
 
 /** Limites ajustáveis pelo personal. */
@@ -132,19 +135,19 @@ export function classificarPulso(nome: string, respostas: RespostaPulso[], hoje:
   let sugestao: SugestaoPulso | null = null;
   const tem = (d: Dimensao | null) => motivos.some((m) => m.dimensao === d);
   if (desconforto.length)
-    sugestao = { acao: "revisao_humana", titulo: `${primeiro} relatou desconforto recentemente. Vale conversar antes de qualquer ajuste no treino.`, rascunho: `Oi, ${primeiro}! Passando para saber como você está. Me conta como foram os últimos treinos?` };
+    sugestao = { acao: "revisao_humana", modelo: "cuidado", titulo: `${primeiro} relatou desconforto recentemente. Vale conversar antes de qualquer ajuste no treino.`, rascunho: `Oi, ${primeiro}! Passando para saber como você está. Me conta como foram os últimos treinos?` };
   else if (difAtual.some((x) => x.valor === "falta_tempo" || x.valor === "rotina_corrida"))
-    sugestao = { acao: "revisar_treino", titulo: `${primeiro} informou que está com dificuldade para encaixar os treinos na rotina. Talvez seja o momento de revisar a programação.`, rascunho: `Oi, ${primeiro}! Vi que a rotina está corrida. Quer que eu ajuste o treino para caber melhor no seu tempo?` };
+    sugestao = { acao: "revisar_treino", modelo: "pouco_tempo", titulo: `${primeiro} informou que está com dificuldade para encaixar os treinos na rotina. Talvez seja o momento de revisar a programação.`, rascunho: `Oi, ${primeiro}! Vi que a rotina está corrida. Quer que eu ajuste o treino para caber melhor no seu tempo?` };
   else if (difAtual.some((x) => x.valor === "exercicios"))
     sugestao = { acao: "revisar_treino", titulo: `${primeiro} contou que está com dificuldade em alguns exercícios. Vale revisar a execução ou trocar algum deles.`, rascunho: `Oi, ${primeiro}! Me conta quais exercícios estão mais difíceis? Posso te mandar uma dica ou trocar por outro.` };
   else if (tem("motivacao") || difAtual.some((x) => x.valor === "desmotivacao"))
-    sugestao = { acao: "mensagem", titulo: `${primeiro} relatou pouca vontade de treinar em check-ins recentes. Deseja conversar?`, rascunho: `Oi, ${primeiro}! Como você está? Estou aqui se quiser conversar sobre os treinos. 💛` };
+    sugestao = { acao: "mensagem", modelo: "apoio", titulo: `${primeiro} relatou pouca vontade de treinar em check-ins recentes. Deseja conversar?`, rascunho: `Oi, ${primeiro}! Como você está? Estou aqui se quiser conversar sobre os treinos. 💛` };
   else if (tem("energia") || tem("recuperacao") || tem("sono") || difAtual.some((x) => x.valor === "cansaco"))
-    sugestao = { acao: "mensagem", titulo: `${primeiro} relatou cansaço ou energia baixa nos últimos dias. Deseja conversar?`, rascunho: `Oi, ${primeiro}! Como está a semana? Se precisar, a gente ajusta o treino para o seu momento.` };
+    sugestao = { acao: "mensagem", modelo: "apoio", titulo: `${primeiro} relatou cansaço ou energia baixa nos últimos dias. Deseja conversar?`, rascunho: `Oi, ${primeiro}! Como está a semana? Se precisar, a gente ajusta o treino para o seu momento.` };
   else if (melhorou)
-    sugestao = { acao: "reconhecer", titulo: `${primeiro} apresentou melhora na disposição e manteve a frequência. Que tal reconhecer essa evolução?`, rascunho: `${primeiro}, que fase boa! Sua disposição e sua constância estão fazendo diferença. Bora que bora! Chalalá! 💪` };
+    sugestao = { acao: "reconhecer", modelo: "progresso", titulo: `${primeiro} apresentou melhora na disposição e manteve a frequência. Que tal reconhecer essa evolução?`, rascunho: `${primeiro}, que fase boa! Sua disposição e sua constância estão fazendo diferença. Bora que bora! Chalalá! 💪` };
 
-  return { categoria, motivos, revisaoHumana: desconforto.length > 0, semRespostas, ultimaResposta: ultima, sugestao };
+  return { categoria, motivos, revisaoHumana: desconforto.length > 0, semRespostas, ultimaResposta: ultima, sugestao, dificuldadesAtuais: [...new Set(difAtual.map((x) => x.valor))] };
 }
 
 // ---------------------------------------------------------------------------

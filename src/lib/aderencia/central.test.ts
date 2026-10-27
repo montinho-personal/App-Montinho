@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calcularAderencia, type SessaoAderencia } from "./calcular";
 import { linhaCentral, ordenarCentral } from "./central";
+import { MODELOS_PADRAO } from "@/lib/acompanhamento/modelos";
 
 let n = 0;
 const s = (dia: string): SessaoAderencia => ({ id: `c${++n}`, iniciado_em: `${dia}T13:00:00Z`, status: "concluida", series_planejadas: 10, series_concluidas: 10 });
@@ -57,6 +58,22 @@ describe("sugestões de acompanhamento — distinguem o motivo", () => {
     expect(sug.acao).toBe("mensagem");
     expect(sug.rascunho).toMatch(/^Oi, Ana!/);
     expect(sug.regra).toMatch(/10 dias/);
+  });
+  it("Pulso junto: “sem tempo” vira um alerta só, com o modelo de pouco tempo", () => {
+    const l = lin(["2026-09-28", "2026-10-01"], { pulso: { categoria: "acompanhar", semTempo: true } });
+    const sug = l.sugestoes.find((x) => x.tipo === "ausencia")!;
+    expect(sug.modelo).toBe("pouco_tempo");
+    expect(sug.regra).toMatch(/No Pulso, contou que está sem tempo/);
+    expect(sug.rascunho).toMatch(/rotina está corrida/);
+    expect(l.sinais.some((x) => x.tipo === "pulso")).toBe(true);
+    expect(l.sugestoes.filter((x) => x.tipo === "ausencia")).toHaveLength(1);
+  });
+  it("modelo do personal entra no rascunho com nome e dias", () => {
+    const sug = lin(["2026-09-28", "2026-10-01"], { modelos: { ...MODELOS_PADRAO, ausencia: "E aí, {nome}? Já são {dias} dias! Bora voltar?" } }).sugestoes.find((x) => x.tipo === "ausencia")!;
+    expect(sug.rascunho).toBe("E aí, Ana? Já são 20 dias! Bora voltar?");
+  });
+  it("Pulso tudo bem não cria sinal", () => {
+    expect(lin(["2026-10-20"], { pulso: { categoria: "tudo_bem", semTempo: false } }).sinais.some((x) => x.tipo === "pulso")).toBe(false);
   });
   it("pausa combinada: sem alerta de ausência", () => {
     const l = lin(["2026-09-28"], { pausaTipo: "ferias" }, [{ inicio: "2026-10-05", fim: null }]);

@@ -8,6 +8,8 @@ import { ordenarCentral, REGRAS_CENTRAL, type LinhaCentral, type OrdemCentral, t
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { SemanasBarras, type SemanaBarra } from "@/components/graficos/SemanasBarras";
 import { linkWhatsApp } from "@/lib/acesso/mensagem";
+import { EditorModelos, EscolherModelo } from "@/components/acompanhamento/ModelosMensagem";
+import type { ModelosMensagem } from "@/lib/acompanhamento/modelos";
 
 type Linha = LinhaCentral & { semanas?: SemanaBarra[]; telefone?: string | null };
 
@@ -34,9 +36,18 @@ const ROT_REGRA: Array<{ k: keyof RegrasCentral; l: string; u: string }> = [
   { k: "diasAvaliacao", l: "Avaliação desatualizada após", u: "dias" },
 ];
 
-function Sugestoes({ l }: { l: Linha }) {
+function Sugestoes({ l, modelos }: { l: Linha; modelos: ModelosMensagem }) {
   const toast = useToast();
   const [textos, setTextos] = useState<Record<string, string>>({});
+  const [perguntar, setPerguntar] = useState<string | null>(null);
+  const [registrado, setRegistrado] = useState<Record<string, boolean>>({});
+  async function registrarContato(tipo: string) {
+    const res = await fetch("/api/acompanhamento/contato", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ aluno_id: l.alunoId, motivo: tipo }) }).catch(() => null);
+    if (!res?.ok) return toast.error("Não foi possível registrar agora.");
+    setPerguntar(null);
+    setRegistrado({ ...registrado, [tipo]: true });
+    toast.success("Contato registrado na linha do tempo do aluno.");
+  }
   const acionaveis = l.sugestoes.filter((x) => x.acao !== "nenhuma");
   if (!l.sugestoes.length) return null;
   const copiar = async (sg: Sugestao) => {
@@ -60,9 +71,10 @@ function Sugestoes({ l }: { l: Linha }) {
                 <label className="block text-[11px] text-fg-muted" htmlFor={`m-${l.alunoId}-${sg.tipo}`}>
                   Rascunho para você editar e enviar (nada é enviado automaticamente)
                 </label>
+                <EscolherModelo modelos={modelos} nome={l.nome} dias={l.diasDesdeUltima} onEscolher={(t) => setTextos({ ...textos, [sg.tipo]: t })} />
                 <textarea id={`m-${l.alunoId}-${sg.tipo}`} rows={3} value={textos[sg.tipo] ?? sg.rascunho} onChange={(e) => setTextos({ ...textos, [sg.tipo]: e.target.value.slice(0, 600) })} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
                 <div className="flex flex-wrap gap-3">
-                  <a href={linkWhatsApp(l.telefone, textos[sg.tipo] ?? sg.rascunho)} target="_blank" rel="noopener noreferrer" className="alvo inline-flex items-center gap-1 rounded-md bg-[#25D366] px-3 py-1.5 font-bold text-black">
+                  <a href={linkWhatsApp(l.telefone, textos[sg.tipo] ?? sg.rascunho)} target="_blank" rel="noopener noreferrer" onClick={() => setPerguntar(sg.tipo)} className="alvo inline-flex items-center gap-1 rounded-md bg-[#25D366] px-3 py-1.5 font-bold text-black">
                     💬 Enviar no WhatsApp
                   </a>
                   <button type="button" onClick={() => void copiar(sg)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
@@ -77,6 +89,13 @@ function Sugestoes({ l }: { l: Linha }) {
                     Abrir perfil
                   </Link>
                 </div>
+                {registrado[sg.tipo] ? <p className="text-[11px] text-success">✓ Contato registrado.</p> : perguntar === sg.tipo ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2" aria-live="polite">
+                    <span className="font-semibold">Você enviou a mensagem?</span>
+                    <button type="button" onClick={() => void registrarContato(sg.tipo)} className="alvo rounded-md bg-accent px-3 py-1.5 font-bold text-bg">Sim, enviei</button>
+                    <button type="button" onClick={() => setPerguntar(null)} className="alvo rounded-md border border-border px-3 py-1.5">Ainda não</button>
+                  </div>
+                ) : null}
               </>
             ) : null}
           </div>
@@ -127,7 +146,7 @@ function RegrasForm({ regras }: { regras: RegrasCentral }) {
   );
 }
 
-export function CentralAderenciaClient({ linhas, regras }: { linhas: Linha[]; regras: RegrasCentral }) {
+export function CentralAderenciaClient({ linhas, regras, modelos }: { linhas: Linha[]; regras: RegrasCentral; modelos: ModelosMensagem }) {
   const [ordem, setOrdem] = useState<OrdemCentral>("queda");
   const [soSinais, setSoSinais] = useState(false);
   const lista = useMemo(() => ordenarCentral(soSinais ? linhas.filter((l) => l.sinais.some((s) => s.natureza !== "info") || l.sugestoes.some((s) => s.acao !== "nenhuma")) : linhas, ordem), [linhas, ordem, soSinais]);
@@ -173,7 +192,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: Linha[]; re
                 {l.sinais.map((s) => <span key={s.tipo} className={`rounded-full border px-2 py-0.5 text-[11px] ${COR[s.natureza]}`}>{s.texto}</span>)}
               </div>
             ) : null}
-            <Sugestoes l={l} />
+            <Sugestoes l={l} modelos={modelos} />
           </li>
         ))}
       </ul>
@@ -212,7 +231,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: Linha[]; re
                       <span key={s.tipo} className={`rounded-full border px-2 py-0.5 text-[11px] ${COR[s.natureza]}`}>{s.texto}</span>
                     ))}
                   </div>
-                  <div className="mt-1"><Sugestoes l={l} /></div>
+                  <div className="mt-1"><Sugestoes l={l} modelos={modelos} /></div>
                 </td>
               </tr>
             ))}
@@ -220,6 +239,7 @@ export function CentralAderenciaClient({ linhas, regras }: { linhas: Linha[]; re
         </table>
       </div>
       <RegrasForm regras={regras} />
+      <EditorModelos modelos={modelos} />
       <p className="text-[11px] text-fg-subtle">Sinais atuais: {regras.diasSemTreino}+ dias sem registrar treino (fora de pausa), aderência {regras.quedaPontos}+ pontos abaixo das 4 semanas anteriores, retorno após {regras.pausaParaRetomada}+ dias, {regras.sequenciaReconhecer}+ semanas seguidas com a meta. Sugestões são regras fixas e transparentes (sem IA); nenhuma mensagem é enviada automaticamente.</p>
     </div>
   );
