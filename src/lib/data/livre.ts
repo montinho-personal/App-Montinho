@@ -104,6 +104,24 @@ export async function adicionarExercicioLivre(alunoId: string, sessionId: string
   return data as SessionExercise;
 }
 
+/** Tira do treino livre um exercício posto por engano (ex.: tocou duas vezes). Só sem séries salvas;
+ *  nada é apagado: fica como “pulado” e some da tela e do resumo. */
+export async function tirarExercicioLivre(alunoId: string, sessionId: string, seId: string): Promise<boolean> {
+  const s = await exigirLivreEmAndamento(alunoId, sessionId);
+  const se = s.exercicios.find((e) => e.id === seId);
+  if (!se) return false;
+  if (se.series.length) throw new Error("Apague as séries deste exercício antes de tirá-lo do treino");
+  if (isDemoMode()) {
+    const alvo = demoStore().sessionExercises.find((e) => e.id === seId && e.session_id === sessionId);
+    if (alvo) alvo.status = "pulado";
+    return !!alvo;
+  }
+  const db = await getDb();
+  const { error, count } = await db.from("session_exercises").update({ status: "pulado" }, { count: "exact" }).eq("id", seId).eq("session_id", sessionId);
+  if (error) throw new Error(error.message);
+  return (count ?? 0) > 0;
+}
+
 /** Muda a técnica e/ou a anotação de um exercício do treino livre. */
 export async function ajustarExercicioLivre(alunoId: string, sessionId: string, seId: string, patch: { tecnica?: Tecnica; observacao?: string | null }): Promise<boolean> {
   const s = await exigirLivreEmAndamento(alunoId, sessionId);

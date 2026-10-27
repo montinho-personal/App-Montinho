@@ -1,6 +1,7 @@
 // PATCH /api/livre/[id]/exercicios/[seid] — técnica e anotação do exercício no treino livre.
+// DELETE — tira do treino um exercício sem séries (fica “pulado”; nada é apagado).
 import { NextResponse } from "next/server";
-import { ajustarExercicioLivre } from "@/lib/data/livre";
+import { ajustarExercicioLivre, tirarExercicioLivre } from "@/lib/data/livre";
 import { requireAlunoTreinoLivreApi } from "@/lib/treino/livre-guarda";
 import { lerJson, livreAjusteSchema } from "@/lib/validacao/schemas";
 
@@ -18,5 +19,18 @@ export async function PATCH(request: Request, { params }: Ctx) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível salvar agora.";
     return NextResponse.json({ error: msg }, { status: /não encontrado/i.test(msg) ? 404 : /finalizado/.test(msg) ? 409 : 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: Ctx) {
+  const { id, seid } = await params;
+  const { sessao, error } = await requireAlunoTreinoLivreApi();
+  if (error) return error;
+  try {
+    const ok = await tirarExercicioLivre(sessao.alunoId, id, seid);
+    return ok ? NextResponse.json({ ok }) : NextResponse.json({ error: "Exercício não encontrado" }, { status: 404 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Não foi possível tirar agora.";
+    return NextResponse.json({ error: msg }, { status: /não encontrado/i.test(msg) ? 404 : /finalizado|Apague/.test(msg) ? 409 : 500 });
   }
 }

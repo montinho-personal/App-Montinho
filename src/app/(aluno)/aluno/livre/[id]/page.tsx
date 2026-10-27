@@ -26,14 +26,14 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
   const tecnicaDe = (p: unknown) => ((p as { tecnica?: string } | null)?.tecnica ?? "normal");
 
   if (s.status !== "em_andamento") {
-    const exercicios: ExercicioLivre[] = s.exercicios.map((e) => ({ nome: e.nome, biblioteca_id: e.biblioteca_id, tecnica: tecnicaDe(e.prescricao), series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) }));
+    const exercicios: ExercicioLivre[] = s.exercicios.filter((e) => e.status !== "pulado").map((e) => ({ nome: e.nome, biblioteca_id: e.biblioteca_id, tecnica: tecnicaDe(e.prescricao), series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ tipo: x.tipo, carga_kg: x.carga_kg, reps: x.reps })) }));
     return <ResumoLivreClient resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null} />;
   }
 
   const [biblioteca, metas, ultimas] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id, { qualquerPlano: true }).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);
   const itens = biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento, video: Boolean(i.midia?.verificada), midia: i.midia?.verificada ? { provider: i.midia.provider, id: i.midia.id } : null, passos: i.execucao.slice(0, 3) }));
   // Retomar: as séries já salvas voltam marcadas (a chave “livre:<key>” vem do aparelho).
-  const inicial: ExercicioTela[] = [...s.exercicios].sort((a, b) => a.ordem - b.ordem).map((e) => ({
+  const inicial: ExercicioTela[] = s.exercicios.filter((e) => e.status !== "pulado").sort((a, b) => a.ordem - b.ordem).map((e) => ({
     seId: e.id,
     nome: e.nome,
     grupo: e.grupo_muscular,

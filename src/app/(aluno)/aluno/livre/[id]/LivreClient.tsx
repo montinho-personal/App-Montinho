@@ -83,12 +83,21 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const mudarEx = (seId: string, f: (e: ExercicioTela) => ExercicioTela) => setExs((l) => l.map((e) => (e.seId === seId ? f(e) : e)));
   const mudarSerie = (seId: string, key: string, patch: Partial<SerieTela>) => mudarEx(seId, (e) => ({ ...e, series: e.series.map((s) => (s.key === key ? { ...s, ...patch } : s)) }));
 
+  // Um toque basta: fecha a busca na hora e ignora toques repetidos enquanto adiciona.
+  const adicionando = useRef(false);
   async function adicionar(corpo: { biblioteca_id?: string; nome_livre?: string }) {
+    if (adicionando.current) return;
+    adicionando.current = true;
     setOcupado(true);
+    setBuscando(false);
     setErro(null);
     const r = await chamar(`/api/livre/${sessaoId}/exercicios`, "POST", { client_key: novaChave(), tecnica: "normal", ...corpo });
+    adicionando.current = false;
     setOcupado(false);
-    if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível adicionar agora."));
+    if (!r.ok) {
+      setBuscando(true);
+      return setErro(String(r.json.error ?? "Não foi possível adicionar agora."));
+    }
     const seId = String(r.json.id);
     setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tecnica: "normal", observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
     setAberto(seId);
@@ -122,6 +131,22 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       contarNoPlacar(e, s, false);
     }
     mudarEx(e.seId, (x) => ({ ...x, series: x.series.filter((y) => y.key !== s.key).map((y, i) => ({ ...y, serie: i + 1 })) }));
+  }
+
+  /** Tira o exercício do treino (posto por engano). Com séries salvas, confirma e apaga as séries antes. */
+  async function tirar(e: ExercicioTela) {
+    const salvas = e.series.filter((s) => s.salva);
+    if (salvas.length && !window.confirm(`Tirar “${e.nome}” do treino? ${salvas.length === 1 ? "A série salva será apagada." : `As ${salvas.length} séries salvas serão apagadas.`}`)) return;
+    setErro(null);
+    for (const s of salvas) {
+      const r = await chamar(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
+      if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível apagar a série."));
+      contarNoPlacar(e, s, false);
+    }
+    const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "DELETE", {});
+    if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível tirar agora."));
+    setExs((l) => l.filter((x) => x.seId !== e.seId));
+    if (aberto === e.seId) setAberto(null);
   }
 
   async function ajustar(e: ExercicioTela, patch: { tecnica?: string; observacao?: string }) {
@@ -188,7 +213,8 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
           const tipos = tiposDeSerie(e.tecnica);
           return (
             <li key={e.seId} className={`rounded-xl border ${abertoAqui ? "border-accent/60" : "border-border"} bg-card`}>
-              <button type="button" onClick={() => setAberto(abertoAqui ? null : e.seId)} aria-expanded={abertoAqui} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+              <div className="flex items-center">
+              <button type="button" onClick={() => setAberto(abertoAqui ? null : e.seId)} aria-expanded={abertoAqui} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-2 text-left">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent/15 text-sm font-bold text-accent">{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold leading-tight">{e.nome}</span>
@@ -196,6 +222,10 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                 </span>
                 <Icon name={abertoAqui ? "up" : "down"} size={18} className="shrink-0 text-fg-muted" />
               </button>
+              <button type="button" onClick={() => void tirar(e)} aria-label={`Tirar ${e.nome} do treino`} className="alvo mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-fg-subtle hover:text-red">
+                <Icon name="trash" size={18} />
+              </button>
+              </div>
               {abertoAqui ? (
                 <div className="space-y-3 border-t border-border px-4 py-3">
                   {e.ultima ? <p className="text-xs text-fg-muted">📌 {e.ultima}</p> : null}
@@ -253,6 +283,9 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                     Anotação (opcional)
                     <textarea value={e.observacao} onChange={(ev) => mudarEx(e.seId, (x) => ({ ...x, observacao: ev.target.value.slice(0, 300) }))} onBlur={() => void ajustar(e, { observacao: e.observacao })} rows={2} placeholder="Ex.: máquina 3, banco na posição 4, senti mais o glúteo" className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm font-normal text-fg" />
                   </label>
+                  <button type="button" onClick={() => void tirar(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-red/40 text-sm font-semibold text-red">
+                    <Icon name="trash" size={16} /> Tirar este exercício do treino
+                  </button>
                 </div>
               ) : null}
             </li>

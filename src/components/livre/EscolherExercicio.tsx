@@ -66,6 +66,34 @@ export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, plac
     }
   }
 
+  const digitando = busca.trim().length > 0;
+  const lista = (
+    <>
+      <ul className="max-h-80 divide-y divide-border overflow-y-auto">
+        {resultados.map((r) => (
+          <li key={r.id} className="flex items-center gap-3 py-1.5">
+            <VerExercicio nome={r.nome} midia={r.midia} passos={r.passos} />
+            <button type="button" onClick={() => onEscolher(r)} className="alvo flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm">{r.nome}</span>
+                <span className="flex flex-wrap items-center gap-1.5 text-xs text-fg-subtle">{GRUPO_LABEL[r.grupo]} {seloDaMeta(placar, r.grupo)}</span>
+              </span>
+              <Icon name="plus" size={18} className="shrink-0 text-accent" />
+            </button>
+          </li>
+        ))}
+        {resultados.length === 0 ? <li className="py-3 text-center text-sm text-fg-muted">Nada encontrado com esse nome.</li> : null}
+      </ul>
+      <button type="button" disabled={meuNome.length < 2} onClick={() => onMeuNome(meuNome)} className="alvo flex w-full items-start gap-3 rounded-xl border border-dashed border-accent/60 px-3 py-3 text-left disabled:opacity-50">
+        <Icon name="plus" size={18} className="mt-0.5 shrink-0 text-accent" />
+        <span>
+          <span className="block text-sm font-semibold text-accent">{meuNome.length >= 2 ? `Usar “${meuNome}” com esse nome` : "Não achou? Escreva o nome que você usa"}</span>
+          <span className="block text-xs text-fg-muted">Fica salvo para acompanhar sua evolução nesse exercício.</span>
+        </span>
+      </button>
+    </>
+  );
+
   return (
     <section className="space-y-3 rounded-xl border border-accent/40 bg-card p-3" aria-label="Escolher exercício">
       <div className="flex items-center gap-2">
@@ -74,6 +102,8 @@ export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, plac
           <Icon name="x" size={16} />
         </button>
       </div>
+      {/* Digitou o nome: a lista aparece logo abaixo da busca (sem rolar). */}
+      {digitando ? lista : null}
       <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void reconhecer(e.target.files?.[0])} aria-hidden tabIndex={-1} />
       {foto.fase === "livre" ? (
         <button type="button" onClick={() => camera.current?.click()} className="alvo flex w-full items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-3 py-2.5 text-left">
@@ -115,28 +145,7 @@ export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, plac
           </button>
         ))}
       </div>
-      <ul className="max-h-80 divide-y divide-border overflow-y-auto">
-        {resultados.map((r) => (
-          <li key={r.id} className="flex items-center gap-3 py-1.5">
-            <VerExercicio nome={r.nome} midia={r.midia} passos={r.passos} />
-            <button type="button" onClick={() => onEscolher(r)} className="alvo flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm">{r.nome}</span>
-                <span className="flex flex-wrap items-center gap-1.5 text-xs text-fg-subtle">{GRUPO_LABEL[r.grupo]} {seloDaMeta(placar, r.grupo)}</span>
-              </span>
-              <Icon name="plus" size={18} className="shrink-0 text-accent" />
-            </button>
-          </li>
-        ))}
-        {resultados.length === 0 ? <li className="py-3 text-center text-sm text-fg-muted">Nada encontrado com esse nome.</li> : null}
-      </ul>
-      <button type="button" disabled={meuNome.length < 2} onClick={() => onMeuNome(meuNome)} className="alvo flex w-full items-start gap-3 rounded-xl border border-dashed border-accent/60 px-3 py-3 text-left disabled:opacity-50">
-        <Icon name="plus" size={18} className="mt-0.5 shrink-0 text-accent" />
-        <span>
-          <span className="block text-sm font-semibold text-accent">{meuNome.length >= 2 ? `Usar “${meuNome}” com esse nome` : "Não achou? Escreva o nome que você usa"}</span>
-          <span className="block text-xs text-fg-muted">Fica salvo para acompanhar sua evolução nesse exercício.</span>
-        </span>
-      </button>
+      {!digitando ? lista : null}
     </section>
   );
 }
