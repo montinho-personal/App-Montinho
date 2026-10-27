@@ -33,10 +33,11 @@ export default async function MeuTreinoPage() {
         <h1 className="text-2xl font-bold">🏋️ Meu treino</h1>
         <p className="text-sm text-fg-muted">Sua ficha de aluno. Você fica fora do ranking dos alunos.</p>
       </header>
-      <a href="/api/meu-treino" className="touch flex flex-col items-center justify-center rounded-xl bg-accent px-4 py-4 text-center font-bold text-bg hover:bg-accent-hover">
-        <span className="text-lg">▶ Entrar no app como aluno</span>
-        <span className="text-xs font-normal text-bg/80">Para voltar, toque em “Voltar ao painel” no topo do app.</span>
+      <a href={livre ? "/api/meu-treino?ir=/aluno/livre" : "/api/meu-treino"} className="touch flex flex-col items-center justify-center rounded-xl bg-accent px-4 py-4 text-center font-bold text-bg hover:bg-accent-hover">
+        <span className="text-lg">{livre ? "▶ Começar meu treino livre" : "▶ Entrar no app como aluno"}</span>
+        <span className="text-xs font-normal text-bg/80">{livre ? "Suas metas ficam guardadas: é só escolher os exercícios de hoje." : "Para voltar, toque em “Voltar ao painel” no topo do app."}</span>
       </a>
+      {livre ? <a href="/api/meu-treino" className="block text-center text-sm text-accent underline underline-offset-4">Ou entrar no app como aluno (início, troféus, evolução…)</a> : null}
       {p?.placar.length ? <PlacarMetas placar={p.placar} sugestao={p.sugestao} /> : null}
       <div className="space-y-2">
         <Link href={`/treinador/alunos/${alunoId}/livre-metas`} className={porta}>

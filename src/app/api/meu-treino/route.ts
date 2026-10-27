@@ -8,7 +8,7 @@ import { criarMeuAluno, meuAlunoId } from "@/lib/data/meu-treino";
 
 const OPCOES = { httpOnly: true, sameSite: "lax" as const, path: "/", secure: process.env.NODE_ENV === "production", maxAge: 60 * 60 * 12 };
 
-/** ?entrar=1 → app do aluno; ?sair=1 → volta ao painel. */
+/** Entra no app do aluno (?ir= caminho do aluno); ?sair=1 → volta ao painel. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const jar = await cookies();
@@ -20,7 +20,10 @@ export async function GET(request: Request) {
   if (!s || (s.role !== "treinador" && !(s.role === "aluno" && s.comoPersonal))) return NextResponse.redirect(new URL("/login", url));
   if (!(await meuAlunoId(s.userId))) return NextResponse.redirect(new URL("/treinador/meu-treino", url));
   jar.set(COMO_ALUNO_COOKIE, "1", OPCOES);
-  return NextResponse.redirect(new URL("/aluno", url));
+  // ?ir=/aluno/livre → já cai no treino livre (só caminhos do app do aluno).
+  const ir = url.searchParams.get("ir");
+  const destino = ir && /^\/aluno(\/[\w-]+)*$/.test(ir) ? ir : "/aluno";
+  return NextResponse.redirect(new URL(destino, url));
 }
 
 /** Cria a ficha de aluno do personal (uma vez). */

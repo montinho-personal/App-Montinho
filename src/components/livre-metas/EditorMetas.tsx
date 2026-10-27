@@ -10,7 +10,7 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 type Faixa = { min: string; max: string };
 const PRINCIPAIS = new Set<GrupoMuscular>(["peito", "costas", "ombros", "biceps", "triceps", "quadriceps", "posteriores", "gluteo", "panturrilha", "abdomen"]);
 
-export function EditorMetas({ alunoId, inicial, ligadoInicial, voltar }: { alunoId: string; inicial: Partial<Record<GrupoMuscular, { min: number; max: number }>>; ligadoInicial: boolean; voltar?: string }) {
+export function EditorMetas({ alunoId, inicial, ligadoInicial, voltar, treinar }: { alunoId: string; inicial: Partial<Record<GrupoMuscular, { min: number; max: number }>>; ligadoInicial: boolean; voltar?: string; /** “Meu treino”: link para já começar o treino livre como aluno. */ treinar?: string }) {
   const router = useRouter();
   const paraForm = (m: typeof inicial) => Object.fromEntries(GRUPOS_SELECIONAVEIS.map((g) => [g, { min: m[g] ? String(m[g]!.min) : "", max: m[g] ? String(m[g]!.max) : "" }])) as Record<GrupoMuscular, Faixa>;
   const [faixas, setFaixas] = useState(() => paraForm(inicial));
@@ -18,6 +18,7 @@ export function EditorMetas({ alunoId, inicial, ligadoInicial, voltar }: { aluno
   const [todos, setTodos] = useState(() => Object.keys(inicial).some((g) => !PRINCIPAIS.has(g as GrupoMuscular)));
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [salvoLigado, setSalvoLigado] = useState(ligadoInicial);
 
   const usarReferencia = (n: NivelReferencia) => {
     const r = referenciasPorNivel(n);
@@ -40,6 +41,7 @@ export function EditorMetas({ alunoId, inicial, ligadoInicial, voltar }: { aluno
     const j = await r?.json().catch(() => ({}));
     setSalvando(false);
     if (!r?.ok) return setMsg({ ok: false, texto: j?.error ?? "Sem internet. Tente de novo." });
+    setSalvoLigado(ligado);
     setMsg({ ok: true, texto: ligado ? "Salvo! O treino livre por metas está ligado." : "Salvo. O treino livre por metas está desligado (vale a ficha A/B/C)." });
     router.refresh();
   }
@@ -81,9 +83,12 @@ export function EditorMetas({ alunoId, inicial, ligadoInicial, voltar }: { aluno
         <p className="mt-2 text-[11px] text-fg-subtle">Deixe em branco o músculo que não quer contar. Passar do máximo só avisa, nunca trava. Faixas de referência são heurísticas: ajuste para cada pessoa.</p>
       </div>
 
-      {msg ? <p role="status" className={`text-sm ${msg.ok ? "text-success" : "text-red"}`}>{msg.texto}</p> : null}
+      {msg ? <p role="status" className={`text-sm ${msg.ok ? "text-success" : "text-red"}`}>{msg.texto}{msg.ok && salvoLigado && !treinar ? " O aluno já vê “Começar treino livre” no início do app." : ""}</p> : null}
+      {treinar && salvoLigado && msg?.ok ? (
+        <a href={treinar} className="touch flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-bold text-bg hover:bg-accent-hover">▶ Começar meu treino livre agora</a>
+      ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button onClick={salvar} loading={salvando}>Salvar metas</Button>
+        <Button onClick={salvar} loading={salvando} variant={treinar && salvoLigado ? "secondary" : "primary"}>Salvar metas</Button>
         {voltar ? <a href={voltar} className="inline-flex h-11 items-center rounded-lg border border-border px-5 text-sm font-semibold hover:bg-card">Voltar</a> : null}
       </div>
     </div>
