@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0109 — Vídeo enviado pelo personal (YouTube Shorts, validado por ele) para a
+-- 0109 — Lote de vídeos enviados pelo personal em 28/10/2026 (YouTube Shorts,
 -- “Cadeira extensora unilateral” (28/10/2026). Idempotente.
 -- ============================================================================
 update exercicios_biblioteca
@@ -24,3 +24,10 @@ where slug = 'desenvolvimento-smith' and video_id is distinct from 'm1dtZHPSmHg'
 update exercicios_biblioteca
 set sinonimos = array_append(sinonimos, 'desenvolvimento na barra guiada')
 where slug = 'desenvolvimento-smith' and not ('desenvolvimento na barra guiada' = any(sinonimos));
+
+-- Vídeo da “Elevação lateral na polia” (YouTube Shorts enviado pelo personal
+-- em 28/10/2026, validado por ele).
+update exercicios_biblioteca
+set video_provider = 'youtube', video_id = 'YM7_fkB7384',
+    thumbnail_url = 'https://i.ytimg.com/vi/YM7_fkB7384/hqdefault.jpg', video_validado = true
+where slug = 'elevacao-lateral-polia' and video_id is distinct from 'YM7_fkB7384';
