@@ -67,7 +67,7 @@ export async function getSessao(alunoId: string, sessionId: string): Promise<Ses
   const { data: s } = await db.from("training_sessions").select("*").eq("id", sessionId).eq("aluno_id", alunoId).maybeSingle();
   if (!s) return null;
   const [{ data: exs }, { data: sets }] = await Promise.all([
-    db.from("session_exercises").select("*").eq("session_id", sessionId).order("ordem"),
+    db.from("session_exercises").select("*").eq("session_id", sessionId).order("ordem").order("created_at"),
     db.from("session_sets").select("*").eq("session_id", sessionId).order("serie"),
   ]);
   return montarCompleta(s as TrainingSession, (exs ?? []) as SessionExercise[], (sets ?? []) as SessionSet[]);
@@ -452,8 +452,9 @@ export async function atualizarExercicioSessao(alunoId: string, sessionId: strin
 
 /**
  * Troca o exercício da sessão por uma opção permitida (ou volta ao original
- * com `bibliotecaId = null`). Só antes de registrar séries dele: séries,
- * repetições e descanso continuam os do plano.
+ * com `bibliotecaId = null`). Séries, repetições e descanso continuam os do
+ * plano. Com séries já feitas, divide: as feitas ficam no exercício atual e o
+ * que falta vira um exercício novo, já trocado.
  */
 export async function trocarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, bibliotecaId: string | null, originalDemo?: { nome: string; biblioteca_id: string | null }): Promise<SessionExercise> {
   const sessao = await getSessao(alunoId, sessionId);
@@ -469,8 +470,48 @@ export async function trocarExercicioSessao(alunoId: string, sessionId: string, 
   }
   if (!sessao || !se) throw new Error("Exercício da sessão não encontrado");
   if (sessao.status !== "em_andamento") throw new Error("Este treino já foi encerrado");
-  if (se.series.some((x) => x.tipo !== "aquecimento")) throw new Error("Já há séries registradas neste exercício. Troque antes de começar.");
   const original = se.substituido_de ?? { nome: se.nome, biblioteca_id: se.biblioteca_id, grupo_muscular: se.grupo_muscular };
+  // Já tem séries feitas (pedido do Montinho, 27/10/2026: trocar sempre disponível):
+  // as feitas ficam no exercício de agora (que fecha com elas) e o que falta vira
+  // um exercício novo, já trocado. Assim a evolução de cada exercício fica certa.
+  const feitas = se.series.filter((x) => x.tipo !== "aquecimento");
+  if (feitas.length) {
+    if (!bibliotecaId) throw new Error("As séries já feitas ficaram no exercício anterior. Para voltar, troque de novo pelo exercício original.");
+    const faltam = Math.max(1, (se.series_planejadas ?? 0) - feitas.filter((x) => x.tipo === "valida").length);
+    const trocas = await trocasParaExercicios(alunoId, [{ id: se.id, nome: original.nome, biblioteca_id: original.biblioteca_id }]);
+    const op = trocas[se.id]?.opcoes.find((o) => o.id === bibliotecaId);
+    if (!op) throw new Error("Esta troca não está liberada para este exercício");
+    const prescricao = { ...((se.prescricao as Record<string, unknown>) ?? {}), series_aquecimento: 0 };
+    const novo = {
+      session_id: sessionId,
+      exercicio_id: se.exercicio_id,
+      biblioteca_id: op.id,
+      client_key: `${se.client_key}:troca:${Date.now()}`,
+      ordem: se.ordem,
+      nome: op.nome,
+      grupo_muscular: op.grupo,
+      series_planejadas: faltam,
+      prescricao,
+      status: "pendente" as const,
+      substituido_de: original,
+    };
+    const fechado = { series_planejadas: feitas.filter((x) => x.tipo === "valida").length, status: "concluido" as const };
+    if (isDemoMode()) {
+      const st = demoStore();
+      const alvo = st.sessionExercises.find((x) => x.id === sessionExerciseId && x.session_id === sessionId);
+      if (!alvo) throw new Error("Exercício da sessão não encontrado");
+      Object.assign(alvo, fechado);
+      const criado = { ...alvo, ...novo, id: uid(), nome_normalizado: normalizarNome(op.nome), observacao_aluno: null, created_at: new Date().toISOString() } as SessionExercise;
+      st.sessionExercises.splice(st.sessionExercises.indexOf(alvo) + 1, 0, criado);
+      return criado;
+    }
+    const db = await getDb();
+    const { data: criado, error: e1 } = await db.from("session_exercises").insert(novo).select("*").single();
+    if (e1 || !criado) throw new Error(e1?.message ?? "Não foi possível trocar agora");
+    const { error: e2 } = await db.from("session_exercises").update(fechado).eq("id", sessionExerciseId).eq("session_id", sessionId);
+    if (e2) throw new Error(e2.message);
+    return criado as SessionExercise;
+  }
   let patch: Partial<SessionExercise>;
   if (!bibliotecaId) {
     patch = { nome: original.nome, nome_normalizado: normalizarNome(original.nome), biblioteca_id: original.biblioteca_id, grupo_muscular: original.grupo_muscular, substituido_de: null };

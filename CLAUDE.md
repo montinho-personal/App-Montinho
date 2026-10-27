@@ -77,6 +77,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - “Cancelar este treino” (27/10/2026, pedido do Montinho: aluno começou o treino errado): `src/components/treinos/CancelarTreino.tsx` (só aparece com 0 séries marcadas; confirma e encerra como `abandonada`, que não conta na semana nem gera medalha) no cartão “Treino em andamento” do Início, em Treinar, no aviso “Você tem um treino em andamento… Cancelar aquele treino” da tela do treino e no rodapé do treino (com 0 séries o “Encerrar sem concluir” vira “✖ Cancelar este treino”). Encerrado sem séries, a tela final mostra “Treino cancelado” (não “Treino registrado”) em `TelaChalala`.
 
+- “⇄ Trocar exercício” SEMPRE disponível (27/10/2026, pedido do Montinho): aparece enquanto o exercício tiver série a fazer e não estiver finalizado; vale para todos os alunos (opções de `trocasParaExercicios`/`opcoesDeTroca`, só da biblioteca). Com séries já feitas, `trocarExercicioSessao` DIVIDE: o exercício atual fecha com as séries feitas (`series_planejadas` = feitas, `concluido`) e um novo `session_exercises` (mesmo `exercicio_id`/`ordem`, `substituido_de`, sem aquecimento) recebe as que faltam; a tela recarrega a sessão. Voltar ao original só antes de marcar séries. Sessão ordenada por `ordem` + `created_at`.
+
 - Lupa do personal: `/treinador/busca` (menu “Buscar” + lupa na barra do celular); regras em `src/lib/busca/alunos.ts` (nome/sobrenome por pedaço e sem acento; estrutura do treino com motivo; “treino parecido” por exercícios em comum); índice em `src/lib/data/busca.ts`.
 
 ## Ao editar

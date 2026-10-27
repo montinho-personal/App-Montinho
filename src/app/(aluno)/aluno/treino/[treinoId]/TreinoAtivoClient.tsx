@@ -727,12 +727,29 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   /** Troca (ou desfaz) e já preenche peso/reps com a última vez do novo exercício. */
   async function trocarExercicio(se: SessaoCompleta["exercicios"][number], bibliotecaId: string | null) {
     if (!sessao) return;
+    const jaFez = (series[se.id] ?? []).some((x) => x.tipo !== "aquecimento" && x.concluida);
+    if (jaFez && pendentes > 0) {
+      toast.warn("Espere suas séries sincronizarem (precisa de internet) e tente trocar de novo.");
+      return;
+    }
     setTrocando(true);
     const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ biblioteca_id: bibliotecaId, original: { nome: se.substituido_de?.nome ?? exercicios.find((e) => e.id === se.exercicio_id)?.nome ?? se.nome, biblioteca_id: se.substituido_de ? se.substituido_de.biblioteca_id : (exercicios.find((e) => e.id === se.exercicio_id)?.biblioteca_id ?? null) } }) }).catch(() => null);
     setTrocando(false);
     const corpo = res ? await res.json().catch(() => ({})) : {};
     if (!res?.ok) {
       toast.error(corpo.error ?? "Sem conexão: não deu para trocar agora.");
+      return;
+    }
+    if (jaFez) {
+      // Dividido no servidor: recarrega a sessão (exercício anterior fechado + o novo com as séries que faltam).
+      const nova = await fetch(`/api/sessoes/${sessao.id}`, { headers: cab }).then((r) => (r.ok ? (r.json() as Promise<SessaoCompleta>) : null)).catch(() => null);
+      setTrocaAberta(null);
+      if (nova) {
+        setSessao(nova);
+        const novoId = (corpo as { exercicio?: { id?: string } }).exercicio?.id;
+        if (novoId) setAberto(novoId);
+      }
+      toast.success("Exercício trocado! As séries feitas ficaram no anterior; as que faltam seguem no novo.");
       return;
     }
     setTrocadoLocal((cur) => ({ ...cur, [se.id]: bibliotecaId }));
@@ -1426,7 +1443,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           // O servidor marca o exercício como “concluído” já na 1ª série gravada (para guardar o
           // histórico). Para o aluno, finalizado = tocou em “Concluir exercício” (ou escolheu o esforço).
           const finalizado = statusEx[se.id] === "concluido" || !!(percepcaoEx[se.id] ?? se.percepcao);
-          const podeTrocar = opcoesTroca.length > 0 && statusAtual !== "concluido" && !lista.some((x) => x.tipo !== "aquecimento" && x.concluida);
+          // Trocar sempre disponível enquanto faltar série (pedido do Montinho, 27/10/2026);
+          // com séries feitas, o servidor divide: as feitas ficam aqui e o resto vai para o novo.
+          const podeTrocar = opcoesTroca.length > 0 && !finalizado && lista.some((x) => x.tipo !== "aquecimento" && !x.concluida);
           const convite = completo && !finalizado ? conviteSerieExtra(perdidas[ex.id] ?? { exercicio: 0, grupo: 0 }, { rotuloGrupo: ex.grupo_muscular ? GRUPO_LABEL[ex.grupo_muscular] : null, cuidado: sessao.checkin_pre === "desconforto" || sessao.checkin_pre === "cansado" }) : null;
           return (
             <Card key={se.id} id={`ex-${se.id}`} className={`scroll-mt-20 ${conferindo && pend ? "border-warning ring-1 ring-warning/50" : completo ? "border-success/40" : expandido ? "border-accent/40" : ""}`}>
@@ -1720,7 +1739,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                           <p className="text-sm font-semibold">Trocar por</p>
                           <button type="button" onClick={() => setTrocaAberta(null)} aria-label="Fechar" className="alvo text-fg-muted hover:text-fg">✕</button>
                         </div>
-                        <p className="text-xs text-fg-muted">Mesmas séries, repetições e descanso do seu treino. Você marca peso e repetições normalmente.</p>
+                        <p className="text-xs text-fg-muted">{lista.some((x) => x.tipo !== "aquecimento" && x.concluida) ? "As séries que você já fez ficam neste exercício; as que faltam vão para o novo, com as mesmas repetições e descanso." : "Mesmas séries, repetições e descanso do seu treino. Você marca peso e repetições normalmente."}</p>
                         <ul className="space-y-1.5">
                           {opcoesTroca.filter((o) => o.id !== troca?.id).map((o) => (
                             <li key={o.id}>
