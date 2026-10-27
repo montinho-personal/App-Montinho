@@ -15,6 +15,8 @@ import { appMode } from "@/lib/env";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
 import { PadraoCargaPerfil } from "@/components/treinos/PadraoCarga";
 import { TelaAcesaPerfil } from "@/components/treinos/TelaAcesa";
+import { PulsoPerfil } from "@/components/pulso/PulsoPerfil";
+import { consentimentoPulso } from "@/lib/data/pulso";
 import { getRankingVisivel } from "@/lib/data/ranking";
 import { RankingVisivel } from "@/components/ranking/RankingVisivel";
 import { ConectarStrava } from "@/components/strava/ConectarStrava";
@@ -25,7 +27,7 @@ export const metadata = { title: "Perfil" };
 export default async function PerfilPage({ searchParams }: { searchParams: Promise<{ strava?: string }> }) {
   const sessao = await requireAlunoPage();
   const { strava } = await searchParams;
-  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga, rankingVisivel, stravaStatus, cardio] = await Promise.all([
+  const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga, rankingVisivel, stravaStatus, cardio, pulsoConsent] = await Promise.all([
     getAluno(sessao.alunoId),
     getPlanoAtivo(sessao.alunoId),
     listAdaptacoes(sessao.alunoId),
@@ -36,6 +38,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
     getRankingVisivel(sessao.alunoId).catch(() => true),
     statusStrava(sessao.alunoId),
     listarCardio(sessao.alunoId, 5).catch(() => []),
+    consentimentoPulso(sessao.alunoId).catch(() => "nunca" as const),
   ]);
   if (!aluno) return null;
   const visiveis = intervencoes.filter((i) => i.visivel_aluno);
@@ -54,6 +57,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
       <NotificacoesChalala inicial={prefsNotif} />
 
       <TelaAcesaPerfil />
+      <PulsoPerfil inicial={pulsoConsent} />
       <PadraoCargaPerfil inicial={padraoCarga} />
       <Link href="/aluno/medidas" className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
         <span><span className="font-bold">📏 Medidas e avaliações</span><span className="block text-xs text-fg-muted">Peso, medidas, bioimpedância ou o arquivo (PDF/foto) da sua avaliação.</span></span>

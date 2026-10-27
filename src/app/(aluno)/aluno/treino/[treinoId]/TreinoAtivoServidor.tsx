@@ -26,6 +26,7 @@ import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { linkOferta } from "@/lib/visitante/campanhas";
 import { BRAND } from "@/config/brand";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
+import { contextoPulsoAluno } from "@/lib/data/pulso";
 
 
 export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessaoId, extraId, rec, tempo, presencial = null, visitante = null }: {
@@ -48,6 +49,8 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   const gerado = ehExtraGerado(sessaoPedida) ? (sessaoPedida!.snapshot as { treino?: { nome?: string }; exercicios?: typeof treinoPlano.exercicios }) : null;
   const treino = gerado?.exercicios?.length ? { ...treinoPlano, letra: "+", nome: gerado.treino?.nome ?? "Treino extra", observacoes: null, ativo: true, exercicios: gerado.exercicios } : treinoPlano;
 
+  // Montinho Pulso: só no app do aluno (o personal não responde no lugar dele).
+  const pulsoP = presencial ? Promise.resolve(null) : contextoPulsoAluno(alunoId, "pre_treino").catch(() => null);
   const [emAndamento, ultimas, biblioteca, plano, extras, historico, configEvolucao, desbloqueia, perdidas, trocas, progressoes, conf, padraoCarga, alcance] = await Promise.all([
     sessaoPedida ? Promise.resolve(sessaoPedida) : sessaoId ? getSessao(alunoId, sessaoId) : getSessaoEmAndamento(alunoId),
     ultimasExecucoes(alunoId, treino.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))),
@@ -109,6 +112,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   const camp = visitante && !presencial ? await campanhaDoVisitante(alunoId, visitante.acessoFim).catch(() => null) : null;
   const campanha = camp ? { ...camp, ofertaHref: camp.oferta && BRAND.contact.whatsapp ? linkOferta(camp.oferta, BRAND.contact.whatsapp) : null } : null;
 
+  const pulso = await pulsoP;
   const sessaoAtiva = emAndamento && emAndamento.treino_id === treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
   const outraSessao = emAndamento && emAndamento.treino_id !== treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
 
@@ -135,6 +139,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       campanha={campanha}
       padraoCarga={padraoCarga}
       alcance={alcance}
+      pulso={pulso}
       extra={extra ? { id: extra.id, titulo: extra.titulo, recuperacao: rec && ["bem", "cansado", "dor_leve", "dor_moderada", "dor", "prefiro_nao"].includes(rec) ? rec : null, tempoDisponivelMin: Number(tempo) > 0 ? Math.min(300, Number(tempo)) : null } : null}
     />
   );

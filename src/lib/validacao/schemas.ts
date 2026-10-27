@@ -765,3 +765,18 @@ export const recadoAoVivoSchema = z.object({
   sessao_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
   texto: z.string().trim().min(1, "Escreva o recado").max(200),
 });
+
+// Montinho Pulso: respostas do cardápio (src/lib/pulso/perguntas.ts).
+export const pulsoSchema = z.object({
+  respostas: z.object({
+    energia: z.enum(["muito_baixa", "baixa", "normal", "alta", "muito_alta"]).optional(),
+    recuperacao: z.enum(["bem", "um_pouco_cansado", "muito_cansado", "desconforto"]).optional(),
+    motivacao: z.enum(["nenhuma", "pouca", "normal", "muita"]).optional(),
+    sono: z.enum(["muito_mal", "mal", "razoavel", "bem", "muito_bem"]).optional(),
+    dificuldade: z.array(z.enum(["falta_tempo", "cansaco", "desmotivacao", "exercicios", "rotina_corrida", "nada"])).max(6).optional(),
+  }).default({}),
+  pulou: z.boolean().optional(),
+  sessao_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/).nullable().optional(),
+  /** Consentimento para dado de saúde (corpo e sono), respondido no próprio cartão. */
+  consentimento: z.boolean().optional(),
+});

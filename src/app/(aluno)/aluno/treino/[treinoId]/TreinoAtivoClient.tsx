@@ -50,6 +50,8 @@ import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
 import type { VideoSource } from "@/lib/video";
 import { BRAND } from "@/config/brand";
+import { PulsoCard } from "@/components/pulso/PulsoCard";
+import type { ContextoPulsoAluno } from "@/lib/data/pulso";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
 import { CardioDoTreino } from "@/components/strava/CardioDoTreino";
 import { OPCOES_TEMPO_MIN, encurtarDescanso, ganhoDescansoReduzido, treinoPossivel } from "@/lib/treino/possivel";
@@ -97,6 +99,8 @@ type Props = {
   perdidas?: Record<string, Deficit>;
   /** Aula presencial (painel do personal). */
   presencial?: Presencial | null;
+  /** Montinho Pulso (check-in de bem-estar); ausente na aula presencial. */
+  pulso?: ContextoPulsoAluno | null;
   /** Visitante: oferta do fim do acesso e convite de amigo (0068), no fim do treino. */
   campanha?: (CampanhaVisitante & { ofertaHref: string | null }) | null;
   /** Opções de troca por exercício do plano (regras do personal/catálogo). */
@@ -210,7 +214,7 @@ function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[
 const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
   Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, padraoCarga, alcance = null }: Props) {
+export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, padraoCarga, alcance = null, pulso = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -292,7 +296,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- relógio do aparelho só existe no navegador
     setOffsetMs(offsetRelogio(agoraServidor, Date.now()));
   }, [agoraServidor]);
-  const [checkinPre, setCheckinPre] = useState<(typeof CHECKIN_OPCOES)[number]["v"] | null>(null);
+  const [checkinPre, setCheckinPre] = useState<(typeof CHECKIN_OPCOES)[number]["v"] | null>(pulso?.checkinPreHoje ?? null);
   const [checkinNota, setCheckinNota] = useState("");
   // Aula presencial: toda chamada leva o aluno da aula (validado no servidor).
   const alunoAula = presencial?.alunoId ?? null;
@@ -1148,24 +1152,34 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                 ou comece este agora.
               </div>
             ) : null}
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-semibold">Como você está hoje? <span className="font-normal text-fg-subtle">(opcional)</span></legend>
-              <div className="flex flex-wrap gap-1.5">
-                {CHECKIN_OPCOES.map((o) => (
-                  <button key={o.v} type="button" aria-pressed={checkinPre === o.v} onClick={() => setCheckinPre(checkinPre === o.v ? null : o.v)} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${checkinPre === o.v ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-              {checkinPre === "desconforto" ? (
-                <div className="space-y-1.5">
-                  <input value={checkinNota} onChange={(e) => setCheckinNota(e.target.value.slice(0, 300))} placeholder="Onde e como? (opcional)" className="h-10 w-full rounded-md border border-border bg-bg px-3 text-sm" aria-label="Descreva o desconforto" />
-                  <p className="text-xs text-fg-muted">Respeite seus limites hoje. Se for dor forte ou diferente do normal, fale com o {BRAND.name} antes de treinar. Isso não substitui avaliação profissional.</p>
+            {pulso && !presencial ? (
+              <PulsoCard
+                ctx={pulso}
+                momento="pre_treino"
+                onCheckin={setCheckinPre}
+                jaRespondidas={extra?.recuperacao ? ["recuperacao"] : []}
+                aoDesconforto={<input value={checkinNota} onChange={(e) => setCheckinNota(e.target.value.slice(0, 300))} placeholder="Onde e como? (opcional)" className="h-10 w-full rounded-md border border-border bg-bg px-3 text-sm" aria-label="Descreva o desconforto" />}
+              />
+            ) : (
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-semibold">Como você está hoje? <span className="font-normal text-fg-subtle">(opcional)</span></legend>
+                <div className="flex flex-wrap gap-1.5">
+                  {CHECKIN_OPCOES.map((o) => (
+                    <button key={o.v} type="button" aria-pressed={checkinPre === o.v} onClick={() => setCheckinPre(checkinPre === o.v ? null : o.v)} className={`touch rounded-full border px-3 py-1.5 text-xs font-semibold ${checkinPre === o.v ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                      {o.l}
+                    </button>
+                  ))}
                 </div>
-              ) : checkinPre === "cansado" ? (
-                <p className="text-xs text-fg-muted">Tudo bem. Faça o que for possível com boa execução; o {BRAND.name} verá como você chegou hoje.</p>
-              ) : null}
-            </fieldset>
+                {checkinPre === "desconforto" ? (
+                  <div className="space-y-1.5">
+                    <input value={checkinNota} onChange={(e) => setCheckinNota(e.target.value.slice(0, 300))} placeholder="Onde e como? (opcional)" className="h-10 w-full rounded-md border border-border bg-bg px-3 text-sm" aria-label="Descreva o desconforto" />
+                    <p className="text-xs text-fg-muted">Respeite seus limites hoje. Se for dor forte ou diferente do normal, fale com o {BRAND.name} antes de treinar. Isso não substitui avaliação profissional.</p>
+                  </div>
+                ) : checkinPre === "cansado" ? (
+                  <p className="text-xs text-fg-muted">Tudo bem. Faça o que for possível com boa execução; o {BRAND.name} verá como você chegou hoje.</p>
+                ) : null}
+              </fieldset>
+            )}
             {extra ? (
               <div className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm">
                 <p className="font-semibold">Treino extra: {extra.titulo}</p>

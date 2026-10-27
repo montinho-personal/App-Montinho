@@ -6,13 +6,14 @@ import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { requireAlunoPage } from "@/lib/auth/session";
-import { getAluno, listDieta, getCheckInHoje } from "@/lib/db";
+import { getAluno, listDieta } from "@/lib/db";
+import { contextoPulsoAluno } from "@/lib/data/pulso";
+import { PulsoCard } from "@/components/pulso/PulsoCard";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { listIntervencoes } from "@/lib/data/acompanhamento";
 import { estadoSemana, resumoPeriodo } from "@/lib/relatorios/calcular";
 import { dataBR, tempoRelativo } from "@/lib/format";
-import { CheckInDiario } from "@/components/aluno/CheckInDiario";
 import { BRAND } from "@/config/brand";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
@@ -64,13 +65,13 @@ export default async function AlunoHomePage() {
     const perfil = await perfilVisitante(alunoId).catch(() => null);
     if (!perfil?.onboarding_concluido_em) redirect("/aluno/boas-vindas");
   }
-  const [aluno, plano, emAndamento, sessoes, intervencoes, checkInHoje, dieta, reconhecimentos, configExtra, estrategia, conquistas, historicoResumo] = await Promise.all([
+  const [aluno, plano, emAndamento, sessoes, intervencoes, pulsoInicio, dieta, reconhecimentos, configExtra, estrategia, conquistas, historicoResumo] = await Promise.all([
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
     listSessoes(alunoId, { limite: 120 }),
     listIntervencoes(alunoId, 3),
-    getCheckInHoje(alunoId),
+    contextoPulsoAluno(alunoId, "inicio").catch(() => null),
     listDieta(alunoId),
     listarReconhecimentos(alunoId, 1),
     getConfigExtra(alunoId),
@@ -325,7 +326,8 @@ export default async function AlunoHomePage() {
         </Card>
       ) : null}
 
-      <CheckInDiario jaRespondido={!!checkInHoje} />
+      {/* Montinho Pulso: no Início só para quem está voltando (o check-in diário 1–10 foi aposentado). */}
+      {pulsoInicio ? <PulsoCard ctx={pulsoInicio} momento="inicio" /> : null}
 
       {/* Mensagens reais do treinador (autoria identificada) */}
       {visiveis.length ? (
