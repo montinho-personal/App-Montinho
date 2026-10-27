@@ -73,7 +73,7 @@ export const TREINOS_PRONTOS: TreinoPronto[] = [
   T("projeto-fera", "Projeto Fera", "🦍", "Força bruta e tamanho", "Poucos exercícios, cargas pesadas e 5 a 8 repetições nos básicos, com descanso maior para render.", { nivel: "intermediario", minutos: 65, foco: "geral" }, "A", 28, true, {
     nomeReal: "Projeto Hulk",
     inspiracao: "Inspirado nos gigantes verdes dos quadrinhos: treino de força com agachamento, supino, remada e terra, em cargas altas.",
-    personalizado: { titulo: "Superiores e inferiores pesados 2× na semana", sessoes: ["SUP", "INF", "SUP", "INF"], estilo: "forca", preferidos: ["agachamento-livre", "supino-reto-barra", "remada-curvada-barra", "terra-romeno", "desenvolvimento-barra-em-pe", "barra-fixa-pronada"] },
+    personalizado: { titulo: "Superiores e inferiores pesados 2× na semana", sessoes: ["SUP", "INF", "SUP", "INF"], estilo: "forca", preferidos: ["agachamento-livre", "supino-reto-barra", "remada-curvada-barra", "desenvolvimento-barra-em-pe", "barra-fixa-pronada"] },
   }),
   T("rainha-das-pernas", "Rainha das Pernas", "👑", "Pernas e glúteo pesados e frequentes", "Três dias de pernas e glúteo por semana, com hip thrust, agachamento e búlgaro, e dois dias de parte de cima.", { nivel: "intermediario", minutos: 60, foco: "gluteo" }, "A", 28, true, {
     nomeReal: "Treino da Graciane",

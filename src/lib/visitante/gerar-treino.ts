@@ -62,7 +62,7 @@ export const POOLS = {
   gluteo_multi: P("gluteo", true, ["hip-thrust-maquina", "hip-thrust-barra", "elevacao-pelvica-solo"], ["elevacao-pelvica-solo", "elevacao-pelvica-unilateral"]),
   gluteo_extra: P("gluteo", true, ["agachamento-sumo", "agachamento-bulgaro"], ["agachamento-sumo", "agachamento-bulgaro"]),
   gluteo_mono: P("gluteo", false, ["cadeira-abdutora", "gluteo-maquina", "abducao-polia", "gluteo-coice-polia"], ["coice-quatro-apoios", "caminhada-lateral-elastico"]),
-  post_hinge: P("posteriores", true, ["stiff-halteres", "terra-romeno", "stiff-barra"], ["stiff-halteres", "stiff-unilateral"]),
+  post_hinge: P("posteriores", true, ["stiff-halteres", "stiff-barra"], ["stiff-halteres", "stiff-unilateral"]),
   post_mono: P("posteriores", false, ["cadeira-flexora", "mesa-flexora"], ["stiff-unilateral"]),
   adutor: P("adutores", false, ["cadeira-adutora"], []),
   panturrilha: P("panturrilha", false, ["panturrilha-em-pe-maquina", "panturrilha-sentado", "panturrilha-leg-press"], ["panturrilha-unilateral-degrau"]),
