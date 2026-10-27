@@ -290,7 +290,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     p: { biceps: 0.5, ombro_posterior: 0.25 }, pad: "puxar_horizontal", art: PUX, eq: ["maquina"], t: "multi",
     exe: ["Peito apoiado no encosto e pés firmes.", "Puxe as alças levando os cotovelos para trás.", "Volte alongando as costas."],
     err: ["Tirar o peito do apoio.", "Amplitude curta.", "Encolher os ombros."],
-    sub: ["remada-baixa-triangulo", "remada-apoiada-banco", "remada-cavalinho"],
+    sub: ["remada-baixa-aberta", "remada-baixa-triangulo", "remada-apoiada-banco"],
   }),
   ex("remada-apoiada-banco", "Remada com halteres apoiada no banco inclinado", "costas", {
     s: ["remada apoiada", "chest supported row", "remada no banco inclinado"],
