@@ -65,6 +65,11 @@ export default async function TreinarPage() {
         </Link>
       ) : null}
 
+      <Link href="/aluno/cardio" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+        <span className="text-2xl" aria-hidden>❤️‍🔥</span>
+        <span><span className="block font-bold">Montinho Cardio</span><span className="block text-xs text-fg-muted">Caminhada, esteira, bike… veja o prescrito e registre em segundos.</span></span>
+      </Link>
+
       {podeMontar ? (
         <Link href={treinos.length ? "/aluno/meus-treinos" : "/aluno/meus-treinos/novo"} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-accent/50 px-4 text-sm font-semibold text-accent">
           <Icon name="plus" size={18} /> {treinos.length ? "Montar ou editar meus treinos" : "Montar meu primeiro treino"}

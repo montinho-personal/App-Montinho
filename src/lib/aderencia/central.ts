@@ -7,7 +7,7 @@ import { dataLocal, somarDias, tendencia, type ResultadoAderencia } from "./calc
 import { MODELOS_PADRAO, preencherModelo, type ModeloId, type ModelosMensagem } from "@/lib/acompanhamento/modelos";
 
 export type Sinal = {
-  tipo: "sem_treino_recente" | "queda_frequencia" | "retomou" | "meta_sequencia" | "em_pausa" | "sem_prescricao" | "pulso";
+  tipo: "sem_treino_recente" | "queda_frequencia" | "retomou" | "meta_sequencia" | "em_pausa" | "sem_prescricao" | "pulso" | "cardio";
   texto: string;
   /** reconhecer = sugestão de parabenizar; acompanhar = merece contato humano; info = contexto. */
   natureza: "acompanhar" | "reconhecer" | "info";
@@ -58,6 +58,8 @@ export type ContextoCentral = {
   modelos?: ModelosMensagem;
   /** Montinho Pulso: categoria atual e se contou falta de tempo/rotina corrida (sem dado de saúde). */
   pulso?: { categoria: "tudo_bem" | "acompanhar" | "atencao"; semTempo: boolean } | null;
+  /** Montinho Cardio: sinais do cardio (entram como mais um motivo, no mesmo aluno: sem alerta duplicado). */
+  cardio?: Array<{ nivel: "atencao" | "acompanhar" | "reconhecer"; texto: string }> | null;
 };
 
 export type RegrasCentral = { diasSemTreino: number; quedaPontos: number; pausaParaRetomada: number; janelaRetomada: number; sequenciaReconhecer: number; horasRegistroAberto: number; diasPlanoAlterado: number; treinosSemCarga: number; diasAvaliacao: number };
@@ -112,6 +114,8 @@ export function linhaCentral(
 
   if (ctx.pulso && ctx.pulso.categoria !== "tudo_bem")
     sinais.push({ tipo: "pulso", texto: ctx.pulso.categoria === "atencao" ? "Pulso: precisa de atenção (ver aba Pulso)" : "Pulso: acompanhar (ver aba Pulso)", natureza: "acompanhar" });
+
+  for (const c of (ctx.cardio ?? []).slice(0, 2)) sinais.push({ tipo: "cardio", texto: `Cardio: ${c.texto}`, natureza: c.nivel === "reconhecer" ? "reconhecer" : "acompanhar" });
 
   // Retomada: treinou nos últimos 7 dias depois de ≥ 14 dias sem treinar.
   const ord = [...new Set(datasSessoes)].sort();

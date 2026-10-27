@@ -792,12 +792,73 @@ export const alertaPulsoSchema = z.object({
 // Modelos de mensagem do WhatsApp do personal (src/lib/acompanhamento/modelos.ts).
 const textoModelo = z.string().trim().max(500).refine((t) => !/\{(?!nome\}|dias\}|semanas\})[^}]*\}/.test(t), "Use só {nome}, {dias} ou {semanas}");
 export const modelosMensagemSchema = z
-  .object({ ausencia: textoModelo, queda: textoModelo, retorno: textoModelo, pouco_tempo: textoModelo, progresso: textoModelo, renovacao: textoModelo, apoio: textoModelo, cuidado: textoModelo })
+  .object({ ausencia: textoModelo, queda: textoModelo, retorno: textoModelo, pouco_tempo: textoModelo, progresso: textoModelo, renovacao: textoModelo, apoio: textoModelo, cuidado: textoModelo, cardio_falta: textoModelo, cardio_meta: textoModelo, cardio_retorno: textoModelo, cardio_trofeu: textoModelo, cardio_queda: textoModelo })
   .partial()
   .strict();
 
 // Contato registrado pelo personal depois de enviar a mensagem (Central de aderência).
 export const contatoAcompanhamentoSchema = z.object({
   aluno_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
-  motivo: z.enum(["ausencia", "plano_alterado", "registro", "queda", "retomada", "sequencia", "pausa", "sem_carga", "avaliacao"]),
+  motivo: z.enum(["ausencia", "plano_alterado", "registro", "queda", "retomada", "sequencia", "pausa", "sem_carga", "avaliacao", "cardio"]),
+});
+
+// Montinho Cardio (0098) ---------------------------------------------------
+const modalidadeCardio = z.enum(["caminhada", "corrida", "esteira", "bike_ergometrica", "bike", "eliptico", "escada", "remo", "natacao", "corda", "hiit", "outro"]);
+const intensidadeCardio = z.enum(["leve", "moderada", "forte"]);
+const fc = z.coerce.number().int().min(30).max(240).nullable().optional();
+
+export const prescricaoCardioSchema = z
+  .object({
+    modalidade: modalidadeCardio,
+    nome: z.string().trim().min(1).max(60).nullable().optional(),
+    tipo: z.enum(["continuo", "intervalado"]).default("continuo"),
+    duracao_min: z.coerce.number().int().min(5).max(240),
+    intensidade: intensidadeCardio.default("moderada"),
+    frequencia_semanal: z.coerce.number().int().min(1).max(7),
+    dias: z.array(z.coerce.number().int().min(0).max(6)).max(7).default([]),
+    vinculo: z.enum(["independente", "apos_treino", "antes_treino"]).default("independente"),
+    treino_id: z.string().uuid().nullable().optional(),
+    fc_alvo_min: z.coerce.number().int().min(60).max(220).nullable().optional(),
+    fc_alvo_max: z.coerce.number().int().min(60).max(220).nullable().optional(),
+    intervalos: z.string().trim().max(200).nullable().optional(),
+    observacoes: z.string().trim().max(500).nullable().optional(),
+    substitui_id: z.string().min(1).max(64).nullable().optional(),
+  })
+  .refine((p) => p.fc_alvo_min == null || p.fc_alvo_max == null || p.fc_alvo_min <= p.fc_alvo_max, { message: "A FC mínima precisa ser menor que a máxima." });
+
+export const desativarPrescricaoCardioSchema = z.object({ prescricao_id: z.string().min(1).max(64) });
+
+export const registroCardioSchema = z
+  .object({
+    client_key: z.string().min(8).max(80),
+    prescricao_id: z.string().min(1).max(64).nullable().optional(),
+    modalidade: modalidadeCardio,
+    status: z.enum(["concluido", "parcial", "nao_realizado"]),
+    duracao_min: z.coerce.number().int().min(0).max(600).default(0),
+    intensidade: intensidadeCardio.nullable().optional(),
+    esforco: z.coerce.number().int().min(0).max(10).nullable().optional(),
+    distancia_km: z.coerce.number().min(0).max(500).nullable().optional(),
+    velocidade_kmh: z.coerce.number().min(0).max(80).nullable().optional(),
+    inclinacao_pct: z.coerce.number().min(-10).max(40).nullable().optional(),
+    fc_media: fc,
+    fc_max: fc,
+    observacoes: z.string().trim().max(300).nullable().optional(),
+    session_id: z.string().min(1).max(64).nullable().optional(),
+    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  })
+  .refine((r) => r.status === "nao_realizado" || r.duracao_min >= 1, { message: "Informe quantos minutos você fez." });
+
+export const correcaoCardioSchema = z.object({
+  status: z.enum(["concluido", "parcial", "nao_realizado"]).optional(),
+  modalidade: modalidadeCardio.optional(),
+  duracao_min: z.coerce.number().int().min(0).max(600).optional(),
+  intensidade: intensidadeCardio.nullable().optional(),
+  esforco: z.coerce.number().int().min(0).max(10).nullable().optional(),
+  distancia_km: z.coerce.number().min(0).max(500).nullable().optional(),
+  velocidade_kmh: z.coerce.number().min(0).max(80).nullable().optional(),
+  inclinacao_pct: z.coerce.number().min(-10).max(40).nullable().optional(),
+  fc_media: fc,
+  fc_max: fc,
+  observacoes: z.string().trim().max(300).nullable().optional(),
+  remover: z.boolean().optional(),
 });

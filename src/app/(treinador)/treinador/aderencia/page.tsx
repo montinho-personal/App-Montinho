@@ -1,4 +1,5 @@
 import { requireTreinadorPage } from "@/lib/auth/session";
+import { painelCardio, type LinhaPainelCardio } from "@/lib/data/cardio";
 import { listAlunos } from "@/lib/db";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { dataLocal, tendencia } from "@/lib/aderencia/calcular";
@@ -31,11 +32,12 @@ export default async function CentralAderenciaPage({ searchParams }: { searchPar
     modelos,
   ).catch((): PulsoDoAluno[] => []);
   const pulsoPorAluno = new Map(pulso.map((p) => [p.alunoId, p]));
+  const cardioPorAluno = new Map((await painelCardio().catch((): LinhaPainelCardio[] => [])).map((c): [string, Array<{ nivel: "atencao" | "acompanhar" | "reconhecer"; texto: string }>] => [c.alunoId, c.sinais.map((s) => ({ nivel: s.nivel, texto: s.texto }))]));
   const linhas = alunos.map((a) => {
     const d = dados[a.id];
     const p = pulsoPorAluno.get(a.id);
     const pulsoCtx = p ? { categoria: p.resultado.categoria, semTempo: p.resultado.dificuldadesAtuais.some((x) => x === "falta_tempo" || x === "rotina_corrida") } : null;
-    return { ...linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas, { sessaoAbertaDesde: d.sessaoAbertaDesde, planoAlteradoEm: d.planoAlteradoEm, pausaTipo: d.pausaTipo, treinosSemCarga: extras[a.id]?.treinosSemCarga, ultimaAvaliacao: extras[a.id]?.ultimaAvaliacao ?? null, inicio: a.data_inicio ?? dataLocal(a.created_at), modelos, pulso: pulsoCtx }, regras), telefone: a.telefone ?? null, semanas: d.semanas.slice(-8).map(({ inicio, meta, pontos, pausada, atual, status }) => ({ inicio, meta, pontos, pausada, atual, status })) };
+    return { ...linhaCentral({ id: a.id, nome: a.profile?.nome ?? "Aluno" }, d, d.ultimaSessao, hoje, d.datas, { sessaoAbertaDesde: d.sessaoAbertaDesde, planoAlteradoEm: d.planoAlteradoEm, pausaTipo: d.pausaTipo, treinosSemCarga: extras[a.id]?.treinosSemCarga, ultimaAvaliacao: extras[a.id]?.ultimaAvaliacao ?? null, inicio: a.data_inicio ?? dataLocal(a.created_at), modelos, pulso: pulsoCtx, cardio: cardioPorAluno.get(a.id) ?? null }, regras), telefone: a.telefone ?? null, semanas: d.semanas.slice(-8).map(({ inicio, meta, pontos, pausada, atual, status }) => ({ inicio, meta, pontos, pausada, atual, status })) };
   });
   // Os dois painéis mostram dados derivados do Pulso: fica registrado (1×/dia por aluno).
   await registrarAcessoSaude(sessao.userId, pulso.filter((p) => p.resultado.ultimaResposta).map((p) => p.alunoId), "pulso_painel").catch(() => undefined);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
+import { progressoCardio } from "@/lib/data/cardio";
 import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
 import { ConquistasClient } from "./ConquistasClient";
 import { medalhasEmDestaque, proximasMedalhas, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
@@ -24,11 +25,11 @@ export default async function ConquistasPage() {
   const sessao = await requireAlunoPage();
   const aluno = await getAluno(sessao.alunoId);
   if (!aluno) return null;
-  const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos, plano] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), getPlanoAtivo(aluno.id).catch(() => null)]);
+  const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos, plano, cardio] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), getPlanoAtivo(aluno.id).catch(() => null), progressoCardio(aluno.id).catch(() => null)]);
   const hoje = dataLocal(new Date());
   const album = await albumParaAluno(aluno, conquistas);
   const albumResumo = progressoAlbum(album.itens);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje });
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje, cardio });
   // Troféus que dá para ganhar nos próximos dias, com o que fazer em cada um.
   const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));

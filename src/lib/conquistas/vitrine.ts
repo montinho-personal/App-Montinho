@@ -93,10 +93,23 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "campeao_desafio", selo: "🥇" },
   { codigo: "palavra_cumprida", selo: "✅" },
   { codigo: "desafiante_nato", selo: "🔥" },
+  // Montinho Cardio (500 e 1.000 ainda desligados: não aparecem)
+  { codigo: "cardio_1", selo: "❤️" },
+  { codigo: "cardio_2", selo: "2❤️" },
+  { codigo: "cardio_3", selo: "3❤️" },
+  { codigo: "cardio_10", selo: "10❤️" },
+  { codigo: "cardio_25", selo: "25❤️" },
+  { codigo: "cardio_50", selo: "50❤️" },
+  { codigo: "cardio_100", selo: "100" },
+  { codigo: "cardio_250", selo: "250" },
+  { codigo: "cardio_semana_ritmo", selo: "⚡" },
+  { codigo: "cardio_meta_semana", selo: "100%" },
+  { codigo: "cardio_4_semanas", selo: "4×" },
+  { codigo: "cardio_uma_hora", selo: "60′" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -105,7 +118,10 @@ const faltaN = (n: number, um: string, varios: string) => `${n === 1 ? "Falta" :
 
 type Aderencia = Pick<ResultadoAderencia, "sequencia" | "semanaAtual" | "semanas">;
 
-export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string }): Medalha[] {
+/** Resumo do Montinho Cardio para o progresso dos troféus de cardio. */
+export type ProgressoCardio = { feitos: number; temPrescricao: boolean; prescricaoLonga: boolean };
+
+export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null }): Medalha[] {
   const ganhas = new Map<string, string>();
   for (const c of e.conquistas) if (!ganhas.has(c.codigo) || c.conquistado_em < ganhas.get(c.codigo)!) ganhas.set(c.codigo, c.conquistado_em);
 
@@ -238,6 +254,33 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Cumpra a meta de um desafio de “Meta de treinos” ou “Semana em dia”.", disponivel: true };
       case "desafiante_nato":
         return { atual: null, alvo: null, falta: "Participe até o fim de 3 desafios entre amigos.", disponivel: true };
+      case "cardio_1":
+      case "cardio_2":
+      case "cardio_3":
+      case "cardio_10":
+      case "cardio_25":
+      case "cardio_50":
+      case "cardio_100":
+      case "cardio_250":
+      case "cardio_500":
+      case "cardio_1000": {
+        const n = Number(c.split("_")[1]);
+        const feitos = e.cardio?.feitos ?? 0;
+        // Sem cardio prescrito nem registrado, não disputa a “próxima medalha” com a musculação.
+        return { atual: Math.min(feitos, n), alvo: n, falta: `${faltaN(n - Math.min(feitos, n), "cardio", "cardios")} (1 por dia, 10 minutos ou mais) em Montinho Cardio.`, disponivel: feitos > 0 || !!e.cardio?.temPrescricao };
+      }
+      case "cardio_semana_ritmo":
+      case "cardio_meta_semana":
+      case "cardio_4_semanas":
+        return e.cardio?.temPrescricao
+          ? { atual: null, alvo: null, falta: c === "cardio_4_semanas" ? "Cumpra o cardio prescrito em 4 semanas seguidas." : c === "cardio_semana_ritmo" ? "Faça todos os cardios prescritos numa semana." : "Chegue aos minutos de cardio prescritos para a semana.", disponivel: true }
+          : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, a meta da semana aparece em Montinho Cardio.", disponivel: false };
+      case "cardio_uma_hora":
+        return e.cardio?.prescricaoLonga
+          ? { atual: null, alvo: null, falta: "Conclua o cardio de 60+ minutos prescrito, sem passar do tempo combinado.", disponivel: true }
+          : { atual: null, alvo: null, falta: "Só existe quando o Montinho prescreve um cardio de 60 minutos ou mais. Fazer mais do que o prescrito não vale.", disponivel: false };
+      case "cardio_voltei":
+        return { atual: null, alvo: null, falta: "Só acontece depois de 14 dias ou mais sem cardio: volte e faça um cardio.", disponivel: false };
       case "strava_conectado":
         return { atual: null, alvo: null, falta: "No Perfil, em “Relógio (pelo Strava)”, marque a autorização e toque em “Conectar com o Strava”.", disponivel: true };
       case "treino_samurai":

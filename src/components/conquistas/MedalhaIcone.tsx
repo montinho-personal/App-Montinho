@@ -63,7 +63,8 @@ export function MedalhaIcone({ selo, conquistada, atual, alvo, tamanho = 76, nov
           {selo}
         </text>
         <text x="40" y="57" textAnchor="middle" fontWeight="800" fontSize="5.5" letterSpacing="0.8" fill={conquistada ? "#f5c451" : "#6b6b6b"} fontFamily="inherit">
-          SEMANAS
+          {/* Guerreiro (selo “12”) = semanas; Lenda do Fôlego (selo “250”) = cardios. */}
+          {selo === "250" ? "CARDIOS" : "SEMANAS"}
         </text>
       </svg>
     );

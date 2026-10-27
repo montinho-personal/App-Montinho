@@ -5,7 +5,7 @@
 // (semanas seguidas com a meta). Nada é enviado sozinho: o texto vira rascunho.
 // ============================================================================
 
-export type ModeloId = "ausencia" | "queda" | "retorno" | "pouco_tempo" | "progresso" | "renovacao" | "apoio" | "cuidado";
+export type ModeloId = "ausencia" | "queda" | "retorno" | "pouco_tempo" | "progresso" | "renovacao" | "apoio" | "cuidado" | "cardio_falta" | "cardio_meta" | "cardio_retorno" | "cardio_trofeu" | "cardio_queda";
 
 export const MODELOS_INFO: Record<ModeloId, { titulo: string; quando: string }> = {
   ausencia: { titulo: "Ausência", quando: "Dias sem registrar treino" },
@@ -16,6 +16,11 @@ export const MODELOS_INFO: Record<ModeloId, { titulo: string; quando: string }> 
   renovacao: { titulo: "Renovação", quando: "Perto de renovar o plano (use quando quiser)" },
   apoio: { titulo: "Apoio", quando: "Pouca vontade ou cansaço contados no Pulso" },
   cuidado: { titulo: "Cuidado", quando: "Relatou desconforto no Pulso (sem citar saúde)" },
+  cardio_falta: { titulo: "Cardio: não fez", quando: "Cardio prescrito não realizado na semana" },
+  cardio_meta: { titulo: "Cardio: meta cumprida", quando: "Cumpriu o cardio prescrito da semana" },
+  cardio_retorno: { titulo: "Cardio: voltou", quando: "Retomou o cardio depois de um tempo" },
+  cardio_trofeu: { titulo: "Cardio: troféu", quando: "Ganhou um troféu de cardio" },
+  cardio_queda: { titulo: "Cardio: queda", quando: "Cardio abaixo do que vinha fazendo" },
 };
 
 export const MODELOS_PADRAO: Record<ModeloId, string> = {
@@ -27,6 +32,11 @@ export const MODELOS_PADRAO: Record<ModeloId, string> = {
   renovacao: "Oi, {nome}! Olha o quanto você evoluiu até aqui! Bora seguir juntos no próximo ciclo? Me chama que eu te explico como renovar.",
   apoio: "Oi, {nome}! Como você está? Estou aqui se quiser conversar sobre os treinos. 💛",
   cuidado: "Oi, {nome}! Passando para saber como você está. Me conta como foram os últimos treinos?",
+  cardio_falta: "Oi, {nome}! Vi que o cardio não entrou na semana. Está tudo bem? Se o tempo apertou, posso ajustar para caber na sua rotina.",
+  cardio_meta: "Boa, {nome}! Cardio da semana cumprido, do jeitinho que combinamos. Chalalá! ❤️‍🔥",
+  cardio_retorno: "Que bom ver você de volta ao cardio, {nome}! Vamos no seu ritmo, sem pressa.",
+  cardio_trofeu: "Parabéns, {nome}! Troféu de cardio conquistado no app. Essa constância faz diferença! ❤️‍🔥",
+  cardio_queda: "Oi, {nome}! Percebi que o cardio diminuiu nas últimas semanas. Quer que a gente ajuste a duração ou os dias?",
 };
 
 export const MODELO_IDS = Object.keys(MODELOS_PADRAO) as ModeloId[];

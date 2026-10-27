@@ -55,6 +55,7 @@ import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import type { ContextoPulsoAluno } from "@/lib/data/pulso";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
 import { CardioDoTreino } from "@/components/strava/CardioDoTreino";
+import { CardioAposTreino } from "@/components/cardio/CardioAposTreino";
 import { OPCOES_TEMPO_MIN, encurtarDescanso, ganhoDescansoReduzido, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { avaliarSerie, podeAvisar, principal, resumirExercicio, type Descoberta, type ExecucaoAnterior, type SerieReg } from "@/lib/evolucao/motor";
@@ -1125,6 +1126,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     return (
       <TelaChalala base={base} nome={nomeAluno} confianca={confiancaFim}>
           {concluida.status === "concluida" ? <CardioDoTreino sessionId={concluida.id} /> : null}
+          {concluida.status === "concluida" ? <CardioAposTreino sessionId={concluida.id} nome={nomeAluno} /> : null}
           <Card>
             <CardBody className="space-y-3">
               <p className="font-semibold text-sm">Como foi o treino? (opcional)</p>

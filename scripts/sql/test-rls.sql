@@ -1667,3 +1667,73 @@ begin
 end $$;
 \echo 'T51 OK: Montinho Pulso'
 \echo 'TODOS OS TESTES PASSARAM'
+-- T52 — 0098: Montinho Cardio — só o personal prescreve; aluno registra/corrige só o próprio (sem apagar); sem duplicar
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  insert into cardio_prescricoes (id, aluno_id, modalidade, duracao_min, intensidade, frequencia_semanal, dias)
+    values ('cccccccc-0098-4000-8000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 30, 'moderada', 3, '{1,3,5}');
+  begin
+    insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'paraquedas', 30, 3);
+    raise exception 'T52a: aceitou modalidade fora da lista';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal, ativo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 30, 3, false);
+    raise exception 'T52b: desativou sem data';
+  exception when check_violation then null;
+  end;
+  insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'caminhada', 'concluido', 20, 'personal', 'personal-cardio-1', current_date);
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int;
+begin
+  if not exists (select 1 from cardio_prescricoes where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T52c: aluno não vê a própria prescrição'; end if;
+  begin
+    insert into cardio_prescricoes (aluno_id, modalidade, duracao_min, frequencia_semanal) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 90, 7);
+    raise exception 'T52d: aluno prescreveu o próprio cardio';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  insert into cardio_registros (aluno_id, prescricao_id, modalidade, status, duracao_min, planejado_min, esforco, client_key, data)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-0098-4000-8000-000000000001', 'esteira', 'concluido', 30, 30, 6, 'cardio-aluno-1', current_date);
+  begin
+    insert into cardio_registros (aluno_id, modalidade, status, duracao_min, client_key, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 30, 'cardio-aluno-1', current_date);
+    raise exception 'T52e: duplicou o mesmo registro';
+  exception when unique_violation then null;
+  end;
+  begin
+    insert into cardio_registros (aluno_id, modalidade, status, duracao_min, client_key, data) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'corrida', 'concluido', 30, 'cardio-outro-1', current_date);
+    raise exception 'T52f: registrou cardio de outro aluno';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  begin
+    insert into cardio_registros (aluno_id, modalidade, status, duracao_min, client_key, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 'nao_realizado', 30, 'cardio-aluno-2', current_date);
+    raise exception 'T52g: não realizado com minutos';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'corrida', 'concluido', 30, 'personal', 'cardio-aluno-3', current_date);
+    raise exception 'T52h: aluno gravou como se fosse o personal';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+  update cardio_registros set duracao_min = 25 where client_key = 'cardio-aluno-1';
+  update cardio_registros set removido_em = now() where client_key = 'cardio-aluno-1';
+  delete from cardio_registros where client_key = 'cardio-aluno-1';
+  get diagnostics n = row_count;
+  if n > 0 then raise exception 'T52i: aluno apagou registro de verdade'; end if;
+  update cardio_registros set duracao_min = 5 where client_key = 'personal-cardio-1';
+  get diagnostics n = row_count;
+  if n > 0 then raise exception 'T52j: aluno alterou registro do personal'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from cardio_registros where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T52k: aluno B viu cardio do aluno A'; end if;
+  if exists (select 1 from cardio_prescricoes where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T52l: aluno B viu prescrição do aluno A'; end if;
+end $$;
+select test_logout();
+\echo 'T52 OK: Montinho Cardio'

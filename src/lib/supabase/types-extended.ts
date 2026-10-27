@@ -154,12 +154,67 @@ export type PulsoPreferencias = {
 export type AcompanhamentoAlerta = {
   id: string;
   aluno_id: string;
-  origem: "pulso" | "aderencia";
+  origem: "pulso" | "aderencia" | "cardio";
   chave: string;
   estado: "acompanhado" | "dispensado" | "adiado";
   adiado_ate: string | null;
   nota: string | null;
   autor_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** 0098 — Montinho Cardio. */
+export type ModalidadeCardio = "caminhada" | "corrida" | "esteira" | "bike_ergometrica" | "bike" | "eliptico" | "escada" | "remo" | "natacao" | "corda" | "hiit" | "outro";
+export type IntensidadeCardio = "leve" | "moderada" | "forte";
+
+export type CardioPrescricao = {
+  id: string;
+  aluno_id: string;
+  modalidade: ModalidadeCardio;
+  nome: string | null;
+  tipo: "continuo" | "intervalado";
+  duracao_min: number;
+  intensidade: IntensidadeCardio;
+  frequencia_semanal: number;
+  /** 0 = domingo … 6 = sábado. */
+  dias: number[];
+  vinculo: "independente" | "apos_treino" | "antes_treino";
+  treino_id: string | null;
+  fc_alvo_min: number | null;
+  fc_alvo_max: number | null;
+  intervalos: string | null;
+  observacoes: string | null;
+  ativo: boolean;
+  desativado_em: string | null;
+  autor_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CardioRegistro = {
+  id: string;
+  aluno_id: string;
+  prescricao_id: string | null;
+  modalidade: ModalidadeCardio;
+  status: "concluido" | "parcial" | "nao_realizado";
+  duracao_min: number;
+  planejado_min: number | null;
+  intensidade_planejada: IntensidadeCardio | null;
+  intensidade: IntensidadeCardio | null;
+  esforco: number | null;
+  distancia_km: number | null;
+  velocidade_kmh: number | null;
+  inclinacao_pct: number | null;
+  fc_media: number | null;
+  fc_max: number | null;
+  observacoes: string | null;
+  session_id: string | null;
+  origem: "app" | "personal";
+  client_key: string;
+  data: string;
+  realizado_em: string;
+  removido_em: string | null;
   created_at: string;
   updated_at: string;
 };

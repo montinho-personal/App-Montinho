@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
+import { progressoCardio } from "@/lib/data/cardio";
 import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
 import { DESAFIADORAS, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { CONTEUDO, CATEGORIA_ROTULO, type Categoria } from "@/lib/conquistas/conteudo";
@@ -28,8 +29,8 @@ export default async function TodasConquistasPage({ searchParams }: { searchPara
   const { m, aba: abaPedida, tema: temaPedido } = await searchParams;
   const tema = temaPedido && temaPedido in CATEGORIA_ROTULO ? (temaPedido as Categoria) : null;
   const aba = ABAS.some((a) => a.id === abaPedida) ? abaPedida! : "todas";
-  const [{ conquistas, sessoes, aderencia }, reconhecimentos] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id)]);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()) });
+  const [{ conquistas, sessoes, aderencia }, reconhecimentos, cardio] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), progressoCardio(aluno.id).catch(() => null)]);
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()), cardio });
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
   const porCodigo: Record<string, { mensagem: string; data: string }> = {};
   for (const r of [...reconhecimentos].reverse()) {

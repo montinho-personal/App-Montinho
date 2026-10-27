@@ -16,12 +16,13 @@ import { LIMITES_DESAFIO, type MarcosDesafios } from "@/lib/desafios/regras";
 import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
+import { trofeusDoCardio, LIMITES_CARDIO, type CodigoCardio, type EntradaCardio } from "@/lib/cardio/regras";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
 export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
-export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12"]);
+export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12", "cardio_250"]);
 
 /** Começo (pedido do Montinho, 23/10/2026). */
 export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
@@ -93,6 +94,8 @@ export type CodigoConquista =
   | "campeao_desafio"
   | "palavra_cumprida"
   | "desafiante_nato"
+  // Montinho Cardio (src/lib/cardio/regras.ts)
+  | CodigoCardio
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -148,6 +151,8 @@ export const CODIGOS_STRAVA: CodigoConquista[] = ["strava_conectado"];
 /** Troféus de compartilhamento (0088). Gravados à parte, como os outros novos. */
 export const CODIGOS_COMPARTILHAR: CodigoConquista[] = ["compartilhou_primeiro", "diario_de_bordo", "vitrine_de_trofeus", "inspiracao_galera", "trouxe_amigo"];
 /** Troféus dos desafios entre alunos (0094). Gravados à parte, como os outros novos. */
+/** Montinho Cardio (0098): gravadas à parte, como as outras famílias novas. */
+export { CODIGOS_CARDIO } from "@/lib/cardio/regras";
 export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -228,6 +233,21 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   campeao_desafio: { titulo: "Campeão do Desafio", criterio: "Terminar em 1º lugar um desafio de disputa (quem treina mais ou madrugadores) com pelo menos mais uma pessoa.", repete: false },
   palavra_cumprida: { titulo: "Palavra Cumprida", criterio: "Cumprir a meta de um desafio de meta (meta de treinos ou semana em dia) até o fim.", repete: false },
   desafiante_nato: { titulo: "Desafiante Nato", criterio: `Participar até o fim de ${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos.`, repete: false },
+  cardio_1: { titulo: "Primeiro Fôlego", criterio: `Fazer o primeiro cardio: ${LIMITES_CARDIO.minutosMin} minutos ou mais no dia (e pelo menos metade do prescrito, quando houver). Pedacinhos do mesmo dia se somam.`, repete: false },
+  cardio_2: { titulo: "Motor Ligando", criterio: "Fazer cardio em 2 dias diferentes (1 cardio por dia conta, com as mesmas regras do Primeiro Fôlego).", repete: false },
+  cardio_3: { titulo: "Pegando Ritmo", criterio: "Fazer cardio em 3 dias diferentes.", repete: false },
+  cardio_10: { titulo: "Dez no Pulmão", criterio: "Somar 10 cardios (1 por dia).", repete: false },
+  cardio_25: { titulo: "Fôlego de Respeito", criterio: "Somar 25 cardios (1 por dia).", repete: false },
+  cardio_50: { titulo: "Máquina de Cardio", criterio: "Somar 50 cardios (1 por dia).", repete: false },
+  cardio_100: { titulo: "Coração de Aço", criterio: "Somar 100 cardios (1 por dia).", repete: false },
+  cardio_250: { titulo: "Lenda do Fôlego", criterio: "Somar 250 cardios (1 por dia). Troféu lendário.", repete: false },
+  cardio_500: { titulo: "500 cardios", criterio: "Somar 500 cardios (1 por dia).", repete: false },
+  cardio_1000: { titulo: "1.000 cardios", criterio: "Somar 1.000 cardios (1 por dia).", repete: false },
+  cardio_uma_hora: { titulo: "Uma Hora de Chalalá", criterio: `Concluir um cardio de ${LIMITES_CARDIO.umaHoraMin} minutos ou mais numa sessão só, quando o personal prescreveu ${LIMITES_CARDIO.umaHoraMin}+ minutos — sem passar do prescrito. Não existe para quem não tem essa prescrição.`, repete: false },
+  cardio_semana_ritmo: { titulo: "Semana no Ritmo", criterio: "Fazer todos os cardios prescritos pelo personal numa semana (de segunda a domingo).", repete: false },
+  cardio_meta_semana: { titulo: "100% no Plano", criterio: `Chegar aos minutos de cardio prescritos para a semana (com ${Math.round(LIMITES_CARDIO.toleranciaMeta * 100)}% de tolerância). Passar da meta não dá nada a mais.`, repete: false },
+  cardio_4_semanas: { titulo: "Fôlego de Ferro", criterio: `Cumprir os cardios prescritos em ${LIMITES_CARDIO.semanasFerro} semanas seguidas (pausas combinadas não quebram).`, repete: false },
+  cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
 };
@@ -371,6 +391,8 @@ export type EntradaConquistas = {
   desafiosAmigos?: MarcosDesafios | null;
   /** Modo Visitante: desafios em que a pessoa entrou. */
   desafios?: DesafioConquista[];
+  /** Montinho Cardio: prescrições (com as antigas) e cardios feitos. */
+  cardio?: EntradaCardio | null;
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
@@ -463,6 +485,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (da?.campeao) out.push(nova("campeao_desafio", "1", da.campeao, null, "1º lugar num desafio entre amigos."));
   if (da?.palavra) out.push(nova("palavra_cumprida", "1", da.palavra, null, "Meta do desafio cumprida até o fim."));
   if (da?.nato) out.push(nova("desafiante_nato", "1", da.nato, null, `${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos até o fim.`));
+  if (e.cardio) for (const t of trofeusDoCardio(e.cardio, hoje)) out.push(nova(t.codigo, t.referencia, t.data, null, t.descricao, undefined, t.evidencia));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

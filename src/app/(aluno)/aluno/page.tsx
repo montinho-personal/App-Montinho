@@ -55,6 +55,10 @@ import { estadoDoAcesso } from "@/lib/visitante/acesso";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
 import { listarMeusDesafios, minhasCutucadas, recadosDosDesafios } from "@/lib/data/desafios";
 import { hrefDaSessao } from "@/lib/treino/livre";
+import { cardioDoAluno } from "@/lib/data/cardio";
+import { pendentesHoje } from "@/lib/cardio/regras";
+import { CardioHoje } from "@/components/cardio/CardioHoje";
+import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
 
 export const metadata = { title: "Início" };
 
@@ -82,8 +86,11 @@ export default async function AlunoHomePage() {
   ]);
   if (!aluno) return null;
   const [aderencia, { atual: vitoria }, album] = await Promise.all([aderenciaDoAluno(aluno), vitoriasDoAluno(aluno, 0), albumParaAluno(aluno, conquistas)]);
+  // Montinho Cardio: só aparece aqui para quem tem cardio prescrito.
+  const cardio = await cardioDoAluno(alunoId, aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio)).catch(() => null);
+  const cardioPendentes = cardio ? pendentesHoje(cardio.prescricoes, cardio.feitos, dataLocal(new Date())) : [];
   const albumResumo = progressoAlbum(album.itens);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()) });
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null });
   const proximaMed = proximaMedalha(medalhas);
   const ganhas = medalhas.filter((m) => m.conquistada).length;
 
@@ -211,6 +218,12 @@ export default async function AlunoHomePage() {
       )}
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !emAndamento && !proximo && podeRegistrar("visitante", sessao.acessoFim ?? null) ? <ComeceAquiSite tela="inicio" /> : null}
+      {cardio?.prescricoes.length ? (
+        <div className="space-y-2">
+          <SemanaCardioCard semana={cardio.semanas.find((w) => w.atual) ?? null} link />
+          <CardioHoje pendentes={cardioPendentes} nome={primeiroNome} livre={false} compacto />
+        </div>
+      ) : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
       {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}
       {/* No máximo um convite por tela: com campanha em destaque, sai o convite comum. */}

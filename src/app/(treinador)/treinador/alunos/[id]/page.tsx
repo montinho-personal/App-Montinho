@@ -34,6 +34,13 @@ import { ComparadorFotos } from "./ComparadorFotos";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { HistoricoPulso } from "@/components/pulso/HistoricoPulso";
+import { cardioDoAluno } from "@/lib/data/cardio";
+import { pendentesHoje } from "@/lib/cardio/regras";
+import { PrescricaoCardio } from "@/components/cardio/PrescricaoCardio";
+import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
+import { HistoricoCardio, SemanasCardio } from "@/components/cardio/HistoricoCardio";
+import { SinaisCardio } from "@/components/cardio/SinaisCardio";
+import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { historicoPulso, registrarAcessoSaude } from "@/lib/data/pulso";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
@@ -90,6 +97,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
   const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio, cardiosStrava] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => []), listarCardiosStrava(aluno.id, 10).catch(() => [])]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
+  const cardioAluno = await cardioDoAluno(aluno.id, aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio)).catch(() => null);
   // Mesmos alertas do painel inicial, agora também na ficha (topo da aba Evolução).
   const seteDiasAtras = somarDias(hojeLocal, -6);
   const alertas = alertasDoAluno({
@@ -372,6 +380,33 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   <div className="mt-3"><PainelCheckins checkIns={checkIns as never} dias={30} /></div>
                 </details>
               </div>
+            ),
+          },
+          {
+            key: "cardio",
+            label: "❤️ Cardio",
+            content: cardioAluno ? (
+              <div className="space-y-4">
+                <SinaisCardio sinais={cardioAluno.sinais} />
+                <SemanaCardioCard semana={cardioAluno.semanas.find((w) => w.atual) ?? null} />
+                <Card>
+                  <CardBody className="space-y-3">
+                    <p className="font-bold">Prescrição de cardio</p>
+                    <PrescricaoCardio alunoId={id} prescricoes={cardioAluno.prescricoes} treinos={treinosAtivos.map((t) => ({ id: t.id, letra: t.letra, nome: t.nome }))} />
+                  </CardBody>
+                </Card>
+                <SemanasCardio semanas={cardioAluno.semanas} />
+                <div className="space-y-2">
+                  <p className="font-bold">Registrar pelo aluno</p>
+                  <CardioHoje pendentes={pendentesHoje(cardioAluno.prescricoes, cardioAluno.feitos, hojeLocal)} titulo="Prescrito para hoje" compacto rota={`/api/alunos/${id}/cardio/registros`} />
+                </div>
+                <div className="space-y-2">
+                  <p className="font-bold">Histórico ({cardioAluno.marco.feitos} {cardioAluno.marco.feitos === 1 ? "cardio" : "cardios"})</p>
+                  <HistoricoCardio feitos={cardioAluno.feitos} rotaCorrecao={`/api/alunos/${id}/cardio/registros`} personal />
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-fg-muted">Não foi possível carregar o cardio agora.</p>
             ),
           },
           {

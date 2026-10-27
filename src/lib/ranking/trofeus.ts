@@ -65,4 +65,5 @@ export function fraseDoRanking(linhas: LinhaRanking[]): string {
 }
 
 /** Conquistas que se repetem e ficam em seções próprias: não contam como troféu no ranking (igual à sala de troféus). Espelho de 0077. */
-export const FORA_DO_RANKING = ["recorde", "eu_voltei", "desafio_concluido"] as const;
+/** cardio_500/1000 ainda desligados (ao ligar: pôr na vitrine e tirar daqui e do SQL). */
+export const FORA_DO_RANKING = ["recorde", "eu_voltei", "desafio_concluido", "cardio_voltei", "cardio_500", "cardio_1000"] as const;
