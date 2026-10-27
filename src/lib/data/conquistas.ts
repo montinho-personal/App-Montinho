@@ -56,7 +56,7 @@ export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhi
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string; ref?: string | null };
 
-type AlunoBase = { id: string; data_inicio: string | null; created_at: string };
+export type AlunoBase = { id: string; data_inicio: string | null; created_at: string };
 
 type DemoConquistas = { conquistas: ConquistaRow[]; reconhecimentos: Reconhecimento[]; eventos: EventoChalala[] };
 function demo(): DemoConquistas {

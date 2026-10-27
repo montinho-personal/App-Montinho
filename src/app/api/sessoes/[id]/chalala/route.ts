@@ -1,6 +1,7 @@
 // Resumo real da sessão concluída (tela “Chalalá!”) + conquistas desta sessão.
 // Recalcula e grava conquistas de forma idempotente (reabrir não duplica).
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { agendarLembreteTrofeu } from "@/lib/data/lembrete-trofeu";
 import { requireAlunoDoTreinoApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { resumoChalala } from "@/lib/data/conquistas";
@@ -17,5 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const r = await resumoChalala(aluno, id);
   if (!r) return NextResponse.json({ error: "Sessão não encontrada ou ainda em andamento" }, { status: 404 });
   const descoberta = await descobertaDaConclusao(aluno.id, contextosDaConclusao({ metaCumpridaAgora: r.metaCumpridaAgora, modo: r.modo, recorde: r.recordes.length > 0 || !!r.evolucao?.tipo.startsWith("recorde"), maisReps: r.evolucao?.tipo === "mais_reps" })).catch(() => null);
+  // Depois de responder: lembrete no celular do próximo troféu que está perto (0104).
+  if (r.status === "concluida") after(() => agendarLembreteTrofeu(aluno).catch(() => undefined));
   return NextResponse.json({ ...r, descoberta });
 }

@@ -36,7 +36,7 @@ export default async function ConquistasPage() {
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje, cardio });
   // Troféus que dá para ganhar nos próximos dias, com o que fazer em cada um.
-  const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
+  const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })), cardio });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
   // Mensagem escrita pelo personal ligada a uma medalha (a mais recente).

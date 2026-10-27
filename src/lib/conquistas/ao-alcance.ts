@@ -11,7 +11,7 @@
 
 import { inicioDaSemana, somarDias, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { exercicioJaIsometrico, familiaTecnica, MARCOS_TECNICA, TECNICAS_MEDALHA, type CodigoConquista, type FamiliaTecnica } from "./regras";
-import type { Medalha } from "./vitrine";
+import type { Medalha, ProgressoCardio } from "./vitrine";
 
 export type ItemAlcance = {
   codigo: CodigoConquista;
@@ -28,6 +28,8 @@ type ExercicioTecnica = { nome: string; tecnica?: string | null };
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 const MARCOS_TREINOS: CodigoConquista[] = ["primeiro_treino", "treinos_10", "treinos_25", "treinos_50"];
+/** Marcos de quantidade de cardio ligados (500 e 1.000 ainda desligados). */
+const MARCOS_CARDIO_ALCANCE = [1, 2, 3, 10, 25, 50, 100, 250] as const;
 const MARCOS_SEMANAS: CodigoConquista[] = ["semanas_consistentes_4", "semanas_consistentes_5", "semanas_consistentes_6", "semanas_consistentes_8", "semanas_consistentes_10", "semanas_consistentes_12"];
 
 function porCodigo(ms: Medalha[]) {
@@ -157,7 +159,7 @@ export const DIAS_ALCANCE = 7;
  * faltam poucos treinos (cabem no ritmo da meta semanal), os da meta desta
  * semana, as técnicas novas que já estão na ficha e as ações de um toque.
  */
-export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Aderencia; tecnicasFeitas: ReadonlySet<FamiliaTecnica>; hoje: string; treinos: Array<{ letra: string; exercicios: ExercicioTecnica[] }> }): ItemAlcance[] {
+export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Aderencia; tecnicasFeitas: ReadonlySet<FamiliaTecnica>; hoje: string; treinos: Array<{ letra: string; exercicios: ExercicioTecnica[] }>; /** Montinho Cardio: marcos de quantidade e a semana de cardio. */ cardio?: ProgressoCardio | null }): ItemAlcance[] {
   const { aberta, falta } = porCodigo(e.medalhas);
   const out: ItemAlcance[] = [];
   const meta = e.aderencia.semanaAtual?.meta ?? null;
@@ -199,6 +201,26 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
   }
   out.push(...marcosDeTecnica(e.medalhas, e.tecnicasFeitas.size, novas, `Faça ${onde.join("; ")}.`, "Quando fizer esses treinos"));
 
+  // Cardio: o próximo marco de quantidade (até 3 cardios de distância) e a semana prescrita.
+  const c = e.cardio;
+  if (c && (c.feitos > 0 || c.temPrescricao)) {
+    const marcoCardio = MARCOS_CARDIO_ALCANCE.map((n) => aberta(`cardio_${n}` as CodigoConquista)).find((m) => !!m);
+    if (marcoCardio && falta(marcoCardio) <= 3) {
+      const n = falta(marcoCardio);
+      out.push(item(marcoCardio, `Faça mais ${plural(n, "cardio", "cardios")} de 10 minutos ou mais (1 por dia) no Montinho Cardio.`, n === 1 ? "No próximo cardio" : `Em ${plural(n, "cardio", "cardios")}`));
+    }
+    const s = c.semana;
+    if (c.temPrescricao && s && (s.faltaSessoes > 0 || s.faltaMin > 0)) {
+      const oQue = s.metaMinutos && s.faltaMin > 0 ? `Faltam ${s.faltaMin} min de cardio para fechar a semana.` : `Falta${s.faltaSessoes > 1 ? "m" : ""} ${plural(s.faltaSessoes, "cardio", "cardios")} para fechar a semana.`;
+      const ritmo = aberta("cardio_semana_ritmo");
+      if (ritmo && s.faltaSessoes > 0 && s.faltaSessoes <= diasRestantes) out.push(item(ritmo, oQue, "Até domingo"));
+      const plano = aberta("cardio_meta_semana");
+      if (plano && s.faltaMin > 0) out.push(item(plano, oQue, "Até domingo"));
+      const ferro = aberta("cardio_4_semanas");
+      if (ferro && (c.seguidas ?? 0) === 3) out.push(item(ferro, `${oQue} São 4 semanas seguidas de cardio.`, "Até domingo"));
+    }
+  }
+
   // De um toque, sem treino.
   const relatorio = aberta("relatorio_mensal");
   if (relatorio) out.push(item(relatorio, "Abra “Ver minha evolução completa” na tela Evolução.", "Agora"));
@@ -208,4 +230,28 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
   if (compartilhou) out.push(item(compartilhou, "Compartilhe o card do fim do treino ou de uma medalha.", "Agora"));
 
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Lembrete no celular (0104): o troféu mais perto vira 1 aviso no dia seguinte
+// ---------------------------------------------------------------------------
+
+/** Ordem do lembrete: o que depende de treinar/cardio primeiro; “Agora” (um toque) por último. */
+const PESO_QUANDO = (q?: string) => (!q ? 3 : /próximo/i.test(q) ? 0 : /^Em \d/.test(q) ? 1 : /domingo/i.test(q) ? 2 : /Agora/i.test(q) ? 9 : 4);
+
+export type LembreteTrofeu = { codigo: CodigoConquista; titulo: string; corpo: string; url: string };
+
+/** O lembrete do troféu mais perto (null quando não há nada perto). Texto curto, sem cobrança. */
+export function lembreteDoAlcance(itens: ItemAlcance[]): LembreteTrofeu | null {
+  const bons = itens.filter((i) => PESO_QUANDO(i.quando) < 9);
+  if (!bons.length) return null;
+  const i = [...bons].sort((a, b) => PESO_QUANDO(a.quando) - PESO_QUANDO(b.quando))[0];
+  const cardio = i.codigo.startsWith("cardio_");
+  const perto = i.quando && /próximo/i.test(i.quando) ? "Falta só 1" : "Falta pouco";
+  return {
+    codigo: i.codigo,
+    titulo: `🏆 ${perto} para o troféu “${i.titulo}”!`,
+    corpo: `${i.oQueFazer} Bora buscar? Chalalá!`,
+    url: cardio ? "/aluno/cardio" : "/aluno/conquistas",
+  };
 }

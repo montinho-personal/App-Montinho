@@ -90,3 +90,39 @@ describe("troféus nos próximos dias", () => {
     expect(codigos(trofeusNosProximosDias({ ...c, treinos: [] }))).not.toContain("semanas_consistentes_4");
   });
 });
+
+describe("lembrete do troféu mais perto (0104)", () => {
+  it("prefere o que sai no próximo treino e deixa os de um toque de fora", async () => {
+    const { lembreteDoAlcance } = await import("./ao-alcance");
+    const r = lembreteDoAlcance([
+      { codigo: "relatorio_mensal", titulo: "Olhar no espelho", selo: "📊", oQueFazer: "Abra a evolução.", quando: "Agora" },
+      { codigo: "treinos_10", titulo: "Dez treinos", selo: "10", oQueFazer: "Conclua mais 2 treinos.", quando: "Em 2 treinos" },
+      { codigo: "cardio_10", titulo: "Dez no Pulmão", selo: "10❤️", oQueFazer: "Faça mais 1 cardio.", quando: "No próximo cardio" },
+    ]);
+    expect(r?.codigo).toBe("cardio_10");
+    expect(r?.titulo).toBe("🏆 Falta só 1 para o troféu “Dez no Pulmão”!");
+    expect(r?.url).toBe("/aluno/cardio");
+    expect(lembreteDoAlcance([{ codigo: "relatorio_mensal", titulo: "x", selo: "x", oQueFazer: "x", quando: "Agora" }])).toBeNull();
+  });
+});
+
+describe("troféus de cardio perto", () => {
+  it("falta 1 cardio para o Dez no Pulmão e a semana de cardio aberta", () => {
+    const hoje = "2026-10-21";
+    const sessoes = dias("2026-10-19");
+    const aderencia = calcularAderencia({ inicio: "2026-09-28", hoje, metas, sessoes });
+    const cardio = { feitos: 9, temPrescricao: true, prescricaoLonga: false, semana: { faltaSessoes: 2, faltaMin: 60, metaMinutos: false }, seguidas: 3 };
+    const conquistas = ganhas("cardio_1", "cardio_2", "cardio_3", ...COMECO.map((c) => c.codigo));
+    const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje, cardio });
+    const itens = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(), treinos: [], cardio });
+    const dez = itens.find((i) => i.codigo === "cardio_10");
+    expect(dez?.quando).toBe("No próximo cardio");
+    expect(codigos(itens)).toEqual(expect.arrayContaining(["cardio_semana_ritmo", "cardio_meta_semana", "cardio_4_semanas"]));
+  });
+  it("sem cardio nenhum (nem prescrito): nada de cardio na lista", () => {
+    const hoje = "2026-10-21";
+    const c = contexto(dias("2026-10-19"), COMECO, hoje);
+    const itens = trofeusNosProximosDias({ ...c, treinos: [], cardio: { feitos: 0, temPrescricao: false, prescricaoLonga: false } });
+    expect(itens.some((i) => i.codigo.startsWith("cardio_"))).toBe(false);
+  });
+});

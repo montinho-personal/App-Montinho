@@ -119,7 +119,15 @@ const faltaN = (n: number, um: string, varios: string) => `${n === 1 ? "Falta" :
 type Aderencia = Pick<ResultadoAderencia, "sequencia" | "semanaAtual" | "semanas">;
 
 /** Resumo do Montinho Cardio para o progresso dos troféus de cardio. */
-export type ProgressoCardio = { feitos: number; temPrescricao: boolean; prescricaoLonga: boolean };
+export type ProgressoCardio = {
+  feitos: number;
+  temPrescricao: boolean;
+  prescricaoLonga: boolean;
+  /** Semana de cardio em andamento (só com prescrição e ainda não cumprida): quanto falta. */
+  semana?: { faltaSessoes: number; faltaMin: number; metaMinutos: boolean } | null;
+  /** Semanas seguidas cumprindo o cardio, antes desta (Fôlego de Ferro). */
+  seguidas?: number;
+};
 
 export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null }): Medalha[] {
   const ganhas = new Map<string, string>();

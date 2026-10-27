@@ -1855,3 +1855,25 @@ begin
   if (select count(*) from notificacoes_envios e join alunos a on a.profile_id = e.profile_id where a.id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and e.dedupe like 'indicacao_%') <> 1 then raise exception 'T57b: aviso repetido'; end if;
 end $$;
 \echo 'T57 OK: aviso da indicação premiada'
+-- T58 — 0104: lembrete do troféu perto — o próprio aluno agenda; o novo troca o anterior; outro aluno não agenda
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  perform public.agendar_lembrete_trofeu('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_10', '🏆 Falta pouco', 'Conclua mais 1 treino.', '/aluno/conquistas');
+  perform public.agendar_lembrete_trofeu('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cardio_10', '🏆 Falta só 1', 'Faça mais 1 cardio.', '/aluno/cardio');
+end $$;
+select test_logout();
+do $$
+begin
+  if (select count(*) from notificacoes_envios e join alunos a on a.profile_id = e.profile_id where a.id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and e.dedupe like 'trofeu:%' and e.status = 'pendente') <> 1 then raise exception 'T58a: lembrete não foi trocado (devia ficar 1 pendente)'; end if;
+  if not exists (select 1 from notificacoes_envios where dedupe like 'trofeu:%cardio_10%' and status = 'pendente' and agendada_para > now()) then raise exception 'T58b: lembrete novo não ficou para depois'; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.agendar_lembrete_trofeu('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_10', 'x', 'x', '/aluno'); exception when raise_exception then ok := true; end;
+  if not ok then raise exception 'T58c: outro aluno agendou lembrete para quem não é ele'; end if;
+end $$;
+select test_logout();
+\echo 'T58 OK: lembrete do troféu perto'

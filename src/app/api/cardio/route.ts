@@ -1,6 +1,7 @@
 // Aluno registra um cardio (prescrito ou livre). Idempotente pelo client_key;
 // o planejado vem da prescrição no servidor. Devolve os troféus novos.
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { agendarLembreteTrofeu } from "@/lib/data/lembrete-trofeu";
 import { requireAlunoApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { cardioDoAluno, registrarCardio } from "@/lib/data/cardio";
@@ -19,6 +20,8 @@ export async function POST(request: Request) {
     const aluno = await getAluno(sessao.alunoId);
     // Só os troféus de cardio comemoram aqui (os demais têm o seu próprio momento).
     const novas = (aluno ? (await sincronizarConquistas(aluno).catch(() => null))?.novas ?? [] : []).filter((c) => (CODIGOS_CARDIO as string[]).includes(c.codigo));
+    // Depois de responder: lembrete do próximo troféu que está perto (0104).
+    if (aluno) after(() => agendarLembreteTrofeu(aluno).catch(() => undefined));
     return NextResponse.json({ registro, novas }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Não foi possível registrar" }, { status: 400 });

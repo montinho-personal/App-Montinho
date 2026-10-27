@@ -336,5 +336,20 @@ export async function painelCardio(): Promise<LinhaPainelCardio[]> {
 /** Para o progresso dos troféus de cardio na sala de troféus. */
 export async function progressoCardio(alunoId: string): Promise<ProgressoCardio> {
   const [todas, feitos] = await Promise.all([listarPrescricoesCardio(alunoId, { todas: true }), cardiosFeitos(alunoId)]);
-  return { feitos: proximoMarco(feitos).feitos, temPrescricao: todas.some((p) => p.ativo), prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60) };
+  const temPrescricao = todas.some((p) => p.ativo);
+  let semana: ProgressoCardio["semana"] = null;
+  let seguidas = 0;
+  if (temPrescricao) {
+    const semanas = semanasDeCardio({ prescricoes: todas, feitos, hoje: dataLocal(new Date()) });
+    const atual = semanas.find((w) => w.atual);
+    if (atual && !atual.cumpridaEm && (atual.alvoSessoes > 0 || atual.alvoMin > 0)) {
+      semana = { faltaSessoes: Math.max(0, atual.alvoSessoes - atual.sessoes), faltaMin: Math.max(0, Math.ceil(atual.alvoMin - atual.minutos)), metaMinutos: atual.metaMinutos };
+    }
+    // Semanas seguidas cumpridas logo antes da atual (a que começou a prescrição no meio não quebra).
+    for (const w of semanas.filter((x) => !x.atual).sort((a, b) => (a.inicio < b.inicio ? 1 : -1))) {
+      if (w.cumpridaEm) seguidas++;
+      else if (!w.inicioPrescricao) break;
+    }
+  }
+  return { feitos: proximoMarco(feitos).feitos, temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas };
 }
