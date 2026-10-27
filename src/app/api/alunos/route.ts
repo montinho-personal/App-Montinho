@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isDemoMode } from "@/lib/env";
 import { lerJson } from "@/lib/validacao/schemas";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
+import { contaOrfa } from "@/lib/auth/conta-orfa";
 
 const schema = z.object({
   nome: z.string().trim().min(2).max(120),
@@ -34,7 +35,10 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(body.email, { data: { nome: body.nome, role: "aluno" } });
-  if (inviteErr) {
+  // E-mail com login de aluno sem ficha (pediu o link antes do cadastro): liga a ficha a esse login.
+  const orfa = inviteErr && /already|registered|exists/i.test(inviteErr.message) ? await contaOrfa(admin, body.email) : null;
+  const userId = invited?.user?.id ?? orfa;
+  if (inviteErr && !orfa) {
     // Só o treinador autenticado chega aqui: a mensagem pode ser específica.
     const msg = /already|registered|exists/i.test(inviteErr.message)
       ? "Este e-mail já tem uma conta no app (de aluno ou de personal). Use outro e-mail — para testar, dá para usar um apelido do Gmail, ex.: seunome+aluno@gmail.com."
@@ -42,11 +46,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 422 });
   }
 
-  await admin.from("profiles").update({ nome: body.nome, role: "aluno" }).eq("id", invited.user.id);
+  if (!userId) return NextResponse.json({ error: "Convite falhou. Tente de novo." }, { status: 500 });
+  await admin.from("profiles").update({ nome: body.nome, role: "aluno" }).eq("id", userId);
   const { data: aluno, error: alunoErr } = await admin
     .from("alunos")
     .insert({
-      profile_id: invited.user.id,
+      profile_id: userId,
       telefone: body.telefone ?? null,
       data_nascimento: body.data_nascimento ?? null,
       sexo: body.sexo ?? null,
@@ -60,6 +65,6 @@ export async function POST(request: Request) {
     .single();
   if (alunoErr) return NextResponse.json({ error: `Erro ao criar aluno: ${alunoErr.message}` }, { status: 500 });
 
-  await criarIntervencao(aluno.id, sessao.userId, { tipo: "decisao", titulo: "Aluno cadastrado", descricao: "Convite de acesso enviado por e-mail.", referencia: { origem: "api/alunos" } }).catch(() => undefined);
-  return NextResponse.json(aluno, { status: 201 });
+  await criarIntervencao(aluno.id, sessao.userId, { tipo: "decisao", titulo: "Aluno cadastrado", descricao: orfa ? "E-mail já tinha login no app: ficha ligada a ele (entra pelo “esqueci a senha” ou pelo link)." : "Convite de acesso enviado por e-mail.", referencia: { origem: "api/alunos" } }).catch(() => undefined);
+  return NextResponse.json({ ...aluno, ...(orfa ? { aviso: "Esse e-mail já tinha login no app. A ficha foi ligada a ele: peça para a pessoa entrar em “esqueci a senha” para criar a senha." } : {}) }, { status: 201 });
 }

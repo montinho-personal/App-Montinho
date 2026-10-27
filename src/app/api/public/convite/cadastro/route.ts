@@ -4,6 +4,7 @@ import { FEATURES, isDemoMode } from "@/lib/env";
 import { cadastroVisitanteSchema, lerJson } from "@/lib/validacao/schemas";
 import { codigoValido, fimDoAcesso, MENSAGEM_CONVITE, normalizarCodigo, type MotivoConviteInvalido } from "@/lib/visitante/acesso";
 import type { Convite } from "@/lib/supabase/types";
+import { contaOrfa } from "@/lib/auth/conta-orfa";
 
 /**
  * POST /api/public/convite/cadastro — cadastro do visitante por código.
@@ -37,15 +38,18 @@ export async function POST(request: Request) {
     email_confirm: true,
     user_metadata: { nome: body.nome, role: "aluno" },
   });
-  if (userErr || !criado.user) {
+  const jaExiste = /already|registered|exists/i.test(userErr?.message ?? "");
+  // Login de aluno sem ficha (pediu o link antes): liga a ficha a ele, SEM trocar a senha
+  // (trocar daqui seria tomar a conta de alguém só sabendo o e-mail). Entra por “esqueci a senha”.
+  const orfa = jaExiste ? await contaOrfa(admin, body.email) : null;
+  if (!orfa && (userErr || !criado.user)) {
     await devolver();
-    const jaExiste = /already|registered|exists/i.test(userErr?.message ?? "");
     return NextResponse.json(
       { error: jaExiste ? "Esse e-mail já tem uma conta no app. Toque em “Já tenho conta” e entre com ele." : "Não foi possível criar a conta agora. Tente de novo em instantes." },
       { status: jaExiste ? 409 : 500 }
     );
   }
-  const userId = criado.user.id;
+  const userId = orfa ?? criado.user!.id;
 
   const agora = new Date();
   const fim = fimDoAcesso(convite, agora);
@@ -70,11 +74,11 @@ export async function POST(request: Request) {
     if (acessoErr) throw acessoErr;
     await admin.from("perfil_visitante").insert({ aluno_id: aluno.id, aceite_privacidade_em: agora.toISOString() });
   } catch {
-    // Desfaz o login recém-criado (vazio, sem nenhum treino) e devolve a vaga.
-    await admin.auth.admin.deleteUser(userId).catch(() => undefined);
+    // Desfaz o login recém-criado (vazio, sem nenhum treino) e devolve a vaga. O login que já existia fica.
+    if (!orfa) await admin.auth.admin.deleteUser(userId).catch(() => undefined);
     await devolver();
     return NextResponse.json({ error: "Não foi possível concluir o cadastro agora. Tente de novo em instantes." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, fim: fim?.toISOString() ?? null }, { status: 201 });
+  return NextResponse.json({ ok: true, fim: fim?.toISOString() ?? null, ...(orfa ? { entrarPeloEmail: true } : {}) }, { status: 201 });
 }

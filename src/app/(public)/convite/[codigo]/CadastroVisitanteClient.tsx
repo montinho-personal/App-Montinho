@@ -33,9 +33,14 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), whatsapp: whatsapp.trim(), senha, aceite_privacidade: true }),
       });
-      const j = (await r.json().catch(() => ({}))) as { error?: string };
+      const j = (await r.json().catch(() => ({}))) as { error?: string; entrarPeloEmail?: boolean };
       if (!r.ok) throw new Error(j.error ?? "Não foi possível criar a conta agora.");
       eventoGa("sign_up", { method: "convite" });
+      // O e-mail já tinha login (sem cadastro): a senha nova não vale; cria a senha pelo e-mail.
+      if (j.entrarPeloEmail) {
+        window.location.href = `/login?conta=existente&email=${encodeURIComponent(email.trim().toLowerCase())}&next=${encodeURIComponent(depois ?? "/aluno/boas-vindas")}`;
+        return;
+      }
       const { error } = await createSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password: senha });
       if (error) {
         window.location.href = `/login?next=${encodeURIComponent(depois ?? "/aluno/boas-vindas")}`;

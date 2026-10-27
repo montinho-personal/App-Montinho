@@ -96,6 +96,8 @@ function NovoAlunoModal({ onClose }: { onClose: () => void }) {
         return;
       }
       const criado = await res.json().catch(() => null);
+      // E-mail que já tinha login sem cadastro: a ficha foi ligada a ele; avisa como a pessoa entra.
+      if (criado?.aviso) window.alert(criado.aviso);
       if (lida && criado?.id) {
         const r = await salvarEstrategiaNoAluno(criado.id, lida);
         if (!r.ok) {

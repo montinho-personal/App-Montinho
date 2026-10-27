@@ -9,6 +9,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { BRAND } from "@/config/brand";
 
 const MSG_LINK = "Esse link não vale mais: ele já foi usado ou passou do prazo. Digite seu e-mail e peça um novo link.";
+const MSG_SEM_CADASTRO = "Você entrou, mas esse e-mail ainda não está ligado a um cadastro no app. Fale com o Montinho no WhatsApp para ele liberar o seu acesso (ou use o link de convite que ele mandou).";
+const MSG_CONTA_EXISTENTE = "Pronto, seu cadastro foi feito! Esse e-mail já tinha conta no app, então a senha que você digitou não vale. Toque em “esqueci a senha” abaixo para criar a sua senha pelo e-mail.";
 const MSG_NAVEGADOR = "O link abriu em um navegador diferente do que você usou para pedir (por exemplo, dentro do app do Gmail ou do Outlook). Peça um novo link aqui e, no e-mail, toque e segure o link e escolha abrir no mesmo navegador (Safari ou Chrome).";
 
 /** Explica o limite de envio de e-mails do Supabase em vez de uma mensagem genérica. */
@@ -20,11 +22,11 @@ function msgEnvio(e: unknown, padrao: string): string {
   return "Muitos e-mails pedidos em pouco tempo. Use o e-mail mais recente que você recebeu ou tente de novo daqui a 1 hora.";
 }
 
-export function LoginClient({ next, erroInicial = null }: { next: string; erroInicial?: "link" | "navegador" | null }) {
-  const [email, setEmail] = useState("");
+export function LoginClient({ next, erroInicial = null, emailInicial = "" }: { next: string; erroInicial?: "link" | "navegador" | "sem_cadastro" | "conta_existente" | null; emailInicial?: string }) {
+  const [email, setEmail] = useState(emailInicial);
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(erroInicial === "link" ? MSG_LINK : erroInicial === "navegador" ? MSG_NAVEGADOR : null);
+  const [error, setError] = useState<string | null>(erroInicial === "link" ? MSG_LINK : erroInicial === "navegador" ? MSG_NAVEGADOR : erroInicial === "sem_cadastro" ? MSG_SEM_CADASTRO : erroInicial === "conta_existente" ? MSG_CONTA_EXISTENTE : null);
   const [sent, setSent] = useState<"link" | "senha" | "primeiro" | false>(false);
 
   // Link do convite (padrão do Supabase) chega com a sessão no fragmento
@@ -82,11 +84,13 @@ export function LoginClient({ next, erroInicial = null }: { next: string; erroIn
     try {
       const supabase = createSupabaseBrowserClient();
       const redirect = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || "/")}`;
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect } });
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect, shouldCreateUser: false } });
       if (error) throw error;
       setSent("link");
     } catch (e) {
-      setError(msgEnvio(e, "Não foi possível enviar o link agora. Tente de novo em instantes."));
+      // Link só para quem já tem cadastro (não cria login solto sem ficha).
+      const semConta = /signups? not allowed|otp_disabled|user not found/i.test((e as { message?: string; code?: string } | null)?.message ?? "") || (e as { code?: string } | null)?.code === "otp_disabled";
+      setError(semConta ? "Esse e-mail ainda não tem cadastro no app. Use o link de convite que o Montinho mandou ou fale com ele no WhatsApp." : msgEnvio(e, "Não foi possível enviar o link agora. Tente de novo em instantes."));
     } finally {
       setLoading(false);
     }
