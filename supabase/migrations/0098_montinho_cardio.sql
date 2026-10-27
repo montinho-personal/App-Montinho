@@ -11,7 +11,7 @@
 --   Extras de cardio e cardios do Strava NÃO são copiados para cá: o app os
 --   lê de onde já estão (sem minuto contado duas vezes).
 -- * Troféus de cardio aceitos em conquistas_aluno (regras no app:
---   src/lib/cardio/trofeus.ts). 500/1.000 já aceitos, ainda desligados.
+--   src/lib/cardio/regras.ts). 500/1.000 já aceitos, ainda desligados.
 -- * Ranking conta os troféus de cardio da sala de troféus; fica fora o “Voltei
 --   a Respirar” (repete, como o “Eu voltei”) e 500/1.000 (ainda desligados).
 --   “Uma Hora de Chalalá” conta: só sai cumprindo a prescrição, sem passar dela.
