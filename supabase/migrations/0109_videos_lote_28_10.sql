@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 0109 — Lote de vídeos enviados pelo personal em 28/10/2026 (YouTube Shorts,
--- validados por ele): extensora unilateral, militar em pé, Smith, lateral na polia ponte de glúteo elevação pélvica unilateral e flexão de braços. Idempotente.
+-- validados por ele): extensora unilateral, militar em pé, Smith, lateral na polia, ponte de glúteo, elevação pélvica unilateral, flexão de braços, levantamento terra barra reta (renomeado) e remada na máquina articulada (pegada pronada). Idempotente.
 -- ============================================================================
 update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'FyrO55GJtz4',
@@ -52,3 +52,22 @@ update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'oKt99YZOjGU',
     thumbnail_url = 'https://i.ytimg.com/vi/oKt99YZOjGU/hqdefault.jpg', video_validado = true
 where slug = 'flexao-de-bracos' and video_id is distinct from 'oKt99YZOjGU';
+
+-- “Levantamento terra” passa a se chamar “Levantamento terra barra reta” (pedido
+-- do personal em 28/10/2026), com o vídeo dele. O nome antigo vira sinônimo,
+-- para a busca continuar achando. Nenhuma ficha usava este exercício.
+update exercicios_biblioteca
+set nome = 'Levantamento terra barra reta',
+    sinonimos = case when 'levantamento terra' = any(sinonimos) then sinonimos else array_append(sinonimos, 'levantamento terra') end,
+    video_provider = 'youtube', video_id = 'H1qG2ed4WTY',
+    thumbnail_url = 'https://i.ytimg.com/vi/H1qG2ed4WTY/hqdefault.jpg', video_validado = true
+where slug = 'levantamento-terra' and (nome <> 'Levantamento terra barra reta' or video_id is distinct from 'H1qG2ed4WTY');
+
+-- Remada na máquina articulada (pegada pronada): vídeo + sinônimos da pegada.
+update exercicios_biblioteca
+set sinonimos = (
+      select array_agg(distinct s) from unnest(sinonimos || array['remada máquina articulada pegada pronada', 'remada articulada pronada']) s
+    ),
+    video_provider = 'youtube', video_id = 'IH1pjEOUQuI',
+    thumbnail_url = 'https://i.ytimg.com/vi/IH1pjEOUQuI/hqdefault.jpg', video_validado = true
+where slug = 'remada-maquina-articulada' and video_id is distinct from 'IH1pjEOUQuI';

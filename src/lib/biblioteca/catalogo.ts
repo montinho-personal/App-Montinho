@@ -286,7 +286,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
     sub: ["remada-curvada-barra", "remada-maquina-articulada", "remada-apoiada-banco"], est: ["lombar"],
   }),
   ex("remada-maquina-articulada", "Remada na máquina articulada", "costas", {
-    s: ["remada máquina", "remada articulada", "remada hammer"],
+    s: ["remada máquina", "remada articulada", "remada hammer", "remada máquina articulada pegada pronada", "remada articulada pronada"],
     p: { biceps: 0.5, ombro_posterior: 0.25 }, pad: "puxar_horizontal", art: PUX, eq: ["maquina"], t: "multi",
     exe: ["Peito apoiado no encosto e pés firmes.", "Puxe as alças levando os cotovelos para trás.", "Volte alongando as costas."],
     err: ["Tirar o peito do apoio.", "Amplitude curta.", "Encolher os ombros."],
@@ -820,8 +820,8 @@ export const CATALOGO: ExercicioCatalogo[] = [
     err: ["Arredondar a lombar.", "Descer a barra longe das pernas.", "Hiperestender a coluna no topo."],
     sub: ["stiff-barra", "stiff-halteres", "good-morning"], est: ["lombar"],
   }),
-  ex("levantamento-terra", "Levantamento terra", "posteriores", {
-    s: ["terra", "deadlift", "levantamento terra convencional"],
+  ex("levantamento-terra", "Levantamento terra barra reta", "posteriores", {
+    s: ["levantamento terra", "terra", "deadlift", "levantamento terra convencional"],
     p: { gluteo: 0.5, costas: 0.25, lombar: 0.5, quadriceps: 0.25, trapezio: 0.25, antebraco: 0.25 }, pad: "dobradica_quadril", art: [...DOBRA, "joelho"], t: "multi", eq: ["barra"], n: "avancado",
     exe: ["Barra sobre o meio dos pés, pegada fora das pernas.", "Peito aberto, coluna neutra, empurre o chão com as pernas.", "Termine em pé com quadril estendido, sem inclinar para trás."],
     err: ["Arredondar a lombar.", "Barra afastando das pernas.", "Puxar com os braços."],
