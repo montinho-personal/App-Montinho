@@ -17,3 +17,10 @@ values (
 on conflict (slug) do update set video_provider = 'youtube', video_id = 'e8ntmgQOdGs',
   thumbnail_url = 'https://i.ytimg.com/vi/e8ntmgQOdGs/hqdefault.jpg', video_validado = true
   where exercicios_biblioteca.video_id is distinct from 'e8ntmgQOdGs';
+
+-- Vídeo da “Remada curvada com barra” (YouTube Shorts enviado pelo personal
+-- em 28/10/2026, validado por ele).
+update exercicios_biblioteca
+set video_provider = 'youtube', video_id = 'nk2OgzPgr_U',
+    thumbnail_url = 'https://i.ytimg.com/vi/nk2OgzPgr_U/hqdefault.jpg', video_validado = true
+where slug = 'remada-curvada-barra' and video_id is distinct from 'nk2OgzPgr_U';
