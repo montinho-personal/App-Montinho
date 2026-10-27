@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 0109 — Lote de vídeos enviados pelo personal em 28/10/2026 (YouTube Shorts,
--- “Cadeira extensora unilateral” (28/10/2026). Idempotente.
+-- validados por ele): extensora unilateral, militar em pé, Smith e lateral na polia. Idempotente.
 -- ============================================================================
 update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'FyrO55GJtz4',
