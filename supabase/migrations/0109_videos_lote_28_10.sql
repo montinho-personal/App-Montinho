@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 0109 — Lote de vídeos enviados pelo personal em 28/10/2026 (YouTube Shorts,
--- validados por ele): extensora unilateral, militar em pé, Smith, lateral na polia ponte de glúteo e elevação pélvica unilateral. Idempotente.
+-- validados por ele): extensora unilateral, militar em pé, Smith, lateral na polia ponte de glúteo elevação pélvica unilateral e flexão de braços. Idempotente.
 -- ============================================================================
 update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'FyrO55GJtz4',
@@ -45,3 +45,10 @@ update exercicios_biblioteca
 set video_provider = 'youtube', video_id = '0e1SXFq806U',
     thumbnail_url = 'https://i.ytimg.com/vi/0e1SXFq806U/hqdefault.jpg', video_validado = true
 where slug = 'elevacao-pelvica-unilateral' and video_id is distinct from '0e1SXFq806U';
+
+-- Vídeo da “Flexão de braços” (YouTube Shorts enviado pelo personal em
+-- 28/10/2026, validado por ele).
+update exercicios_biblioteca
+set video_provider = 'youtube', video_id = 'oKt99YZOjGU',
+    thumbnail_url = 'https://i.ytimg.com/vi/oKt99YZOjGU/hqdefault.jpg', video_validado = true
+where slug = 'flexao-de-bracos' and video_id is distinct from 'oKt99YZOjGU';
