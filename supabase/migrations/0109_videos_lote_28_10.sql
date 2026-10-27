@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 0109 — Lote de vídeos enviados pelo personal em 28/10/2026 (YouTube Shorts,
--- validados por ele): extensora unilateral, militar em pé, Smith e lateral na polia. Idempotente.
+-- validados por ele): extensora unilateral, militar em pé, Smith, lateral na polia e ponte de glúteo. Idempotente.
 -- ============================================================================
 update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'FyrO55GJtz4',
@@ -31,3 +31,10 @@ update exercicios_biblioteca
 set video_provider = 'youtube', video_id = 'YM7_fkB7384',
     thumbnail_url = 'https://i.ytimg.com/vi/YM7_fkB7384/hqdefault.jpg', video_validado = true
 where slug = 'elevacao-lateral-polia' and video_id is distinct from 'YM7_fkB7384';
+
+-- Vídeo da “Elevação pélvica no solo (ponte de glúteo)” (YouTube Shorts enviado
+-- pelo personal em 28/10/2026, validado por ele).
+update exercicios_biblioteca
+set video_provider = 'youtube', video_id = '1satDE63Bwc',
+    thumbnail_url = 'https://i.ytimg.com/vi/1satDE63Bwc/hqdefault.jpg', video_validado = true
+where slug = 'elevacao-pelvica-solo' and video_id is distinct from '1satDE63Bwc';
