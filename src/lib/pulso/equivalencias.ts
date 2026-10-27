@@ -56,14 +56,14 @@ export function doFimTreino(v: string | null | undefined, em: string): Leitura {
 
 const faixa = (n: number, cortes: number[], valores: string[]) => valores[cortes.findIndex((c) => n <= c)] ?? valores[valores.length - 1];
 
-/** Check-in diário antigo (réguas 1–10) → Pulso. Dor 1 = nenhuma; 4+ = desconforto. */
+/** Check-in diário antigo (réguas 1–10) → Pulso. Dor 1 = nenhuma; 6+ = desconforto (moderado ou mais). */
 export function doDiarioAntigo(c: { energia?: number | null; sono?: number | null; dor?: number | null; motivacao?: number | null; created_at: string }): Leitura {
   const out: RespostaPulso[] = [];
   const em = c.created_at;
   if (c.energia != null) out.push(r("energia", faixa(c.energia, [2, 4, 6, 8], ["muito_baixa", "baixa", "normal", "alta", "muito_alta"]), em, "diario_antigo"));
   if (c.motivacao != null) out.push(r("motivacao", faixa(c.motivacao, [2, 4, 7], ["nenhuma", "pouca", "normal", "muita"]), em, "diario_antigo"));
   if (c.sono != null) out.push(r("sono", faixa(c.sono, [2, 4, 6, 8], ["muito_mal", "mal", "razoavel", "bem", "muito_bem"]), em, "diario_antigo"));
-  if (c.dor != null && c.dor >= 4) out.push(r("recuperacao", "desconforto", em, "diario_antigo"));
+  if (c.dor != null && c.dor >= 6) out.push(r("recuperacao", "desconforto", em, "diario_antigo"));
   return { respostas: out, pulou: false };
 }
 

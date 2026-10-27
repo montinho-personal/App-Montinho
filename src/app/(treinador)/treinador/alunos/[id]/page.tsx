@@ -33,6 +33,8 @@ import { EnviarAcessoButton } from "./EnviarAcesso";
 import { ComparadorFotos } from "./ComparadorFotos";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
+import { HistoricoPulso } from "@/components/pulso/HistoricoPulso";
+import { historicoPulso, registrarAcessoSaude } from "@/lib/data/pulso";
 import { CalculoDietaCard } from "./CalculoDietaCard";
 import { RelatorioEvolucao } from "@/components/relatorios/RelatorioEvolucao";
 import { ParaOPersonal } from "@/components/relatorios/ParaOPersonal";
@@ -62,12 +64,14 @@ export const metadata = { title: "Aluno" };
 const ATALHO = "touch flex flex-col items-center justify-center gap-0.5 rounded-xl border border-border bg-bg/40 px-1 py-2.5 text-center text-[11px] font-semibold text-fg-muted hover:border-accent/50 hover:text-fg";
 
 export default async function AlunoDetailPage({ params, searchParams }: PageProps) {
-  await requireTreinadorPage();
+  const sessaoTreinador = await requireTreinadorPage();
   const { id } = await params;
   const { dias: d } = await searchParams;
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
   const aluno = await getAluno(id);
   if (!aluno) notFound();
+  const pulsoHist = await historicoPulso(id, aluno.profile?.nome ?? "Aluno").catch(() => null);
+  if (pulsoHist?.ultimas.length) await registrarAcessoSaude(sessaoTreinador.userId, [id], "pulso_historico").catch(() => undefined);
 
   const [plano, sessoes, dieta, evolucao, templates, fotos, checkIns, versoes, adaptacoes, intervencoes, anamnese] = await Promise.all([
     getPlanoAtivo(id),
@@ -359,8 +363,16 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           },
           {
             key: "checkins",
-            label: "Check-ins",
-            content: <PainelCheckins checkIns={checkIns as never} dias={30} />,
+            label: "💛 Pulso",
+            content: (
+              <div className="space-y-4">
+                {pulsoHist ? <HistoricoPulso dados={pulsoHist} /> : null}
+                <details className="rounded-xl border border-border p-3">
+                  <summary className="cursor-pointer text-sm font-semibold">Check-ins antigos (réguas de 1 a 10)</summary>
+                  <div className="mt-3"><PainelCheckins checkIns={checkIns as never} dias={30} /></div>
+                </details>
+              </div>
+            ),
           },
           {
             key: "dieta",

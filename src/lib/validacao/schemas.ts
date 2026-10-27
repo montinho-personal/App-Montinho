@@ -780,3 +780,11 @@ export const pulsoSchema = z.object({
   /** Consentimento para dado de saúde (corpo e sono), respondido no próprio cartão. */
   consentimento: z.boolean().optional(),
 });
+
+// Montinho Pulso: o que o personal fez com o alerta.
+export const alertaPulsoSchema = z.object({
+  aluno_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
+  chave: z.string().trim().regex(/^pulso:(atencao|acompanhar|reconhecer):\d{4}-\d{2}-\d{2}$/),
+  acao: z.enum(["acompanhado", "dispensado", "adiado", "contato"]),
+  dias: z.coerce.number().int().min(1).max(30).optional(),
+});

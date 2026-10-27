@@ -3,6 +3,7 @@ import { DIMENSOES, PERGUNTAS, dimensaoDaPergunta, diaSP, valida } from "./pergu
 import { checkinPreDoPulso, doDiarioAntigo, doExtra, doFimTreino, doOnboarding, doPreTreino, type RespostaPulso } from "./equivalencias";
 import { cansacoFrequente, escolherPerguntas, validasHoje, type ContextoEscolha } from "./escolher";
 import { classificarPulso, dificuldadesFrequentes, tendenciaSemanal } from "./classificar";
+import { chaveAlertaPulso, ordenarFila, situacaoAlerta } from "./alertas";
 
 // 12h de Brasília = 15h UTC.
 const em = (dia: string, hora = "15:00") => `${dia}T${hora}:00.000Z`;
@@ -69,7 +70,8 @@ describe("equivalências: reaproveitar o que o app já sabe", () => {
   it("check-in diário antigo de 1 a 10", () => {
     const l = doDiarioAntigo({ energia: 3, motivacao: 9, sono: 6, dor: 1, created_at: t }).respostas;
     expect(l.map((x) => `${x.dimensao}:${x.valor}`)).toEqual(["energia:baixa", "motivacao:muita", "sono:razoavel"]);
-    expect(doDiarioAntigo({ dor: 5, created_at: t }).respostas[0]).toMatchObject({ dimensao: "recuperacao", valor: "desconforto" });
+    expect(doDiarioAntigo({ dor: 6, created_at: t }).respostas[0]).toMatchObject({ dimensao: "recuperacao", valor: "desconforto" });
+    expect(doDiarioAntigo({ dor: 5, created_at: t }).respostas).toEqual([]);
     expect(doDiarioAntigo({ energia: 10, created_at: t }).respostas[0].valor).toBe("muito_alta");
   });
   it("dificuldades do onboarding do visitante, sem repetir", () => {
@@ -227,5 +229,35 @@ describe("histórico", () => {
     expect(t[2].energia).toBe(0);
     expect(t[0].energia).toBeNull();
     expect(dificuldadesFrequentes(respostas, "2026-10-28")).toEqual([{ valor: "falta_tempo", vezes: 2, rotulo: "Falta de tempo" }]);
+  });
+});
+
+describe("fila de ações do personal", () => {
+  const hoje = "2026-10-26";
+  it("chave muda com resposta nova (o mesmo alerta não volta depois de resolvido)", () => {
+    const a = classificarPulso("Maria", [resp("recuperacao", "desconforto", "2026-10-24")], hoje);
+    const b = classificarPulso("Maria", [resp("recuperacao", "desconforto", "2026-10-24"), resp("recuperacao", "desconforto", "2026-10-26")], hoje);
+    expect(chaveAlertaPulso(a)).toBe("pulso:atencao:2026-10-24");
+    expect(chaveAlertaPulso(b)).toBe("pulso:atencao:2026-10-26");
+  });
+  it("tudo bem sem reconhecimento não entra na fila", () => {
+    expect(chaveAlertaPulso(classificarPulso("Maria", [resp("energia", "alta", "2026-10-25")], hoje))).toBeNull();
+    expect(chaveAlertaPulso(classificarPulso("Maria", [], hoje))).toBeNull();
+  });
+  it("situação: sem estado = aberto; adiado volta na data; acompanhado/dispensado = resolvido", () => {
+    expect(situacaoAlerta(undefined, hoje)).toBe("aberto");
+    expect(situacaoAlerta({ estado: "adiado", adiado_ate: "2026-10-28" }, hoje)).toBe("adiado");
+    expect(situacaoAlerta({ estado: "adiado", adiado_ate: "2026-10-26" }, hoje)).toBe("aberto");
+    expect(situacaoAlerta({ estado: "dispensado", adiado_ate: null }, hoje)).toBe("resolvido");
+    expect(situacaoAlerta({ estado: "acompanhado", adiado_ate: null }, hoje)).toBe("resolvido");
+  });
+  it("ordem: atenção → acompanhar → reconhecer", () => {
+    const item = (nome: string, rs: RespostaPulso[], ctx = {}) => { const resultado = classificarPulso(nome, rs, hoje, ctx); return { nome, resultado, chave: chaveAlertaPulso(resultado) }; };
+    const fila = ordenarFila([
+      item("Ana", [resp("energia", "alta", "2026-10-25"), resp("motivacao", "muita", "2026-10-20"), resp("energia", "baixa", "2026-10-08"), resp("energia", "normal", "2026-10-05")], { frequenciaMantida: true }),
+      item("João", [resp("dificuldade", "falta_tempo", "2026-10-24")]),
+      item("Maria", [resp("recuperacao", "desconforto", "2026-10-25")]),
+    ]);
+    expect(fila.map((x) => x.nome)).toEqual(["Maria", "João", "Ana"]);
   });
 });
