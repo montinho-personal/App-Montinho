@@ -4,6 +4,7 @@
 // Individual: nada é igual para todos. Editar = a antiga é encerrada e a
 // nova passa a valer (as semanas passadas mantêm a meta da época).
 import { useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { DIAS_SEMANA, INTENSIDADES, MODALIDADES, MODALIDADE_IDS, MODALIDADE_LIVRE, VINCULOS, infoModalidade } from "@/lib/cardio/modalidades";
 import type { CardioPrescricao, IntensidadeCardio, ModalidadePrescricao } from "@/lib/supabase/types-extended";
@@ -185,7 +186,7 @@ function Num({ rotulo, valor, min, max, onChange }: { rotulo: string; valor: num
   return (
     <label className="block">
       <span className="text-xs text-fg-muted">{rotulo}</span>
-      <input type="number" min={min} max={max} value={valor} onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))} className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2" />
+      <CampoNumero min={min} max={max} valor={valor} onChange={onChange} className="mt-1 h-10 w-full rounded-md border border-border bg-card px-2" />
     </label>
   );
 }

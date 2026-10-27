@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { aplicarDescansoPadrao } from "@/lib/tempo/descanso-padrao";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { OrientacoesProntas } from "@/components/montador/OrientacoesProntas";
 import { LIMITE_NOTA } from "@/lib/orientacoes";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -877,7 +878,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
               ) : (
                 <div className="flex flex-wrap items-end gap-3 text-sm">
                   <label className="space-y-1"><span className="text-xs text-fg-muted">Sequência (ex.: A B C)</span><input value={(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>).sequencia.join(" ")} onChange={(e) => { const seqL = e.target.value.toUpperCase().split(/[^A-H]+/).filter((x): x is TreinoLetra => LETRAS_TREINO.includes(x as TreinoLetra)); updPrograma({ calendario: { ...(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>), sequencia: seqL } }); }} className="h-10 w-40 rounded-md border border-border bg-bg px-2 font-mono" /></label>
-                  <label className="space-y-1"><span className="text-xs text-fg-muted">Dias por semana</span><input inputMode="numeric" value={(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>).diasPorSemana} onChange={(e) => updPrograma({ calendario: { ...(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>), diasPorSemana: Math.max(1, Math.min(7, Number(e.target.value) || 1)) } })} className="h-10 w-20 rounded-md border border-border bg-bg px-2 font-mono" /></label>
+                  <label className="space-y-1"><span className="text-xs text-fg-muted">Dias por semana</span><CampoNumero min={1} max={7} valor={(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>).diasPorSemana} onChange={(v) => updPrograma({ calendario: { ...(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>), diasPorSemana: v } })} className="h-10 w-20 rounded-md border border-border bg-bg px-2 font-mono" /></label>
                   <p className="text-xs text-fg-subtle">Volume semanal = média do ciclo. Ex.: ABC em 5 dias → cada treino ≈ 1,67×/semana.</p>
                 </div>
               )}
@@ -1073,7 +1074,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               ) : null}
                               {avancado ? (
                                 <div className="px-2 pb-2 flex flex-wrap gap-2 text-[11px]">
-                                  <label className="inline-flex items-center gap-1 text-fg-muted">aquec.<input inputMode="numeric" value={r.aquecimento} onChange={(e) => updRow(t.key, r.key, { aquecimento: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} className="w-10 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Séries de aquecimento" /></label>
+                                  <label className="inline-flex items-center gap-1 text-fg-muted">aquec.<CampoNumero min={0} max={10} valor={r.aquecimento} onChange={(v) => updRow(t.key, r.key, { aquecimento: v })} className="w-10 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Séries de aquecimento" /></label>
                                   <label className="inline-flex items-center gap-1 text-fg-muted" title="Descanso depois do último set, antes do próximo exercício. Em branco = padrão do treino.">desc. após<input inputMode="numeric" value={r.descansoApos} placeholder={String(duracoes[t.key]?.efetivos.descansoAposExercicioSeg ?? 120)} onChange={(e) => updRow(t.key, r.key, { descansoApos: e.target.value.replace(/\D/g, "").slice(0, 3) })} className="w-12 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Descanso após o exercício em segundos" />s</label>
                                   <label className="inline-flex items-center gap-1 text-fg-muted" title="Cadência (ex.: 3-1-2 = 3 s descendo, 1 s parado, 2 s subindo). Em branco = estimativa por repetição.">cadência<input value={r.cadencia} placeholder="3-1-2" onChange={(e) => updRow(t.key, r.key, { cadencia: e.target.value.replace(/[^0-9xX\- ]/g, "").slice(0, 12) })} className="w-14 rounded border border-border bg-bg px-1 text-center font-mono" aria-label="Cadência" /></label>
                                   {estado.programa.permite_versao_reduzida ? (
@@ -1128,7 +1129,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               {g.revisar && r.nome.trim() ? <span className="block text-[10px] text-warning mt-0.5">{g.origem === "heuristica" ? "detectado pelo nome — confirme" : "legado: reclassifique"}</span> : null}
                             </td>
                             <td className="px-2 py-1.5 text-center align-top">
-                              <input inputMode="numeric" value={totalSeries(r.seriesConfig)} onChange={(e) => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, parseInt(e.target.value.replace(/\D/g, "").slice(-2)) || 0) })} aria-label="Número de séries" className="h-8 w-12 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" />
+                              <CampoNumero min={1} max={20} valor={totalSeries(r.seriesConfig)} onChange={(v) => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, v) })} aria-label="Número de séries" className="h-8 w-12 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" />
                               <div className="mt-1 flex justify-center gap-1">
                                 <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, Math.max(1, totalSeries(r.seriesConfig) - 1)) })} aria-label="Uma série a menos" className="h-6 w-6 rounded border border-border text-xs text-fg-muted hover:text-fg">−</button>
                                 <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, totalSeries(r.seriesConfig) + 1) })} aria-label="Uma série a mais" className="h-6 w-6 rounded border border-accent/60 text-xs font-bold text-accent">+</button>

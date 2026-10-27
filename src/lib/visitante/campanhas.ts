@@ -26,7 +26,9 @@ export type ResumoIndicacao = { amigos: number; diasGanhos: number };
 
 /** O convite de amigo aparece? (4+ treinos e ainda não ganhou os +30 dias) */
 export function conviteLiberado(treinosConcluidos: number, r: ResumoIndicacao): boolean {
-  return treinosConcluidos >= REGRAS_INDICACAO.treinosMinimos && r.diasGanhos < REGRAS_INDICACAO.maxDias;
+  // Mesmo com os +30 dias já ganhos o convite continua: amigo que fecha dá 10% de desconto (0102).
+  void r;
+  return treinosConcluidos >= REGRAS_INDICACAO.treinosMinimos;
 }
 
 /** Mensagem que o visitante manda para o amigo (WhatsApp). */

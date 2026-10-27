@@ -1190,7 +1190,8 @@ select test_logout();
 select test_login('33333333-3333-3333-3333-333333333333');
 do $$
 begin
-  if public.meu_convite_indicacao() is not null then raise exception 'T39d: aluno da consultoria ganhou código de visitante'; end if;
+  -- 0102: aluno da consultoria também pega o link (desconto por amigo que fechar)
+  if public.meu_convite_indicacao() is null then raise exception 'T39d: aluno da consultoria ficou sem link de indicação (0102)'; end if;
 end $$;
 select test_logout();
 -- 4 amigos se cadastram pelo link (como a API de cadastro faz)
@@ -1810,3 +1811,32 @@ begin
   select a.profile_id, 'cardio', 'cardio:teste', now() + interval '1 day', now() + interval '2 days', '{}'::jsonb from alunos a where a.profile_id is not null limit 1;
 end $$;
 \echo 'T55 OK: lembrete de cardio'
+-- T56 — 0102: indicação com desconto — amigo que fecha dá 10% a quem indicou; só o personal marca como usado
+do $$
+declare n int;
+begin
+  update alunos set modalidade = 'consultoria'
+   where id in (select indicado_aluno_id from indicacoes where indicador_aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' order by created_at limit 2);
+  select count(*) into n from indicacoes where indicador_aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and fechou_em is not null and desconto_pct = 10;
+  if n <> 2 then raise exception 'T56a: esperava 2 amigos que fecharam com 10%%, veio %', n; end if;
+  if not exists (select 1 from notificacoes_envios where dedupe like 'indicacao_fechou:%') then raise exception 'T56b: quem indicou não foi avisado'; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if (select count(*) from indicacoes where fechou_em is not null) <> 2 then raise exception 'T56c: indicador não vê o próprio desconto'; end if;
+  update indicacoes set desconto_usado_em = null, desconto_pct = 30 where indicador_aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+end $$;
+select test_logout();
+do $$
+begin
+  if exists (select 1 from indicacoes where desconto_pct = 30) then raise exception 'T56d: aluno mudou o próprio desconto'; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+begin
+  update indicacoes set desconto_usado_em = now() where indicador_aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and fechou_em is not null;
+  if not found then raise exception 'T56e: personal não conseguiu marcar o desconto como usado'; end if;
+end $$;
+select test_logout();
+\echo 'T56 OK: indicação com desconto'

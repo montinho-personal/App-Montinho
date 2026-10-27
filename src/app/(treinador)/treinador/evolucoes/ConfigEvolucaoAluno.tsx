@@ -1,6 +1,7 @@
 "use client";
 // Avisos de evolução do aluno (decisão do personal; o aluno ainda pode reduzir).
 import { useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useToast } from "@/components/ui/Toast";
 import type { ConfigEvolucao, MetricaEvolucao } from "@/lib/data/evolucao";
 
@@ -26,8 +27,8 @@ export function ConfigEvolucaoAluno({ alunoId, inicial }: { alunoId: string; ini
       <label className="flex items-center gap-2"><input type="checkbox" checked={c.avisos_ativos} onChange={(e) => setC({ ...c, avisos_ativos: e.target.checked })} /> Avisos de evolução durante o treino</label>
       <label className="flex items-center gap-2"><input type="checkbox" checked={c.vai_que_ta_facil} onChange={(e) => setC({ ...c, vai_que_ta_facil: e.target.checked })} /> “Vai que tá fácil!” na última série (quando as anteriores saíram fáceis)</label>
       <div className="flex flex-wrap gap-3">
-        <label className="flex items-center gap-1">Por exercício <input type="number" min={0} max={5} value={c.max_por_exercicio} onChange={(e) => setC({ ...c, max_por_exercicio: Math.max(0, Math.min(5, Number(e.target.value) || 0)) })} className="w-12 rounded border border-border bg-bg px-1" /></label>
-        <label className="flex items-center gap-1">Por treino <input type="number" min={0} max={10} value={c.max_por_sessao} onChange={(e) => setC({ ...c, max_por_sessao: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} className="w-12 rounded border border-border bg-bg px-1" /></label>
+        <label className="flex items-center gap-1">Por exercício <CampoNumero min={0} max={5} valor={c.max_por_exercicio} onChange={(v) => setC({ ...c, max_por_exercicio: v })} className="w-12 rounded border border-border bg-bg px-1" aria-label="Avisos por exercício" /></label>
+        <label className="flex items-center gap-1">Por treino <CampoNumero min={0} max={10} valor={c.max_por_sessao} onChange={(v) => setC({ ...c, max_por_sessao: v })} className="w-12 rounded border border-border bg-bg px-1" aria-label="Avisos por treino" /></label>
       </div>
       <div className="flex flex-wrap gap-3">
         {METRICAS.map(([k, r]) => (

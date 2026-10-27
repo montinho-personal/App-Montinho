@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useToast } from "@/components/ui/Toast";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -462,11 +463,10 @@ function TemplateBuilder({
                         <div className="flex-1 min-w-0 space-y-2">
                           <div className="font-semibold text-sm">{ex.nome}</div>
                           <div className="grid grid-cols-4 gap-2">
-                            <Mini
-                              label="Séries"
-                              value={String(ex.series)}
-                              onChange={(v) => updateExercicio(idx, exIdx, { series: Number(v) || 1 })}
-                            />
+                            <div>
+                              <div className="text-[9px] uppercase tracking-wider text-fg-subtle font-bold mb-0.5">Séries</div>
+                              <CampoNumero min={1} max={20} valor={ex.series} onChange={(v) => updateExercicio(idx, exIdx, { series: v })} aria-label="Séries" className="h-8 w-full bg-bg border border-border rounded-md px-2 text-xs text-center font-mono focus:outline-none focus:border-accent" />
+                            </div>
                             <Mini
                               label="Reps"
                               value={ex.reps}

@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { eventoGa } from "@/components/analytics/ga";
 import { mensagemConviteAmigo, REGRAS_INDICACAO } from "@/lib/visitante/campanhas";
+import { REGRAS_DESCONTO } from "@/lib/indicacao/desconto";
 
 /**
- * “Convide um amigo e ganhe +10 dias” (0068). Pede o link pessoal ao abrir
- * (o banco só libera com 4+ treinos) e manda pelo WhatsApp, à escolha do contato.
+ * “Convide um amigo” (0068/0102). Visitante: +10 dias por amigo que cria a
+ * conta. Visitante e aluno: 10% de desconto por amigo que FECHA um plano (até
+ * 30%). Pede o link pessoal ao abrir e manda pelo WhatsApp.
  */
-export function ConviteAmigo({ amigos, diasGanhos, tela }: { amigos: number; diasGanhos: number; tela: "inicio" | "fim_treino" }) {
+export function ConviteAmigo({ amigos, diasGanhos, tela, aluno = false }: { amigos: number; diasGanhos: number; tela: "inicio" | "fim_treino" | "indicar"; /** Aluno que já paga: só o desconto (sem os dias grátis). */ aluno?: boolean }) {
   const [link, setLink] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -44,13 +46,29 @@ export function ConviteAmigo({ amigos, diasGanhos, tela }: { amigos: number; dia
   return (
     <section aria-label="Convide um amigo" className="overflow-hidden rounded-2xl border-2 border-accent bg-[linear-gradient(160deg,#2a2415_0%,#171717_70%)] p-5">
       <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Presente para você</p>
-      <h2 className="mt-1 text-2xl font-black leading-tight">
-        Convide um amigo e ganhe <span className="text-accent">+{REGRAS_INDICACAO.diasPorAmigo} dias</span> de app grátis
-      </h2>
-      <p className="mt-2 text-sm text-fg-muted">
-        Mande o seu link para alguém que também quer treinar. Cada amigo que criar a conta te dá +{REGRAS_INDICACAO.diasPorAmigo} dias, até +{REGRAS_INDICACAO.maxDias} dias.
-      </p>
-      {amigos > 0 ? (
+      {aluno ? (
+        <>
+          <h2 className="mt-1 text-2xl font-black leading-tight">
+            Indique um amigo e ganhe <span className="text-accent">{REGRAS_DESCONTO.porAmigo}% de desconto</span>
+          </h2>
+          <p className="mt-2 text-sm text-fg-muted">
+            Seu amigo testa o app 30 dias de graça. Se ele fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto em qualquer plano. Indicou mais de um? Os descontos somam até {REGRAS_DESCONTO.maximo}%.
+          </p>
+        </>
+      ) : (
+        <>
+          <h2 className="mt-1 text-2xl font-black leading-tight">
+            Convide um amigo e ganhe <span className="text-accent">+{REGRAS_INDICACAO.diasPorAmigo} dias</span> de app grátis
+          </h2>
+          <p className="mt-2 text-sm text-fg-muted">
+            Mande o seu link para alguém que também quer treinar. Cada amigo que criar a conta te dá +{REGRAS_INDICACAO.diasPorAmigo} dias, até +{REGRAS_INDICACAO.maxDias} dias.
+          </p>
+          <p className="mt-2 rounded-lg bg-accent/10 px-3 py-2 text-sm font-semibold">
+            🎁 E se o amigo fechar um plano com o Montinho, você ganha {REGRAS_DESCONTO.porAmigo}% de desconto em qualquer plano (somam até {REGRAS_DESCONTO.maximo}%).
+          </p>
+        </>
+      )}
+      {amigos > 0 && !aluno ? (
         <p className="mt-3 rounded-lg bg-success/10 px-3 py-2 text-sm font-semibold text-success">
           🎉 {amigos} {amigos === 1 ? "amigo entrou" : "amigos entraram"} pelo seu convite: você já ganhou +{diasGanhos} dias.{restam ? ` Ainda dá para ganhar +${restam}.` : ""}
         </p>
@@ -71,7 +89,7 @@ export function ConviteAmigo({ amigos, diasGanhos, tela }: { amigos: number; dia
         </button>
       </div>
       {erro ? <p className="mt-2 text-xs text-fg-muted">{erro}</p> : null}
-      <p className="mt-3 text-xs text-fg-subtle">Os dias entram sozinhos assim que o amigo criar a conta pelo seu link.</p>
+      <p className="mt-3 text-xs text-fg-subtle">{aluno ? "O desconto aparece aqui no app assim que o amigo fechar." : "Os dias entram sozinhos assim que o amigo criar a conta pelo seu link. O desconto aparece aqui quando ele fechar."}</p>
     </section>
   );
 }

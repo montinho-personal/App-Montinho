@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { SorteioMontinho } from "@/components/desafios/SorteioMontinho";
 import { DESAFIOS_PRONTOS, DURACOES_DESAFIO, FOCOS, TIPOS_DESAFIO, type DesafioPronto, type ExercicioDesafio, type FocoMuscular, type TipoDesafio } from "@/lib/desafios/regras";
@@ -135,7 +136,7 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
             <div className="space-y-1">
               <label htmlFor="meta" className="text-sm font-semibold">Meta</label>
               <div className="flex items-center gap-2">
-                <input id="meta" type="number" inputMode="numeric" min={1} max={info.meta.max} value={meta} onChange={(e) => setMeta(Math.max(1, Math.min(info.meta!.max, Number(e.target.value) || 1)))} className="w-20 rounded-lg border border-border bg-bg px-3 py-2.5 text-center font-mono" />
+                <CampoNumero id="meta" min={1} max={info.meta.max} valor={meta} onChange={setMeta} className="w-20 rounded-lg border border-border bg-bg px-3 py-2.5 text-center font-mono" />
                 <span className="text-sm text-fg-muted">{info.meta.rotulo}</span>
               </div>
             </div>

@@ -4,6 +4,7 @@
 // correção e exclusão dos que a pessoa mesma registrou. Extras e Strava
 // aparecem com a origem e não são editáveis aqui.
 import { useEffect, useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { eventoGa } from "@/components/analytics/ga";
 import { MODALIDADES } from "@/lib/cardio/modalidades";
@@ -88,7 +89,7 @@ export function HistoricoCardio({ feitos, rotaCorrecao, personal = false }: { fe
                 <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-surface p-2 text-xs">
                   <label className="flex items-center gap-1">
                     Minutos
-                    <input type="number" min={0} max={600} value={minutos} onChange={(e) => setMinutos(Number(e.target.value) || 0)} className="h-9 w-20 rounded-md border border-border bg-card px-2" />
+                    <CampoNumero min={0} max={600} valor={minutos} onChange={setMinutos} className="h-9 w-20 rounded-md border border-border bg-card px-2" aria-label="Minutos" />
                   </label>
                   <button type="button" onClick={() => void corrigir(f.id, minutos > 0 ? { duracao_min: minutos, status: f.status === "nao_realizado" ? "concluido" : f.status } : { status: "nao_realizado" })} className="alvo rounded-md bg-accent px-3 py-1.5 font-bold text-bg">Salvar</button>
                   <button type="button" onClick={() => { if (confirm("Excluir este cardio? Ele deixa de contar daqui em diante (troféus já ganhos ficam).")) void corrigir(f.id, { remover: true }); }} className="alvo rounded-md border border-border px-3 py-1.5 text-danger">Excluir</button>

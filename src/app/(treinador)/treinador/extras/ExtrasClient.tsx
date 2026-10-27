@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
@@ -194,17 +195,17 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                 <label className="space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Máximo por semana</span>
                   <span className="block text-[11px] text-fg-subtle">Quantos treinos extras ele pode fazer de segunda a domingo.</span>
-                  <input inputMode="numeric" value={cfg.max_por_semana} onChange={(e) => setCfg({ ...cfg, max_por_semana: Math.min(7, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-full`} />
+                  <CampoNumero valor={cfg.max_por_semana} min={0} max={7} onChange={(v) => setCfg({ ...cfg, max_por_semana: v })} className={`${inp} w-full`} />
                 </label>
                 <label className="space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Séries extras/semana (resistido)</span>
                   <span className="block text-[11px] text-fg-subtle">Teto de séries de musculação somando os extras da semana (cardio e mobilidade não contam).</span>
-                  <input inputMode="numeric" value={cfg.limite_series_semana} onChange={(e) => setCfg({ ...cfg, limite_series_semana: Math.min(60, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-full`} />
+                  <CampoNumero valor={cfg.limite_series_semana} min={0} max={60} onChange={(v) => setCfg({ ...cfg, limite_series_semana: v })} className={`${inp} w-full`} />
                 </label>
                 <label className="col-span-2 space-y-0.5">
                   <span className="block text-[11px] text-fg-muted">Intervalo mínimo desde o último treino para extra intenso sem aprovação (horas)</span>
                   <span className="block text-[11px] text-fg-subtle">Se o último treino foi há menos horas que isso, um extra de musculação vira pedido para você aprovar.</span>
-                  <input inputMode="numeric" value={cfg.intervalo_min_horas} onChange={(e) => setCfg({ ...cfg, intervalo_min_horas: Math.min(72, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-24`} />
+                  <CampoNumero valor={cfg.intervalo_min_horas} min={0} max={72} onChange={(v) => setCfg({ ...cfg, intervalo_min_horas: v })} className={`${inp} w-24`} />
                 </label>
               </div>
               <fieldset className="space-y-1">
@@ -293,7 +294,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                   <textarea value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.target.value.slice(0, 600) })} rows={2} placeholder="Orientações (intensidade, cuidados)" aria-label="Orientações" className="w-full rounded-md border border-border bg-bg p-2" />
                   <label className="flex items-center gap-2 text-xs text-fg-muted">
                     Duração
-                    <input inputMode="numeric" value={form.duracao_min} onChange={(e) => setForm({ ...form, duracao_min: Math.min(180, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-16`} aria-label="Duração em minutos" />
+                    <CampoNumero valor={form.duracao_min} min={0} max={180} onChange={(v) => setForm({ ...form, duracao_min: v })} className={`${inp} w-16`} aria-label="Duração em minutos" />
                     min
                   </label>
                   {intenso ? (
@@ -308,7 +309,7 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
                       </select>
                       <label className="flex items-center gap-2 text-xs text-fg-muted">
                         Séries estimadas
-                        <input inputMode="numeric" value={form.series_estimadas} onChange={(e) => setForm({ ...form, series_estimadas: Math.min(40, Number(e.target.value.replace(/\D/g, "")) || 0) })} className={`${inp} w-16`} aria-label="Séries estimadas" />
+                        <CampoNumero valor={form.series_estimadas} min={0} max={40} onChange={(v) => setForm({ ...form, series_estimadas: v })} className={`${inp} w-16`} aria-label="Séries estimadas" />
                       </label>
                       <fieldset className="space-y-1">
                         <legend className="text-[11px] text-fg-muted">Grupos musculares (para checar recuperação)</legend>

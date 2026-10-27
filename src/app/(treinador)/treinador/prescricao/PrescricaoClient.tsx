@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
@@ -91,18 +92,18 @@ export function PrescricaoClient({ templates }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <Label htmlFor="peso">Peso (kg)</Label>
-                <Input id="peso" type="number" step="0.5" value={form.peso_kg}
-                  onChange={(e) => setForm({ ...form, peso_kg: Number(e.target.value) || 0 })} />
+                <CampoNumero id="peso" decimal min={20} max={300} valor={form.peso_kg}
+                  onChange={(v) => setForm({ ...form, peso_kg: v })} className="h-11 w-full rounded-lg bg-bg border border-border px-4 text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors" />
               </div>
               <div>
                 <Label htmlFor="altura">Altura (cm)</Label>
-                <Input id="altura" type="number" value={form.altura_cm}
-                  onChange={(e) => setForm({ ...form, altura_cm: Number(e.target.value) || 0 })} />
+                <CampoNumero id="altura" min={100} max={230} valor={form.altura_cm}
+                  onChange={(v) => setForm({ ...form, altura_cm: v })} className="h-11 w-full rounded-lg bg-bg border border-border px-4 text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors" />
               </div>
               <div>
                 <Label htmlFor="idade">Idade</Label>
-                <Input id="idade" type="number" value={form.idade_anos}
-                  onChange={(e) => setForm({ ...form, idade_anos: Number(e.target.value) || 0 })} />
+                <CampoNumero id="idade" min={10} max={100} valor={form.idade_anos}
+                  onChange={(v) => setForm({ ...form, idade_anos: v })} className="h-11 w-full rounded-lg bg-bg border border-border px-4 text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors" />
               </div>
               <div>
                 <Label htmlFor="sexo">Sexo biológico</Label>

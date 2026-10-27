@@ -10,7 +10,7 @@ describe("convite de amigo", () => {
     expect(conviteLiberado(3, { amigos: 0, diasGanhos: 0 })).toBe(false);
     expect(conviteLiberado(4, { amigos: 0, diasGanhos: 0 })).toBe(true);
     expect(conviteLiberado(9, { amigos: 2, diasGanhos: 20 })).toBe(true);
-    expect(conviteLiberado(9, { amigos: 3, diasGanhos: 30 })).toBe(false);
+    expect(conviteLiberado(9, { amigos: 3, diasGanhos: 30 })).toBe(true); // continua: o desconto por amigo que fecha (0102)
   });
   it("mensagem com Olá e o link", () => {
     const m = mensagemConviteAmigo("https://app/convite/AMIGO-ABCDE");

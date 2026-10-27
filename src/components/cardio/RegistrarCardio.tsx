@@ -4,6 +4,7 @@
 // Prescrito já vem preenchido; detalhes (distância, FC…) ficam recolhidos.
 // Ao terminar, comemora os troféus novos com a mesma celebração da musculação.
 import { useMemo, useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
 import { eventoGa } from "@/components/analytics/ga";
@@ -180,7 +181,7 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
                   <label className="mb-1 block text-sm font-semibold" htmlFor="min-cardio">Quantos minutos?</label>
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => setMinutos((m) => Math.max(1, m - 5))} className="alvo h-12 w-12 rounded-lg border border-border text-xl" aria-label="Menos 5 minutos">−</button>
-                    <input id="min-cardio" type="number" inputMode="numeric" min={1} max={600} value={minutos} onChange={(e) => setMinutos(Math.max(0, Math.min(600, Number(e.target.value) || 0)))} className="h-12 w-24 rounded-lg border border-border bg-card text-center text-xl font-bold" />
+                    <CampoNumero id="min-cardio" min={0} max={600} valor={minutos} onChange={setMinutos} className="h-12 w-24 rounded-lg border border-border bg-card text-center text-xl font-bold" />
                     <button type="button" onClick={() => setMinutos((m) => Math.min(600, m + 5))} className="alvo h-12 w-12 rounded-lg border border-border text-xl" aria-label="Mais 5 minutos">+</button>
                     <span className="text-sm text-fg-muted">min</span>
                   </div>

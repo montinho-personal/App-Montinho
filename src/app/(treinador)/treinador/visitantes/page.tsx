@@ -19,6 +19,8 @@ import { treinosParaMontar } from "@/lib/data/treinos-enviados";
 import { TreinosParaMontar } from "./TreinosParaMontar";
 import { usoDosTreinosProntos } from "@/lib/data/uso-prontos";
 import { UsoTreinosProntos } from "./UsoTreinosProntos";
+import { descontosAAplicar } from "@/lib/data/indicacao";
+import { DescontosIndicacao } from "./DescontosIndicacao";
 
 export const metadata = { title: "Visitantes" };
 
@@ -28,6 +30,7 @@ export default async function VisitantesPage() {
   if (!FEATURES.modoVisitante) notFound();
   await requireTreinadorPage();
   const [convites, visitantes, desafios, indicacoes, paraMontar, usoProntos] = await Promise.all([listarConvites(), listarVisitantes(), listarDesafios(), indicacoesPorVisitante().catch(() => new Map()), treinosParaMontar().catch(() => []), usoDosTreinosProntos().catch(() => [])]);
+  const descontos = await descontosAAplicar().catch(() => []);
   const nomeVisitante = new Map(visitantes.map((v) => [v.id, (v.profile?.nome ?? "").split(" ")[0]]));
   const nomeDesafio = new Map(desafios.map((d) => [d.id, d.nome]));
   const curta = (d: string | null) => (d ? d.split("-").reverse().join("/") : null);
@@ -52,6 +55,16 @@ export default async function VisitantesPage() {
         </CardHeader>
         <CardBody>
           <TreinosParaMontar itens={paraMontar} />
+        </CardBody>
+      </Card>
+
+      <Card id="descontos-indicacao" className={descontos.length ? "border-success/50" : undefined}>
+        <CardHeader>
+          <CardTitle className="text-base">🎁 Descontos de indicação a aplicar {descontos.length ? <span className="ml-1 rounded-full bg-success px-2 py-0.5 text-xs text-bg">{descontos.length}</span> : null}</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <DescontosIndicacao itens={descontos} />
+          <p className="mt-2 text-[11px] text-fg-subtle">Cada amigo indicado que fecha vale 10% para quem indicou (aluno ou visitante), somando até 30% no mesmo plano, sem prazo. Ao marcar “usado”, saem os mais antigos; o que passou de 30% fica para a próxima.</p>
         </CardBody>
       </Card>
 

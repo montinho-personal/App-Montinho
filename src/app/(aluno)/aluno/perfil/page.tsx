@@ -59,6 +59,10 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
       <TelaAcesaPerfil />
       <PulsoPerfil inicial={pulsoConsent} />
       <PadraoCargaPerfil inicial={padraoCarga} />
+      <Link href="/aluno/indicar" className="flex items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/5 px-4 py-3 text-sm hover:border-accent">
+        <span><span className="font-bold">🎁 Indique um amigo</span><span className="block text-xs text-fg-muted">Amigo que fechar um plano te dá 10% de desconto (somam até 30%).</span></span>
+        <span aria-hidden className="text-accent">→</span>
+      </Link>
       <Link href="/aluno/medidas" className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
         <span><span className="font-bold">📏 Medidas e avaliações</span><span className="block text-xs text-fg-muted">Peso, medidas, bioimpedância ou o arquivo (PDF/foto) da sua avaliação.</span></span>
         <span aria-hidden className="text-accent">→</span>
