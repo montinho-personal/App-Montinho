@@ -276,11 +276,20 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
           {!seriesFeitas ? <p className="text-center text-xs text-fg-muted">Salve pelo menos uma série para concluir.</p> : null}
           <div className="flex justify-between gap-2 text-sm">
             <button type="button" onClick={() => setTerminando(false)} className="alvo text-fg-muted underline underline-offset-4">Voltar ao treino</button>
-            {!seriesFeitas ? <button type="button" onClick={() => void terminar("abandonada")} className="alvo text-red underline underline-offset-4">Cancelar treino</button> : null}
+            <button type="button" onClick={() => { if (window.confirm(seriesFeitas ? "Encerrar sem concluir? As séries ficam guardadas e o treino conta como parcial." : "Cancelar este treino? Ele não conta na semana.")) void terminar("abandonada"); }} className="alvo text-red underline underline-offset-4">{seriesFeitas ? "Encerrar sem concluir" : "Cancelar treino"}</button>
           </div>
         </section>
       ) : exs.length ? (
         <Button variant="secondary" size="lg" className="w-full" onClick={() => setTerminando(true)}>Terminar treino</Button>
+      ) : null}
+
+      {/* Sempre dá para sair: sem séries cancela (não conta); com séries, encerra sem concluir (fica parcial). */}
+      {!terminando ? (
+        <div className="text-center">
+          <button type="button" disabled={ocupado} onClick={() => { if (window.confirm(seriesFeitas ? "Encerrar sem concluir? As séries que você marcou ficam guardadas e o treino conta como parcial." : "Cancelar este treino? Nenhuma série foi marcada: ele não conta na semana e você pode começar outro.")) void terminar("abandonada"); }} className="alvo text-sm font-semibold text-red underline underline-offset-4 disabled:opacity-50">
+            {seriesFeitas ? "Encerrar sem concluir" : "✖ Cancelar este treino"}
+          </button>
+        </div>
       ) : null}
     </div>
   );
