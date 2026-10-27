@@ -119,7 +119,7 @@ export default async function AlunoHomePage() {
   // Convites para desafio entre amigos esperando resposta (0094).
   const [desafios, cutucadas] = await Promise.all([listarMeusDesafios(alunoId).catch(() => []), minhasCutucadas(alunoId).catch(() => [])]);
   const recadosDesafio = await recadosDosDesafios(alunoId, desafios).catch(() => []);
-  // Treino livre por metas (0100): o cartão substitui o “próximo treino” das fichas.
+  // Protocolo livre (por metas) (0100): o cartão substitui o “próximo treino” das fichas.
   const placarSemana = emAndamento ? null : await placarDoAluno(alunoId, null, { qualquerPlano: true }).catch(() => null);
   const livreMetas = placarSemana?.origem === "livre_metas" ? placarSemana : null;
   // Indicação premiada (0102): desconto de quem indicou amigos que fecharam.

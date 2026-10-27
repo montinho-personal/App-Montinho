@@ -1,4 +1,4 @@
-// Treino livre por metas (0100): grava o estilo/metas do programa e monta o
+// Protocolo livre (por metas) (0100): grava o estilo/metas do programa e monta o
 // placar da semana do aluno. Regras puras em src/lib/treino/livre-metas.ts.
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
@@ -14,7 +14,7 @@ import type { Programa } from "@/lib/supabase/types-sessoes";
 
 export type Metas = Partial<Record<GrupoMuscular, MetaVolume>>;
 
-/** Liga/desliga o treino livre por metas e grava as faixas. Cria o programa se o aluno não tiver. */
+/** Liga/desliga o protocolo livre (por metas) e grava as faixas. Cria o programa se o aluno não tiver. */
 export async function salvarLivreMetas(alunoId: string, metas: Metas, ligado: boolean): Promise<void> {
   const agora = new Date().toISOString();
   const estilo = ligado ? "livre_metas" : "fichas";
@@ -22,7 +22,7 @@ export async function salvarLivreMetas(alunoId: string, metas: Metas, ligado: bo
     const st = demoStore();
     let p = st.programas.find((x) => x.aluno_id === alunoId && x.ativo);
     if (!p) {
-      p = { id: uid(), aluno_id: alunoId, nome: "Treino livre por metas", objetivo: null, nivel: null, split: null, modo_semana: "fixa", frequencia: {}, calendario: {}, metas_volume: {}, prioridades: [], equipamentos: [], duracao_min: null, permite_versao_reduzida: false, observacoes: null, versao: 1, ativo: true, created_at: agora, updated_at: agora };
+      p = { id: uid(), aluno_id: alunoId, nome: "Protocolo livre (por metas)", objetivo: null, nivel: null, split: null, modo_semana: "fixa", frequencia: {}, calendario: {}, metas_volume: {}, prioridades: [], equipamentos: [], duracao_min: null, permite_versao_reduzida: false, observacoes: null, versao: 1, ativo: true, created_at: agora, updated_at: agora };
       st.programas.push(p);
     }
     Object.assign(p, { metas_volume: metas, estilo, updated_at: agora });
@@ -32,11 +32,11 @@ export async function salvarLivreMetas(alunoId: string, metas: Metas, ligado: bo
   const { data: atual } = await db.from("programas").select("id").eq("aluno_id", alunoId).eq("ativo", true).maybeSingle();
   if (atual) {
     const { error } = await db.from("programas").update({ metas_volume: metas, estilo }).eq("id", atual.id);
-    if (error) throw new Error(/estilo/.test(error.message) ? "O banco ainda não tem o treino livre por metas (falta aplicar a 0100)." : error.message);
+    if (error) throw new Error(/estilo/.test(error.message) ? "O banco ainda não tem o protocolo livre (por metas) (falta aplicar a 0100)." : error.message);
     return;
   }
-  const { error } = await db.from("programas").insert({ aluno_id: alunoId, nome: "Treino livre por metas", metas_volume: metas, estilo, ativo: true });
-  if (error) throw new Error(/estilo/.test(error.message) ? "O banco ainda não tem o treino livre por metas (falta aplicar a 0100)." : error.message);
+  const { error } = await db.from("programas").insert({ aluno_id: alunoId, nome: "Protocolo livre (por metas)", metas_volume: metas, estilo, ativo: true });
+  if (error) throw new Error(/estilo/.test(error.message) ? "O banco ainda não tem o protocolo livre (por metas) (falta aplicar a 0100)." : error.message);
 }
 
 function referenciaIniciante(): Metas {
@@ -46,13 +46,13 @@ function referenciaIniciante(): Metas {
 
 export const ehLivreMetas = (p: Pick<Programa, "estilo"> | null | undefined) => p?.estilo === "livre_metas";
 
-/** De onde veio a meta: o treino livre por metas, as metas que o personal pôs no montador, ou as séries previstas na ficha. */
+/** De onde veio a meta: o protocolo livre (por metas), as metas que o personal pôs no montador, ou as séries previstas na ficha. */
 export type OrigemMetas = "livre_metas" | "metas" | "ficha" | "referencia";
 const PRINCIPAIS: GrupoMuscular[] = ["peito", "costas", "ombros", "biceps", "triceps", "quadriceps", "posteriores", "gluteo", "panturrilha", "abdomen"];
 export type PlacarDoAluno = { placar: LinhaPlacar[]; sugestao: Sugestao | null; resumo: string; origem: OrigemMetas; metas: Metas; feitas: Partial<Record<GrupoMuscular, number>>; recentes: GrupoMuscular[] };
 
 /**
- * Placar da semana (segunda a hoje) do aluno com treino livre por metas.
+ * Placar da semana (segunda a hoje) do aluno com protocolo livre (por metas).
  * `sessaoAtualId`: o treino em andamento entra na conta e os músculos dele
  * não são sugeridos de novo.
  */

@@ -338,10 +338,12 @@ export async function progressoCardio(alunoId: string): Promise<ProgressoCardio>
   const [todas, feitos] = await Promise.all([listarPrescricoesCardio(alunoId, { todas: true }), cardiosFeitos(alunoId)]);
   const temPrescricao = todas.some((p) => p.ativo);
   let semana: ProgressoCardio["semana"] = null;
+  let semanaMin: ProgressoCardio["semanaMin"] = null;
   let seguidas = 0;
   if (temPrescricao) {
     const semanas = semanasDeCardio({ prescricoes: todas, feitos, hoje: dataLocal(new Date()) });
     const atual = semanas.find((w) => w.atual);
+    if (atual && atual.alvoMin > 0) semanaMin = { minutos: atual.minutos, alvoMin: atual.alvoMin };
     if (atual && !atual.cumpridaEm && (atual.alvoSessoes > 0 || atual.alvoMin > 0)) {
       semana = { faltaSessoes: Math.max(0, atual.alvoSessoes - atual.sessoes), faltaMin: Math.max(0, Math.ceil(atual.alvoMin - atual.minutos)), metaMinutos: atual.metaMinutos };
     }
@@ -351,5 +353,5 @@ export async function progressoCardio(alunoId: string): Promise<ProgressoCardio>
       else if (!w.inicioPrescricao) break;
     }
   }
-  return { feitos: proximoMarco(feitos).feitos, temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas };
+  return { feitos: proximoMarco(feitos).feitos, temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin };
 }

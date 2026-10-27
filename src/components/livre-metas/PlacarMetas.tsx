@@ -1,4 +1,4 @@
-// Placar da semana do treino livre por metas (servidor ou cliente).
+// Placar da semana do protocolo livre (por metas) (servidor ou cliente).
 import { STATUS_META, type LinhaPlacar, type Sugestao } from "@/lib/treino/livre-metas";
 
 const COR: Record<LinhaPlacar["status"], string> = {

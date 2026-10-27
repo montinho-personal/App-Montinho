@@ -105,11 +105,13 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "cardio_semana_ritmo", selo: "⚡" },
   { codigo: "cardio_meta_semana", selo: "100%" },
   { codigo: "cardio_4_semanas", selo: "4×" },
+  { codigo: "cardio_folego_extra", selo: "150%" },
+  { codigo: "cardio_dobro", selo: "2×" },
   { codigo: "cardio_uma_hora", selo: "60′" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -127,6 +129,8 @@ export type ProgressoCardio = {
   semana?: { faltaSessoes: number; faltaMin: number; metaMinutos: boolean } | null;
   /** Semanas seguidas cumprindo o cardio, antes desta (Fôlego de Ferro). */
   seguidas?: number;
+  /** Minutos desta semana × prescritos (Fôlego Extra / Dobro de Fôlego). */
+  semanaMin?: { minutos: number; alvoMin: number } | null;
 };
 
 export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null }): Medalha[] {
@@ -283,6 +287,11 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return e.cardio?.temPrescricao
           ? { atual: null, alvo: null, falta: c === "cardio_4_semanas" ? "Cumpra o cardio prescrito em 4 semanas seguidas." : c === "cardio_semana_ritmo" ? "Faça todos os cardios prescritos numa semana." : "Chegue aos minutos de cardio prescritos para a semana.", disponivel: true }
           : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, a meta da semana aparece em Montinho Cardio.", disponivel: false };
+      case "cardio_folego_extra":
+      case "cardio_dobro":
+        return e.cardio?.temPrescricao
+          ? { atual: null, alvo: null, falta: c === "cardio_dobro" ? "Some numa semana o dobro dos minutos de cardio prescritos." : "Some numa semana o prescrito e mais a metade (150% dos minutos).", disponivel: true }
+          : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, dá para ir além da meta da semana.", disponivel: false };
       case "cardio_uma_hora":
         return e.cardio?.prescricaoLonga
           ? { atual: null, alvo: null, falta: "Conclua o cardio de 60+ minutos prescrito, sem passar do tempo combinado.", disponivel: true }

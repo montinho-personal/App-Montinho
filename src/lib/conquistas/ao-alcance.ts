@@ -209,6 +209,18 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
       const n = falta(marcoCardio);
       out.push(item(marcoCardio, `Faça mais ${plural(n, "cardio", "cardios")} de 10 minutos ou mais (1 por dia) no Montinho Cardio.`, n === 1 ? "No próximo cardio" : `Em ${plural(n, "cardio", "cardios")}`));
     }
+    // Já bateu a meta de minutos da semana: o Fôlego Extra (150%) e o Dobro (200%) ficam ao alcance.
+    const sm = c.semanaMin;
+    if (c.temPrescricao && sm && sm.alvoMin > 0 && sm.minutos >= sm.alvoMin * 0.9) {
+      for (const [codigo, fator, nome] of [["cardio_folego_extra", 1.5, "150%"], ["cardio_dobro", 2, "o dobro"]] as const) {
+        const m = aberta(codigo);
+        const faltaMin = Math.ceil(sm.alvoMin * fator - sm.minutos);
+        if (m && faltaMin > 0 && faltaMin <= sm.alvoMin * 0.6) {
+          out.push(item(m, `Meta da semana batida! Mais ${faltaMin} min de cardio e você chega a ${nome} do prescrito.`, "Até domingo"));
+          break;
+        }
+      }
+    }
     const s = c.semana;
     if (c.temPrescricao && s && (s.faltaSessoes > 0 || s.faltaMin > 0)) {
       const oQue = s.metaMinutos && s.faltaMin > 0 ? `Faltam ${s.faltaMin} min de cardio para fechar a semana.` : `Falta${s.faltaSessoes > 1 ? "m" : ""} ${plural(s.faltaSessoes, "cardio", "cardios")} para fechar a semana.`;

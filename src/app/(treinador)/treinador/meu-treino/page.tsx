@@ -42,7 +42,7 @@ export default async function MeuTreinoPage() {
       <div className="space-y-2">
         <Link href={`/treinador/alunos/${alunoId}/livre-metas`} className={porta}>
           <span>
-            <span className="block font-semibold">🎯 Treino livre por metas {livre ? "· LIGADO" : ""}</span>
+            <span className="block font-semibold">🎯 Protocolo livre (por metas) {livre ? "· LIGADO" : ""}</span>
             <span className="block text-xs text-fg-muted">Só as séries por semana de cada músculo; você escolhe os exercícios na hora.</span>
           </span>
           <span aria-hidden className="text-accent">→</span>

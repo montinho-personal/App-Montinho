@@ -63,7 +63,11 @@ export default async function MeusTreinosPage() {
           </Link>
           <Link href="/aluno/livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
             <span className="text-2xl" aria-hidden>🎲</span>
-            <span><span className="block font-bold">Treino livre</span><span className="block text-xs text-fg-muted">Sem ficha: decida cada exercício na hora e anote séries, cargas e técnicas.</span></span>
+            <span><span className="block font-bold">Treino livre (de hoje)</span><span className="block text-xs text-fg-muted">Um treino do dia: decida cada exercício na hora e anote séries, cargas e técnicas.</span></span>
+          </Link>
+          <Link href="/aluno/protocolo-livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+            <span className="text-2xl" aria-hidden>🎯</span>
+            <span><span className="block font-bold">Protocolo livre (a semana)</span><span className="block text-xs text-fg-muted">Sem treinos A/B/C: só as séries por semana de cada músculo. O app conta e sugere o que falta.</span></span>
           </Link>
           {vitrine.length ? (
             <Link href="/aluno/treinos-prontos" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">

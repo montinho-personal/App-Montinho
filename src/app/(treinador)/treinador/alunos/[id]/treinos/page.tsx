@@ -51,7 +51,7 @@ export default async function MontadorPage({ params }: PageProps) {
       <AbasTreinoCardio alunoId={id} ativo="musculacao" />
       <Link href={`/treinador/alunos/${id}/livre-metas`} className={`touch mt-2 flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${ehLivreMetas(plano.programa) ? "border-success/60 bg-success/10" : "border-border bg-card"}`}>
         <span>
-          <span className="block font-semibold">🎯 Treino livre por metas {ehLivreMetas(plano.programa) ? "· LIGADO" : ""}</span>
+          <span className="block font-semibold">🎯 Protocolo livre (por metas) {ehLivreMetas(plano.programa) ? "· LIGADO" : ""}</span>
           <span className="block text-xs text-fg-muted">Sem A/B/C: você define só as séries por semana de cada músculo e o aluno monta na hora.</span>
         </span>
         <span aria-hidden className="text-accent">→</span>

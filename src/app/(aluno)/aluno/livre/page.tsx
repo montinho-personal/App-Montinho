@@ -11,6 +11,7 @@ import { podeRegistrar } from "@/lib/visitante/acesso";
 import { ComecarLivre } from "./ComecarLivre";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
+import { DiferencaLivre } from "@/components/livre-metas/DiferencaLivre";
 
 export const metadata = { title: "Treino livre" };
 
@@ -30,6 +31,7 @@ export default async function ComecarLivrePage() {
         <h1 className="text-2xl font-bold">Treino livre</h1>
         <p className="text-sm text-fg-muted">Chegou na academia sem saber o que vai treinar? Sem problema. Você decide cada exercício na hora e o app anota tudo.</p>
       </header>
+      <DiferencaLivre />
       {metas?.placar.length ? <PlacarMetas placar={metas.placar} sugestao={metas.sugestao} resumo={metas.resumo} nota={metas.origem === "ficha" ? "Meta de cada músculo = as séries que a sua ficha prevê na semana." : metas.origem === "referencia" ? "Sem ficha ainda: meta de referência para quem está começando." : null} /> : null}
       <ol className="space-y-2 text-sm">
         <li className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3"><span className="font-bold text-accent">1</span><span>Escolha o exercício (com vídeo) ou escreva o nome que você usa.</span></li>

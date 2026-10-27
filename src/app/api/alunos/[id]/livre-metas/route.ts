@@ -1,4 +1,4 @@
-// Personal liga/desliga o treino livre por metas do aluno e grava as faixas de séries por semana.
+// Personal liga/desliga o protocolo livre (por metas) do aluno e grava as faixas de séries por semana.
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTreinadorApi } from "@/lib/auth/session";

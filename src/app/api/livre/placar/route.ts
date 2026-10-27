@@ -1,4 +1,4 @@
-// Placar da semana do treino livre por metas (o treino em andamento entra na conta).
+// Placar da semana do protocolo livre (por metas) (o treino em andamento entra na conta).
 import { NextResponse } from "next/server";
 import { requireAlunoApi } from "@/lib/auth/session";
 import { placarDoAluno } from "@/lib/data/livre-metas";

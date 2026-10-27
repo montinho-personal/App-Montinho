@@ -124,6 +124,18 @@ describe("troféus de cardio", () => {
     expect(trofeusDoCardio({ prescricoes: [], feitos: [feito("2026-10-01", 90, { planejadoMin: 60 })] }, "2026-10-02").map((x) => x.codigo)).not.toContain("cardio_uma_hora");
     expect(trofeusDoCardio({ prescricoes: [], feitos: [feito("2026-10-01", 60, { planejadoMin: 60 })] }, "2026-10-02").map((x) => x.codigo)).toContain("cardio_uma_hora");
   });
+  it("Fôlego Extra (150% dos minutos da semana) e Dobro de Fôlego (200%)", () => {
+    // Prescrição: 3 × 30 = 90 min/semana → 135 min (150%) e 180 min (200%).
+    const so100 = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 30) }, "2026-10-06").map((x) => x.codigo);
+    expect(so100).not.toContain("cardio_folego_extra");
+    const t150 = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 45) }, "2026-10-06").map((x) => x.codigo);
+    expect(t150).toContain("cardio_folego_extra");
+    expect(t150).not.toContain("cardio_dobro");
+    const t200 = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 60) }, "2026-10-06").map((x) => x.codigo);
+    expect(t200).toEqual(expect.arrayContaining(["cardio_folego_extra", "cardio_dobro"]));
+    // Sem prescrição não existe “além do prescrito”.
+    expect(trofeusDoCardio({ prescricoes: [], feitos: semana("2026-09-29", 3, 90) }, "2026-10-06").map((x) => x.codigo)).not.toContain("cardio_dobro");
+  });
   it("Semana no Ritmo (sessões) e 100% no Plano (minutos, com 10% de tolerância)", () => {
     const t = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 28) }, "2026-10-06").map((x) => x.codigo);
     expect(t).toContain("cardio_semana_ritmo");

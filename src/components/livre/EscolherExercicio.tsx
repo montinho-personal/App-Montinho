@@ -26,7 +26,7 @@ async function fotoReduzida(f: File): Promise<string> {
 
 type Foto = { fase: "livre" } | { fase: "lendo" } | { fase: "achou"; aparelho: string | null; itens: ItemBusca[] } | { fase: "nada"; motivo: string };
 
-/** Selo do treino livre por metas ao lado de cada exercício. */
+/** Selo do protocolo livre (por metas) ao lado de cada exercício. */
 function seloDaMeta(placar: LinhaPlacar[] | undefined, grupo: GrupoMuscular) {
   const l = placar ? linhaDoGrupo(placar, grupo) : null;
   if (!l) return null;
@@ -35,7 +35,7 @@ function seloDaMeta(placar: LinhaPlacar[] | undefined, grupo: GrupoMuscular) {
   return <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold">faltam {l.faltam}</span>;
 }
 
-export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, placar }: { itens: ItemBusca[]; onEscolher: (i: ItemBusca) => void; onMeuNome: (nome: string) => void; onFechar: () => void; /** Treino livre por metas: o que mais falta primeiro, os do limite por último. */ placar?: LinhaPlacar[] }) {
+export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, placar }: { itens: ItemBusca[]; onEscolher: (i: ItemBusca) => void; onMeuNome: (nome: string) => void; onFechar: () => void; /** Protocolo livre (por metas): o que mais falta primeiro, os do limite por último. */ placar?: LinhaPlacar[] }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<string | null>(null);
   const resultados = useMemo(() => {

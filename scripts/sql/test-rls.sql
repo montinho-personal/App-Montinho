@@ -1877,3 +1877,33 @@ begin
 end $$;
 select test_logout();
 \echo 'T58 OK: lembrete do troféu perto'
+-- T59 — 0105: troféus Fôlego Extra/Dobro aceitos; visitante em dia monta o próprio protocolo livre; aluno da consultoria não
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cardio_folego_extra', '1', 'Fôlego Extra', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cardio_dobro', '1', 'Dobro de Fôlego', now()) on conflict do nothing;
+end $$;
+update alunos set modalidade = 'visitante', status = 'ativo' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update acessos_visitante set fim = now() + interval '10 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  perform public.salvar_meu_protocolo_livre('{"peito":{"min":10,"max":14},"inventado":{"min":1,"max":2},"costas":{"min":20,"max":10}}'::jsonb, true);
+end $$;
+select test_logout();
+do $$
+declare m jsonb; e text;
+begin
+  select metas_volume, estilo into m, e from programas where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and ativo;
+  if e <> 'livre_metas' then raise exception 'T59a: protocolo livre não ligou (%)', e; end if;
+  if m <> '{"peito":{"min":10,"max":14}}'::jsonb then raise exception 'T59b: metas não foram limpas (%)', m; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.salvar_meu_protocolo_livre('{"peito":{"min":10,"max":14}}'::jsonb, true); exception when raise_exception then ok := true; end;
+  if not ok then raise exception 'T59c: aluno da consultoria mudou o próprio protocolo'; end if;
+end $$;
+select test_logout();
+\echo 'T59 OK: Fôlego Extra/Dobro e protocolo livre do visitante'
