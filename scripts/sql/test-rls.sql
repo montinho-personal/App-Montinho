@@ -1936,3 +1936,13 @@ begin
 end $$;
 select test_logout();
 \echo 'T61 OK: desafio com musculação e/ou cardio'
+
+-- T62 — 0111: Combo em sequência e volume total de séries aceitos
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'combo_3', '1', 'Combo 3 Dias', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'combo_30', '1', '30 Dias de Combo', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'series_500', '1', '500 Séries', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'series_1000', '1', '1.000 Séries', now()) on conflict do nothing;
+end $$;
+\echo 'T62 OK: Combo em sequência e volume total de séries'

@@ -6,8 +6,8 @@ const codigos = Object.keys(CATALOGO) as CodigoConquista[];
 const PROIBIDO = [/dopamina/i, /reprogram/i, /21 dias.*h[áa]bito|h[áa]bito.*21 dias/i, /garant/i, /neuroplastic/i, /circuito/i, /h[áa]bito (est[áa]|j[áa] est[áa]) formado/i, /permanente/i];
 
 describe("biblioteca editorial das conquistas", () => {
-  it("77 conquistas (73 únicas + 4 recorrentes, uma delas por desafio), todas com o conteúdo completo", () => {
-    expect(codigos).toHaveLength(77);
+  it("84 conquistas (80 únicas + 4 recorrentes, uma delas por desafio), todas com o conteúdo completo", () => {
+    expect(codigos).toHaveLength(84);
     expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["cardio_voltei", "desafio_concluido", "eu_voltei", "recorde"]);
     for (const c of codigos) {
       const t = CONTEUDO[c];
