@@ -48,6 +48,28 @@ function JanelaDetalhe({ onFechar, children }: { onFechar: () => void; children:
   );
 }
 
+/** Unidade do número de cada família de medalhas (singular, plural). */
+function unidade(codigo: string): [string, string] | null {
+  if (codigo.startsWith("combo_")) return ["dia", "dias"];
+  if (codigo.startsWith("series_")) return ["série", "séries"];
+  if (codigo.startsWith("treinos_") || codigo === "primeiro_treino" || codigo === "terceiro_especial") return ["treino", "treinos"];
+  if (codigo.startsWith("semanas_") || codigo.startsWith("acompanhamento_") || codigo.startsWith("constancia_") || codigo === "criando_raizes") return ["semana", "semanas"];
+  if (/^cardio_\d+$/.test(codigo)) return ["cardio", "cardios"];
+  if (codigo.startsWith("tecnicas_") || codigo === "mestre_tecnicas") return ["técnica", "técnicas"];
+  return null;
+}
+
+/** Resumo do que falta: número quando a medalha se mede em números; senão, o texto do que fazer. */
+export function quantoFalta(m: Pick<Medalha, "codigo" | "atual" | "alvo" | "falta" | "disponivel">): string | null {
+  if (m.alvo) {
+    const n = Math.max(0, m.alvo - (m.atual ?? 0));
+    const u = unidade(m.codigo);
+    const num = n.toLocaleString("pt-BR");
+    return `${n === 1 ? "falta" : "faltam"} ${num}${u ? ` ${n === 1 ? u[0] : u[1]}` : ""}`;
+  }
+  return m.falta;
+}
+
 export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial = null, comPrevia = false }: { medalhas: Medalha[]; nome: string; reconhecimentos?: Record<string, { mensagem: string; data: string }>; inicial?: string | null; /** Personal: botão para ver a comemoração como o aluno vê. */ comPrevia?: boolean }) {
   const [aberta, setAberta] = useState<string | null>(inicial);
   const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; ref?: string } | null>(null);
@@ -64,6 +86,8 @@ export function VitrineMedalhas({ medalhas, nome, reconhecimentos = {}, inicial 
               <MedalhaIcone selo={m.selo} conquistada={m.conquistada} atual={m.atual} alvo={m.alvo} nova={m.nova} lendaria={LENDARIAS.has(m.codigo)} />
               <span className={`text-[11px] font-semibold leading-tight ${m.conquistada ? "text-fg" : "text-fg-muted"}`}>{m.titulo}</span>
               <span className="text-[10px] text-fg-subtle">{m.conquistada && m.data ? fmtData.format(new Date(m.data)) : m.alvo ? `${m.atual ?? 0}/${m.alvo}` : m.disponivel ? "a conquistar" : "momento próprio"}</span>
+              {/* Quanto falta, visível sem precisar tocar (pedido do Montinho, 28/10/2026). */}
+              {!m.conquistada ? <span className="line-clamp-3 text-[10px] leading-snug text-fg-muted">{quantoFalta(m)}</span> : null}
             </button>
           </li>
         ))}

@@ -6,6 +6,7 @@
 // Nada aqui grava; a gravação continua em data/conquistas.
 // ============================================================================
 
+import { totalDeSeries } from "./volume-series";
 import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
@@ -112,10 +113,19 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "dois_folegos", selo: "2❤️‍🔥" },
   { codigo: "combo_completo", selo: "💪❤️" },
   { codigo: "dose_dupla", selo: "2💪" },
+  // Combo em sequência: dias seguidos com musculação + 20 min de cardio
+  { codigo: "combo_3", selo: "3d" },
+  { codigo: "combo_5", selo: "5d" },
+  { codigo: "combo_7", selo: "7d" },
+  { codigo: "combo_10", selo: "10d" },
+  { codigo: "combo_30", selo: "30d" },
+  // Volume total
+  { codigo: "series_500", selo: "500" },
+  { codigo: "series_1000", selo: "1k" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -135,6 +145,8 @@ export type ProgressoCardio = {
   seguidas?: number;
   /** Minutos desta semana × prescritos (Fôlego Extra / Dobro de Fôlego). */
   semanaMin?: { minutos: number; alvoMin: number } | null;
+  /** Dias seguidos com musculação + 20 min de cardio, até hoje (Combo em sequência). */
+  comboSeguidos?: number;
 };
 
 export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null }): Medalha[] {
@@ -300,6 +312,21 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Faça 2 cardios no mesmo dia, cada um com 10 minutos ou mais (ex.: um de manhã e outro à noite).", disponivel: true };
       case "combo_completo":
         return { atual: null, alvo: null, falta: "No mesmo dia, conclua um treino de musculação e faça 10 minutos ou mais de cardio.", disponivel: true };
+      case "combo_3":
+      case "combo_5":
+      case "combo_7":
+      case "combo_10":
+      case "combo_30": {
+        const n = Number(c.slice(6));
+        const atual = Math.min(e.cardio?.comboSeguidos ?? 0, n);
+        return { atual, alvo: n, falta: `Musculação e 20 minutos ou mais de cardio no mesmo dia, ${n} dias seguidos — você está em ${plural(atual, "dia", "dias")}.`, disponivel: true };
+      }
+      case "series_500":
+      case "series_1000": {
+        const n = c === "series_500" ? 500 : 1000;
+        const feitas = totalDeSeries(e.sessoes);
+        return { atual: Math.min(feitas, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitas), "série válida", "séries válidas")} — você já fez ${feitas.toLocaleString("pt-BR")}.`, disponivel: true };
+      }
       case "dose_dupla":
         return { atual: null, alvo: null, falta: "Conclua 2 treinos de musculação no mesmo dia (o extra e o treino livre com séries também contam). Só com a recuperação em dia.", disponivel: true };
       case "cardio_uma_hora":

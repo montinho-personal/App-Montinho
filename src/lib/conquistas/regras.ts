@@ -18,6 +18,8 @@ import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
 import { trofeusDoCardio, LIMITES_CARDIO, type CodigoCardio, type EntradaCardio } from "@/lib/cardio/regras";
 import { trofeusDoDiaDuplo, type CodigoDiaDuplo } from "./dia-duplo";
+import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-seguido";
+import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
@@ -99,6 +101,10 @@ export type CodigoConquista =
   | CodigoCardio
   // Dia em dobro: 2 cardios, musculação + cardio, 2 musculações no mesmo dia (src/lib/conquistas/dia-duplo.ts)
   | CodigoDiaDuplo
+  // Combo em sequência: dias seguidos com musculação e cardio (src/lib/conquistas/combo-seguido.ts)
+  | CodigoCombo
+  // Volume total: séries válidas acumuladas (src/lib/conquistas/volume-series.ts)
+  | CodigoSeries
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -158,6 +164,10 @@ export const CODIGOS_COMPARTILHAR: CodigoConquista[] = ["compartilhou_primeiro",
 export { CODIGOS_CARDIO } from "@/lib/cardio/regras";
 /** Dia em dobro (0107): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_DIA_DUPLO } from "./dia-duplo";
+/** Combo em sequência (0111): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_COMBO } from "./combo-seguido";
+/** Volume total (0111): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_SERIES } from "./volume-series";
 export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -257,6 +267,13 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   dois_folegos: { titulo: "Dois Fôlegos", criterio: `Fazer 2 cardios no mesmo dia, cada um com ${LIMITES_CARDIO.minutosMin} minutos ou mais.`, repete: false },
   combo_completo: { titulo: "Combo Completo", criterio: `Fazer musculação e cardio (${LIMITES_CARDIO.minutosMin} minutos ou mais) no mesmo dia.`, repete: false },
   dose_dupla: { titulo: "Dose Dupla", criterio: "Concluir 2 treinos de musculação no mesmo dia (treino extra e treino livre com séries também contam).", repete: false },
+  combo_3: { titulo: "Combo 3 Dias", criterio: `3 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
+  combo_5: { titulo: "Combo 5 Dias", criterio: `5 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
+  combo_7: { titulo: "Semana Combo", criterio: `7 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
+  combo_10: { titulo: "Combo 10 Dias", criterio: `10 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
+  combo_30: { titulo: "30 Dias de Combo", criterio: `30 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
+  series_500: { titulo: "500 Séries", criterio: "Somar 500 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
+  series_1000: { titulo: "1.000 Séries", criterio: "Somar 1.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
   cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
@@ -497,6 +514,8 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (da?.nato) out.push(nova("desafiante_nato", "1", da.nato, null, `${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos até o fim.`));
   if (e.cardio) for (const t of trofeusDoCardio(e.cardio, hoje)) out.push(nova(t.codigo, t.referencia, t.data, null, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDoDiaDuplo(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDoComboSeguido(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDeSeries(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

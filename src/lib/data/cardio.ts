@@ -19,6 +19,7 @@ import { listarCardiosStrava } from "@/lib/data/strava";
 import type { CardioPrescricao, CardioRegistro, IntensidadeCardio, ModalidadeCardio, ModalidadePrescricao } from "@/lib/supabase/types-extended";
 import type { TrainingSession } from "@/lib/supabase/types-sessoes";
 import type { ProgressoCardio } from "@/lib/conquistas/vitrine";
+import { diasCombo, sequenciaComboAtual } from "@/lib/conquistas/combo-seguido";
 
 type Demo = { prescricoes: CardioPrescricao[]; registros: CardioRegistro[]; semeado: boolean };
 function demo(): Demo {
@@ -333,6 +334,15 @@ export async function painelCardio(): Promise<LinhaPainelCardio[]> {
   return linhas.filter((x): x is LinhaPainelCardio => !!x).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
+/** Sessões dos últimos 40 dias (a sequência do Combo vai até 30). */
+async function sessoesParaCombo(alunoId: string): Promise<TrainingSession[]> {
+  const desde = new Date(Date.now() - 40 * 86_400_000).toISOString();
+  if (isDemoMode()) return demoStore().sessions.filter((s) => s.aluno_id === alunoId && s.iniciado_em >= desde);
+  const db = await getDb();
+  const { data } = await db.from("training_sessions").select("id, iniciado_em, status, modo, origem, conta_aderencia, series_planejadas, series_concluidas, duracao_seg").eq("aluno_id", alunoId).gte("iniciado_em", desde).limit(500);
+  return (data ?? []) as TrainingSession[];
+}
+
 /** Para o progresso dos troféus de cardio na sala de troféus. */
 export async function progressoCardio(alunoId: string): Promise<ProgressoCardio> {
   const [todas, feitos] = await Promise.all([listarPrescricoesCardio(alunoId, { todas: true }), cardiosFeitos(alunoId)]);
@@ -353,5 +363,8 @@ export async function progressoCardio(alunoId: string): Promise<ProgressoCardio>
       else if (!w.inicioPrescricao) break;
     }
   }
-  return { feitos: proximoMarco(feitos).feitos, temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin };
+  // Combo em sequência: precisa das sessões de musculação também.
+  const sessoes = await sessoesParaCombo(alunoId).catch(() => []);
+  const comboSeguidos = sequenciaComboAtual(diasCombo(sessoes, feitos), dataLocal(new Date()));
+  return { feitos: proximoMarco(feitos).feitos, temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin, comboSeguidos };
 }
