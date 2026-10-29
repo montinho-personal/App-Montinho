@@ -70,6 +70,8 @@ import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
+import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
+import { mobilidadeIndicada } from "@/lib/data/mobilidade-indicada";
 import { resumoRevisao } from "@/lib/desbloqueia/revisao";
 import { estadoDoDia, fraseDoDia } from "@/lib/inicio/dia";
 import { contaCarimbo } from "@/lib/conquistas/carimbos";
@@ -115,7 +117,7 @@ export default async function AlunoHomePage() {
   const codigosMedalha = new Set<string>(medalhas.map((m) => m.codigo));
   const recenteIso = somarDias(dataLocal(new Date()), -7);
   // Troféus que dá para ganhar hoje e nos próximos dias (treino, cardio, compartilhar, indicar, desafios…).
-  const [progressoCardioAluno, acoes] = await Promise.all([progressoCardio(alunoId).catch(() => null), acoesAlcance(sessao).catch(() => null)]);
+  const [progressoCardioAluno, acoes, mobIndicada] = await Promise.all([progressoCardio(alunoId).catch(() => null), acoesAlcance(sessao).catch(() => null), mobilidadeIndicada(alunoId).catch(() => null)]);
   const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje: dataLocal(new Date()), cardio: progressoCardioAluno, acoes, tecnicasFeitas: new Set(tecnicasFeitas(sessoes.map(sessaoParaConquista)).map((t) => t.familia)), treinos: plano.treinos.filter((t) => t.ativo).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
   const ganhas = medalhas.filter((m) => m.conquistada).length;
 
@@ -274,6 +276,7 @@ export default async function AlunoHomePage() {
         )
       )}
 
+      {mobIndicada ? <MobilidadeHoje dados={mobIndicada} hoje={hojeSP} trofeus={conquistas.map((c) => c.codigo as string)} compacto /> : null}
       <TrofeusHojeEProximos itens={aoAlcance} />
       {(() => {
         const r = resumoRevisao(album.progresso, new Date().toISOString(), new Set(album.itens.map((i) => i.conteudo.id)));

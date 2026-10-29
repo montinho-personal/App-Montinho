@@ -2264,3 +2264,46 @@ begin
 end $$;
 select test_logout();
 \echo 'T70 OK: desafios no perfil do ranking'
+
+-- T71 — 0119: mobilidade prescrita — só o personal grava; o aluno lê só a dele
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into mobilidade_prescricoes (aluno_id, protocolos, dias_semana) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', array['superiores'], 5);
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int;
+begin
+  select count(*) into n from mobilidade_prescricoes;
+  if n <> 1 then raise exception 'T71a: aluno lê a própria (%)', n; end if;
+  begin
+    insert into mobilidade_prescricoes (aluno_id, protocolos) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', array['inferiores']);
+    raise exception 'T71b: aluno gravou';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from mobilidade_prescricoes;
+  if n <> 0 then raise exception 'T71c: viu a de outra pessoa'; end if;
+end $$;
+select test_logout();
+\echo 'T71 OK: mobilidade prescrita'
+
+-- T72 — 0119: quem tem mobilidade indicada (prescrição manda; sem ela, a anamnese)
+do $$
+declare v text[];
+begin
+  v := public.mobilidade_indicada_protocolos('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  if v <> array['superiores'] then raise exception 'T72a: prescrição (%)', v; end if;
+  insert into anamnese (aluno_id, dores_atuais, aceita_termos) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Dor no joelho e na lombar', true)
+    on conflict (aluno_id) do update set dores_atuais = excluded.dores_atuais;
+  v := public.mobilidade_indicada_protocolos('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+  if v <> array['inferiores'] then raise exception 'T72b: anamnese (%)', v; end if;
+  update anamnese set dores_atuais = 'Sou muito encurtado' where aluno_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  v := public.mobilidade_indicada_protocolos('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+  if v <> array['superiores','inferiores'] then raise exception 'T72c: geral (%)', v; end if;
+end $$;
+\echo 'T72 OK: mobilidade indicada pela anamnese'

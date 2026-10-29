@@ -4,6 +4,8 @@ import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { listarMobilidade, pessoasParaEnviar } from "@/lib/data/mobilidade";
 import { EnviarMobilidade } from "@/components/mobilidade/EnviarMobilidade";
+import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
+import { mobilidadeIndicada } from "@/lib/data/mobilidade-indicada";
 import { listarConquistas } from "@/lib/data/conquistas";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { DESAFIO_7_DIAS, PROTOCOLOS, SLUGS_MOBILIDADE } from "@/lib/mobilidade/protocolos";
@@ -19,6 +21,7 @@ const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone
 export default async function MobilidadePage() {
   const sessao = await requireAlunoPage();
   const [sessoes, conquistas, pessoas] = await Promise.all([listarMobilidade(sessao.alunoId).catch(() => []), listarConquistas(sessao.alunoId).catch(() => []), sessao.comoPersonal ? pessoasParaEnviar(sessao.alunoId) : null]);
+  const indicada = await mobilidadeIndicada(sessao.alunoId).catch(() => null);
   const hoje = dataLocal(new Date());
   const feitas = validasEmOrdem(sessoes).reverse();
   const ganhos = new Set(conquistas.map((c) => c.codigo as string));
@@ -29,6 +32,7 @@ export default async function MobilidadePage() {
         <h1 className="text-2xl font-black">🧘 Mobilidade e alongamento</h1>
         <p className="mt-1 text-sm text-fg-muted">Dois protocolos de ~22 min para fazer junto com o vídeo do Montinho, em casa ou na academia.</p>
       </header>
+      {indicada ? <MobilidadeHoje dados={indicada} hoje={hoje} trofeus={conquistas.map((c) => c.codigo as string)} /> : null}
       {pessoas ? <EnviarMobilidade pessoas={pessoas} /> : null}
       <ul className="space-y-3">
         {SLUGS_MOBILIDADE.map((slug) => {

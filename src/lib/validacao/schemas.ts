@@ -907,6 +907,14 @@ export const triboMissaoAtivaSchema = z.object({ ativa: z.boolean() }).strict();
 
 // Mobilidade e alongamento (0116) ----------------------------------------------
 export const mobilidadeIniciarSchema = z.object({ protocolo: z.enum(["superiores", "inferiores"]), nota_antes: z.number().int().min(0).max(10).nullable().optional() }).strict();
+export const mobilidadePrescreverSchema = z
+  .object({
+    protocolos: z.array(z.enum(["superiores", "inferiores"])).max(2),
+    dias_semana: z.number().int().min(1).max(7),
+    motivo: z.string().trim().max(200).nullable().optional(),
+    ativo: z.boolean(),
+  })
+  .strict();
 export const mobilidadeConcluirSchema = z.object({ nota_depois: z.number().int().min(0).max(10).nullable().optional(), feitos: z.number().int().min(0).max(50).nullable().optional() }).strict();
 
 // Ranking: cutucar (0117) --------------------------------------------------------

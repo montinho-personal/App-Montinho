@@ -57,6 +57,8 @@ import { AcompanhamentoClient } from "./AcompanhamentoClient";
 import type { Anamnese } from "@/lib/supabase/types-extended";
 import type { Evolucao } from "@/lib/supabase/types";
 import { AplicarPadraoCard } from "@/components/prescricoes/AplicarPadraoCard";
+import { PrescreverMobilidade } from "@/components/mobilidade/PrescreverMobilidade";
+import { estadoParaPainel, mobilidadeDoAlunoPersonal } from "@/lib/data/mobilidade-indicada";
 import { exerciciosForaDoPadrao } from "@/lib/prescricoes/regras";
 import { paraTreinoInput } from "@/lib/prescricoes/converter";
 
@@ -94,6 +96,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
   const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio, cardiosStrava] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => []), listarCardiosStrava(aluno.id, 10).catch(() => [])]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
+  const mobAluno = await mobilidadeDoAlunoPersonal(aluno.id).catch(() => null);
   const cardioAluno = await cardioDoAluno(aluno.id, aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio)).catch(() => null);
   // Mesmos alertas do painel inicial, agora também na ficha (topo da aba Evolução).
   const seteDiasAtras = somarDias(hojeLocal, -6);
@@ -231,6 +234,8 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           </div>
         </CardBody>
       </Card>
+
+      {mobAluno ? <PrescreverMobilidade alunoId={aluno.id} nome={aluno.profile?.nome ?? ""} telefone={aluno.telefone ?? null} e={estadoParaPainel(mobAluno)} abertoInicial={mobAluno.m?.origem === "anamnese"} /> : null}
 
       {cardio.length ? (
         <Card>

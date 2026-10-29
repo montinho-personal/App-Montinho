@@ -3,6 +3,10 @@ import { CancelarTreino } from "@/components/treinos/CancelarTreino";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { requireAlunoPage } from "@/lib/auth/session";
+import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
+import { mobilidadeIndicada } from "@/lib/data/mobilidade-indicada";
+import { listarConquistas } from "@/lib/data/conquistas";
+import { dataLocal } from "@/lib/aderencia/calcular";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { LivreMetasCard } from "@/components/livre-metas/LivreMetasCard";
@@ -21,6 +25,7 @@ export const metadata = { title: "Treinar" };
 
 export default async function TreinarPage() {
   const sessao = await requireAlunoPage();
+  const [mobInd, conqMob] = await Promise.all([mobilidadeIndicada(sessao.alunoId).catch(() => null), listarConquistas(sessao.alunoId).catch(() => [])]);
   const [plano, emAndamento, sessoes, extra] = await Promise.all([getPlanoAtivo(sessao.alunoId), getSessaoEmAndamento(sessao.alunoId), listSessoes(sessao.alunoId, { limite: 60 }), contextoExtraGerado(sessao.alunoId).catch(() => null)]);
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
   const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
@@ -72,6 +77,7 @@ export default async function TreinarPage() {
         <span><span className="block font-bold">Montinho Cardio</span><span className="block text-xs text-fg-muted">Caminhada, esteira, bike… veja o prescrito e registre em segundos.</span></span>
       </Link>
 
+      {mobInd ? <MobilidadeHoje dados={mobInd} hoje={dataLocal(new Date())} trofeus={conqMob.map((c) => c.codigo as string)} compacto /> : null}
       <Link href="/aluno/mobilidade" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
         <span className="text-2xl" aria-hidden>🧘</span>
         <span><span className="block font-bold">Mobilidade e alongamento</span><span className="block text-xs text-fg-muted">Superiores e inferiores, ~22 min com o vídeo do Montinho. Vale troféu.</span></span>
