@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtrarParaCelebrar, mensagemWhatsConquista, ordenarParaCelebrar, resumoCelebrar, type ConquistaCelebrar } from "./celebrar";
+import { antigasParaDispensar, filtrarParaCelebrar, mensagemWhatsConquista, ordenarParaCelebrar, resumoCelebrar, type ConquistaCelebrar } from "./celebrar";
 
 const c = (id: string, p: Partial<ConquistaCelebrar> = {}): ConquistaCelebrar => ({ id, alunoId: "a1", codigo: "x", categoria: "constancia", titulo: "T", data: "2026-10-01T10:00:00Z", reconhecida: false, ...p });
 
@@ -18,7 +18,7 @@ describe("celebrar conquistas", () => {
   });
 
   it("conta conquistas, alunos e o que falta", () => {
-    expect(resumoCelebrar([c("1"), c("2", { alunoId: "a2", reconhecida: true }), c("3")])).toEqual({ total: 3, alunos: 2, celebradas: 1, falta: 2 });
+    expect(resumoCelebrar([c("1"), c("2", { alunoId: "a2", reconhecida: true }), c("3")])).toEqual({ total: 3, alunos: 2, celebradas: 1, dispensadas: 0, falta: 2 });
   });
 
   it("mensagem do WhatsApp usa o primeiro nome e o troféu", () => {
@@ -27,5 +27,24 @@ describe("celebrar conquistas", () => {
     expect(m).toContain("“Semana Espartana”");
     expect(m).not.toMatch(/\b(ele|ela|dele|dela)\b/i);
     expect(mensagemWhatsConquista("Rui", "Recorde no supino", "recorde")).toContain("recorde pessoal (Recorde no supino)");
+  });
+});
+
+describe("dispensar no Celebrar", () => {
+  const base = { alunoId: "a", codigo: "x", categoria: "pratica", titulo: "X" };
+  const l = [
+    { ...base, id: "1", data: "2026-10-01T10:00:00Z", reconhecida: false },
+    { ...base, id: "2", data: "2026-10-28T10:00:00Z", reconhecida: false },
+    { ...base, id: "3", data: "2026-10-02T10:00:00Z", reconhecida: false, dispensada: true },
+    { ...base, id: "4", data: "2026-10-03T10:00:00Z", reconhecida: true },
+  ];
+  it("dispensadas saem de Todas/Falta e têm filtro próprio", () => {
+    expect(filtrarParaCelebrar(l, { situacao: "todas" }).map((c) => c.id)).toEqual(["1", "2", "4"]);
+    expect(filtrarParaCelebrar(l, { situacao: "falta" }).map((c) => c.id)).toEqual(["1", "2"]);
+    expect(filtrarParaCelebrar(l, { situacao: "dispensadas" }).map((c) => c.id)).toEqual(["3"]);
+    expect(resumoCelebrar(l)).toMatchObject({ falta: 2, dispensadas: 1, celebradas: 1 });
+  });
+  it("antigas = falta celebrar há mais de 7 dias", () => {
+    expect(antigasParaDispensar(l, Date.parse("2026-10-29T12:00:00Z")).map((c) => c.id)).toEqual(["1"]);
   });
 });

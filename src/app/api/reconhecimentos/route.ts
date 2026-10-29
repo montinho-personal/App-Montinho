@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const privada = process.env.VAPID_PRIVATE_KEY;
   if (data.notificar !== false && publica && privada) {
     webpush.setVapidDetails(process.env.VAPID_SUBJECT || BRAND.url, publica, privada);
-    const corpo = JSON.stringify({ titulo: `${BRAND.name} deixou uma mensagem para você`, corpo: "Toque para ver o reconhecimento do seu personal.", url: "/aluno/conquistas", tag: `reconhecimento-${r.id}` });
+    const corpo = JSON.stringify({ titulo: `${BRAND.name} deixou uma mensagem para você`, corpo: "Toque para ver o reconhecimento do seu personal.", url: `/aluno/conquistas?recado=${r.id}#recado`, tag: `reconhecimento-${r.id}` });
     for (const i of await inscricoesPushDoAluno(data.aluno_id)) {
       try {
         await webpush.sendNotification({ endpoint: i.endpoint, keys: { p256dh: i.p256dh, auth: i.auth } }, corpo, { TTL: 24 * 3600, urgency: "normal" });

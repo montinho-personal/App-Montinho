@@ -9,12 +9,12 @@ import { useToast } from "@/components/ui/Toast";
 import type { MetricasChalala } from "@/lib/chalala/metricas";
 import { ROTULO_MODELO, FORMATOS, type ModeloId, type Formato } from "@/lib/chalala/card";
 import { CATEGORIA_EMOJI, type Categoria } from "@/lib/conquistas/conteudo";
-import { TIPOS_CELEBRAR, filtrarParaCelebrar, mensagemWhatsConquista, ordenarParaCelebrar, resumoCelebrar, type Situacao } from "@/lib/conquistas/celebrar";
+import { TIPOS_CELEBRAR, antigasParaDispensar, filtrarParaCelebrar, mensagemWhatsConquista, ordenarParaCelebrar, resumoCelebrar, type Situacao } from "@/lib/conquistas/celebrar";
 import { linkWhatsApp } from "@/lib/acesso/mensagem";
 
 const EditorCard = dynamic(() => import("@/components/chalala/EditorCard"), { ssr: false });
 
-type Conquista = { id: string; alunoId: string; aluno: string; telefone: string | null; codigo: string; categoria: string; titulo: string; descricao: string | null; data: string; reconhecida: boolean };
+type Conquista = { id: string; alunoId: string; aluno: string; telefone: string | null; codigo: string; categoria: string; titulo: string; descricao: string | null; data: string; reconhecida: boolean; dispensada?: boolean };
 type Resultados = { aderencia28: number | null; aderencia60: number | null; aderencia90: number | null; medalhas: number; retomadas: number; recordes: number };
 
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
@@ -25,6 +25,7 @@ const SITUACOES: Array<{ v: Situacao; l: string }> = [
   { v: "todas", l: "Todas" },
   { v: "falta", l: "🎯 Falta celebrar" },
   { v: "celebradas", l: "✓ Já celebradas" },
+  { v: "dispensadas", l: "✖ Dispensadas" },
 ];
 const chip = (ativo: boolean) =>
   `inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition-colors ${ativo ? "border-accent bg-accent-soft text-fg" : "border-border bg-card text-fg-muted hover:border-border-strong"}`;
@@ -52,6 +53,22 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   const visiveis = lista.slice(0, mostrar);
   const temFiltro = !!filtro || !!tipo || situacao !== "todas";
   const nomeAlvo = alunos.find((a) => a.id === alunoAlvo)?.nome;
+  const [agora] = useState(() => Date.now());
+  const antigas = useMemo(() => antigasParaDispensar(doAluno, agora), [doAluno, agora]);
+  const [dispensando, setDispensando] = useState<string | null>(null);
+
+  /** Dispensar: sai do “Falta celebrar” sem apagar o troféu do aluno (e sem mandar mensagem). */
+  async function dispensar(itens: Conquista[], desfazer = false) {
+    if (!itens.length) return;
+    if (itens.length > 1 && !window.confirm(`Dispensar ${itens.length} conquistas antigas? Elas saem do “Falta celebrar” (o troféu do aluno continua) e nenhuma mensagem é enviada.`)) return;
+    setDispensando(itens.length > 1 ? "lote" : itens[0].id);
+    const res = await fetch("/api/conquistas/dispensar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itens: itens.map((c) => ({ aluno_id: c.alunoId, conquista_id: c.id })), desfazer }) }).catch(() => null);
+    setDispensando(null);
+    const d = await res?.json().catch(() => ({}));
+    if (!res?.ok) return toast.error(d?.error ?? "Não foi possível dispensar.");
+    toast.success(desfazer ? "Voltou para a lista." : itens.length > 1 ? `${itens.length} conquistas dispensadas.` : "Dispensada. Ela não aparece mais no “Falta celebrar”.");
+    router.refresh();
+  }
 
   const rolarParaMensagem = () => requestAnimationFrame(() => cartaoMensagem.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
 
@@ -144,6 +161,14 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         <section className="min-w-0 space-y-3" aria-labelledby="recentes">
+          {antigas.length ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2">
+              <p className="text-xs text-fg-muted">🕰️ {antigas.length} {antigas.length === 1 ? "conquista" : "conquistas"} há mais de 7 dias sem celebrar. Mandar agora pode encher o aluno de mensagens.</p>
+              <button type="button" disabled={dispensando === "lote"} onClick={() => void dispensar(antigas)} className="min-h-11 rounded-lg border border-border px-3 text-sm font-semibold hover:border-accent disabled:opacity-50">
+                {dispensando === "lote" ? "Dispensando…" : `✖ Dispensar as antigas (${antigas.length})`}
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-baseline justify-between gap-2">
             <h2 id="recentes" className="text-xs font-bold uppercase tracking-wider text-fg-muted">
               Conquistas · {lista.length}
@@ -169,7 +194,9 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
                         <span aria-hidden>{emoji(c)}</span> {c.titulo}
                       </p>
                       {c.descricao ? <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{c.descricao}</p> : null}
-                      {c.reconhecida ? (
+                      {c.dispensada ? (
+                        <p className="mt-1 text-[11px] font-semibold text-fg-subtle">✖ Dispensada (o troféu do aluno continua)</p>
+                      ) : c.reconhecida ? (
                         <p className="mt-1 text-[11px] font-semibold text-success">✓ Você já celebrou esta conquista</p>
                       ) : (
                         <p className="mt-1 text-[11px] font-semibold text-warning">🎯 Falta celebrar</p>
@@ -188,6 +215,11 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
                         </a>
                       </div>
                       {!c.telefone ? <p className="mt-1 text-[11px] text-fg-subtle">Sem WhatsApp na ficha: o WhatsApp vai pedir o contato.</p> : null}
+                      {c.dispensada ? (
+                        <button type="button" disabled={dispensando === c.id} onClick={() => void dispensar([c], true)} className="mt-1 min-h-11 text-xs font-semibold text-accent">↩ Voltar para a lista</button>
+                      ) : !c.reconhecida ? (
+                        <button type="button" disabled={dispensando === c.id} onClick={() => void dispensar([c])} className="mt-1 min-h-11 text-xs text-fg-muted underline-offset-2 hover:underline">{dispensando === c.id ? "Dispensando…" : "✖ Dispensar (não celebrar esta)"}</button>
+                      ) : null}
                     </div>
                   </li>
                 );

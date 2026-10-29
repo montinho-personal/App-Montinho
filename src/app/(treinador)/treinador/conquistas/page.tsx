@@ -7,6 +7,7 @@ import { agregarChalalaTreino, agregarEventos } from "@/lib/chalala/metricas";
 import { getConfigChalala, metricasPush } from "@/lib/data/notificacoes";
 import { PainelChalalaCelular } from "./PainelChalalaCelular";
 import { CelebrarClient } from "./CelebrarClient";
+import { conquistasDispensadas } from "@/lib/data/celebrar";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { nomeDaConquista, CONTEUDO } from "@/lib/conquistas/conteudo";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
@@ -29,7 +30,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
   const desde = new Date(new Date().getTime() - dias * 86_400_000).toISOString();
   // Visitantes (Modo Visitante) não entram no "Celebrar": eles têm o painel próprio.
-  const [alunos, conquistasTodas, reconhecimentos, eventos, configCelular, push] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null)]);
+  const [alunos, conquistasTodas, reconhecimentos, eventos, configCelular, push, dispensadas] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null), conquistasDispensadas().catch(() => new Set<string>())]);
   const nomes = Object.fromEntries(alunos.map((a) => [a.id, a.profile?.nome ?? "Aluno"]));
   const telefones = Object.fromEntries(alunos.map((a) => [a.id, a.telefone ?? null]));
   const conquistas = conquistasTodas.filter((c) => c.aluno_id in nomes);
@@ -59,6 +60,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
           <li>🎉 Celebrar no app: escolha a conquista, escreva sua mensagem e envie. O aluno vê no app, identificada como escrita por você. Nada é enviado automaticamente.</li>
           <li>💬 Parabenizar no WhatsApp: abre a conversa com uma mensagem pronta, que você pode editar antes de mandar.</li>
           <li>“Falta celebrar” = conquistas que ainda não receberam mensagem sua no app. Elas aparecem primeiro.</li>
+          <li>✖ Dispensar: tira da lista sem mandar nada e sem apagar o troféu do aluno (bom para as antigas). Dá para voltar em “Dispensadas”.</li>
         </ul>
       </details>
       <CelebrarClient
@@ -67,7 +69,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
         alunoInicial={alunos.some((a) => a.id === alunoParam) ? alunoParam! : ""}
         mensagemInicial={(msg ?? "").slice(0, 600)}
         alunos={alunos.filter((a) => a.status !== "arquivado").map((a) => ({ id: a.id, nome: nomes[a.id] }))}
-        conquistas={conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", telefone: telefones[c.aluno_id] ?? null, codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id) }))}
+        conquistas={conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", telefone: telefones[c.aluno_id] ?? null, codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id), dispensada: dispensadas.has(c.id) }))}
         resultados={resultados}
         enviados={reconhecimentos.slice(0, 20).map((r) => ({ id: r.id, aluno: nomes[r.aluno_id] ?? "Aluno", mensagem: r.mensagem, data: r.created_at }))}
         metricas={agregarEventos(eventos)}

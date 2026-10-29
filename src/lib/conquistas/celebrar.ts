@@ -2,7 +2,7 @@
 // ordem (falta celebrar primeiro, depois as mais recentes), números do topo e
 // a mensagem pronta do WhatsApp (primeiro nome, sem pronome, com o troféu).
 
-export type ConquistaCelebrar = { id: string; alunoId: string; codigo: string; categoria: string; titulo: string; data: string; reconhecida: boolean };
+export type ConquistaCelebrar = { id: string; alunoId: string; codigo: string; categoria: string; titulo: string; data: string; reconhecida: boolean; dispensada?: boolean };
 
 /** Filtros por tipo de conquista (o personal vê o que importa celebrar). */
 export const TIPOS_CELEBRAR: Array<{ v: string; l: string; ok: (c: Pick<ConquistaCelebrar, "codigo" | "categoria">) => boolean }> = [
@@ -14,7 +14,7 @@ export const TIPOS_CELEBRAR: Array<{ v: string; l: string; ok: (c: Pick<Conquist
   { v: "recordes", l: "Recordes pessoais", ok: (c) => c.codigo === "recorde" },
 ];
 
-export type Situacao = "todas" | "falta" | "celebradas";
+export type Situacao = "todas" | "falta" | "celebradas" | "dispensadas";
 
 /** Falta celebrar primeiro; dentro de cada grupo, a mais recente primeiro. */
 export function ordenarParaCelebrar<T extends Pick<ConquistaCelebrar, "reconhecida" | "data">>(lista: T[]): T[] {
@@ -27,13 +27,22 @@ export function filtrarParaCelebrar<T extends ConquistaCelebrar>(lista: T[], f: 
     (c) =>
       (!f.alunoId || c.alunoId === f.alunoId) &&
       ok(c) &&
-      (!f.situacao || f.situacao === "todas" || (f.situacao === "falta" ? !c.reconhecida : c.reconhecida)),
+      (f.situacao === "dispensadas"
+        ? !!c.dispensada
+        : !c.dispensada && (!f.situacao || f.situacao === "todas" || (f.situacao === "falta" ? !c.reconhecida : c.reconhecida))),
   );
 }
 
-export function resumoCelebrar(lista: Array<Pick<ConquistaCelebrar, "alunoId" | "reconhecida">>) {
+export function resumoCelebrar(lista: Array<Pick<ConquistaCelebrar, "alunoId" | "reconhecida" | "dispensada">>) {
   const celebradas = lista.filter((c) => c.reconhecida).length;
-  return { total: lista.length, alunos: new Set(lista.map((c) => c.alunoId)).size, celebradas, falta: lista.length - celebradas };
+  const dispensadas = lista.filter((c) => c.dispensada && !c.reconhecida).length;
+  return { total: lista.length, alunos: new Set(lista.map((c) => c.alunoId)).size, celebradas, dispensadas, falta: lista.length - celebradas - dispensadas };
+}
+
+/** “Falta celebrar” com mais de `dias` dias: candidatas a dispensar de uma vez (não inundar o aluno de mensagens antigas). */
+export function antigasParaDispensar<T extends Pick<ConquistaCelebrar, "reconhecida" | "dispensada" | "data">>(lista: T[], agoraMs: number, dias = 7): T[] {
+  const limite = agoraMs - dias * 86_400_000;
+  return lista.filter((c) => !c.reconhecida && !c.dispensada && Date.parse(c.data) < limite);
 }
 
 export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
