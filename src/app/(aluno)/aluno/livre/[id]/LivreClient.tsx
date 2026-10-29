@@ -15,7 +15,7 @@ import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherEx
 import { lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
 import { EscolherTecnica, type EscolhaTecnica } from "@/components/livre/EscolherTecnica";
 import { SerieEmBlocos, type BlocoDigitado } from "@/app/(aluno)/aluno/treino/[treinoId]/SerieEmBlocos";
-import { blocosPlanejados, configEfetiva, registraEmBlocos, somaBlocos, type ConfigTecnica } from "@/lib/treino/tecnica-config";
+import { ajusteDeBlocos, blocosComQuantidade, blocosPlanejados, configEfetiva, registraEmBlocos, somaBlocos, type ConfigTecnica } from "@/lib/treino/tecnica-config";
 import { codigoBloco, configDasRespostas, infoTecnica, respostasPadrao, juntaExercicios, juntarBlocosAdjacentes, proximoDaRodada, resumoEscolha, seriesComTecnica } from "@/lib/treino/tecnica-aluno";
 import { gruposDoTreino, rotulosDosExercicios } from "@/lib/treino/blocos";
 import { COR_TECNICA } from "@/lib/volume/tecnicas";
@@ -397,7 +397,8 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                         valores={s.blocos ?? []}
                         cargaRef={e.series.find((x) => x.tipo === "valida" && x.carga)?.carga || null}
                         cargaPorBloco={t.tecnica === "dropset"}
-                        livre={t.tecnica === "rest_pause"}
+                        ajuste={ajusteDeBlocos(t.tecnica)}
+                        planejar={(q) => blocosComQuantidade(t.tecnica, t.config, null, q)}
                         alvoTotal={t.tecnica === "rest_pause" ? (configEfetiva(t.tecnica, t.config)?.repsAlvo ?? null) : null}
                         concluida={s.salva}
                         sincronizada={s.salva}
