@@ -68,7 +68,20 @@ describe("card para Stories", () => {
     const lay = layoutDescoberta(base[0], medir);
     expect(lay.selo.texto).toBe("MITO");
     expect(lay.linhas.every((l) => l.y < 1920 && l.x >= 0)).toBe(true);
+    expect(lay.selo.fundo).toBe("#e5484d");
     expect(fraseCurta(base[0]).endsWith(".")).toBe(true);
+  });
+
+  it("explicação completa em todas as descobertas: nada cortado e tudo dentro do card", () => {
+    for (const c of base) {
+      const lay = layoutDescoberta(c, medir);
+      const texto = lay.linhas.map((l) => l.texto).join(" ");
+      expect(texto.includes("…")).toBe(false);
+      // Todas as palavras da resposta e do “na prática” estão no card.
+      for (const p of `${c.rapida} ${c.pratica}`.split(/\s+/).filter(Boolean)) expect(texto).toContain(p);
+      expect(lay.linhas.every((l) => l.y <= 1920 - 40)).toBe(true);
+      expect(lay.linhas.some((l) => l.texto === "A RESPOSTA")).toBe(true);
+    }
   });
 });
 

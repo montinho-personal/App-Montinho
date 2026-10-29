@@ -16,3 +16,25 @@ export function enviarEvento(e: Evento): void {
     // sem rede: métrica é dispensável
   }
 }
+
+/**
+ * Envio de card (compartilhar/baixar): espera o servidor gravar e devolve os
+ * troféus de compartilhamento que acabaram de sair (para comemorar na hora).
+ * Sem rede ou erro: lista vazia — o troféu é comemorado depois, no Início.
+ */
+export async function enviarEventoComTrofeus(e: Evento): Promise<Array<{ id: string; codigo: string; titulo: string; descricao: string | null; conquistado_em: string; dados: Record<string, unknown> }>> {
+  try {
+    const r = await fetch("/api/chalala/eventos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) });
+    if (!r.ok) return [];
+    const j = (await r.json()) as { novas?: Array<{ id: string; codigo: string; titulo: string; descricao: string | null; conquistado_em: string; dados: Record<string, unknown> }> };
+    return j.novas ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Marca troféus como vistos (a comemoração não repete). */
+export function marcarVistas(ids: string[]): void {
+  if (!ids.length) return;
+  fetch("/api/conquistas/vistas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }).catch(() => undefined);
+}

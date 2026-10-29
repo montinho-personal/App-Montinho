@@ -31,7 +31,7 @@ import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
 import { getConfigExtra } from "@/lib/data/extras";
 import { estrategiaVigente } from "@/lib/data/estrategias";
 import { faseAtual, inicioDasFases } from "@/lib/estrategia/fases";
-import { dataLocal } from "@/lib/aderencia/calcular";
+import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 import { SuaEstrategiaCard } from "@/components/estrategia/SuaEstrategiaCard";
 import { listarHistoricoResumo } from "@/lib/data/historico";
 import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
@@ -101,6 +101,8 @@ export default async function AlunoHomePage() {
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null });
   const proximaMed = proximaMedalha(medalhas);
+  const codigosMedalha = new Set<string>(medalhas.map((m) => m.codigo));
+  const recenteIso = somarDias(dataLocal(new Date()), -7);
   // Troféus que dá para ganhar hoje e nos próximos dias (treino, cardio, compartilhar, indicar, desafios…).
   const [progressoCardioAluno, acoes] = await Promise.all([progressoCardio(alunoId).catch(() => null), acoesAlcance(sessao).catch(() => null)]);
   const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje: dataLocal(new Date()), cardio: progressoCardioAluno, acoes, tecnicasFeitas: new Set(tecnicasFeitas(sessoes.map(sessaoParaConquista)).map((t) => t.familia)), treinos: plano.treinos.filter((t) => t.ativo).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
@@ -133,7 +135,9 @@ export default async function AlunoHomePage() {
 
   return (
     <div className="space-y-5">
-      <CelebrarAtivadas conquistas={conquistas.filter((c) => CODIGOS_MANUAIS.includes(c.codigo) && !c.vista_em)} nome={primeiroNome} />
+      {/* Troféu que saiu fora de uma tela de comemoração (Strava, semana, ativado pelo personal…) e
+          ainda não foi visto: comemora aqui, uma vez só (até 6 por vez; o resto na próxima). */}
+      <CelebrarAtivadas conquistas={conquistas.filter((c) => !c.vista_em && (CODIGOS_MANUAIS.includes(c.codigo) || (codigosMedalha.has(c.codigo) && c.created_at >= recenteIso))).slice(0, 6)} nome={primeiroNome} />
       {/* Treinos guardados no celular para abrir sem internet na academia. */}
       <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento && emAndamento.treino_id ? [hrefDaSessao(emAndamento)] : [])]} />
       <SincronizarCardios />

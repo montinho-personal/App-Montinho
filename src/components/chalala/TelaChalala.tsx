@@ -94,7 +94,8 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
   const r = resumo;
   const duracao = r ? r.duracaoMin : base.duracaoMin;
   const conquista = r?.conquistas.find((c) => c.codigo !== "relatorio_mensal") ?? null;
-  const medalhasNovas = r ? r.conquistas.filter((c) => c.codigo !== "relatorio_mensal" && (presencial || !c.vista_em)) : [];
+  // Aula presencial: as deste treino (o aluno ainda vê de novo no app dele). App do aluno: só as novas, nunca repete.
+  const medalhasNovas = r ? (presencial ? r.conquistas.filter((c) => c.codigo !== "relatorio_mensal") : (r.comemorar ?? r.conquistas.filter((c) => c.codigo !== "relatorio_mensal" && !c.vista_em))) : [];
   function fecharCelebracao() {
     setCelebrar(false);
     // No app do aluno, marca como vistas (não repete). Na aula presencial, o

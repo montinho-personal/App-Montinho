@@ -7,9 +7,10 @@
 import { useEffect, useRef, useState } from "react";
 import { configPadrao, FORMATOS, FRASES, metricasDisponiveis, modelosDisponiveis, nomeArquivo, ROTULO_METRICA, ROTULO_MODELO, AJUSTE_FOTO_PADRAO, type ConfigCard, type DadosCard, type Formato, type Fundo, type ModeloId, type Variacao } from "@/lib/chalala/card";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
+import { CelebracaoMedalha, type ConquistaCelebravel } from "./CelebracaoMedalha";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import { carregarSvg, desenhar, paraBlob, prepararFoto, type Ativos } from "./desenhar";
-import { enviarEvento } from "./evento";
+import { enviarEvento, enviarEventoComTrofeus, marcarVistas } from "./evento";
 
 type Origem = "conclusao" | "historico" | "mensal" | "reconhecimento";
 
@@ -42,6 +43,8 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
   const [alt, setAlt] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; tipo: "ok" | "erro" } | null>(null);
+  // Troféu de compartilhar que saiu agora (Espalhando o Chalalá, Diário de Bordo…): comemora na hora.
+  const [trofeus, setTrofeus] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fotoRef = useRef<HTMLInputElement>(null);
   const dialogoRef = useRef<HTMLDivElement>(null);
@@ -161,8 +164,11 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     } catch {
       r = "erro";
     }
-    if (r === "baixado") ev({ tipo: "download", modelo: cfg.modelo, formato: cfg.formato, ...(refEvento ? { ref: refEvento } : {}) });
-    if (r === "enviado_ao_sistema") ev({ tipo: "compartilhar_nativo", modelo: cfg.modelo, formato: cfg.formato, ...(refEvento ? { ref: refEvento } : {}) });
+    if (r === "baixado" || r === "enviado_ao_sistema") {
+      // Envio de verdade: o servidor grava e devolve o troféu de compartilhar que acabou de sair.
+      const e = { tipo: r === "baixado" ? ("download" as const) : ("compartilhar_nativo" as const), modelo: cfg.modelo, formato: cfg.formato, origem, ...(refEvento ? { ref: refEvento } : {}) };
+      if (registrarEventos) void enviarEventoComTrofeus(e).then((novas) => novas.length && setTrofeus(novas as Array<ConquistaCelebravel & { id: string }>));
+    }
     if (r === "cancelado") ev({ tipo: "compartilhar_cancelado", modelo: cfg.modelo, formato: cfg.formato });
     setAviso({ texto: MENSAGEM_RESULTADO[r], tipo: r === "erro" ? "erro" : "ok" });
     setOcupado(false);
@@ -368,6 +374,16 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
           </div>
         </div>
       </div>
+      {trofeus.length ? (
+        <CelebracaoMedalha
+          conquistas={trofeus}
+          nome={nome}
+          onFechar={() => {
+            marcarVistas(trofeus.map((t) => t.id));
+            setTrofeus([]);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { statusStrava } from "@/lib/data/strava";
 import { marcosCompartilhar, progressoCompartilhar, type EventoCompartilhar, type MarcosCompartilhar } from "@/lib/conquistas/compartilhar";
 import { chamadaDaAcao, type AcaoTrofeu, type AcoesAlcance, type ChamadaTrofeu } from "@/lib/conquistas/ao-alcance";
 import { contaCarimbo } from "@/lib/conquistas/carimbos";
+import { juntarSemRepetir, paraComemorar } from "@/lib/conquistas/comemorar";
 import { diasDeCardioCombo } from "@/lib/conquistas/combo-seguido";
 import { LIMITES_CARDIO, proximoMarco } from "@/lib/cardio/regras";
 import { marcosDosDesafios } from "@/lib/data/desafios";
@@ -194,6 +195,12 @@ export type ResumoChalala = {
   destaques: string[];
   /** Relatório curto: completou tudo, volume vs anterior/média, recordes da vida. */
   relatorio: RelatorioConclusao;
+  /**
+   * O que comemorar ao abrir a tela do fim do treino: as conquistas deste treino
+   * e as que saíram desde o começo dele sem ligação com a sessão (cardio, semana,
+   * compartilhar…), só as ainda não vistas — nunca repete.
+   */
+  comemorar: ConquistaRow[];
   /** Montinho Desbloqueia: explicação ligada ao que aconteceu hoje (anexada pela rota). */
   descoberta?: { id: string; pergunta: string; chamada: string } | null;
 };
@@ -226,6 +233,7 @@ export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise
     metaCumprida: !!semana?.meta && pontosSemana >= semana.meta && classificarSessao(sc) !== "extra",
     metaCumpridaAgora: msg.metaCumpridaAgora,
     conquistas: daSessao,
+    comemorar: juntarSemRepetir(daSessao.filter((c) => !c.vista_em && c.codigo !== "relatorio_mensal"), paraComemorar(todas, s.iniciado_em)),
     recordes: daSessao.find((c) => c.codigo === "recorde")?.dados.recordes ?? [],
     retomada: daSessao.some((c) => c.codigo === "eu_voltei"),
     mensagem: msg.mensagem,

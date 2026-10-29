@@ -9,7 +9,8 @@ import { CARD_DESCOBERTA, layoutDescoberta } from "@/lib/desbloqueia/card";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import { carregarSvg, familiaFonte, medidorCanvas, paraBlob } from "@/components/chalala/desenhar";
-import { enviarEvento } from "@/components/chalala/evento";
+import { enviarEventoComTrofeus, marcarVistas } from "@/components/chalala/evento";
+import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
 
 function desenharCard(canvas: HTMLCanvasElement, c: ConteudoConhecimento, logo: HTMLImageElement | null) {
   const { w, h } = CARD_DESCOBERTA;
@@ -35,13 +36,15 @@ function desenharCard(canvas: HTMLCanvasElement, c: ConteudoConhecimento, logo: 
     ctx.fillText(l.texto, l.x, l.y);
   }
   const s = lay.selo;
-  ctx.fillStyle = lay.cor;
+  ctx.fillStyle = s.fundo;
   ctx.beginPath();
-  ctx.roundRect(s.x, s.y, s.w, s.h, 48);
+  ctx.roundRect(s.x, s.y, s.w, s.h, 52);
   ctx.fill();
-  ctx.font = `800 52px ${familia}`;
-  ctx.fillStyle = "#0a0a0a";
-  ctx.fillText(s.texto, s.x + s.w / 2, s.y + 66);
+  ctx.font = `800 ${s.tamanho}px ${familia}`;
+  ctx.fillStyle = s.corTexto;
+  ctx.textBaseline = "middle";
+  ctx.fillText(s.texto, s.x + s.w / 2, s.y + s.h / 2 + 2);
+  ctx.textBaseline = "alphabetic";
 }
 
 export function CardDescoberta({ conteudo, onFechar }: { conteudo: ConteudoConhecimento; onFechar: () => void }) {
@@ -49,6 +52,7 @@ export function CardDescoberta({ conteudo, onFechar }: { conteudo: ConteudoConhe
   const [logo, setLogo] = useState<HTMLImageElement | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [trofeus, setTrofeus] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
 
   useEffect(() => {
     let vivo = true;
@@ -82,7 +86,7 @@ export function CardDescoberta({ conteudo, onFechar }: { conteudo: ConteudoConhe
     } catch {
       r = "erro";
     }
-    if (r === "enviado_ao_sistema" || r === "baixado") enviarEvento({ tipo: "descoberta_compartilhada", modelo: conteudo.id, formato: "stories" });
+    if (r === "enviado_ao_sistema" || r === "baixado") void enviarEventoComTrofeus({ tipo: "descoberta_compartilhada", modelo: conteudo.id, formato: "stories" }).then((novas) => novas.length && setTrofeus(novas as Array<ConquistaCelebravel & { id: string }>));
     setAviso(MENSAGEM_RESULTADO[r]);
     setOcupado(false);
   }
@@ -95,11 +99,20 @@ export function CardDescoberta({ conteudo, onFechar }: { conteudo: ConteudoConhe
           <button type="button" onClick={onFechar} aria-label="Fechar" className="alvo text-fg-muted hover:text-fg">✕</button>
         </div>
         <canvas ref={ref} className="mx-auto block h-auto w-full max-w-[300px] rounded-xl border border-border" aria-label={`Prévia: ${conteudo.pergunta} — ${conteudo.veredito}`} />
-        <p className="text-xs text-fg-muted">O card mostra só a pergunta, a resposta e uma frase curta — nenhum dado seu.</p>
+        <p className="text-xs text-fg-muted">O card mostra a pergunta, se é mito ou verdade e a explicação completa — nenhum dado seu.</p>
         <ChamadaTrofeu acao="descoberta" />
         <Button variant="gold" className="w-full" onClick={compartilhar} loading={ocupado}>Compartilhar</Button>
         {aviso ? <p role="status" className="text-sm text-fg-muted">{aviso}</p> : null}
       </div>
+      {trofeus.length ? (
+        <CelebracaoMedalha
+          conquistas={trofeus}
+          onFechar={() => {
+            marcarVistas(trofeus.map((t) => t.id));
+            setTrofeus([]);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

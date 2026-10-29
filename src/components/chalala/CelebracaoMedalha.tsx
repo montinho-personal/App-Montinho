@@ -11,7 +11,7 @@ import { cardDaMedalha } from "@/lib/conquistas/compartilhavel";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import type { ConquistaRow } from "@/lib/data/conquistas";
 import { gerarImagemMedalha } from "./cardMedalha";
-import { enviarEvento } from "./evento";
+import { enviarEventoComTrofeus, marcarVistas } from "./evento";
 import { LENDARIAS } from "@/lib/conquistas/regras";
 
 const CORES = ["#e3cd8a", "#ba9e50", "#4ade80", "#f3e6bd", "#ffffff", "#f59e0b"];
@@ -36,7 +36,10 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
   const [aberta, setAberta] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
-  const atual = conquistas[i];
+  // Troféus de compartilhar que saem ao compartilhar esta medalha entram na fila.
+  const [extras, setExtras] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
+  const lista: ConquistaCelebravel[] = useMemo(() => [...conquistas, ...extras.filter((x) => !conquistas.some((c) => c.codigo === x.codigo))], [conquistas, extras]);
+  const atual = lista[i];
   // Confete com posições fixas por medalha (sem Math.random no render).
   const lendaria = !!atual && LENDARIAS.has(atual.codigo);
   const confete = useMemo(
@@ -57,7 +60,11 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
     } catch {
       r = "erro";
     }
-    enviarEvento({ tipo: r === "baixado" ? "download" : r === "cancelado" ? "compartilhar_cancelado" : "compartilhar_nativo", modelo: atual.codigo, formato: "stories", origem: "medalha" });
+    const evento = { tipo: r === "baixado" ? "download" : r === "cancelado" ? "compartilhar_cancelado" : "compartilhar_nativo", modelo: atual.codigo, formato: "stories", origem: "medalha" } as const;
+    if (!previa) {
+      const novos = await enviarEventoComTrofeus(evento);
+      if (novos.length) setExtras((x) => [...x, ...(novos as Array<ConquistaCelebravel & { id: string }>).filter((n) => !x.some((y) => y.id === n.id))]);
+    }
     if (r !== "enviado_ao_sistema") setAviso(MENSAGEM_RESULTADO[r]);
     setEnviando(false);
   }
@@ -73,10 +80,13 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
 
   function proxima() {
     setAviso(null);
-    if (i + 1 < conquistas.length) {
+    if (i + 1 < lista.length) {
       setI(i + 1);
       setAberta(false);
-    } else onFechar();
+    } else {
+      if (!previa) marcarVistas(extras.map((x) => x.id));
+      onFechar();
+    }
   }
 
   return createPortal(
@@ -94,7 +104,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
         {/* eslint-disable-next-line @next/next/no-img-element -- logo SVG oficial */}
         <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-4 h-auto w-[150px]" />
         {previa ? <p className="mb-3 inline-block rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-accent">👁 Pré-visualização · assim o aluno vê</p> : null}
-        {conquistas.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">Medalha {i + 1} de {conquistas.length}</p> : null}
+        {lista.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">Medalha {i + 1} de {lista.length}</p> : null}
         {!aberta ? (
           <button type="button" onClick={abrir} className="mx-auto flex flex-col items-center gap-4 rounded-3xl p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" aria-label="Abrir a medalha">
             {lendaria ? (
@@ -129,7 +139,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
             {BRAND.contact.instagram ? <p className="text-xs text-fg-muted">No Story, marque @{BRAND.contact.instagram}: ele reposta.</p> : null}
             {aviso ? <p className="text-xs text-fg-muted">{aviso}</p> : null}
             <button type="button" onClick={proxima} className="touch w-full rounded-xl border border-border px-5 py-3 font-semibold text-fg">
-              {i + 1 < conquistas.length ? "Próxima medalha →" : "Chalalá! Continuar"}
+              {i + 1 < lista.length ? "Próxima medalha →" : "Chalalá! Continuar"}
             </button>
           </div>
         )}
