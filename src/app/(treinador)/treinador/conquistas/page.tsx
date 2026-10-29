@@ -31,6 +31,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
   // Visitantes (Modo Visitante) não entram no "Celebrar": eles têm o painel próprio.
   const [alunos, conquistasTodas, reconhecimentos, eventos, configCelular, push] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null)]);
   const nomes = Object.fromEntries(alunos.map((a) => [a.id, a.profile?.nome ?? "Aluno"]));
+  const telefones = Object.fromEntries(alunos.map((a) => [a.id, a.telefone ?? null]));
   const conquistas = conquistasTodas.filter((c) => c.aluno_id in nomes);
   const ativos = alunos.filter((a) => a.status === "ativo");
   const ader = ativos.length ? await aderenciaDeTodos(ativos) : {};
@@ -49,20 +50,37 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
       <header>
         <p className="text-xs font-bold uppercase tracking-wider text-accent">Reconhecimento</p>
         <h1 className="text-2xl font-bold">Celebrar conquistas</h1>
-        <p className="mt-1 text-sm text-fg-muted">Conquistas registradas pelos alunos nos últimos {dias} dias. Escolha uma, escreva sua mensagem e envie: o aluno vê no app, identificada como escrita por você. Nada é enviado automaticamente.</p>
+        <p className="mt-1 text-sm text-fg-muted">Quem ganhou troféu nos últimos {dias} dias — e um toque para celebrar.</p>
       </header>
+      <details className="rounded-xl border border-border bg-card px-4 py-3 text-xs text-fg-muted">
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-fg">ℹ️ Como funciona</summary>
+        <ul className="mt-2 list-disc space-y-1 pl-4">
+          <li>As conquistas vêm dos registros reais dos alunos (visitantes têm o painel próprio).</li>
+          <li>🎉 Celebrar no app: escolha a conquista, escreva sua mensagem e envie. O aluno vê no app, identificada como escrita por você. Nada é enviado automaticamente.</li>
+          <li>💬 Parabenizar no WhatsApp: abre a conversa com uma mensagem pronta, que você pode editar antes de mandar.</li>
+          <li>“Falta celebrar” = conquistas que ainda não receberam mensagem sua no app. Elas aparecem primeiro.</li>
+        </ul>
+      </details>
       <CelebrarClient
         dias={dias}
         autor={sessao.nome.split(" ")[0]}
         alunoInicial={alunos.some((a) => a.id === alunoParam) ? alunoParam! : ""}
         mensagemInicial={(msg ?? "").slice(0, 600)}
         alunos={alunos.filter((a) => a.status !== "arquivado").map((a) => ({ id: a.id, nome: nomes[a.id] }))}
-        conquistas={conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id) }))}
+        conquistas={conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", telefone: telefones[c.aluno_id] ?? null, codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id) }))}
         resultados={resultados}
         enviados={reconhecimentos.slice(0, 20).map((r) => ({ id: r.id, aluno: nomes[r.aluno_id] ?? "Aluno", mensagem: r.mensagem, data: r.created_at }))}
         metricas={agregarEventos(eventos)}
       />
-      <PainelChalalaCelular dias={dias} config={configCelular ?? { chalala_ativo: false, limite_diario: 2, intervalo_minimo_min: 60 }} push={push} treino={agregarChalalaTreino(eventos)} />
+      <details className="group rounded-xl border border-border bg-card text-sm">
+        <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 px-4 py-3 font-semibold">
+          <span>📱 Chalalá no celular {configCelular ? <span className={`ml-1 text-xs font-semibold ${configCelular.chalala_ativo ? "text-success" : "text-fg-subtle"}`}>· {configCelular.chalala_ativo ? "ligado" : "desligado"}</span> : null}</span>
+          <span className="shrink-0 text-fg-subtle transition-transform group-open:rotate-180" aria-hidden>▾</span>
+        </summary>
+        <div className="border-t border-border">
+          <PainelChalalaCelular dias={dias} config={configCelular ?? { chalala_ativo: false, limite_diario: 2, intervalo_minimo_min: 60 }} push={push} treino={agregarChalalaTreino(eventos)} />
+        </div>
+      </details>
     </div>
   );
 }

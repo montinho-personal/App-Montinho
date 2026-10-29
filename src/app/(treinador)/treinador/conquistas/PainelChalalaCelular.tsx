@@ -5,7 +5,6 @@
 // e nenhum número aqui prova que uma mensagem causou um treino.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardBody } from "@/components/ui/Card";
 import { LembretePush, type EstadoPush } from "@/components/aluno/LembretePush";
 import { useToast } from "@/components/ui/Toast";
 import type { ConfigChalala, MetricasPush } from "@/lib/data/notificacoes";
@@ -46,17 +45,15 @@ export function PainelChalalaCelular({ dias, config, push, treino }: { dias: num
 
   const num = (v: number | string) => <dd className="font-mono text-lg font-bold">{v}</dd>;
   const caixa = (r: string, v: number | string) => (
-    <div key={r} className="rounded-lg bg-surface p-2">
-      <dt className="text-[11px] text-fg-subtle">{r}</dt>
+    <div key={r} className="min-w-0 rounded-lg bg-surface p-2">
+      <dt className="text-[11px] leading-tight text-fg-subtle">{r}</dt>
       {num(v)}
     </div>
   );
 
   return (
-    <Card>
-      <CardBody className="space-y-4 text-sm">
+    <div className="space-y-4 px-4 py-4 text-sm">
         <div>
-          <h2 className="font-bold">Chalalá no celular</h2>
           <p className="text-xs text-fg-muted">Bom Dia (dias úteis, no horário que o aluno escolhe) e recado de recuperação 1h30 depois do treino. Só recebe quem ativou as notificações.</p>
         </div>
 
@@ -64,17 +61,17 @@ export function PainelChalalaCelular({ dias, config, push, treino }: { dias: num
           <p className="rounded-lg border border-warning/50 bg-warning/10 p-3 text-xs">Falta aplicar a atualização do banco (migração 0036) para ligar os envios. O restante do app funciona normalmente.</p>
         ) : (
           <div className="space-y-2 rounded-lg border border-border p-3">
-            <label className="flex items-center justify-between gap-3">
+            <label className="flex min-h-11 items-center justify-between gap-3">
               <span>
                 <span className="block font-semibold">{c.chalala_ativo ? "Envios ligados" : "Envios desligados"}</span>
                 <span className="block text-xs text-fg-muted">{c.chalala_ativo ? "Os alunos com notificações ativas recebem conforme as preferências deles." : "Nada é enviado aos alunos. Teste primeiro no seu celular."}</span>
               </span>
-              <input type="checkbox" role="switch" checked={c.chalala_ativo} onChange={(e) => void salvar({ ...c, chalala_ativo: e.target.checked })} className="h-5 w-9 accent-[var(--color-accent)]" aria-label="Ligar envios do Chalalá" />
+              <input type="checkbox" role="switch" checked={c.chalala_ativo} onChange={(e) => void salvar({ ...c, chalala_ativo: e.target.checked })} className="h-5 w-9 shrink-0 accent-[var(--color-accent)]" aria-label="Ligar envios do Chalalá" />
             </label>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <label className="space-y-1">
+              <label className="block min-w-0 space-y-1">
                 <span className="text-fg-muted">Máximo por aluno a cada 24 h</span>
-                <select value={c.limite_diario} onChange={(e) => void salvar({ ...c, limite_diario: Number(e.target.value) })} className="w-full rounded-md border border-border bg-bg px-2 py-1.5">
+                <select value={c.limite_diario} onChange={(e) => void salvar({ ...c, limite_diario: Number(e.target.value) })} className="h-11 w-full rounded-md border border-border bg-bg px-2 text-base">
                   {[1, 2, 3].map((n) => (
                     <option key={n} value={n}>
                       {n} {n === 1 ? "recado" : "recados"}
@@ -82,9 +79,9 @@ export function PainelChalalaCelular({ dias, config, push, treino }: { dias: num
                   ))}
                 </select>
               </label>
-              <label className="space-y-1">
+              <label className="block min-w-0 space-y-1">
                 <span className="text-fg-muted">Intervalo mínimo entre recados</span>
-                <select value={c.intervalo_minimo_min} onChange={(e) => void salvar({ ...c, intervalo_minimo_min: Number(e.target.value) })} className="w-full rounded-md border border-border bg-bg px-2 py-1.5">
+                <select value={c.intervalo_minimo_min} onChange={(e) => void salvar({ ...c, intervalo_minimo_min: Number(e.target.value) })} className="h-11 w-full rounded-md border border-border bg-bg px-2 text-base">
                   {[30, 60, 120].map((n) => (
                     <option key={n} value={n}>
                       {n >= 60 ? `${n / 60} h` : `${n} min`}
@@ -99,7 +96,7 @@ export function PainelChalalaCelular({ dias, config, push, treino }: { dias: num
         <div className="space-y-2">
           <LembretePush completo treinador onEstado={setEstado} />
           {estado === "ligado" ? (
-            <button type="button" onClick={() => void testar()} disabled={testando} className="touch rounded-lg border border-accent/60 px-3 py-2 text-xs font-bold text-accent disabled:opacity-60">
+            <button type="button" onClick={() => void testar()} disabled={testando} className="touch w-full rounded-lg border border-accent/60 px-3 py-2 text-sm font-bold sm:w-auto text-accent disabled:opacity-60">
               {testando ? "Enviando…" : "Mandar um teste para o meu celular"}
             </button>
           ) : null}
@@ -144,7 +141,6 @@ export function PainelChalalaCelular({ dias, config, push, treino }: { dias: num
           </p>
         ) : null}
         <p className="text-[11px] text-fg-subtle">Tocar numa notificação não mede motivação, e treinar depois dela não prova que ela foi a causa. Os números servem para acompanhar uso e ajustar a frequência. Nenhum texto do aluno é registrado.</p>
-      </CardBody>
-    </Card>
+    </div>
   );
 }
