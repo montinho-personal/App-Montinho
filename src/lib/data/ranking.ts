@@ -6,6 +6,7 @@ import { desempateDaAderencia, type LinhaRanking } from "@/lib/ranking/trofeus";
 import type { ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { sincronizarConquistas } from "@/lib/data/conquistas";
 import { contaCarimbo } from "@/lib/conquistas/carimbos";
+import type { PerfilRanking } from "@/lib/ranking/perfil";
 
 // Demonstração: pessoas fictícias (Aline e Diego empatam em troféus: o desempate decide).
 const DEMO: Array<{ id: string; nome: string; trofeus: number; semana: number | null; carimbos?: number; seguidas: number; pct4: number | null; visitante?: boolean }> = [
@@ -30,14 +31,16 @@ export async function getRanking(meuAlunoId: string | null): Promise<LinhaRankin
     return ordenados.map((d, i) => {
       const posicao = ordenados.findIndex((o) => cmp(o, d) === 0) + 1;
       const eu = d.id === meuAlunoId;
-      return { posicao, nome: d.nome, trofeus: d.trofeus, eu, visitante: !!d.visitante, aderenciaSemana: eu || meuAlunoId === null ? d.semana : null, mesmoTotalAcima: i > 0 && ordenados[i - 1].trofeus === d.trofeus };
+      return { posicao, nome: d.nome, trofeus: d.trofeus, eu, visitante: !!d.visitante, aderenciaSemana: eu || meuAlunoId === null ? d.semana : null, mesmoTotalAcima: i > 0 && ordenados[i - 1].trofeus === d.trofeus, ref: d.id };
     });
   }
   const db = await getDb();
-  const { data, error } = await db.rpc("ranking_trofeus_v2");
+  // v3 (0117) = mesma conta + o id para abrir o perfil; sem ela, a v2 de sempre.
+  let { data, error } = await db.rpc("ranking_trofeus_v3");
+  if (error) ({ data, error } = await db.rpc("ranking_trofeus_v2"));
   if (error) throw new Error(error.message);
-  type Linha = { posicao: number; nome: string; trofeus: number; eu: boolean; visitante: boolean; aderencia_semana?: number | null; mesmo_total_acima?: boolean };
-  return ((data ?? []) as Linha[]).map((r) => ({ posicao: Number(r.posicao), nome: r.nome, trofeus: Number(r.trofeus), eu: !!r.eu, visitante: !!r.visitante, aderenciaSemana: r.aderencia_semana ?? null, mesmoTotalAcima: !!r.mesmo_total_acima }));
+  type Linha = { posicao: number; nome: string; trofeus: number; eu: boolean; visitante: boolean; aderencia_semana?: number | null; mesmo_total_acima?: boolean; ref?: string | null };
+  return ((data ?? []) as Linha[]).map((r) => ({ posicao: Number(r.posicao), nome: r.nome, trofeus: Number(r.trofeus), eu: !!r.eu, visitante: !!r.visitante, aderenciaSemana: r.aderencia_semana ?? null, mesmoTotalAcima: !!r.mesmo_total_acima, ref: r.ref ?? null }));
 }
 
 /** Carimbos (treinos concluídos desde sempre) de cada aluno. */
@@ -96,4 +99,54 @@ export async function atualizarTrofeus(alunos: Array<{ id: string; data_inicio: 
   for (let i = 0; i < ativos.length; i += 4) {
     await Promise.all(ativos.slice(i, i + 4).map((a) => sincronizarConquistas(a).catch(() => null)));
   }
+}
+
+// ---------------------------------------------------------------------------
+// Perfil do ranking e cutucar (0117)
+// ---------------------------------------------------------------------------
+const demoCutucadas: Array<{ de: string; para: string; emoji: string; dia: string }> = [];
+
+export async function perfilRanking(ref: string, meuAlunoId: string | null): Promise<PerfilRanking | null> {
+  if (isDemoMode()) {
+    const d = DEMO.find((x) => x.id === ref);
+    if (!d) return null;
+    const { ORDEM } = await import("@/lib/conquistas/vitrine");
+    const hoje = Date.now();
+    const trofeus = ORDEM.slice(0, d.trofeus).map((o, i) => ({ codigo: o.codigo as string, em: new Date(hoje - (d.trofeus - i) * 2 * 86_400_000).toISOString() }));
+    const dia = new Date().toISOString().slice(0, 10);
+    return { ref: d.id, nome: d.nome, eu: d.id === meuAlunoId, visitante: !!d.visitante, trofeus, desempate: { pct_semana: d.semana, carimbos: d.carimbos ?? d.trofeus * 2, semanas_seguidas: d.seguidas, pct_4sem: d.pct4 }, cutuquei_hoje: demoCutucadas.some((c) => c.de === meuAlunoId && c.para === ref && c.dia === dia) };
+  }
+  const db = await getDb();
+  const { data, error } = await db.rpc("ranking_perfil", { p_aluno: ref });
+  if (error || !data) return null;
+  return data as PerfilRanking;
+}
+
+/** true = cutucou agora; false = já tinha cutucado hoje (ou não pode). */
+export async function cutucarNoRanking(meuAlunoId: string, ref: string, emoji: string): Promise<boolean> {
+  if (isDemoMode()) {
+    const dia = new Date().toISOString().slice(0, 10);
+    if (ref === meuAlunoId || demoCutucadas.some((c) => c.de === meuAlunoId && c.para === ref && c.dia === dia)) return false;
+    demoCutucadas.push({ de: meuAlunoId, para: ref, emoji, dia });
+    return true;
+  }
+  const db = await getDb();
+  const { data, error } = await db.rpc("cutucar_no_ranking", { p_para: ref, p_emoji: emoji });
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
+export type CutucadaRanking = { id: string; de: string; de_ref: string; emoji: string; created_at: string };
+
+export async function minhasCutucadasRanking(meuAlunoId: string): Promise<CutucadaRanking[]> {
+  if (isDemoMode()) return meuAlunoId === "aline" ? [{ id: "demo-cut", de: "Diego P.", de_ref: "x-diego", emoji: "😈", created_at: new Date().toISOString() }] : [];
+  const db = await getDb();
+  const { data } = await db.rpc("minhas_cutucadas_ranking");
+  return (data ?? []) as CutucadaRanking[];
+}
+
+export async function verCutucadasRanking(): Promise<void> {
+  if (isDemoMode()) return;
+  const db = await getDb();
+  await db.rpc("ver_cutucadas_ranking");
 }

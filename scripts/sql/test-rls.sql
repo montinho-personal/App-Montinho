@@ -2180,3 +2180,45 @@ end $$;
 select test_logout();
 delete from conquistas_aluno where codigo = 'mobilidade_7_inferiores';
 \echo 'T67 OK: mobilidade'
+
+-- T68 — 0117: perfil do ranking, cutucar 1×/dia, privacidade
+select test_logout();
+update alunos set ranking_visivel = true, status = 'ativo' where id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v jsonb;
+begin
+  perform * from public.ranking_trofeus_v3();
+  v := public.ranking_perfil('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+  if v is null or v ? 'desempate' = false then raise exception 'T68a: perfil de quem está no ranking'; end if;
+  if not public.cutucar_no_ranking('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '🔥') then raise exception 'T68b: cutucar'; end if;
+  if public.cutucar_no_ranking('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '💪') then raise exception 'T68c: 2ª cutucada no mesmo dia'; end if;
+  if public.cutucar_no_ranking('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '🔥') then raise exception 'T68d: cutucar a si mesmo'; end if;
+  if not (public.ranking_perfil('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')->>'cutuquei_hoje')::boolean then raise exception 'T68e: já cutucou hoje'; end if;
+  begin
+    insert into ranking_cutucadas (de_aluno_id, para_aluno_id, emoji) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '👀');
+    raise exception 'T68f: aluno gravou cutucada direto';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select test_logout();
+update alunos set ranking_visivel = false where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  if public.ranking_perfil('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') is not null then raise exception 'T68g: viu perfil de quem saiu do ranking'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from public.minhas_cutucadas_ranking();
+  if n <> 1 then raise exception 'T68h: B recebeu a cutucada (%)', n; end if;
+  perform public.ver_cutucadas_ranking();
+  select count(*) into n from public.minhas_cutucadas_ranking();
+  if n <> 0 then raise exception 'T68i: marcar vista'; end if;
+end $$;
+select test_logout();
+update alunos set ranking_visivel = true where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+\echo 'T68 OK: perfil do ranking e cutucar'

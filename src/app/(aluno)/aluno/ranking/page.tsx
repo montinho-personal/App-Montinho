@@ -7,6 +7,8 @@ import { atualizarTrofeus, getRanking } from "@/lib/data/ranking";
 import { getAluno } from "@/lib/db";
 import { fraseDoRanking, podioDaPosicao, PODIO, semMinhaLinha } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
+import { CutucadasRecebidas } from "@/components/ranking/CutucadasRecebidas";
+import { minhasCutucadasRanking } from "@/lib/data/ranking";
 import { CompartilharRanking } from "@/components/ranking/CompartilharRanking";
 import { NarrativaRanking } from "@/components/ranking/NarrativaRanking";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
@@ -26,7 +28,7 @@ export default async function RankingPage() {
   const incentivo = await incentivoIndicacao(sessao).catch(() => null);
   const aluno = await getAluno(sessao.alunoId);
   if (aluno) await atualizarTrofeus([aluno]);
-  const [todas, desafios] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => [])]);
+  const [todas, desafios, cutucadas] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => []), sessao.comoPersonal ? Promise.resolve([]) : minhasCutucadasRanking(sessao.alunoId).catch(() => [])]);
   // Personal no “Meu treino”: vê o ranking como aluno, mas fica fora dele.
   const linhas = sessao.comoPersonal ? semMinhaLinha(todas) : todas;
   const eu = linhas.find((l) => l.eu);
@@ -34,6 +36,7 @@ export default async function RankingPage() {
   return (
     <div className="space-y-5">
       <NarrativaRanking />
+      <CutucadasRecebidas cutucadas={cutucadas} />
       <EntradaDesafios desafios={desafios} />
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
         {sessao.comoPersonal ? <p className="text-xs text-fg-muted">🏋️ Você está como aluno pelo “Meu treino”: seus troféus contam para você, mas você fica fora do ranking.</p> : null}

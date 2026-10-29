@@ -13,6 +13,8 @@ export type LinhaRanking = {
   aderenciaSemana?: number | null;
   /** Mesmo número de troféus de quem está logo acima (ficou atrás no desempate). */
   mesmoTotalAcima?: boolean;
+  /** Id interno para abrir o perfil (0117); sem a v3 no banco, fica vazio e o nome não abre. */
+  ref?: string | null;
 };
 
 /**

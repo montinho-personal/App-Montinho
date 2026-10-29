@@ -1,6 +1,11 @@
+"use client";
+
 // Ranking de troféus: pódio (ouro, prata, bronze) + lista. Mostra só o nome
 // que a função do banco devolve (primeiro nome e inicial para os alunos).
+// Tocar no nome abre o perfil (troféus, desempate, desafiar e cutucar — 0117).
+import { useState } from "react";
 import Link from "next/link";
+import { PerfilRankingSheet } from "./PerfilRankingSheet";
 import { DESEMPATE, PODIO, podioDaPosicao, type LinhaRanking } from "@/lib/ranking/trofeus";
 
 const ALTURA: Record<number, string> = { 1: "h-28", 2: "h-20", 3: "h-14" };
@@ -27,6 +32,7 @@ function Degrau({ posicao, linhas }: { posicao: 1 | 2 | 3; linhas: LinhaRanking[
 }
 
 export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false }: { linhas: LinhaRanking[]; nomeCompleto?: boolean; desafiar?: boolean }) {
+  const [aberto, setAberto] = useState<LinhaRanking | null>(null);
   if (!linhas.length) return <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Ainda ninguém tem troféus. O primeiro a conquistar já sai na frente!</p>;
   return (
     <div className="space-y-4">
@@ -41,10 +47,18 @@ export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false 
           return (
             <li key={`${l.posicao}-${l.nome}-${i}`} aria-current={l.eu ? "true" : undefined} className={`flex items-center gap-3 px-3 py-2.5 ${l.eu ? "bg-accent/10" : ""}`}>
               <span className="w-12 shrink-0 text-center font-mono text-sm font-bold" style={p ? { color: PODIO[p].cor } : undefined}>{p ? <>{PODIO[p].emoji} {l.posicao}º</> : `${l.posicao}º`}</span>
-              <span className={`min-w-0 flex-1 truncate text-sm ${l.eu ? "font-bold text-accent" : "font-semibold"}`}>
-                {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
-                {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
-              </span>
+              {l.ref ? (
+                <button type="button" onClick={() => setAberto(l)} className={`alvo min-w-0 flex-1 truncate text-left text-sm underline-offset-4 hover:underline ${l.eu ? "font-bold text-accent" : "font-semibold"}`} aria-label={`Ver perfil de ${l.eu ? "você" : l.nome}: troféus e desempate`}>
+                  {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
+                  {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
+                  <span aria-hidden className="ml-1 text-[10px] text-fg-subtle">›</span>
+                </button>
+              ) : (
+                <span className={`min-w-0 flex-1 truncate text-sm ${l.eu ? "font-bold text-accent" : "font-semibold"}`}>
+                  {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
+                  {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
+                </span>
+              )}
               {desafiar && !l.eu ? (
                 <Link href={`/aluno/desafios/novo?com=${encodeURIComponent(l.nome)}`} className="alvo shrink-0 rounded-full border border-accent/60 px-2.5 py-1 text-xs font-bold text-accent" aria-label={`Desafiar ${l.nome}`}>
                   ⚔️ Desafiar
@@ -58,7 +72,9 @@ export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false 
           );
         })}
       </ol>
+      {linhas.some((l) => l.ref) ? <p className="text-[11px] text-fg-subtle">👆 Toque no nome para ver os troféus, o desempate{desafiar ? ", desafiar e cutucar" : ""}.</p> : null}
       <p className="text-[11px] leading-relaxed text-fg-subtle">{DESEMPATE}</p>
+      {aberto?.ref ? <PerfilRankingSheet refPessoa={aberto.ref} nome={aberto.nome} posicao={aberto.posicao} interagir={desafiar} onFechar={() => setAberto(null)} /> : null}
     </div>
   );
 }
