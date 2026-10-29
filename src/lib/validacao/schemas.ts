@@ -329,7 +329,7 @@ export const encerrarPausaSchema = z.object({ pausa_id: z.string().min(1).max(64
 // Meu Chalalá de hoje — eventos (sem conteúdo privado) e reconhecimento do personal
 /** Chamada do troféu no lugar da ação (ao-alcance.ts#chamadaDaAcao). */
 export const chamadaTrofeuSchema = z.object({
-  acao: z.enum(["card_treino", "card_medalha", "descoberta", "indicar", "desafio", "strava", "relatorio", "medidas", "cardio"]),
+  acao: z.enum(["card_treino", "card_medalha", "descoberta", "ranking", "indicar", "desafio", "strava", "relatorio", "medidas", "cardio"]),
   ref: z.string().regex(/^[a-z0-9_]{1,60}$/).optional(),
 });
 

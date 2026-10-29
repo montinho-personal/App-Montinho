@@ -330,7 +330,7 @@ function trofeusDasAcoes(medalhas: Medalha[], a: AcoesAlcance): ItemAlcance[] {
 // Chamada no lugar da ação (pedido do Montinho, 28/10/2026): ao abrir a tela
 // de compartilhar, indicar, criar desafio… “se fizer isso agora, ganha o troféu”.
 // ---------------------------------------------------------------------------
-export type AcaoTrofeu = "card_treino" | "card_medalha" | "descoberta" | "indicar" | "desafio" | "strava" | "relatorio" | "medidas" | "cardio";
+export type AcaoTrofeu = "card_treino" | "card_medalha" | "descoberta" | "ranking" | "indicar" | "desafio" | "strava" | "relatorio" | "medidas" | "cardio";
 export type ChamadaTrofeu = { codigo: CodigoConquista; titulo: string; texto: string; /** true = ganha com esta ação; false = conta para o troféu. */ agora: boolean };
 
 /** `abertas`: troféus ainda não ganhos (código → nome). `ref`: o troféu do card da medalha. */
@@ -360,6 +360,8 @@ export function chamadaDaAcao(acao: AcaoTrofeu, abertas: ReadonlyMap<CodigoConqu
     }
     case "descoberta":
       return ganha("compartilhou_primeiro", "Compartilhe esta descoberta e ganhe o troféu");
+    case "ranking":
+      return ganha("compartilhou_primeiro", "Compartilhe sua posição no ranking e ganhe o troféu");
     case "indicar":
       return conta("trouxe_amigo", "Quando um amigo se cadastrar pelo seu link, você ganha o troféu");
     case "desafio":

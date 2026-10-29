@@ -7,6 +7,7 @@ import { atualizarTrofeus, getRanking } from "@/lib/data/ranking";
 import { getAluno } from "@/lib/db";
 import { fraseDoRanking, podioDaPosicao, PODIO, semMinhaLinha } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
+import { CompartilharRanking } from "@/components/ranking/CompartilharRanking";
 import { NarrativaRanking } from "@/components/ranking/NarrativaRanking";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
 import { listarMeusDesafios } from "@/lib/data/desafios";
@@ -36,6 +37,7 @@ export default async function RankingPage() {
           <Link href="/aluno/conquistas/todas" className="alvo font-semibold text-accent underline-offset-2 hover:underline">Ver os troféus que faltam →</Link>
           <Link href="/aluno/conquistas/todas?aba=desafiadores" className="alvo font-semibold text-accent underline-offset-2 hover:underline">🔥 Mais desafiadores</Link>
         </div>
+        {eu && !sessao.comoPersonal ? <div className="mt-3"><CompartilharRanking dados={{ posicao: eu.posicao, trofeus: eu.trofeus, total: linhas.length, nome: (aluno?.profile?.nome ?? sessao.nome).split(" ")[0] }} /></div> : null}
       </div>
       <RankingTrofeus linhas={linhas} desafiar />
       {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
