@@ -8,6 +8,7 @@ import { proximaDescoberta } from "@/lib/desbloqueia/motor";
 import { getAluno } from "@/lib/db";
 import { FONTES, linkDaFonte } from "@/lib/desbloqueia/fontes";
 import { DescobertaClient } from "./DescobertaClient";
+import { revisaoDevida } from "@/lib/desbloqueia/revisao";
 
 export const metadata = { title: "Descoberta" };
 
@@ -23,6 +24,8 @@ export default async function DescobertaPage({ params, searchParams }: { params:
   const album = aluno ? await albumParaAluno(aluno) : null;
   const prog = album?.progresso.find((p) => p.conteudo_id === id) ?? null;
   const daBiblioteca = o === "biblioteca";
+  // Errou essa e chegou a hora de revisar: o quiz aparece de novo, sem a resposta anterior.
+  const revisao = !!prog && revisaoDevida(prog, new Date().toISOString());
   const proxima = album ? proximaDescoberta(album.itens, id, daBiblioteca) : null;
   const fontes = conteudo.fontes.map((f) => FONTES[f]).filter(Boolean).map((f) => ({ id: f.id, citacao: f.citacao, link: linkDaFonte(f), nota: f.nota ?? null }));
   return (
@@ -32,7 +35,8 @@ export default async function DescobertaPage({ params, searchParams }: { params:
         key={id}
         conteudo={conteudo}
         fontes={fontes}
-        respostaAnterior={conteudo.reformuladaEm && (prog?.explorado_em ?? "") < conteudo.reformuladaEm ? null : (prog?.resposta ?? null)}
+        revisao={revisao}
+        respostaAnterior={revisao ? null : conteudo.reformuladaEm && (prog?.explorado_em ?? "") < conteudo.reformuladaEm ? null : (prog?.resposta ?? null)}
         salvoInicial={!!prog?.salvo}
         proximaHref={proxima ? `/aluno/descobertas/${proxima.id}${proxima.biblioteca ? "?o=biblioteca" : ""}` : null}
         origem={(ORIGENS as readonly string[]).includes(o ?? "") ? (o as (typeof ORIGENS)[number]) : null}

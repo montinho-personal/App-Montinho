@@ -69,6 +69,8 @@ import { TrofeusHojeEProximos } from "@/components/conquistas/TrofeusAoAlcance";
 import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
+import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
+import { resumoRevisao } from "@/lib/desbloqueia/revisao";
 import { estadoDoDia, fraseDoDia } from "@/lib/inicio/dia";
 import { contaCarimbo } from "@/lib/conquistas/carimbos";
 import { carimbosDe } from "@/lib/data/ranking";
@@ -256,6 +258,10 @@ export default async function AlunoHomePage() {
       )}
 
       <TrofeusHojeEProximos itens={aoAlcance} />
+      {(() => {
+        const r = resumoRevisao(album.progresso, new Date().toISOString(), new Set(album.itens.map((i) => i.conteudo.id)));
+        return <RevisarConhecimento agora={r.agora} primeira={r.primeira} aprendidas={r.aprendidas} compacto />;
+      })()}
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !emAndamento && !proximo && podeRegistrar("visitante", sessao.acessoFim ?? null) ? <ComeceAquiSite tela="inicio" /> : null}
       {cardio?.prescricoes.length ? (

@@ -20,9 +20,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!conteudo || conteudo.status !== "publicado") return NextResponse.json({ error: "Conteúdo não encontrado" }, { status: 404 });
   try {
     const t0 = new Date(Date.now() - 60_000).toISOString();
-    const resultado = await explorarConteudo(sessao.alunoId, conteudo, { resposta: data.resposta ?? null, origem: data.origem ?? null });
+    const resultado = await explorarConteudo(sessao.alunoId, conteudo, { resposta: data.resposta ?? null, origem: data.origem ?? null, revisao: data.revisao ?? false });
     let novas: unknown[] = [];
-    if (data.resposta && resultado?.acertou) {
+    if (data.resposta && resultado?.acertou && !data.revisao) {
       const aluno = await getAluno(sessao.alunoId).catch(() => null);
       const sync = aluno ? await sincronizarConquistas(aluno).catch(() => null) : null;
       novas = sync ? paraComemorar(sync.todas, t0, (c) => (CODIGOS_QUIZ as string[]).includes(c)) : [];

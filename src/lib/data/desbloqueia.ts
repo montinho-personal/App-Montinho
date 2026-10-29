@@ -1,6 +1,6 @@
 // ============================================================================
 // Montinho Desbloqueia — leitura e gravação (sempre pelo cliente com RLS).
-// • A base de 30 descobertas vive no código; o banco guarda edições do
+// • A base de 50 descobertas vive no código; o banco guarda edições do
 //   personal (vence a base) e conteúdos novos.
 // • O aluno grava só o próprio progresso; “acertou” é calculado aqui, no
 //   servidor, a partir da resposta (nunca vem do cliente).
@@ -8,6 +8,7 @@
 //   o aluno vê a base publicada e o progresso fica para depois.
 // ============================================================================
 
+import { revisaoDevida } from "@/lib/desbloqueia/revisao";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { BASE_DESCOBERTAS } from "@/lib/desbloqueia/base";
@@ -98,10 +99,18 @@ async function upsertProgresso(alunoId: string, conteudoId: string, mudar: (atua
  * O aluno abriu/respondeu. O primeiro “explorado” fica (a data não muda);
  * a resposta registrada é a primeira — refazer o quiz não muda o histórico.
  */
-export async function explorarConteudo(alunoId: string, conteudo: ConteudoConhecimento, e: { resposta?: string | null; origem?: ProgressoAluno["origem"] }) {
+export async function explorarConteudo(alunoId: string, conteudo: ConteudoConhecimento, e: { resposta?: string | null; origem?: ProgressoAluno["origem"]; revisao?: boolean }) {
   const resposta = e.resposta && conteudo.alternativas.some((a) => a.id === e.resposta) ? e.resposta : null;
   const resultado = resposta ? responder(conteudo, resposta) : null;
   const agora = new Date().toISOString();
+  // Revisão (0114): a pergunta errada voltou e a pessoa respondeu de novo. A 1ª resposta fica.
+  if (e.revisao && resposta) {
+    const atual = (await progressoDoAluno(alunoId)).find((p) => p.conteudo_id === conteudo.id) ?? null;
+    if (atual && revisaoDevida(atual, agora)) {
+      await upsertProgresso(alunoId, conteudo.id, (a) => ({ revisoes: (a?.revisoes ?? 0) + 1, revisao_em: agora, revisao_resposta: resposta, revisao_acertou: resultado!.acertou }));
+      return resultado;
+    }
+  }
   await upsertProgresso(alunoId, conteudo.id, (atual) => ({
     origem: atual?.origem ?? e.origem ?? "biblioteca",
     explorado_em: atual?.explorado_em ?? agora,

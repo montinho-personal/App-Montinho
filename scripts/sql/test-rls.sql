@@ -2031,3 +2031,24 @@ begin
   delete from conquistas_aluno where codigo in ('trofeus_compartilhados_50', 'cardio_madrugada');
 end $$;
 \echo 'T64 OK: início do cardio no app e troféus novos'
+
+-- T65 — 0114: revisão do quiz — o aluno grava a revisão só na própria linha
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  insert into conhecimento_aluno (aluno_id, conteudo_id, explorado_em, resposta, acertou) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd31', now() - interval '4 days', 'verdade', false)
+    on conflict (aluno_id, conteudo_id) do update set resposta = excluded.resposta, acertou = excluded.acertou;
+  update conhecimento_aluno set revisoes = revisoes + 1, revisao_em = now(), revisao_resposta = 'mito', revisao_acertou = true where conteudo_id = 'd31';
+  if (select revisoes from conhecimento_aluno where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and conteudo_id = 'd31') <> 1 then raise exception 'T65a: revisão não gravou'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  update conhecimento_aluno set revisao_acertou = false where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and conteudo_id = 'd31';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'T65b: outro aluno mexeu na revisão'; end if;
+end $$;
+select test_logout();
+\echo 'T65 OK: revisão do quiz'

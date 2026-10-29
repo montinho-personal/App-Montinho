@@ -25,7 +25,7 @@ async function postar(url: string, body: unknown): Promise<{ novas?: Array<Conqu
   }
 }
 
-export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoInicial, origem, proximaHref }: { conteudo: ConteudoConhecimento; fontes: Fonte[]; respostaAnterior: string | null; salvoInicial: boolean; origem: Origem | null; proximaHref: string | null }) {
+export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoInicial, origem, proximaHref, revisao = false }: { conteudo: ConteudoConhecimento; fontes: Fonte[]; respostaAnterior: string | null; salvoInicial: boolean; origem: Origem | null; proximaHref: string | null; /** A pessoa errou essa e chegou a hora de revisar (0114). */ revisao?: boolean }) {
   const [resposta, setResposta] = useState<string | null>(respostaAnterior);
   const [nivel, setNivel] = useState<1 | 2 | 3>(1);
   const [salvo, setSalvo] = useState(salvoInicial);
@@ -43,7 +43,7 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
   function explorar(alternativa: string | null) {
     if (registrado.current && !alternativa) return;
     registrado.current = true;
-    void postar(`/api/conhecimento/${c.id}/explorar`, { resposta: alternativa, origem }).then((d) => d?.novas?.length && setTrofeus(d.novas));
+    void postar(`/api/conhecimento/${c.id}/explorar`, { resposta: alternativa, origem, ...(revisao && alternativa ? { revisao: true } : {}) }).then((d) => d?.novas?.length && setTrofeus(d.novas));
   }
   function escolher(id: string) {
     setResposta(id);
@@ -76,6 +76,11 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
         <h1 className="text-xl font-bold leading-tight">{c.pergunta}</h1>
       </header>
 
+      {revisao ? (
+        <p className="rounded-xl border border-accent/50 bg-accent-soft/40 px-3 py-2 text-sm" role="note">
+          🔁 <strong>Hora de revisar!</strong> Da última vez essa não saiu. Bora tentar de novo?
+        </p>
+      ) : null}
       {!revelado ? (
         <section className="space-y-3" aria-label="Quiz">
           <p className="text-sm text-fg-muted">O que você acha?</p>
@@ -92,7 +97,8 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
         <>
           {resultado ? (
             <section aria-live="polite" className={`space-y-1 rounded-xl border p-4 ${resultado.acertou ? "border-success/50 bg-success/10" : "border-accent/40 bg-accent-soft/40"}`}>
-              <p className="text-base font-bold">{resultado.titulo}</p>
+              <p className="text-base font-bold">{revisao && resultado.acertou ? "Aprendida! ✅ Essa você não erra mais." : revisao ? "Ainda não foi dessa vez — ela volta daqui a alguns dias." : resultado.titulo}</p>
+              {!resultado.acertou && !revisao ? <p className="text-xs text-fg-muted">🔁 Essa pergunta volta daqui a 3 dias para você revisar.</p> : null}
               <p className="text-sm">Resposta: <strong>{resultado.veredito}</strong>{!resultado.acertou ? ` · você respondeu “${c.alternativas.find((a) => a.id === resposta)?.texto}”` : ""}</p>
             </section>
           ) : (

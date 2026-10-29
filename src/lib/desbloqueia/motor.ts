@@ -24,7 +24,9 @@ export const REGRAS_DESBLOQUEIA = {
 };
 
 export type LinhaConteudoDb = { id: string; dados: Partial<ConteudoConhecimento>; status: ConteudoConhecimento["status"]; versao: number; ordem: number | null };
-export type ProgressoAluno = { conteudo_id: string; origem: string | null; disponivel_em: string | null; explorado_em: string | null; resposta: string | null; acertou: boolean | null; salvo: boolean | null };
+export type ProgressoAluno = { conteudo_id: string; origem: string | null; disponivel_em: string | null; explorado_em: string | null; resposta: string | null; acertou: boolean | null; salvo: boolean | null; updated_at?: string | null;
+  /** Revisão da pergunta errada (0114): a 1ª resposta acima continua sendo o histórico. */
+  revisoes?: number | null; revisao_em?: string | null; revisao_resposta?: string | null; revisao_acertou?: boolean | null };
 
 /** Base do código + edições do personal (o banco vence) + conteúdos novos do personal. */
 export function mesclarConteudos(base: ConteudoConhecimento[], linhas: LinhaConteudoDb[]): ConteudoConhecimento[] {

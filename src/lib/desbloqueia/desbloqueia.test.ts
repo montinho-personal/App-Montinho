@@ -9,11 +9,11 @@ const fontes = Object.keys(FONTES);
 const base = BASE_DESCOBERTAS;
 const c = (id: string) => base.find((x) => x.id === id)!;
 
-describe("conteúdo editorial (30 descobertas)", () => {
-  it("1. 30 conteúdos com IDs estáveis, números 1–30 e 5 categorias", () => {
-    expect(base).toHaveLength(30);
-    expect(base.map((x) => x.id)).toEqual(Array.from({ length: 30 }, (_, i) => `d${String(i + 1).padStart(2, "0")}`));
-    expect(base.map((x) => x.numero)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1));
+describe("conteúdo editorial (50 descobertas)", () => {
+  it("1. 50 conteúdos com IDs estáveis, números 1–50 e 5 categorias", () => {
+    expect(base).toHaveLength(50);
+    expect(base.map((x) => x.id)).toEqual(Array.from({ length: 50 }, (_, i) => `d${String(i + 1).padStart(2, "0")}`));
+    expect(base.map((x) => x.numero)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1));
     expect(new Set(base.map((x) => x.categoria))).toEqual(new Set(CATEGORIAS.map((k) => k.id)));
   });
   it("consistência: alternativas, resposta correta entre elas, níveis 1/2/3 e só fontes verificadas", () => {
@@ -65,7 +65,7 @@ describe("álbum e desbloqueios", () => {
     expect(a.filter((i) => i.estado === "disponivel")).toHaveLength(1);
     const b = albumDoAluno({ conteudos: base, progresso: [], conquistas: [], inicio, hoje: "2026-09-29" });
     expect(b.filter((i) => i.origem === "periodo")).toHaveLength(3);
-    expect(progressoAlbum(b)).toEqual({ explorados: 0, total: 30 });
+    expect(progressoAlbum(b)).toEqual({ explorados: 0, total: 50 });
   });
   it("7. desbloqueio por medalha, com a data da conquista; 9. explorado sem acertar", () => {
     const a = albumDoAluno({ conteudos: base, progresso: [{ conteudo_id: "d02", origem: "conquista", disponivel_em: null, explorado_em: "2026-09-05T12:00:00Z", resposta: "verdade", acertou: false, salvo: false }], conquistas: [{ codigo: "primeiro_treino", conquistado_em: "2026-09-02T13:00:00Z" }, { codigo: "recorde", conquistado_em: "2026-09-04T13:00:00Z" }], inicio, hoje: "2026-09-06" });
@@ -99,6 +99,6 @@ describe("álbum e desbloqueios", () => {
   it("15. orientações essenciais nunca dependem de medalha (biblioteca livre: todo publicado é legível)", () => {
     const essenciais = base.filter((x) => x.essencial);
     expect(essenciais.length).toBeGreaterThanOrEqual(4);
-    expect(publicados(base).length).toBe(30);
+    expect(publicados(base).length).toBe(50);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-// Álbum (30 espaços numerados) e biblioteca livre (busca, categoria, salvos).
+// Álbum (espaços numerados) e biblioteca livre (busca, categoria, salvos).
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORIAS } from "@/lib/desbloqueia/tipos";

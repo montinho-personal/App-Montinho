@@ -481,7 +481,7 @@ export const salvarEstrategiaSchema = z.object({
 // Montinho Desbloqueia
 const idConhecimento = z.string().regex(/^[a-z0-9][a-z0-9-]{1,19}$/, "Identificador inválido");
 export const explorarConhecimentoSchema = z
-  .object({ resposta: z.string().max(20).nullable().optional(), origem: z.enum(["conquista", "periodo", "personal", "contexto", "biblioteca"]).nullable().optional() })
+  .object({ resposta: z.string().max(20).nullable().optional(), origem: z.enum(["conquista", "periodo", "personal", "contexto", "biblioteca"]).nullable().optional(), revisao: z.boolean().optional() })
   .strict();
 export const salvarConhecimentoSchema = z.object({ salvo: z.boolean() }).strict();
 export const recomendarConhecimentoSchema = z.object({ aluno_id: z.string().min(1).max(64) }).strict();
