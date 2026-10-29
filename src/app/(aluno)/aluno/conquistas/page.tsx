@@ -26,6 +26,7 @@ import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
 import { tecnicasFeitas } from "@/lib/conquistas/regras";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { AbasConquistas } from "@/components/tribo/AbasConquistas";
+import { RecadoFechavel } from "@/components/conquistas/RecadoFechavel";
 
 export const metadata = { title: "Conquistas" };
 
@@ -55,8 +56,8 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
   // Celebração só uma vez (vista_em) e só para conquistas recentes (14 dias).
   const recente = `${somarDias(hoje, -14)}T00:00:00Z`;
   const novas = conquistas.filter((c) => unicas.has(c.codigo) && c.vista_em === null && c.conquistado_em >= recente).map((c) => ({ id: c.id, codigo: c.codigo }));
-  // Mensagem do personal em destaque: a do aviso no celular (?recado=) ou a mais recente dos últimos 14 dias.
-  const recado = reconhecimentos.find((r) => r.id === recadoId) ?? (reconhecimentos[0] && reconhecimentos[0].created_at >= recente ? reconhecimentos[0] : null);
+  // Mensagem do personal em destaque: a do aviso no celular (?recado=) ou a mais recente dos últimos 7 dias (a pessoa pode fechar).
+  const recado = reconhecimentos.find((r) => r.id === recadoId) ?? (reconhecimentos[0] && reconhecimentos[0].created_at >= `${somarDias(hoje, -7)}T00:00:00Z` ? reconhecimentos[0] : null);
   const cumpridas = aderencia.sequencia.semanasCumpridas + (aderencia.semanaAtual?.status === "cumprida" ? 1 : 0);
   return (
     <div className="space-y-5">
@@ -67,8 +68,9 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
         </Link>
       </div>
       {recado ? (
+        <RecadoFechavel id={recado.id} forcar={recado.id === recadoId}>
         <section id="recado" aria-label="Mensagem do seu personal" className="scroll-mt-24 space-y-2 rounded-2xl border border-accent/60 bg-grain-strong p-4">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-accent">💌 Mensagem do {BRAND.name}</p>
+          <p className="pr-20 text-[11px] font-bold uppercase tracking-wider text-accent">💌 Mensagem do {BRAND.name}</p>
           {recado.conquista_id && titulos.get(recado.conquista_id) ? <p className="text-sm font-bold">🏆 {nomeDaConquista(codigoPorId.get(recado.conquista_id) ?? "", titulos.get(recado.conquista_id))}</p> : null}
           <p className="text-[17px] leading-relaxed">“{recado.mensagem}”</p>
           <p className="text-[11px] text-fg-subtle">Escrita pelo seu personal · {new Date(recado.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
@@ -76,6 +78,7 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
             <a href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(`Valeu pela mensagem no app, ${BRAND.name}! 💪 Bora pro próximo troféu!`)}`} target="_blank" rel="noopener noreferrer" className="touch flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-bold text-bg">💬 Responder no WhatsApp</a>
           ) : null}
         </section>
+        </RecadoFechavel>
       ) : null}
       {/* Central de Conquistas: Minhas (esta tela) · Tribo · Missões coletivas (0115). */}
       <AbasConquistas ativa="minhas" />
