@@ -6,6 +6,7 @@ import { BRAND } from "@/config/brand";
 import { Logo } from "@/components/brand/Logo";
 import { Voltar } from "@/components/ui/Voltar";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
+import { CompartilharPagina } from "@/components/montinho/CompartilharPagina";
 import { HISTORIA, NUMEROS } from "@/lib/montinho/apresentacao";
 
 export const metadata = { title: "Minha história" };
@@ -15,7 +16,10 @@ export default async function HistoriaPage() {
   const visitante = ehVisitante(sessao);
   return (
     <div className="space-y-10 pb-6">
-      <Voltar href="/aluno/perfil" />
+      <div className="flex items-center justify-between gap-2">
+        <Voltar href="/aluno/perfil" />
+        <CompartilharPagina origem="historia" />
+      </div>
 
       <header className="space-y-4 pt-2 text-center">
         <Logo height={56} className="mx-auto" />
@@ -49,6 +53,7 @@ export default async function HistoriaPage() {
         <p className="text-xs text-fg-subtle">— {BRAND.name}. Não é promessa de prazo nem de resultado: é sobre continuar.</p>
         <p className="text-base text-fg-muted">Quer fazer esse caminho comigo?</p>
         {BRAND.contact.whatsapp ? <FalarComMontinho origem="historia" whatsapp={BRAND.contact.whatsapp} visitante={visitante} /> : null}
+        <CompartilharPagina origem="historia" destaque />
         <Link href="/aluno/consultoria" className="alvo block text-sm font-semibold text-accent underline underline-offset-4">Conheça a consultoria →</Link>
       </section>
     </div>

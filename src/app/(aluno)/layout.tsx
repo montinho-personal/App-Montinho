@@ -25,6 +25,8 @@ const TABS = [
   { label: "Evolução", href: "/aluno/evolucao", icon: "chart" },
   { label: "Perfil", href: "/aluno/perfil", icon: "user" },
 ] as const;
+// Visitante: a Consultoria também no menu (pedido do Montinho, 29/10/2026).
+const TAB_CONSULTORIA = { label: "Consultoria", href: "/aluno/consultoria", icon: "sparkles" } as const;
 
 export default async function AlunoLayout({ children }: { children: React.ReactNode }) {
   const sessao = await requireAlunoPage();
@@ -98,7 +100,7 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
               {children}
             </div>
           </main>
-          <MobileTabBar items={[...TABS]} />
+          <MobileTabBar items={visitante ? [...TABS.slice(0, 5), TAB_CONSULTORIA, ...TABS.slice(5)] : [...TABS]} />
         </TravaVisitanteProvider>
       )}
       <RegistrarAcesso id={sessao.alunoId} />

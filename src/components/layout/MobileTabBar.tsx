@@ -18,10 +18,10 @@ export function MobileTabBar({ items }: { items: TabItem[] }) {
               key={tab.href}
               href={tab.href}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center justify-center min-h-[56px] gap-1 ${items.length > 5 ? "text-[10px] tracking-tight" : "text-[11px]"} font-semibold transition-colors ${active ? "text-accent" : "text-fg-subtle hover:text-fg-muted"}`}
+              className={`flex flex-col items-center justify-center min-h-[56px] gap-1 ${items.length > 7 ? "text-[9px] tracking-tighter" : items.length > 5 ? "text-[10px] tracking-tight" : "text-[11px]"} font-semibold transition-colors ${active ? "text-accent" : "text-fg-subtle hover:text-fg-muted"}`}
             >
-              <Icon name={tab.icon} size={22} />
-              <span>{tab.label}</span>
+              <Icon name={tab.icon} size={items.length > 7 ? 20 : 22} />
+              <span className="max-w-full overflow-hidden whitespace-nowrap">{tab.label}</span>
             </Link>
           );
         })}

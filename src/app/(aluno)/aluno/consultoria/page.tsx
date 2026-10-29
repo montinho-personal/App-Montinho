@@ -6,6 +6,7 @@ import { BRAND } from "@/config/brand";
 import { Logo } from "@/components/brand/Logo";
 import { Voltar } from "@/components/ui/Voltar";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
+import { CompartilharPagina } from "@/components/montinho/CompartilharPagina";
 import { CONSULTORIA, NUMEROS } from "@/lib/montinho/apresentacao";
 
 export const metadata = { title: "Consultoria" };
@@ -16,7 +17,10 @@ export default async function ConsultoriaPage() {
   const botao = BRAND.contact.whatsapp ? <FalarComMontinho origem="consultoria" whatsapp={BRAND.contact.whatsapp} visitante={visitante} /> : null;
   return (
     <div className="space-y-10 pb-6">
-      <Voltar href="/aluno/perfil" />
+      <div className="flex items-center justify-between gap-2">
+        <Voltar href="/aluno/perfil" />
+        <CompartilharPagina origem="consultoria" />
+      </div>
 
       <header className="space-y-4 pt-2 text-center">
         <Logo height={56} className="mx-auto" />
@@ -128,6 +132,7 @@ export default async function ConsultoriaPage() {
         <p className="text-2xl font-black leading-snug">{CONSULTORIA.fecho}</p>
         <p className="text-sm text-fg-muted">Valores, horários e modalidades: é só me chamar.</p>
         {botao}
+        <CompartilharPagina origem="consultoria" destaque />
         <Link href="/aluno/historia" className="alvo block text-sm font-semibold text-accent underline underline-offset-4">Conheça a minha história →</Link>
       </section>
     </div>

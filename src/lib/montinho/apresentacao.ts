@@ -134,3 +134,9 @@ export const ROTULO_CTA_PAGINAS: Record<string, string> = {
   historia: "📖 WhatsApp na página “Minha história”",
   consultoria: "💎 WhatsApp na página “Consultoria”",
 };
+
+/** Compartilhar: as páginas públicas do site (quem recebe não precisa de login). */
+export const COMPARTILHAR: Record<OrigemContato, { url: string; titulo: string; texto: string }> = {
+  historia: { url: "https://www.montinhopersonal.com.br/minha-historia", titulo: "A história do Montinho", texto: "Olha essa história: do “gordinho da turma” a −40 kg em 12 meses. Vale a leitura!" },
+  consultoria: { url: "https://www.montinhopersonal.com.br/consultoria", titulo: "Consultoria Montinho", texto: "Conheça a consultoria do Montinho: treino feito para a sua rotina e acompanhamento de verdade." },
+};
