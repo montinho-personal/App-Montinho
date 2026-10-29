@@ -35,7 +35,7 @@ export function MontinhoNoRanking({ dados, meusTrofeus, minhaPosicao, nome, visi
 
   async function compartilhar() {
     const titulo = frente ? "PASSEI O MONTINHO!" : "META: PASSAR O MONTINHO";
-    const destaque = frente ? `${meusTrofeus} troféus × ${dados.trofeus} do Montinho` : `Faltam ${Math.max(1, -(dif ?? 0) + 1)} troféus para eu passar ele`;
+    const destaque = frente ? `${meusTrofeus} troféus × ${dados.trofeus} do Montinho` : `Faltam ${Math.max(1, -(dif ?? 0) + 1)} troféus para eu passar o Montinho`;
     const card = { selo: frente ? "👑" : "🎯", titulo, destaque, frase: frente ? "Estou na frente do meu personal no ranking!" : "Ele treina pelo app também. Vou passar ele!", porque: "Ranking de troféus do app — Montinho Personal Trainer.", nome: nome.split(" ")[0] ?? "", data: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }), legenda: `${titulo} 🏆 — @montinho_personal` };
     let r: ResultadoCompartilhar;
     try {
