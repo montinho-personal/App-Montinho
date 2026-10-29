@@ -127,6 +127,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - Início depois do treino de hoje (29/10/2026): `DiaConcluido` (`src/components/inicio/`) no lugar do próximo treino — parabéns + frase do dia, treino feito, troféus e carimbos; cardio prescrito pendente vira o destaque (“só falta o cardio”); treino + cardio = “Dia completo”. Regras em `src/lib/inicio/dia.ts`.
 
+- Painel do personal reformulado (29/10/2026, pedidos do Montinho): **Alunos** = busca na hora (nome/sobrenome sem acento, e-mail, telefone) + ordenar A–Z/mais novos/mais antigos/treinou por último/mais tempo sem treinar/acesso vence (`src/lib/alunos/lista.ts`, `ListaAlunosClient`, `?status=&ordem=`). **Visitantes** = números (em dia/terminando/terminaram), “🔔 Precisa de você” (treinos para montar, descontos, acessos terminando, sem WhatsApp, questionário), abas Pessoas · Convites · Desafios · Treinos prontos (`VisitantesPainel`; pessoa abre o detalhe com WhatsApp/+30 dias/virou aluno). **Leads** = “📞 Fale agora” com o motivo e a mensagem pronta (`comQuemFalar` em `src/lib/visitante/leads-prioridade.ts`: pediu no WhatsApp → acesso terminando → 3+ treinos sem conversa → 3+ dias sem treinar; chamar vira “Em conversa”), funil em barras com frase, todos os leads com busca e situação em botões, convites e planilha/CRM recolhidos. Cópia de protocolo para outro aluno: só a regra pura `src/lib/prescricoes/copiar.ts` (sem cargas), falta o botão.
+
 - Lupa do personal: `/treinador/busca` (menu “Buscar” + lupa na barra do celular); regras em `src/lib/busca/alunos.ts` (nome/sobrenome por pedaço e sem acento; estrutura do treino com motivo; “treino parecido” por exercícios em comum); índice em `src/lib/data/busca.ts`.
 
 ## Ao editar
