@@ -12,7 +12,7 @@
 //  • O sprint não faz parte do Treino D: na ficha ele é separado e não foi
 //    cadastrado.
 // Correspondências: “Abdominal prancha” = Prancha frontal; “Elevação pélvica”
-// = Hip thrust na máquina (como na ficha da Carol; confirmar); “Abdominal
+// = Hip thrust com barra (confirmado pelo personal); “Abdominal
 // Infra Banco Declinado” = Abdominal infra no banco declinado; “Abdominal
 // Remador” = Abdominal remador; “Remada curvada pegada pronada” = Remada
 // curvada com barra; “Remada Polia Baixa Triângulo” = Remada sentada na polia
@@ -20,11 +20,13 @@
 // (pulley); “Crucifixo invertido com halteres”; “Rosca Direta Barra W” =
 // Rosca direta com barra W; “Levantamento terra” = barra reta; “Passada” =
 // Walking Lunges; “Agachamento búlgaro halteres” = Agachamento búlgaro;
-// “Bom Dia” = Good morning (confirmar); “Face pull na polia” = Face pull;
+// “Bom Dia” = Good morning com barra (confirmado); “Face pull na polia” = Face pull;
 // “Triceps francês com halter bilateral” = Tríceps francês com halter;
 // “Abdominal supra na polia” = em pé.
 // v2 (29/10/2026): o personal confirmou o abdominal supra na polia do D em 4 × 20
-// (não por tempo). Todos têm vídeo na biblioteca, menos
+// (não por tempo).
+// v3 (29/10/2026): confirmados o Smith do D (pirâmide 20/15/12/10), a elevação
+// pélvica com barra (A e C) e o bom dia com barra. Todos têm vídeo na biblioteca, menos
 // Good morning e Rosca direta com barra W (sem vídeo validado ainda).
 // Objetivo, nível e prioridades ficam em branco: a Camilla ainda não tem
 // ficha de avaliação no app.
@@ -35,7 +37,7 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
 import { comRegras } from "./regras";
 
-export const ID_PRESCRICAO = "missao-celtic-queen-intensificacao-v2";
+export const ID_PRESCRICAO = "missao-celtic-queen-intensificacao-v3";
 export const NOME_ALUNA = "Camilla L Valentim";
 export const ROTULO = "Missão Celtic Queen - Intensificação";
 
@@ -44,7 +46,7 @@ type Lib = { id: string; nome: string; grupo: GrupoMuscular };
 /** Correspondência com a biblioteca (produção). */
 export const BIBLIOTECA: Record<string, Lib> = {
   "Prancha frontal": { id: "f96c1647-c28a-4b98-99e0-ff89bea743d1", nome: "Prancha frontal", grupo: "core" },
-  "Hip thrust na máquina": { id: "9c4fa6e6-b6d2-4516-b9e4-a87cda088150", nome: "Hip thrust na máquina", grupo: "gluteo" },
+  "Hip thrust com barra": { id: "92cc0e3b-48ea-454a-b872-8bac4bc30d28", nome: "Hip thrust com barra", grupo: "gluteo" },
   "Agachamento no Smith": { id: "3e0765c2-3c91-47ac-9601-a1ed12a11685", nome: "Agachamento no Smith", grupo: "quadriceps" },
   "Leg press 45°": { id: "7c787c53-d34f-44a6-bed7-8873f3766db1", nome: "Leg press 45°", grupo: "quadriceps" },
   "Abdominal infra no banco declinado": { id: "b3eb07b6-ce28-454c-a68f-d025cb7daf1e", nome: "Abdominal infra no banco declinado", grupo: "abdomen" },
@@ -136,7 +138,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
   treinos: [
     treino("A", "Lower — Glúteo, quadríceps e abdômen", [
       prancha(),
-      pir("Hip thrust na máquina", P5, `Elevação pélvica. ${AUMENTAR}`),
+      pir("Hip thrust com barra", P5, `Elevação pélvica com barra. ${AUMENTAR}`),
       pir("Agachamento no Smith", P15_5),
       pir("Leg press 45°", P5),
       biA("Abdominal infra no banco declinado", x(4, "20"), "A1"),
@@ -154,13 +156,13 @@ export const PRESCRICAO: SalvarPlanoInput = {
       prancha(),
       ex("Stiff com barra", x(5, "15"), null),
       ex("Levantamento terra barra reta", x(5, "15"), null),
-      biA("Hip thrust na máquina", x(4, "15"), "C1", "Elevação pélvica."),
+      biA("Hip thrust com barra", x(4, "15"), "C1", "Elevação pélvica com barra."),
       biB("Walking Lunges", x(4, "20"), "C1", "Passada."),
       pir("Agachamento búlgaro", ["20", "15", "12", "12", "10"], `Com halteres. ${AUMENTAR}`),
     ]),
     treino("D", "Full Body", [
-      pir("Agachamento no Smith", P15_5),
-      pir("Good morning", ["15", "12", "10", "10", "10"], `Bom dia. ${AUMENTAR}`),
+      pir("Agachamento no Smith", P20),
+      pir("Good morning", ["15", "12", "10", "10", "10"], `Bom dia com barra. ${AUMENTAR}`),
       pir("Puxada frontal aberta (pulley)", P20, `Pegada aberta pronada. ${AUMENTAR}`),
       biA("Face pull", x(4, "15"), "D1", "Na polia."),
       biB("Elevação lateral com halteres", x(4, "15"), "D1"),
@@ -174,8 +176,4 @@ export const PRESCRICAO: SalvarPlanoInput = {
 };
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
-export const PENDENCIAS: string[] = [
-  "Treino D, Agachamento no Smith: o print corta antes das séries. Foram usadas as mesmas do Smith do Treino A (15/12/10/10/8, 5 séries, que bate com as 5 séries de quadríceps do volume da ficha). Confirmar repetições.",
-  "Elevação pélvica (Treinos A e C): a ficha não diz o equipamento. Foi cadastrada na máquina, como na ficha da Carol. É na máquina, no solo ou com barra?",
-  "“Bom Dia” (Treino D): na biblioteca há o Good morning (com barra, sem vídeo ainda) e o Bom dia no hack (máquina). Foi cadastrado o Good morning. Confirmar qual.",
-];
+export const PENDENCIAS: string[] = [];
