@@ -60,9 +60,9 @@ export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior }: {
 }
 
 /** Atalhos da Evolução: tudo a um toque. */
-export function AtalhosEvolucao({ alunoId }: { alunoId: string }) {
+export function AtalhosEvolucao() {
   const itens = [
-    { href: `/relatorio/${alunoId}`, emoji: "📄", titulo: "Relatório completo", texto: "Em PDF, para baixar" },
+    { href: "/aluno/conquistas", emoji: "🏆", titulo: "Conquistas", texto: "Troféus e carimbos" },
     { href: "/aluno/vitorias", emoji: "🌟", titulo: "Vitórias da semana", texto: "O que melhorou" },
     { href: "/aluno/cardio", emoji: "❤️‍🔥", titulo: "Cardio", texto: "Semana e histórico" },
     { href: "/aluno/medidas", emoji: "📏", titulo: "Medidas", texto: "Peso, medidas, avaliação" },

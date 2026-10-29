@@ -27,6 +27,9 @@ import { AtalhosEvolucao, PainelEvolucaoAluno } from "@/components/relatorios/Pa
 import { Acordeao } from "@/components/relatorios/Acordeao";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { painelEvolucao } from "@/lib/relatorios/painel-aluno";
+import { exerciciosComCarga, totaisPorTreino } from "@/lib/relatorios/graficos-aluno";
+import { evolucaoExercicio } from "@/lib/relatorios/calcular";
+import { GraficosEvolucao, type PontoExercicio } from "@/components/relatorios/GraficosEvolucao";
 import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
 import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
 import { sessaoParaConquista } from "@/lib/conquistas/mapear";
@@ -62,6 +65,11 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje, inicioAcompanhamento: inicio ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hoje });
   const painel = painelEvolucao({ sessoes, dias, emAlta: cargasEmAlta(sessoes, historicoResumo, 3), invisivel, medidas: evolucao, sequencia: aderencia?.sequencia.atual ?? 0 });
 
+  // Gráficos fáceis (antes do relatório completo): treino a treino, exercício a exercício e peso.
+  const exerciciosGrafico = exerciciosComCarga(sessoes).slice(0, 25);
+  const pontosGrafico: Record<string, PontoExercicio[]> = Object.fromEntries(exerciciosGrafico.map((e) => [e.chave, evolucaoExercicio(sessoes, e.chave, historicoResumo).map((p) => ({ data: p.data, carga: p.cargaMax, volume: p.tonelagem }))]));
+  const pesoGrafico = evolucao.filter((m) => m.peso_kg != null).map((m) => ({ data: m.data, kg: Number(m.peso_kg) }));
+
   return (
     <div className="space-y-6">
       <header>
@@ -81,7 +89,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         </blockquote>
       ) : null}
 
-      {aderencia ? (
+      {aderencia?.semanaAtual?.meta ? (
         <section id="consistencia" aria-label="Sua semana" className="scroll-mt-20 space-y-3 rounded-2xl border border-border bg-card p-4">
           <h2 className="text-lg font-bold">Sua semana</h2>
           <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
@@ -92,7 +100,8 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         </section>
       ) : null}
 
-      <AtalhosEvolucao alunoId={sessao.alunoId} />
+      <GraficosEvolucao treinos={totaisPorTreino(sessoes)} exercicios={exerciciosGrafico} pontos={pontosGrafico} peso={pesoGrafico} relatorioHref={`/relatorio/${sessao.alunoId}`} />
+      <AtalhosEvolucao />
       <ChamadaTrofeu acao="relatorio" />
 
       {visitante ? <MesContraMes c={compararMeses(sessoes)} semanaFraca={semanaFraca} /> : null}
