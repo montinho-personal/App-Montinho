@@ -32,7 +32,7 @@ export default async function RankingPage() {
   const aluno = await getAluno(sessao.alunoId);
   if (aluno) await atualizarTrofeus([aluno]);
   const [todas, desafios, cutucadas] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => []), sessao.comoPersonal ? Promise.resolve([]) : minhasCutucadasRanking(sessao.alunoId).catch(() => [])]);
-  const montinho = sessao.comoPersonal ? null : await montinhoNoRanking().catch(() => null);
+  const montinho = await montinhoNoRanking().catch(() => null);
   // Personal no “Meu treino”: vê o ranking como aluno, mas fica fora dele.
   const linhas = sessao.comoPersonal ? semMinhaLinha(todas) : todas;
   const eu = linhas.find((l) => l.eu);
@@ -52,7 +52,9 @@ export default async function RankingPage() {
         </div>
         {eu && !sessao.comoPersonal ? <div className="mt-3"><CompartilharRanking dados={{ posicao: eu.posicao, trofeus: eu.trofeus, total: linhas.length, nome: (aluno?.profile?.nome ?? sessao.nome).split(" ")[0] }} /></div> : null}
       </div>
-      {montinho ? <MontinhoNoRanking dados={montinho} meusTrofeus={eu?.trofeus ?? null} minhaPosicao={eu?.posicao ?? null} nome={aluno?.profile?.nome ?? sessao.nome} visitante={ehVisitante(sessao)} whatsapp={BRAND.contact.whatsapp ?? null} /> : null}
+      {/* O personal no app como aluno vê a prévia do cartão (sem a comparação com ele mesmo). */}
+      {montinho && sessao.comoPersonal ? <p className="-mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">👀 Prévia: é assim que os alunos veem</p> : null}
+      {montinho ? <MontinhoNoRanking dados={montinho} meusTrofeus={sessao.comoPersonal ? null : (eu?.trofeus ?? null)} minhaPosicao={sessao.comoPersonal ? null : (eu?.posicao ?? null)} nome={aluno?.profile?.nome ?? sessao.nome} visitante={ehVisitante(sessao)} whatsapp={BRAND.contact.whatsapp ?? null} /> : null}
       <RankingTrofeus linhas={linhas} desafiar />
       {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
