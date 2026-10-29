@@ -408,11 +408,26 @@ async function eventosCompartilharDoAluno(alunoId: string): Promise<{ eventos: E
     return { eventos, primeiroAmigoEm: null };
   }
   const db = await getDb();
-  const [{ data: ev }, { data: ind }] = await Promise.all([
-    db.rpc("meus_eventos_compartilhar"),
+  // meus_eventos_compartilhar() devolve os eventos de QUEM ESTÁ LOGADO. Só serve quando é o
+  // próprio aluno. Se o personal recalcula os troféus de outro aluno (Ranking, Visão geral),
+  // lê os eventos DAQUELE aluno direto (a RLS só libera isso para o personal); antes, os
+  // compartilhamentos do personal (ficha do “Meu treino”) davam troféu a todo mundo.
+  const { data: auth } = await db.auth.getUser();
+  const { data: meu } = auth.user ? await db.from("alunos").select("id").eq("profile_id", auth.user.id).maybeSingle() : { data: null };
+  const doProprio = (meu as { id: string } | null)?.id === alunoId;
+  const eventosDeOutro = async (): Promise<EventoCompartilhar[]> => {
+    const [{ data: proprios }, { data: visitas }] = await Promise.all([
+      db.from("eventos_chalala").select("tipo, origem, modelo, ref, created_at").eq("aluno_id", alunoId).in("tipo", ["compartilhar_nativo", "download", "descoberta_compartilhada"]).order("created_at").limit(2000),
+      db.from("eventos_chalala").select("tipo, ref, created_at").eq("tipo", "visita_link").eq("ref", `c:${codigoDoLink(alunoId)}`).order("created_at").limit(2000),
+    ]);
+    const lista = [...((proprios ?? []) as EventoCompartilhar[]), ...((visitas ?? []) as Array<Omit<EventoCompartilhar, "origem" | "modelo">>).map((v) => ({ ...v, origem: null, modelo: null }) as EventoCompartilhar)];
+    return lista.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  };
+  const [ev, { data: ind }] = await Promise.all([
+    doProprio ? db.rpc("meus_eventos_compartilhar").then((r) => (r.data ?? []) as EventoCompartilhar[]) : eventosDeOutro(),
     db.from("indicacoes").select("created_at").eq("indicador_aluno_id", alunoId).order("created_at").limit(1),
   ]);
-  return { eventos: (ev ?? []) as EventoCompartilhar[], primeiroAmigoEm: ((ind ?? []) as Array<{ created_at: string }>)[0]?.created_at ?? null };
+  return { eventos: ev, primeiroAmigoEm: ((ind ?? []) as Array<{ created_at: string }>)[0]?.created_at ?? null };
 }
 
 /** Progresso dos troféus de compartilhar e do “Mito ou verdade?” (só o próprio aluno vê os eventos dele). */
