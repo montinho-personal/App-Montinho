@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { BrandLockup, FioMarca } from "@/components/brand/BrandLockup";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { apagarTelasGuardadas } from "@/lib/offline/paginas";
+import { BuscaRapida } from "./BuscaRapida";
 
 type NavItem = { label: string; href: string; icon: IconName };
 
@@ -92,9 +93,7 @@ export function Sidebar({ items, usuario }: SidebarProps) {
         </Link>
         <div className="flex items-center gap-2">
           {items.some((i) => i.href === "/treinador/busca") ? (
-            <Link href="/treinador/busca" aria-label="Buscar aluno ou treino" className="touch grid w-11 place-items-center rounded-full border border-white/20 bg-white/5 text-fg">
-              <Icon name="search" size={18} />
-            </Link>
+            <BuscaRapida />
           ) : null}
           <button type="button" onClick={() => setMobileOpen(true)} className="touch flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 text-sm font-semibold text-fg" aria-label="Abrir menu" aria-expanded={mobileOpen}>
             <Icon name="menu" size={18} />
