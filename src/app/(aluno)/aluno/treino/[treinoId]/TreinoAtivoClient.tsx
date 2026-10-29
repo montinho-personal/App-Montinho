@@ -2049,9 +2049,14 @@ const OPCOES_ESFORCO: Array<{ v: PercepcaoExercicio; titulo: string; desc: strin
 
 /** Percepção de esforço ao finalizar o exercício: 1 toque, sem bloquear o treino. */
 function PerguntaEsforco({ nome, onEscolher, onFechar }: { nome: string; onEscolher: (p: PercepcaoExercicio | null) => void; onFechar: () => void }) {
+  // iPhone (29/10/2026, treino da Natália): com o teclado das reps recém-fechado, a
+  // janela ficava abaixo da tela. Fecha o teclado e prende a janela na altura visível.
+  useEffect(() => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, []);
   return (
-    <div role="dialog" aria-modal="true" aria-label="Como foi esse exercício?" className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={onFechar}>
-      <div className="mx-auto w-full max-w-md space-y-3 rounded-t-2xl border border-border bg-card p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+    <div role="dialog" aria-modal="true" aria-label="Como foi esse exercício?" className="fixed inset-x-0 top-0 z-[60] flex h-[100dvh] items-end bg-black/60" onClick={onFechar}>
+      <div className="mx-auto max-h-[85dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl border border-border bg-card p-4 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Percepção de esforço</p>
