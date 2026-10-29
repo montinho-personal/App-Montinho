@@ -4,7 +4,7 @@
 // Prescrito já vem preenchido; detalhes (distância, FC…) ficam recolhidos.
 // Ao terminar, comemora os troféus novos com a mesma celebração da musculação.
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
 import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
@@ -24,11 +24,13 @@ type Props = {
   rota?: string;
   /** Vindo do cronômetro: já sabe os minutos, a modalidade e se terminou. */
   inicial?: { minutos?: number; modalidade?: ModalidadeCardio; status?: Status };
+  /** Vindo do cronômetro: grava sozinho ao abrir (o esforço fica opcional, depois). */
+  salvarAoAbrir?: boolean;
 };
 
 const novaChave = () => `cardio-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio", inicial }: Props) {
+export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio", inicial, salvarAoAbrir = false }: Props) {
   const router = useRouter();
   const [chave] = useState(novaChave);
   const [modalidade, setModalidade] = useState<ModalidadeCardio>(inicial?.modalidade ?? (prescricao && prescricao.modalidade !== "livre" ? prescricao.modalidade : "caminhada"));
@@ -43,7 +45,9 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
   const [extra, setExtra] = useState({ distancia_km: "", velocidade_kmh: "", inclinacao_pct: "", fc_media: "", fc_max: "", observacoes: "" });
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [feito, setFeito] = useState<{ status: Status; minutos: number } | null>(null);
+  const [feito, setFeito] = useState<{ status: Status; minutos: number; id: string | null } | null>(null);
+  const [esforcoDepois, setEsforcoDepois] = useState<number | null>(null);
+  const autoSalvo = useRef(false);
   const [novas, setNovas] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
   const info = MODALIDADES[modalidade];
   const planejado = prescricao?.duracao_min ?? null;
@@ -82,7 +86,7 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
         eventoGa("cardio_trophy_unlocked", { quantidade: lista.length });
         if (lista.some((c) => c.codigo === "cardio_semana_ritmo" || c.codigo === "cardio_meta_semana")) eventoGa("cardio_goal_completed");
       }
-      setFeito({ status, minutos: corpo.duracao_min });
+      setFeito({ status, minutos: corpo.duracao_min, id: (d.registro as { id?: string } | undefined)?.id ?? null });
       setNovas(lista);
       onRegistrado?.();
       router.refresh();
@@ -91,6 +95,20 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
     } finally {
       setEnviando(false);
     }
+  }
+
+  // Cronômetro terminou: grava na hora, sem depender de achar o botão “Salvar”.
+  useEffect(() => {
+    if (!salvarAoAbrir || autoSalvo.current || !status) return;
+    autoSalvo.current = true;
+    void enviar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salvarAoAbrir]);
+
+  /** Esforço depois de gravado (opcional): corrige o registro. */
+  function anotarEsforco(n: number) {
+    setEsforcoDepois(n);
+    if (feito?.id) fetch(`/api/cardio/${feito.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ esforco: n }) }).catch(() => undefined);
   }
 
   const fecharCelebracao = () => {
@@ -120,11 +138,24 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
         </div>
         {rota === "/api/cardio" ? <ChamadaTrofeu acao="cardio" className="mb-3" /> : null}
 
-        {feito ? (
+        {salvarAoAbrir && enviando && !feito ? (
+          <p className="py-10 text-center text-lg font-bold" aria-live="polite">❤️‍🔥 Salvando seu cardio…</p>
+        ) : feito ? (
           <div className="space-y-3 text-center" aria-live="polite">
             <p className="text-4xl">{feito.status === "nao_realizado" ? "🫶" : "❤️‍🔥"}</p>
             <p className="text-lg font-bold">{feito.status === "nao_realizado" ? "Anotado. Amanhã tem mais!" : `${feito.minutos} min de cardio registrados. Chalalá!`}</p>
-            <p className="text-sm text-fg-muted">{feito.status === "nao_realizado" ? "Avisar quando não dá também ajuda o Montinho a ajustar o seu plano." : "O que conta é cumprir o cardio certo, com constância."}</p>
+            <p className="text-sm text-fg-muted">{feito.status === "nao_realizado" ? "Avisar quando não dá também ajuda o Montinho a ajustar o seu plano." : "Já está no seu histórico. O que conta é cumprir o cardio certo, com constância."}</p>
+            {salvarAoAbrir && feito.id && feito.status !== "nao_realizado" ? (
+              <div className="text-left">
+                <p className="mb-1 text-sm font-semibold">Como foi o esforço? <span className="font-normal text-fg-muted">(opcional)</span></p>
+                <div className="grid grid-cols-11 gap-1" role="group" aria-label="Esforço percebido">
+                  {Array.from({ length: 11 }, (_, i) => (
+                    <button key={i} type="button" aria-pressed={esforcoDepois === i} onClick={() => anotarEsforco(i)} className={`touch h-10 rounded-md border text-sm font-bold ${esforcoDepois === i ? "border-accent bg-accent text-bg" : "border-border"}`}>{i}</button>
+                  ))}
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-fg-subtle"><span>Leve</span><span>Moderado</span><span>Forte</span></div>
+              </div>
+            ) : null}
             <button type="button" onClick={onFechar} className="alvo w-full rounded-xl bg-accent px-4 py-3 font-bold text-bg">Pronto</button>
           </div>
         ) : (

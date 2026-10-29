@@ -61,6 +61,7 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
         sessionId={sessionId}
         nome={nome}
         inicial={{ minutos: registrar.minutos, modalidade, status: registrar.completo ? "concluido" : "parcial" }}
+        salvarAoAbrir
         onFechar={onFechar}
       />
     );
@@ -72,7 +73,7 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
     <div className="sem-safe-top fixed inset-0 z-[70] overflow-y-auto bg-bg text-center" role="dialog" aria-modal="true" aria-label="Cronômetro de cardio">
       {/* Barra fixa no topo: sempre dá para voltar, mesmo com a tela rolada. */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg/95 px-3 py-2 backdrop-blur" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
-        <button type="button" onClick={() => { if (!inicio || window.confirm("Sair do cronômetro? O tempo de agora não é registrado.")) onFechar(); }} className="alvo inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm font-semibold text-fg-muted">
+        <button type="button" onClick={() => { if (terminou) setRegistrar({ minutos: minutosDoCronometro(seg), completo: true }); else if (!inicio || window.confirm("Sair do cronômetro? O tempo de agora não é registrado.")) onFechar(); }} className="alvo inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm font-semibold text-fg-muted">
           <span aria-hidden>←</span> Voltar
         </button>
         <span className="text-xs text-fg-subtle">Cronômetro de cardio</span>
