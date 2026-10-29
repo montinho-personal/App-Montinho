@@ -9,7 +9,7 @@ type TabItem = { label: string; href: string; icon: IconName };
 export function MobileTabBar({ items }: { items: TabItem[] }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Navegação principal" className="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border z-50 pb-safe">
+    <nav aria-label="Navegação principal" className="fixed bottom-[var(--vv-fundo,0px)] left-0 right-0 bg-surface/95 backdrop-blur border-t border-border z-50 pb-safe">
       <div className="max-w-md mx-auto grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((tab) => {
           const active = tab.href === "/aluno" ? pathname === "/aluno" : pathname === tab.href || pathname.startsWith(`${tab.href}/`);

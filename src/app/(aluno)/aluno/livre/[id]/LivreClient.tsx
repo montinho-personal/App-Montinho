@@ -439,7 +439,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
 
       {timer ? (
         // Mesmo descanso do treino normal: flutua embaixo, perto do polegar, acima do menu.
-        <div className="fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4">
+        <div className="fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl bottom-[calc(4.75rem+env(safe-area-inset-bottom)+var(--vv-fundo,0px))] md:bottom-4">
           <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => setTimer(null)} onDismiss={() => setTimer(null)} />
         </div>
       ) : null}

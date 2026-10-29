@@ -684,6 +684,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   }
 
   function concluirSerie(seId: string, idx: number, ex: ExercicioView, silencioso = false, confirmado = false, correcao?: { carga?: number; reps?: number }) {
+    // Fecha o teclado antes do descanso aparecer (no iPhone ele empurrava o descanso para fora da tela).
+    if (!silencioso) (document.activeElement as HTMLElement | null)?.blur?.();
     if (!sessao || !storage) return;
     const sLocal = series[seId][idx];
     // Campo vazio + ✓ = repetiu o da última vez (o valor que aparece apagadinho).
@@ -1477,7 +1479,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       {timer ? (
         // Flutua na parte de baixo da tela (perto do polegar), acima do menu do
         // aluno: dá para ver e ajustar o descanso sem rolar a página para cima.
-        <div className={`fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl ${presencial ? "bottom-3" : "bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4"}`}>
+        <div className={`fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl ${presencial ? "bottom-[calc(0.75rem+var(--vv-fundo,0px))]" : "bottom-[calc(4.75rem+env(safe-area-inset-bottom)+var(--vv-fundo,0px))] md:bottom-4"}`}>
           <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => { setTimer(null); setSugestaoDescanso(null); }} onDismiss={() => { setTimer(null); setSugestaoDescanso(null); }} />
           {sugestaoDescanso ? (
             <button type="button" onClick={() => { abrirLeitura(sugestaoDescanso.id); setSugestaoDescanso(null); }} className="alvo mt-1 block w-full rounded-lg bg-card/95 px-3 py-1.5 text-left text-xs font-semibold text-accent">
@@ -1808,6 +1810,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         </div>
                       )
                     ) : null}
+                    {timer && !completo ? <DescansoNoCartao fim={timer.fim} onPular={() => { setTimer(null); setSugestaoDescanso(null); }} /> : null}
                     {completo && !finalizado ? (
                       <button type="button" id={`concluir-${se.id}`} onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
                         <Icon name="check" size={18} /> Concluir exercício e ir para o próximo
@@ -2046,6 +2049,23 @@ const OPCOES_ESFORCO: Array<{ v: PercepcaoExercicio; titulo: string; desc: strin
   { v: "moderado", titulo: "Moderado", desc: "Exigiu esforço, mas com folga no fim.", emoji: "💪" },
   { v: "pesado", titulo: "Pesado", desc: "Cheguei perto do meu limite.", emoji: "🔥" },
 ];
+
+/** Descanso também dentro do cartão do exercício (iPhone: o flutuante às vezes fica fora da tela). */
+function DescansoNoCartao({ fim, onPular }: { fim: number; onPular: () => void }) {
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setAgora(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, []);
+  const resta = Math.max(0, Math.ceil((fim - agora) / 1000));
+  if (!resta) return null;
+  return (
+    <div role="status" className="flex items-center justify-between gap-3 rounded-lg border border-accent/50 bg-accent/10 px-4 py-2.5">
+      <span className="text-sm font-bold">⏱ Descanso: <span className="font-mono tabular-nums text-accent">{Math.floor(resta / 60)}:{String(resta % 60).padStart(2, "0")}</span></span>
+      <button type="button" onClick={onPular} className="alvo rounded-md px-2 text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">Pular descanso</button>
+    </div>
+  );
+}
 
 /** Percepção de esforço ao finalizar o exercício: 1 toque, sem bloquear o treino. */
 function PerguntaEsforco({ nome, onEscolher, onFechar }: { nome: string; onEscolher: (p: PercepcaoExercicio | null) => void; onFechar: () => void }) {

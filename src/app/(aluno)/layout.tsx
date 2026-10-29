@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { AjusteTecladoIphone } from "@/components/layout/AjusteTecladoIphone";
 import Link from "next/link";
 import { BrandLockup, FioMarca } from "@/components/brand/BrandLockup";
 import { Icon } from "@/components/ui/Icon";
@@ -104,6 +105,7 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
         </TravaVisitanteProvider>
       )}
       <RegistrarAcesso id={sessao.alunoId} />
+      <AjusteTecladoIphone />
     </div>
   );
 }
