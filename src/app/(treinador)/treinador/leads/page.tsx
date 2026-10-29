@@ -6,6 +6,7 @@ import { requireTreinadorPage } from "@/lib/auth/session";
 import { carregarLeads, lerCrm } from "@/lib/data/leads";
 import { funil, resumoCtas } from "@/lib/visitante/leads";
 import { CTAS, type CtaId } from "@/lib/visitante/ctas";
+import { ROTULO_CTA_AVALIACAO } from "@/lib/visitante/avaliacao";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { LeadsClient } from "./LeadsClient";
 import { CrmClient } from "./CrmClient";
@@ -68,7 +69,7 @@ export default async function LeadsPage() {
                 {ctas.map((c) => (
                   <tr key={c.cta} className="border-t border-border">
                     <td className="py-2">
-                      {CTAS[c.cta as CtaId]?.titulo ?? c.cta} <span className="text-xs text-fg-subtle">{CTAS[c.cta as CtaId]?.ref}</span>
+                      {CTAS[c.cta as CtaId]?.titulo ?? ROTULO_CTA_AVALIACAO[c.cta] ?? c.cta} <span className="text-xs text-fg-subtle">{CTAS[c.cta as CtaId]?.ref}</span>
                     </td>
                     <td className="py-2 text-right">{c.exibidos}</td>
                     <td className="py-2 text-right font-semibold">{c.clicados}</td>

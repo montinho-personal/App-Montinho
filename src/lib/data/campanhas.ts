@@ -5,8 +5,17 @@ import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { eventosCta } from "@/lib/data/ctas";
 import { ofertaFimAcesso, type Oferta, type ResumoIndicacao } from "@/lib/visitante/campanhas";
+import { devePedirAvaliacao, linkAvaliacao } from "@/lib/visitante/avaliacao";
+import { estadoDoAcesso } from "@/lib/visitante/acesso";
 
-export type CampanhaVisitante = { treinosConcluidos: number; indicacao: ResumoIndicacao; oferta: Oferta | null };
+/** `avaliacao`: link do Google se o fim do treino que está para acabar é hora de pedir a avaliação (regras em src/lib/visitante/avaliacao.ts). */
+export type CampanhaVisitante = { treinosConcluidos: number; indicacao: ResumoIndicacao; oferta: Oferta | null; avaliacao: string | null };
+
+function pedidoAvaliacao(p: { treinosConcluidos: number; inicio: string | null; fim: string | null; oferta: Oferta | null; eventos: Awaited<ReturnType<typeof eventosCta>>; agora: Date }): string | null {
+  const link = linkAvaliacao(isDemoMode());
+  const pedir = devePedirAvaliacao({ ligado: !!link, treinosConcluidos: p.treinosConcluidos + 1, inicio: p.inicio, acessoVencido: estadoDoAcesso(p.fim, p.agora).estado === "vencido", temOferta: !!p.oferta, dor: false, eventos: p.eventos, agora: p.agora });
+  return pedir ? link : null;
+}
 
 const DIA = 86_400_000;
 
@@ -16,7 +25,8 @@ export async function campanhaDoVisitante(alunoId: string, acessoFim: string | n
     const fim = acessoFim ?? new Date(agora.getTime() + 3 * DIA).toISOString();
     const inicio = new Date(Date.parse(fim) - 30 * DIA).toISOString();
     const eventos = await eventosCta(alunoId).catch(() => []);
-    return { treinosConcluidos: 11, indicacao: { amigos: 1, diasGanhos: 10 }, oferta: ofertaFimAcesso({ fim, inicio, treinosConcluidos: 11, frequenciaSemanal: 3, eventos, agora }) };
+    const oferta = ofertaFimAcesso({ fim, inicio, treinosConcluidos: 11, frequenciaSemanal: 3, eventos, agora });
+    return { treinosConcluidos: 11, indicacao: { amigos: 1, diasGanhos: 10 }, oferta, avaliacao: pedidoAvaliacao({ treinosConcluidos: 11, inicio, fim, oferta, eventos, agora }) };
   }
   const db = await getDb();
   const [sessoes, indicacoes, acesso, perfil, eventos] = await Promise.all([
@@ -29,10 +39,13 @@ export async function campanhaDoVisitante(alunoId: string, acessoFim: string | n
   const treinosConcluidos = sessoes.count ?? 0;
   const lista = (indicacoes.data ?? []) as Array<{ dias_bonus: number }>;
   const fim = (acesso.data?.fim as string | null) ?? acessoFim;
+  const inicio = (acesso.data?.inicio as string | null) ?? null;
+  const oferta = ofertaFimAcesso({ fim, inicio, treinosConcluidos, frequenciaSemanal: (perfil.data?.frequencia_semanal as number | null) ?? null, eventos, agora });
   return {
     treinosConcluidos,
     indicacao: { amigos: lista.length, diasGanhos: lista.reduce((n, i) => n + (i.dias_bonus ?? 0), 0) },
-    oferta: ofertaFimAcesso({ fim, inicio: (acesso.data?.inicio as string | null) ?? null, treinosConcluidos, frequenciaSemanal: (perfil.data?.frequencia_semanal as number | null) ?? null, eventos, agora }),
+    oferta,
+    avaliacao: pedidoAvaliacao({ treinosConcluidos, inicio, fim, oferta, eventos, agora }),
   };
 }
 

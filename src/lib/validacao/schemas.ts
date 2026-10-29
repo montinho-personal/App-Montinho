@@ -610,6 +610,12 @@ export const ctaEventoSchema = z.object({
   tela: z.enum(["aviso", "inicio", "evolucao", "meus_treinos", "jornada", "fim_treino", "comecar", "popup", "encerrado"]),
 });
 
+/** Pedido de avaliação no Google (0112): o que a pessoa fez com o pedido. */
+export const avaliacaoAcaoSchema = z.object({
+  acao: z.enum(["exibido", "google", "feita", "depois", "sugestao"]),
+  tela: z.enum(["fim_treino", "avaliar"]),
+});
+
 // Modo Visitante, fase 8: painel de leads e CRM (0058)
 export const leadStatusSchema = z.object({
   status: z.enum(["novo", "em_conversa", "interessado", "sem_interesse", "virou_aluno"]),

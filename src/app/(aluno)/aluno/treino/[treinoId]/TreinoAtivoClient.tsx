@@ -46,6 +46,7 @@ import { guardarTela } from "@/lib/offline/paginas";
 import { conviteLiberado } from "@/lib/visitante/campanhas";
 import type { CampanhaVisitante } from "@/lib/data/campanhas";
 import { ConviteAmigo } from "@/components/visitante/ConviteAmigo";
+import { PedirAvaliacao } from "@/components/visitante/PedirAvaliacao";
 import { OfertaVisitante } from "@/components/visitante/OfertaVisitante";
 import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 import type { ExercicioPrescrito, SerieTipo, SessionSet } from "@/lib/supabase/types-sessoes";
@@ -1163,6 +1164,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       // para o aluno ver na hora, durante a aula.
       return <TelaChalala base={base} nome={presencial.nomeAluno} presencial={{ nomeAluno: presencial.nomeAluno, voltarHref: presencial.voltarHref, cabecalhos: cab }} />;
     }
+    // Pedido de avaliação no Google (visitante): só em treino concluído e nunca com dor/desconforto hoje.
+    const pedirAvaliacao = !!campanha?.avaliacao && concluida.status === "concluida" && feedback !== "dor" && checkinPre !== "desconforto";
     return (
       <TelaChalala base={base} nome={nomeAluno} confianca={confiancaFim}>
           {concluida.status === "concluida" ? <CardioDoTreino sessionId={concluida.id} /> : null}
@@ -1189,12 +1192,15 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               {feedback === "dor" ? <p className="text-xs text-fg-muted">Obrigado por avisar. O {BRAND.name} verá isso antes do próximo treino. Se a dor for forte, procure avaliação.</p> : null}
             </CardBody>
           </Card>
-          {campanha?.oferta && campanha.ofertaHref ? (
+          {pedirAvaliacao && campanha?.avaliacao ? (
+            // Um convite por tela: o pedido de avaliação no Google fica no lugar do convite de amigo e da indicação.
+            <PedirAvaliacao link={campanha.avaliacao} treinos={campanha.treinosConcluidos + (sessaoConcluida ? 0 : 1)} whatsapp={BRAND.contact.whatsapp || null} tela="fim_treino" />
+          ) : campanha?.oferta && campanha.ofertaHref ? (
             <OfertaVisitante oferta={campanha.oferta} href={campanha.ofertaHref} tela="fim_treino" />
           ) : campanha && conviteLiberado(campanha.treinosConcluidos + (concluida.status === "concluida" && !sessaoConcluida ? 1 : 0), campanha.indicacao) ? (
             <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="fim_treino" />
           ) : null}
-          {concluida.status === "concluida" && feedback !== "dor" && indicacao && [...concluida.id].reduce((h, c) => h + c.charCodeAt(0), 0) % 2 === 0 ? (
+          {concluida.status === "concluida" && feedback !== "dor" && !pedirAvaliacao && indicacao && [...concluida.id].reduce((h, c) => h + c.charCodeAt(0), 0) % 2 === 0 ? (
             // Um convite por tela: em metade dos treinos (pelo id da sessão), a indicação no lugar do desafio.
             <IncentivoIndicacao momento="fim_treino" aluno={indicacao.aluno} fecharam={indicacao.fecharam} />
           ) : concluida.status === "concluida" && feedback !== "dor" ? (

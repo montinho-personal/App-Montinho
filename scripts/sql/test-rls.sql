@@ -1946,3 +1946,38 @@ begin
   insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'series_1000', '1', '1.000 Séries', now()) on conflict do nothing;
 end $$;
 \echo 'T62 OK: Combo em sequência e volume total de séries'
+
+-- T63 — 0112: avaliação no Google — o visitante agenda 1 lembrete só para ele, uma vez; responder descarta; outro não agenda; CRM ignora o clique no Google
+update alunos set modalidade = 'visitante', status = 'ativo' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  perform public.agendar_lembrete_avaliacao('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true);
+  perform public.agendar_lembrete_avaliacao('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true);
+end $$;
+select test_logout();
+do $$
+begin
+  if (select count(*) from notificacoes_envios where dedupe = 'avaliacao:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and status = 'pendente' and agendada_para > now()) <> 1 then raise exception 'T63a: lembrete da avaliação não ficou 1 pendente'; end if;
+end $$;
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.agendar_lembrete_avaliacao('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', false); exception when raise_exception then ok := true; end;
+  if not ok then raise exception 'T63b: outro aluno mexeu no lembrete de quem não é ele'; end if;
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  perform public.agendar_lembrete_avaliacao('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', false);
+  insert into cta_eventos (aluno_id, cta, tipo, tela) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'avaliacao_google', 'clicado', 'fim_treino');
+end $$;
+select test_logout();
+do $$
+begin
+  if exists (select 1 from notificacoes_envios where dedupe = 'avaliacao:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and status = 'pendente') then raise exception 'T63c: responder não descartou o lembrete'; end if;
+  if exists (select 1 from crm_fila where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and dados->>'convite' = 'avaliacao_google') then raise exception 'T63d: clique no Google foi ao CRM como WhatsApp'; end if;
+end $$;
+\echo 'T63 OK: avaliação no Google'
