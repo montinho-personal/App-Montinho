@@ -240,7 +240,7 @@ export function recordesNoPeriodo(sessoes: SessaoCompleta[], p: Periodo): Record
   return out;
 }
 
-export type PontoEvolucao = { data: string; cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number; fonte: "app" | "resumo" };
+export type PontoEvolucao = { data: string; cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number; fonte: "app" | "resumo"; /** Média da carga das séries válidas do dia (sem aquecimento, só com carga). */ cargaMedia?: number | null };
 export type ResumoEvolucao = { data: string; exercicio_nome: string; series: number; carga_max_kg: number | null; volume_kg: number | null };
 
 /** Evolução por data. O resumo de outro app entra só nos dias sem registro no app (e sem e1RM: não há reps por série). */
@@ -249,10 +249,18 @@ export function evolucaoExercicio(sessoes: SessaoCompleta[], chave: string, resu
   const k = normalizarNome(chave);
   const b = mapa.get(k);
   const porData = new Map<string, PontoEvolucao>();
+  const media = new Map<string, { soma: number; n: number }>();
   for (const s of b?.series ?? []) {
     const d = porData.get(s.data) ?? { data: s.data, cargaMax: null, e1rmMax: null, tonelagem: 0, series: 0, fonte: "app" as const };
     d.series += 1;
     if (s.carga_kg != null) d.cargaMax = Math.max(d.cargaMax ?? 0, s.carga_kg);
+    if (s.carga_kg != null && s.carga_kg > 0) {
+      const m = media.get(s.data) ?? { soma: 0, n: 0 };
+      m.soma += s.carga_kg;
+      m.n += 1;
+      media.set(s.data, m);
+      d.cargaMedia = Math.round((m.soma / m.n) * 10) / 10;
+    }
     if (s.e1rm != null) d.e1rmMax = Math.max(d.e1rmMax ?? 0, s.e1rm);
     if (s.carga_kg != null && s.reps != null) d.tonelagem += s.carga_kg * s.reps;
     porData.set(s.data, d);

@@ -7,7 +7,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { variacao, type BarraTreino } from "@/lib/relatorios/graficos-aluno";
 
-export type PontoExercicio = { data: string; carga: number | null; volume: number };
+export type PontoExercicio = { data: string; carga: number | null; volume: number; /** Média da carga das séries válidas do dia. */ media?: number | null };
 type Aba = "treinos" | "exercicios" | "peso";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
@@ -80,9 +80,12 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
   const [barra, setBarra] = useState<string | null>(null);
   const atual = lista.find((t) => t.id === barra) ?? lista.at(-1);
   const [chave, setChave] = useState(exercicios[0]?.chave ?? "");
-  const [medida, setMedida] = useState<"carga" | "volume">("carga");
-  const pts = (pontos[chave] ?? []).filter((p) => (medida === "carga" ? p.carga != null && p.carga > 0 : p.volume > 0));
-  const valores = pts.map((p) => (medida === "carga" ? (p.carga as number) : p.volume));
+  const [medida, setMedida] = useState<"carga" | "media" | "volume">("carga");
+  const valorDe = (p: PontoExercicio) => (medida === "carga" ? p.carga : medida === "media" ? (p.media ?? null) : p.volume);
+  const pts = (pontos[chave] ?? []).filter((p) => (valorDe(p) ?? 0) > 0);
+  const valores = pts.map((p) => valorDe(p) as number);
+  // Melhor média do exercício (o dia em que as séries válidas, juntas, ficaram mais pesadas).
+  const melhorMedia = medida === "media" && pts.length ? pts.reduce((a, p) => ((p.media ?? 0) > (a.media ?? 0) ? p : a)) : null;
   const maxBarra = Math.max(1, ...lista.map((t) => t.volumeKg));
 
   return (
@@ -151,9 +154,9 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
               ))}
             </select>
             <div className="flex gap-1.5">
-              {(["carga", "volume"] as const).map((m) => (
+              {(["carga", "media", "volume"] as const).map((m) => (
                 <button key={m} type="button" aria-pressed={medida === m} onClick={() => setMedida(m)} className={`min-h-8 rounded-full border px-3 text-xs font-bold ${medida === m ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
-                  {m === "carga" ? "Maior carga" : "Volume do dia"}
+                  {m === "carga" ? "Maior carga" : m === "media" ? "Média das séries" : "Volume do dia"}
                 </button>
               ))}
             </div>
@@ -166,6 +169,11 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
                   </div>
                   <Variacao v={variacao(valores[0], valores.at(-1)!)} />
                 </div>
+                {melhorMedia ? (
+                  <p className="rounded-lg bg-bg px-3 py-2 text-xs text-fg-muted">
+                    🏆 Melhor média: <b className="text-accent">{kg(melhorMedia.media as number)}</b> em {ddmm(melhorMedia.data)}. Média = carga de todas as séries válidas do dia (sem aquecimento) somada e dividida pelo número de séries.
+                  </p>
+                ) : null}
                 <Linha key={`${chave}:${medida}`} valores={valores} datas={pts.map((p) => p.data)} rotulo={kg} />
               </>
             ) : (
