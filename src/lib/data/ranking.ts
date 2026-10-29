@@ -150,3 +150,16 @@ export async function verCutucadasRanking(): Promise<void> {
   const db = await getDb();
   await db.rpc("ver_cutucadas_ranking");
 }
+
+// ---------------------------------------------------------------------------
+// “Você sabia que o Montinho também treina pelo app?” (0117)
+// ---------------------------------------------------------------------------
+export type MontinhoNoRanking = { posicao: number | null; total: number; trofeus: number; carimbos: number; semanas_seguidas: number; recentes: string[] };
+
+export async function montinhoNoRanking(): Promise<MontinhoNoRanking | null> {
+  if (isDemoMode()) return { posicao: 2, total: DEMO.length + 1, trofeus: 16, carimbos: 41, semanas_seguidas: 5, recentes: ["cardio_escada_1h", "treino_samurai", "dose_dupla"] };
+  const db = await getDb();
+  const { data, error } = await db.rpc("montinho_no_ranking");
+  if (error || !data) return null;
+  return data as MontinhoNoRanking;
+}

@@ -8,6 +8,7 @@
 --   • Cutucar no ranking: ranking_cutucadas + cutucar_no_ranking() (1 por
 --     pessoa por dia), aviso no celular pelo canal dos desafios (0095),
 --     minhas_cutucadas_ranking() e ver_cutucadas_ranking().
+--   • montinho_no_ranking(): onde o “Meu treino” do personal estaria (sem entrar).
 -- Idempotente.
 -- ============================================================================
 create or replace function public.ranking_trofeus_v3()
@@ -162,3 +163,42 @@ returns void language sql security definer set search_path = public as $$
 $$;
 revoke all on function public.ver_cutucadas_ranking() from public, anon;
 grant execute on function public.ver_cutucadas_ranking() to authenticated;
+
+-- “Você sabia que o Montinho também treina pelo app?” ---------------------------
+-- Onde a ficha de aluno do personal (“Meu treino”) estaria no ranking, sem
+-- entrar nele: posição pela MESMA ordem do desempate, troféus, carimbos,
+-- semanas seguidas e os 3 troféus mais recentes. Qualquer aluno logado vê.
+create or replace function public.montinho_no_ranking()
+returns jsonb language sql stable security definer set search_path = public as $$
+  with fora as (select unnest(array['recorde','eu_voltei','desafio_concluido','cardio_voltei','cardio_500','cardio_1000','retomada_30']) as c),
+  m as (
+    select a.id from alunos a join profiles p on p.id = a.profile_id
+     where p.role = 'treinador' order by a.created_at limit 1
+  ),
+  contagem as (
+    select k.aluno_id, count(*)::int as n, max(k.primeira) as chegou_em
+      from (select c.aluno_id, c.codigo, min(c.conquistado_em) as primeira from conquistas_aluno c
+             where c.codigo not in (select c from fora) group by c.aluno_id, c.codigo) k
+     group by k.aluno_id
+  ),
+  base as (
+    select a.id, k.n, k.chegou_em, d.pct_semana, coalesce(d.carimbos, 0) as carimbos, coalesce(d.semanas_seguidas, 0) as seguidas, d.pct_4sem
+      from alunos a join contagem k on k.aluno_id = a.id left join ranking_desempate d on d.aluno_id = a.id
+     where a.status = 'ativo' and k.n > 0 and (a.ranking_visivel or a.id = (select id from m))
+  ),
+  ordenado as (
+    select b.*, rank() over (order by b.n desc, coalesce(b.pct_semana, -1) desc, b.carimbos desc, b.seguidas desc, coalesce(b.pct_4sem, -1) desc, b.chegou_em asc) as pos
+      from base b
+  )
+  select case when auth.uid() is null or (public.aluno_id_atual() is null and not public.is_treinador()) or (select id from m) is null then null else
+    jsonb_build_object(
+      'posicao', (select o.pos from ordenado o where o.id = (select id from m)),
+      'total', (select count(*) from ordenado),
+      'trofeus', coalesce((select o.n from ordenado o where o.id = (select id from m)), 0),
+      'carimbos', coalesce((select d.carimbos from ranking_desempate d where d.aluno_id = (select id from m)), 0),
+      'semanas_seguidas', coalesce((select d.semanas_seguidas from ranking_desempate d where d.aluno_id = (select id from m)), 0),
+      'recentes', coalesce((select jsonb_agg(x.codigo) from (select c.codigo, min(c.conquistado_em) as em from conquistas_aluno c where c.aluno_id = (select id from m) group by c.codigo order by 2 desc limit 3) x), '[]'::jsonb)
+    ) end;
+$$;
+revoke all on function public.montinho_no_ranking() from public, anon;
+grant execute on function public.montinho_no_ranking() to authenticated;

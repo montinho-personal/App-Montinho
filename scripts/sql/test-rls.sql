@@ -2222,3 +2222,16 @@ end $$;
 select test_logout();
 update alunos set ranking_visivel = true where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 \echo 'T68 OK: perfil do ranking e cutucar'
+
+-- T69 — 0117: “onde o Montinho estaria” — aluno lê só números, nunca entra no ranking
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v jsonb;
+begin
+  v := public.montinho_no_ranking();
+  -- sem ficha do personal na base de teste: nada a mostrar, sem erro
+  if v is not null and not (v ? 'posicao') then raise exception 'T69a: formato'; end if;
+  if exists (select 1 from public.ranking_trofeus_v3() r join alunos a on a.id = r.ref join profiles p on p.id = a.profile_id where p.role = 'treinador') then raise exception 'T69b: personal entrou no ranking'; end if;
+end $$;
+select test_logout();
+\echo 'T69 OK: Montinho no ranking'

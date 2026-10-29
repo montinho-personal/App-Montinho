@@ -8,7 +8,10 @@ import { getAluno } from "@/lib/db";
 import { fraseDoRanking, podioDaPosicao, PODIO, semMinhaLinha } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
 import { CutucadasRecebidas } from "@/components/ranking/CutucadasRecebidas";
-import { minhasCutucadasRanking } from "@/lib/data/ranking";
+import { minhasCutucadasRanking, montinhoNoRanking } from "@/lib/data/ranking";
+import { MontinhoNoRanking } from "@/components/ranking/MontinhoNoRanking";
+import { ehVisitante } from "@/lib/auth/guards";
+import { BRAND } from "@/config/brand";
 import { CompartilharRanking } from "@/components/ranking/CompartilharRanking";
 import { NarrativaRanking } from "@/components/ranking/NarrativaRanking";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
@@ -29,6 +32,7 @@ export default async function RankingPage() {
   const aluno = await getAluno(sessao.alunoId);
   if (aluno) await atualizarTrofeus([aluno]);
   const [todas, desafios, cutucadas] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => []), sessao.comoPersonal ? Promise.resolve([]) : minhasCutucadasRanking(sessao.alunoId).catch(() => [])]);
+  const montinho = sessao.comoPersonal ? null : await montinhoNoRanking().catch(() => null);
   // Personal no “Meu treino”: vê o ranking como aluno, mas fica fora dele.
   const linhas = sessao.comoPersonal ? semMinhaLinha(todas) : todas;
   const eu = linhas.find((l) => l.eu);
@@ -48,6 +52,7 @@ export default async function RankingPage() {
         </div>
         {eu && !sessao.comoPersonal ? <div className="mt-3"><CompartilharRanking dados={{ posicao: eu.posicao, trofeus: eu.trofeus, total: linhas.length, nome: (aluno?.profile?.nome ?? sessao.nome).split(" ")[0] }} /></div> : null}
       </div>
+      {montinho ? <MontinhoNoRanking dados={montinho} meusTrofeus={eu?.trofeus ?? null} minhaPosicao={eu?.posicao ?? null} nome={aluno?.profile?.nome ?? sessao.nome} visitante={ehVisitante(sessao)} whatsapp={BRAND.contact.whatsapp ?? null} /> : null}
       <RankingTrofeus linhas={linhas} desafiar />
       {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
