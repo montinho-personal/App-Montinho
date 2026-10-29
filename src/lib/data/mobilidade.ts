@@ -5,6 +5,8 @@
 // ============================================================================
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
+import { listAlunos } from "@/lib/db";
+import type { PessoaEnviar } from "@/components/mobilidade/EnviarMobilidade";
 import type { SlugMobilidade } from "@/lib/mobilidade/protocolos";
 import { LIMITES_MOBILIDADE, type SessaoMobilidade } from "@/lib/mobilidade/regras";
 
@@ -38,8 +40,21 @@ export async function iniciarMobilidade(alunoId: string, protocolo: SlugMobilida
   }
   const db = await getDb();
   const { data, error } = await db.from("mobilidade_sessoes").insert({ aluno_id: alunoId, protocolo, nota_antes: notaAntes }).select("*").single();
-  if (error) throw new Error(`Não foi possível começar: ${error.message}`);
+  if (error) throw new Error(faltaBanco(error.message) ? AINDA_ATIVANDO : `Não foi possível começar: ${error.message}`);
   return data as SessaoMobilidadeRow;
+}
+
+/** A 0116 ainda não rodou no banco: aviso claro em vez da mensagem técnica. */
+const AINDA_ATIVANDO = "A mobilidade está sendo ativada no app. Tente de novo daqui a pouco.";
+const faltaBanco = (m: string) => /schema cache|does not exist|could not find the (table|function)/i.test(m);
+
+/** Pessoas para o personal enviar a mobilidade no WhatsApp (ativas; sem a ficha dele). */
+export async function pessoasParaEnviar(semAlunoId?: string): Promise<PessoaEnviar[]> {
+  const alunos = await listAlunos({ incluirVisitantes: true }).catch(() => []);
+  return alunos
+    .filter((a) => a.status === "ativo" && a.id !== semAlunoId)
+    .map((a) => ({ id: a.id, nome: a.profile?.nome ?? "Sem nome", telefone: a.telefone ?? null, visitante: a.modalidade === "visitante" }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
 export class CedoDemais extends Error {
@@ -63,6 +78,7 @@ export async function concluirMobilidade(alunoId: string, id: string, notaDepois
   if (error) {
     const m = /cedo demais \((\d+) min\)/.exec(error.message);
     if (m) throw new CedoDemais(Number(m[1]));
+    if (faltaBanco(error.message)) throw new Error(AINDA_ATIVANDO);
     throw new Error(error.message.includes("expirada") ? "Esta sessão começou há muito tempo. Comece de novo." : `Não foi possível concluir: ${error.message}`);
   }
   return data as SessaoMobilidadeRow;

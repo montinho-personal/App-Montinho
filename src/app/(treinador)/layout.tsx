@@ -14,6 +14,7 @@ const NAV = [
   ...(FEATURES.modoVisitante ? [{ label: "Visitantes", href: "/treinador/visitantes", icon: "user" } as const, { label: "Leads", href: "/treinador/leads", icon: "chart" } as const] : []),
   { label: "Central de aderência", href: "/treinador/aderencia", icon: "chart" },
   { label: "Montinho Cardio", href: "/treinador/cardio", icon: "timer" },
+  { label: "Mobilidade", href: "/treinador/mobilidade", icon: "sparkles" },
   { label: "Celebrar conquistas", href: "/treinador/conquistas", icon: "star" },
   { label: "Ranking de troféus", href: "/treinador/ranking", icon: "trophy" },
   { label: "Conquistas da Tribo", href: "/treinador/tribo", icon: "users" },

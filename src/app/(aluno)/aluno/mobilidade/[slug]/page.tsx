@@ -2,7 +2,8 @@
 import { notFound } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/env";
-import { mobilidadeAberta } from "@/lib/data/mobilidade";
+import { mobilidadeAberta, pessoasParaEnviar } from "@/lib/data/mobilidade";
+import { EnviarMobilidade } from "@/components/mobilidade/EnviarMobilidade";
 import { ehSlugMobilidade, PROTOCOLOS } from "@/lib/mobilidade/protocolos";
 import { MobilidadeClient } from "@/components/mobilidade/MobilidadeClient";
 import { Voltar } from "@/components/ui/Voltar";
@@ -20,9 +21,12 @@ export default async function ProtocoloMobilidadePage({ params }: { params: Prom
   const sessao = await requireAlunoPage();
   // Continua a que ficou aberta (até 6 h), em vez de começar outra.
   const aberta = await mobilidadeAberta(sessao.alunoId, slug);
+  // O personal no app como aluno também pode mandar para alguém no WhatsApp.
+  const pessoas = sessao.comoPersonal ? await pessoasParaEnviar(sessao.alunoId) : null;
   return (
     <div className="space-y-3">
       <Voltar href="/aluno/mobilidade" />
+      {pessoas ? <EnviarMobilidade pessoas={pessoas} inicial={slug} /> : null}
       <MobilidadeClient slug={slug} nome={sessao.nome} demo={isDemoMode()} emAndamento={aberta ? { id: aberta.id, iniciado_em: aberta.iniciado_em, nota_antes: aberta.nota_antes } : null} />
     </div>
   );
