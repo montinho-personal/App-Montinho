@@ -24,10 +24,26 @@ export function papelEfetivo(role: Papel | null, comoAluno: boolean): Papel | nu
 }
 
 /** Decide o destino de uma rota privada para o papel atual. Retorna null quando permitido. */
+/**
+ * Link do app do aluno aberto pelo personal (ex.: o link da mobilidade que ele
+ * mandou no WhatsApp): leva para a tela equivalente do painel, não para o início.
+ */
+const EQUIVALENTE_PERSONAL: Array<[string, string]> = [
+  ["/aluno/mobilidade", "/treinador/mobilidade"],
+  ["/aluno/cardio", "/treinador/cardio"],
+  ["/aluno/ranking", "/treinador/ranking"],
+  ["/aluno/desafios", "/treinador/desafios"],
+  ["/aluno/conquistas/tribo", "/treinador/tribo"],
+  ["/aluno/conquistas", "/treinador/conquistas"],
+];
+export function telaDoPersonal(pathname: string): string {
+  return EQUIVALENTE_PERSONAL.find(([a]) => pathname === a || pathname.startsWith(`${a}/`))?.[1] ?? "/treinador";
+}
+
 export function redirecionamentoPorPapel(role: Papel | null, pathname: string): string | null {
   if (!role) return `/login?next=${encodeURIComponent(pathname)}`;
   if (pathname.startsWith("/treinador") && role !== "treinador") return "/aluno";
-  if (pathname.startsWith("/aluno") && role !== "aluno") return "/treinador";
+  if (pathname.startsWith("/aluno") && role !== "aluno") return telaDoPersonal(pathname);
   return null;
 }
 

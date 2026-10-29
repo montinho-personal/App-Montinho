@@ -26,6 +26,10 @@ describe("autorização — aluno A nunca acessa aluno B", () => {
     expect(redirecionamentoPorPapel("treinador", "/aluno/treinar")).toBe("/treinador");
     expect(redirecionamentoPorPapel("treinador", "/treinador")).toBeNull();
     expect(redirecionamentoPorPapel("aluno", "/aluno/evolucao")).toBeNull();
+    // Link do aluno aberto pelo personal: tela equivalente do painel.
+    expect(redirecionamentoPorPapel("treinador", "/aluno/mobilidade/superiores")).toBe("/treinador/mobilidade");
+    expect(redirecionamentoPorPapel("treinador", "/aluno/conquistas/tribo")).toBe("/treinador/tribo");
+    expect(redirecionamentoPorPapel("treinador", "/aluno/cardiologia")).toBe("/treinador");
   });
 
   it("cookie de demo só aceita personas conhecidas", () => {
