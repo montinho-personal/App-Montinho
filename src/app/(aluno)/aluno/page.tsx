@@ -68,6 +68,11 @@ import { tecnicasFeitas } from "@/lib/conquistas/regras";
 import { TrofeusHojeEProximos } from "@/components/conquistas/TrofeusAoAlcance";
 import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
+import { DiaConcluido } from "@/components/inicio/DiaConcluido";
+import { estadoDoDia, fraseDoDia } from "@/lib/inicio/dia";
+import { contaCarimbo } from "@/lib/conquistas/carimbos";
+import { carimbosDe } from "@/lib/data/ranking";
+import { LIMITES_CARDIO } from "@/lib/cardio/regras";
 import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
 
 export const metadata = { title: "Início" };
@@ -133,6 +138,12 @@ export default async function AlunoHomePage() {
   const livreMetas = placarSemana?.origem === "livre_metas" ? placarSemana : null;
   // Indicação premiada (0102): desconto de quem indicou amigos que fecharam.
   const indicacao = sessao.comoPersonal ? null : await minhaIndicacao(alunoId).catch(() => null);
+  // Treino de hoje já feito: o Início comemora (e destaca o cardio, se faltar).
+  const hojeSP = dataLocal(new Date());
+  const treinoDeHoje = sessoes.filter((s) => dataLocal(s.iniciado_em) === hojeSP && contaCarimbo(s)).at(-1) ?? null;
+  const cardioMinHoje = (cardio?.feitos ?? []).filter((f) => f.data === hojeSP && f.status !== "nao_realizado").reduce((a, f) => a + f.duracaoMin, 0);
+  const estadoDia = emAndamento ? "a_fazer" : estadoDoDia({ treinoHoje: !!treinoDeHoje, cardioHoje: cardioMinHoje >= LIMITES_CARDIO.minutosMin, cardioPendente: cardioPendentes.length > 0 });
+  const carimbos = estadoDia === "a_fazer" ? null : await carimbosDe([alunoId]).then((r) => r[alunoId] ?? 0).catch(() => sessoes.filter(contaCarimbo).length);
 
   return (
     <div className="space-y-5">
@@ -156,8 +167,10 @@ export default async function AlunoHomePage() {
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
 
-      {/* 1. Sessão em andamento ou próximo treino — CTA prioritário */}
-      {emAndamento ? (
+      {/* 1. Sessão em andamento, dia concluído ou próximo treino — CTA prioritário */}
+      {estadoDia !== "a_fazer" && treinoDeHoje ? (
+        <DiaConcluido estado={estadoDia} nome={primeiroNome} treinoHoje={treinoDeHoje.letra ? `Treino ${treinoDeHoje.letra}${treinoDeHoje.nome_treino ? ` · ${treinoDeHoje.nome_treino}` : ""}` : (treinoDeHoje.nome_treino ?? "Treino")} cardioMinHoje={cardioMinHoje} frase={fraseDoDia(hojeSP, estadoDia === "completo" && cardioMinHoje > 0)} trofeus={ganhas} carimbos={carimbos} pendentes={cardioPendentes} />
+      ) : emAndamento ? (
         <Card className="border-accent/50 bg-grain-strong">
           <CardBody className="space-y-3">
             <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Treino em andamento</p>
@@ -248,7 +261,7 @@ export default async function AlunoHomePage() {
       {cardio?.prescricoes.length ? (
         <div className="space-y-2">
           <SemanaCardioCard semana={cardio.semanas.find((w) => w.atual) ?? null} link />
-          <CardioHoje pendentes={cardioPendentes} nome={primeiroNome} livre={false} compacto />
+          {estadoDia === "falta_cardio" ? null : <CardioHoje pendentes={cardioPendentes} nome={primeiroNome} livre={false} compacto />}
         </div>
       ) : cardio ? (
         // Sem cardio no protocolo: dá para anotar o que fizer por conta própria.
