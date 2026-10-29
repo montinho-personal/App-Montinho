@@ -1,5 +1,5 @@
-// “Pacote Flexível · 10 aulas” (pedido do Montinho, 29/10/2026): aulas
-// presenciais para usar quando der, sem horário fixo. Sem preço (dá para
+// “Pacote Flexível · 10 aulas” (pedido do Montinho, 29/10/2026): a consultoria
+// online completa + aulas presenciais para usar quando der, sem horário fixo. Sem preço (dá para
 // parcelar; valores pelo WhatsApp). Textos em src/lib/montinho/apresentacao.ts.
 import { requireAlunoPage } from "@/lib/auth/session";
 import { ehVisitante } from "@/lib/auth/guards";
@@ -31,6 +31,29 @@ export default async function PacoteFlexivelPage() {
         {botao}
         <p className="text-center text-xs text-fg-subtle">Dá para parcelar. Os valores eu passo no WhatsApp.</p>
       </section>
+      <section className="space-y-3 rounded-3xl border border-accent/40 bg-[linear-gradient(160deg,#2a2415_0%,#111111_80%)] p-5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-accent">Tudo junto</p>
+        <h2 className="text-2xl font-extrabold leading-tight">{P.consultoria.titulo}</h2>
+        <p className="text-sm leading-relaxed text-fg-muted">{P.consultoria.texto}</p>
+        <ul className="space-y-2">
+          {P.consultoria.itens.map((v) => <li key={v} className="flex gap-2 text-sm leading-relaxed"><span aria-hidden className="text-accent">✓</span>{v}</li>)}
+        </ul>
+        <p className="rounded-xl border border-accent/50 bg-bg/60 px-3 py-2 text-center text-sm font-bold">Consultoria online <span className="text-accent">+</span> 10 aulas presenciais</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-2xl font-extrabold leading-tight">{P.aula.titulo}</h2>
+        <p className="text-sm leading-relaxed text-fg-muted">{P.aula.texto}</p>
+        <div className="grid gap-3">
+          {P.aula.itens.map((a) => (
+            <div key={a.titulo} className="rounded-2xl border border-border bg-card p-4">
+              <p className="font-bold"><span aria-hidden>{a.icone}</span> {a.titulo}</p>
+              <p className="mt-1 text-sm leading-relaxed text-fg-muted">{a.texto}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="space-y-3">
         <h2 className="text-2xl font-extrabold leading-tight">Feito para quem…</h2>
         {P.paraQuem.map((q) => (
@@ -40,7 +63,7 @@ export default async function PacoteFlexivelPage() {
           </div>
         ))}
       </section>
-      <section className="space-y-3 rounded-3xl border border-accent/40 bg-[linear-gradient(160deg,#2a2415_0%,#111111_80%)] p-5">
+      <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
         <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-accent">Do seu jeito</p>
         <h2 className="text-2xl font-extrabold leading-tight">Como usar as 10 aulas</h2>
         <ul className="space-y-3">

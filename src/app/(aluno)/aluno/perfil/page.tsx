@@ -182,7 +182,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
           <ItemLink icone="📖" titulo="Minha história" sub="Do “gordinho da turma” a −40 kg" href="/aluno/historia" />
           <ItemLink icone="💎" titulo="A consultoria" sub="Como funciona o acompanhamento" href="/aluno/consultoria" />
           <ItemLink icone="🏋️" titulo="Personal presencial" sub="Eu do seu lado em cada série" href="/aluno/presencial" />
-          <ItemLink icone="🎟️" titulo="Pacote Flexível · 10 aulas" sub="Aulas presenciais quando você puder" href="/aluno/pacote-flexivel" />
+          <ItemLink icone="🎟️" titulo="Pacote Flexível · 10 aulas" sub="Consultoria online + aulas quando você puder" href="/aluno/pacote-flexivel" />
         </Grupo>
       ) : null}
 

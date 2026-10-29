@@ -135,14 +135,36 @@ export const PRESENCIAL = {
   app: "Nos dias em que eu não estou com você, o treino segue no app: carga da última vez, descanso contando sozinho, vídeo de cada exercício e os meus recados. Nenhum treino fica solto.",
   formatos: [
     { nome: "Pacote por frequência semanal", texto: "De 2 a 5 treinos por semana, com horário fixo. Quanto mais treinos na semana, menor o valor por sessão." },
-    { nome: "Pacote Flexível", texto: "10 aulas para usar quando você puder, sem horário fixo.", href: "/aluno/pacote-flexivel" },
+    { nome: "Pacote Flexível", texto: "Consultoria online completa + 10 aulas presenciais para usar quando você puder, sem horário fixo.", href: "/aluno/pacote-flexivel" },
   ],
 };
 
 export const PACOTE_FLEXIVEL = {
   chamada: "Pacote Flexível · 10 aulas",
   titulo: "10 aulas comigo. Você decide quando.",
-  intro: "Você compra 10 aulas presenciais e usa no ritmo da sua vida — sem horário fixo, sem perder aula porque a semana virou de cabeça para baixo.",
+  intro: "Você leva a consultoria online completa + 10 aulas presenciais comigo para usar no ritmo da sua vida — sem horário fixo, sem perder aula porque a semana virou de cabeça para baixo.",
+  // Toda a consultoria online vem junto (decisão do Montinho, 29/10/2026).
+  consultoria: {
+    titulo: "A consultoria online inteira vem junto",
+    texto: "O Pacote Flexível não é só aula avulsa: você tem todo o acompanhamento da consultoria online, todos os dias. As aulas presenciais entram por cima, quando você puder.",
+    itens: [
+      "Treino montado para você no app, com vídeo de cada exercício",
+      "Eu acompanho os seus treinos e ajusto quando a carga trava ou a rotina muda",
+      "Revisão dos seus vídeos de execução pelo WhatsApp",
+      "Direto comigo no WhatsApp, sem intermediário",
+      "Reavaliações para decidir o próximo ciclo",
+    ],
+  },
+  aula: {
+    titulo: "O que uma aula comigo muda",
+    texto: "Mesmo de vez em quando, treinar do meu lado faz diferença no treino que você faz sozinho depois.",
+    itens: [
+      { icone: "🎯", titulo: "Técnica afinada", texto: "Eu vejo a execução de perto e corrijo na hora, antes da próxima repetição." },
+      { icone: "🧠", titulo: "Você entende a sua falha", texto: "Aprende a perceber quanto ainda tinha de margem — e descobre que tinha mais do que imaginava." },
+      { icone: "🔥", titulo: "Mentalidade de treino", texto: "Ritmo, foco e intensidade de quem treina sério. Isso contagia." },
+      { icone: "🚀", titulo: "O próximo treino sozinho rende mais", texto: "Depois de uma aula comigo, a cabeça abre: você percebe que consegue pegar mais peso e leva isso para os treinos seguintes." },
+    ],
+  },
   paraQuem: [
     { icone: "✈️", titulo: "Vive viajando", texto: "Rotina que muda toda hora, sem dias fixos? As aulas esperam você voltar." },
     { icone: "💰", titulo: "Ainda não dá para ter personal toda semana", texto: "Comece com o pacote e tenha acompanhamento de perto sem o compromisso de todas as semanas." },
@@ -156,7 +178,8 @@ export const PACOTE_FLEXIVEL = {
     { icone: "🚀", titulo: "No fim, para puxar mais", texto: "Junte as aulas no final do protocolo para intensificar e fechar com tudo." },
   ],
   vantagens: [
-    "Sem horário fixo: você usa quando puder",
+    "Consultoria online completa, com o treino no app e eu acompanhando",
+    "Sem horário fixo: você usa as aulas quando puder",
     "Eu corrijo a sua execução ao vivo e ajusto as cargas",
     "Entre as aulas, o seu treino continua no app, com vídeo e carga da última vez",
     "Dá para parcelar",
@@ -196,5 +219,5 @@ export const COMPARTILHAR: Record<OrigemContato, { url: string; titulo: string; 
   historia: { url: "https://www.montinhopersonal.com.br/minha-historia", titulo: "A história do Montinho", texto: "Olha essa história: do “gordinho da turma” a −40 kg em 12 meses. Vale a leitura!" },
   consultoria: { url: "https://www.montinhopersonal.com.br/consultoria", titulo: "Consultoria Montinho", texto: "Conheça a consultoria do Montinho: treino feito para a sua rotina e acompanhamento de verdade." },
   presencial: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Personal presencial com o Montinho", texto: "Personal presencial em Alphaville com o Montinho: ele do seu lado em cada série." },
-  pacote: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Pacote Flexível do Montinho", texto: "10 aulas com o Montinho para usar quando você puder, sem horário fixo. Olha que legal:" },
+  pacote: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Pacote Flexível do Montinho", texto: "Consultoria online + 10 aulas com o Montinho para usar quando você puder, sem horário fixo. Olha que legal:" },
 };
