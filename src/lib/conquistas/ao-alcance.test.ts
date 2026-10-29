@@ -165,4 +165,16 @@ describe("troféus por ação (compartilhar, indicar, desafios, dia em dobro)", 
     expect(chamadaDaAcao("cardio", abertas, { ...base, musculacoesHoje: 1 })).toMatchObject({ codigo: "combo_completo", agora: true });
     expect(chamadaDaAcao("cardio", new Map(), { ...base, musculacoesHoje: 1 })).toBeNull();
   });
+
+  it("Combo em sequência: falta 1 dia → ainda hoje; se hoje já valeu, amanhã", () => {
+    const hojeC = "2026-10-21";
+    const sessoes = dias("2026-10-19", "2026-10-20");
+    const aderencia = calcularAderencia({ inicio: "2026-09-28", hoje: hojeC, metas, sessoes });
+    const cardio = { feitos: 2, temPrescricao: false, prescricaoLonga: false, comboSeguidos: 2 };
+    const medalhas = vitrineDeMedalhas({ conquistas: COMECO, sessoes, aderencia, hoje: hojeC, cardio });
+    const um = trofeusNosProximosDias({ medalhas, aderencia, hoje: hojeC, tecnicasFeitas: new Set(), treinos: [], acoes: base }).find((i) => i.codigo === "combo_3");
+    expect(um?.quando).toBe("Hoje");
+    const dois = trofeusNosProximosDias({ medalhas, aderencia, hoje: hojeC, tecnicasFeitas: new Set(), treinos: [], acoes: { ...base, comboHoje: true } }).find((i) => i.codigo === "combo_3");
+    expect(dois?.quando).toBe("Amanhã");
+  });
 });

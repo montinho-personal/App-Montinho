@@ -11,6 +11,7 @@ import { statusStrava } from "@/lib/data/strava";
 import { marcosCompartilhar, progressoCompartilhar, type EventoCompartilhar, type MarcosCompartilhar } from "@/lib/conquistas/compartilhar";
 import { chamadaDaAcao, type AcaoTrofeu, type AcoesAlcance, type ChamadaTrofeu } from "@/lib/conquistas/ao-alcance";
 import { contaCarimbo } from "@/lib/conquistas/carimbos";
+import { diasDeCardioCombo } from "@/lib/conquistas/combo-seguido";
 import { LIMITES_CARDIO, proximoMarco } from "@/lib/cardio/regras";
 import { marcosDosDesafios } from "@/lib/data/desafios";
 import { codigoDoLink } from "@/lib/chalala/link";
@@ -428,6 +429,7 @@ export async function acoesAlcance(s: { alunoId: string; modalidade?: string; co
     musculacoesHoje: sessoesHoje.filter((x) => dataLocal(x.iniciado_em) === hoje && contaCarimbo(x)).length,
     cardiosHoje: validos.filter((f) => f.data === hoje).length,
     cardiosFeitos: proximoMarco(cardios).feitos,
+    comboHoje: sessoesHoje.some((x) => dataLocal(x.iniciado_em) === hoje && contaCarimbo(x)) && diasDeCardioCombo(cardios).has(hoje),
   };
 }
 

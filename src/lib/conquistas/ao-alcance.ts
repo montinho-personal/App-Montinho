@@ -46,6 +46,8 @@ export type AcoesAlcance = {
   cardiosHoje: number;
   /** Cardios válidos até hoje (marcos de quantidade). */
   cardiosFeitos: number;
+  /** Hoje já tem musculação + 20 min de cardio (o dia do Combo em sequência fechou). */
+  comboHoje?: boolean;
 };
 
 /** Itens que dá para ganhar ainda hoje (o resto é “nos próximos dias”). */
@@ -306,6 +308,19 @@ function trofeusDasAcoes(medalhas: Medalha[], a: AcoesAlcance): ItemAlcance[] {
   }
   const dois = aberta("dois_folegos");
   if (dois && a.cardiosHoje === 1) out.push(item(dois, "Faça mais um cardio de 10 minutos ou mais hoje (ex.: um de manhã e outro à noite).", "Hoje"));
+  // Combo em sequência (0111): o próximo marco quando falta pouco.
+  const comboSeq = (["combo_3", "combo_5", "combo_7", "combo_10", "combo_30"] as CodigoConquista[]).map((c) => aberta(c)).find((m) => !!m);
+  if (comboSeq && comboSeq.alvo && (comboSeq.atual ?? 0) > 0) {
+    const faltam = comboSeq.alvo - (comboSeq.atual ?? 0);
+    if (faltam === 1) out.push(item(comboSeq, a.comboHoje ? "Hoje já valeu! Amanhã, musculação e 20 minutos ou mais de cardio no mesmo dia." : "Musculação e 20 minutos ou mais de cardio hoje fecham a sequência.", a.comboHoje ? "Amanhã" : "Hoje"));
+    else if (faltam <= 3) out.push(item(comboSeq, `Musculação e 20 minutos ou mais de cardio por mais ${faltam} dias seguidos.`, `Em ${faltam} dias`));
+  }
+  // 500 e 1.000 séries: quando falta pouco (cerca de uma semana de treino).
+  const series = (["series_500", "series_1000"] as CodigoConquista[]).map((c) => aberta(c)).find((m) => !!m);
+  if (series && series.alvo && (series.atual ?? 0) > 0) {
+    const f = series.alvo - (series.atual ?? 0);
+    if (f > 0 && f <= 60) out.push(item(series, `Faltam ${f} ${f === 1 ? "série válida" : "séries válidas"} (aquecimento não conta).`, f <= 20 ? "No próximo treino" : "Nos próximos treinos"));
+  }
   const dupla = aberta("dose_dupla");
   if (dupla && a.musculacoesHoje === 1) out.push(item(dupla, "Com a recuperação em dia, um 2º treino hoje (extra ou livre) dá a Dose Dupla.", "Hoje"));
   return out;
