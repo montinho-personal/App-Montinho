@@ -127,6 +127,8 @@ export type LinhaVolume = {
   exerciciosRevisar: number;
   inferior: boolean;
   superior: boolean;
+  /** “Ombros” = total de anterior + lateral + posterior (+ os de ombro geral), com os deltoides separados. Fica fora das somas de inferiores/superiores para não contar duas vezes. */
+  somaDasPartes?: boolean;
 };
 
 export type ResultadoVolume = {
@@ -241,6 +243,11 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
     return l;
   };
 
+  // Ombros no geral (pedido do Montinho, 29/10/2026): com os deltoides separados,
+  // a linha “Ombros” mostra o TOTAL das partes; as partes aparecem embaixo.
+  const doOmbro = (g: GrupoMuscular) => g === "ombros" || SUBGRUPOS_OMBRO.includes(g);
+  const totalOmbros = { porDia: Object.fromEntries(letras.map((x) => [x, 0])) as Record<string, number>, total: 0, secundario: 0, deTecnicas: 0, frequencia: 0, tecnicas: {} as Partial<Record<Tecnica, number>> };
+
   let sessoesSemana = 0;
   const regra: RegraTecnicas = opcoes.regraTecnicas && REGRAS_TECNICAS[opcoes.regraTecnicas] ? opcoes.regraTecnicas : "moderada";
   let usouTecnica = false;
@@ -255,6 +262,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
     sessoesSemana += vezes;
     // grupos tocados neste dia (para frequência por grupo)
     const tocados = new Set<GrupoMuscular>();
+    let tocouOmbro = false;
 
     for (const ex of dia.exercicios) {
       if (!ex.nome?.trim()) continue;
@@ -292,6 +300,13 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
       linha.deTecnicas += tec.bonus * fator * vezes;
       if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) linha.tecnicas[ex.tecnica] = (linha.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes;
       if (vezes > 0) tocados.add(g);
+      if (!agruparOmbros && doOmbro(g)) {
+        totalOmbros.porDia[dia.letra] = (totalOmbros.porDia[dia.letra] ?? 0) + validas;
+        totalOmbros.total += semana;
+        totalOmbros.deTecnicas += tec.bonus * fator * vezes;
+        if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) totalOmbros.tecnicas[ex.tecnica] = (totalOmbros.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes;
+        if (vezes > 0) tocouOmbro = true;
+      }
 
       if (opcoes.incluirSecundario) {
         const pesos = usarPesos ? ex.pesosSecundarios ?? null : null;
@@ -302,10 +317,13 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
           const peso = typeof bruto === "number" && Number.isFinite(bruto) ? Math.max(0, Math.min(1, bruto)) : fatorSec;
           if (pesos && typeof bruto === "number") usouPesos = true;
           getLinha(gs).secundario += validas * peso * vezes;
+          // No total de ombros, o secundário de outra parte do ombro não soma de novo (é o mesmo músculo).
+          if (!agruparOmbros && doOmbro(gs) && !doOmbro(g)) totalOmbros.secundario += validas * peso * vezes;
         }
       }
     }
     for (const g of tocados) getLinha(g).frequencia += vezes;
+    if (tocouOmbro) totalOmbros.frequencia += vezes;
   }
 
   if (avisoAquec) avisos.push("Séries de aquecimento não contam como séries válidas.");
@@ -322,8 +340,18 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         ? `Volume ponderado = séries diretas + secundário estimado com os pesos de cada exercício da biblioteca (ex.: supino: tríceps 0,5). Sem peso cadastrado, usa ${Math.round(fatorSec * 100)}% por série. A comparação com a meta usa esse total (direto + secundário).`
         : `Estímulo secundário estimado (${Math.round(fatorSec * 100)}% por série) somado ao direto na comparação com a meta.`
     );
-  if (!agruparOmbros && opcoes.metas && (opcoes.metas as Record<string, unknown>).ombros)
-    avisos.push("Há meta para “Ombros” no total, mas os deltoides estão separados (anterior, lateral e posterior). Defina metas por porção ou agrupe os ombros.");
+  // Com alguma parte do ombro em uso (ou com meta), “Ombros” vira o total das partes.
+  const metasOmbro = Object.keys(opcoes.metas ?? {}).some((g) => SUBGRUPOS_OMBRO.includes(g as GrupoMuscular));
+  if (!agruparOmbros && (metasOmbro || SUBGRUPOS_OMBRO.some((g) => porGrupo.has(g)))) {
+    const l = getLinha("ombros");
+    l.porDia = { ...totalOmbros.porDia };
+    l.total = totalOmbros.total;
+    l.secundario = totalOmbros.secundario;
+    l.deTecnicas = totalOmbros.deTecnicas;
+    l.tecnicas = { ...totalOmbros.tecnicas };
+    l.frequencia = totalOmbros.frequencia;
+    l.somaDasPartes = true;
+  }
 
   // metas e status
   const metas = opcoes.metas ?? {};
@@ -367,7 +395,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
   );
 
   const soma = (pred: (l: LinhaVolume) => boolean) =>
-    Math.round(linhas.filter(pred).reduce((n, l) => n + l.total, 0) * 100) / 100;
+    Math.round(linhas.filter((l) => !l.somaDasPartes && pred(l)).reduce((n, l) => n + l.total, 0) * 100) / 100;
 
   return {
     letras,

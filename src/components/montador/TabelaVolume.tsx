@@ -243,14 +243,18 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
               {linhas.map((l) => {
                 const prioritario = prioridades.includes(l.grupo);
                 const real = realizado?.[l.grupo];
+                // Ombros = total; as partes (anterior/lateral/posterior) aparecem como “↳” (pedido do Montinho, 29/10/2026).
+                const parteOmbro = l.grupo.startsWith("ombro_") && resultado.linhas.some((x) => x.somaDasPartes);
+                const rotulo = l.somaDasPartes ? "Ombros (total)" : parteOmbro ? `↳ ${l.label.replace("Ombro a", "A").replace("Ombro l", "L").replace("Ombro p", "P")}` : l.label;
                 return (
                   <tr key={l.grupo} className="border-t border-border">
-                    <td className="px-1 py-1.5">
+                    <td className={`px-1 py-1.5 ${parteOmbro ? "pl-4" : ""}`}>
                       <button type="button" onClick={() => togglePrioridade(l.grupo)} disabled={!onPrioridades} className="inline-flex min-h-6 items-center gap-1.5 text-left disabled:cursor-default" title={!onPrioridades ? (prioritario ? "Prioritário" : undefined) : prioritario ? "Prioritário (clique para remover)" : "Marcar como prioritário"}>
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: GRUPO_COR[l.grupo] }} aria-hidden />
-                        <span className={`font-semibold ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{l.label}</span>
+                        <span className={`${parteOmbro ? "font-medium text-fg-muted" : "font-semibold"} ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{rotulo}</span>
                         {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
                       </button>
+                      {l.somaDasPartes ? <span className="block text-[10px] text-fg-subtle leading-snug">anterior + lateral + posterior</span> : null}
                       {Object.keys(l.tecnicas).length ? (
                         <span className="block text-[10px] text-accent leading-snug">
                           {(Object.entries(l.tecnicas) as Array<[Tecnica, number]>)

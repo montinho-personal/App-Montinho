@@ -332,12 +332,28 @@ describe("volume ponderado com pesos da biblioteca", () => {
     expect(r.linhas.find((x) => x.grupo === "biceps")!.secundario).toBe(1);
   });
 
-  it("avisa quando há meta de Ombros no total e os deltoides estão separados", () => {
-    const r = calcularVolumeSemanal(dia([{ id: "1", nome: "Elevação lateral", grupo: "ombro_lateral", series: 3 }]), {
-      frequencia: { A: 1 },
-      metas: { ombros: { min: 8, max: 12 } },
-      agruparOmbros: false,
-    });
-    expect(r.avisos.join(" ")).toMatch(/deltoides estão separados/);
+  it("com os deltoides separados, Ombros é o total das partes (sem contar duas vezes)", () => {
+    const r = calcularVolumeSemanal(
+      dia([
+        { id: "1", nome: "Elevação lateral", grupo: "ombro_lateral", series: 3 },
+        { id: "2", nome: "Crucifixo invertido", grupo: "ombro_posterior", series: 4 },
+        { id: "3", nome: "Desenvolvimento", grupo: "ombro_anterior", series: 3, secundarios: ["ombro_lateral", "triceps"], pesosSecundarios: { ombro_lateral: 0.5, triceps: 0.5 } },
+        { id: "4", nome: "Supino", grupo: "peito", series: 4, secundarios: ["ombro_anterior"], pesosSecundarios: { ombro_anterior: 0.5 } },
+      ]),
+      { frequencia: { A: 2 }, metas: { ombros: { min: 12, max: 24 } }, agruparOmbros: false, incluirSecundario: true }
+    );
+    const l = (g: string) => r.linhas.find((x) => x.grupo === g)!;
+    expect(l("ombros").total).toBe(20); // (3 + 4 + 3) × 2
+    expect(l("ombros").porDia.A).toBe(10);
+    expect(l("ombros").frequencia).toBe(2);
+    expect(l("ombros").secundario).toBe(4); // só o supino (0,5 × 4 × 2); o lateral do desenvolvimento já está no total
+    expect(l("ombros").status).toBe("na_meta"); // 20 + 4 = 24, dentro de 12–24
+    expect(l("ombros").somaDasPartes).toBe(true);
+    expect(r.subtotais.total).toBe(28); // 20 de ombros (partes) + 8 de peito, sem a linha do total
+    expect(r.avisos.join(" ")).not.toMatch(/deltoides estão separados/);
+  });
+  it("sem nenhuma parte do ombro, Ombros continua como antes", () => {
+    const r = calcularVolumeSemanal(dia([{ id: "1", nome: "Desenvolvimento", grupo: "ombros", series: 3 }]), { frequencia: { A: 1 }, agruparOmbros: false });
+    expect(r.linhas.find((x) => x.grupo === "ombros")!.somaDasPartes).toBeUndefined();
   });
 });
