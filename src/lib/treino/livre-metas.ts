@@ -23,7 +23,20 @@ export const STATUS_META: Record<StatusMeta, { emoji: string; rotulo: string }> 
   acima: { emoji: "🔴", rotulo: "passou do limite" },
 };
 
-export type LinhaPlacar = { grupo: GrupoMuscular; nome: string; feitas: number; min: number; max: number; status: StatusMeta; faltam: number };
+export type LinhaPlacar = {
+  grupo: GrupoMuscular;
+  nome: string;
+  feitas: number;
+  min: number;
+  max: number;
+  status: StatusMeta;
+  faltam: number;
+  /** Só na linha “Ombros” (o total) quando há partes com meta: as partes SEM meta própria (ex.: anterior), para a soma fechar na tela. */
+  partes?: Array<{ grupo: GrupoMuscular; nome: string; feitas: number }>;
+};
+
+/** Partes do ombro; “Ombros” é o total delas (pedido do Montinho, 29/10/2026). */
+export const PARTES_OMBRO: GrupoMuscular[] = ["ombro_anterior", "ombro_lateral", "ombro_posterior"];
 
 export function statusDaMeta(feitas: number, m: MetaVolume): StatusMeta {
   if (feitas <= 0) return "zerado";
@@ -34,13 +47,18 @@ export function statusDaMeta(feitas: number, m: MetaVolume): StatusMeta {
 
 /** Placar da semana, na ordem dos músculos do app. Só os músculos com meta. */
 export function placarDaSemana(metas: Partial<Record<GrupoMuscular, MetaVolume>>, feitas: Partial<Record<GrupoMuscular, number>>): LinhaPlacar[] {
-  return (Object.entries(metas) as Array<[GrupoMuscular, MetaVolume | undefined]>)
+  const temMeta = (g: GrupoMuscular) => !!metas[g] && metas[g]!.max > 0;
+  const comPartes = temMeta("ombros") && PARTES_OMBRO.some(temMeta);
+  const linhas = (Object.entries(metas) as Array<[GrupoMuscular, MetaVolume | undefined]>)
     .filter((x): x is [GrupoMuscular, MetaVolume] => !!x[1] && x[1].max > 0)
     .sort(([a], [b]) => GRUPOS_ORDEM.indexOf(a) - GRUPOS_ORDEM.indexOf(b))
     .map(([grupo, m]) => {
       const f = Math.round((feitas[grupo] ?? 0) * 10) / 10;
       return { grupo, nome: GRUPO_LABEL[grupo] ?? grupo, feitas: f, min: m.min, max: m.max, status: statusDaMeta(f, m), faltam: Math.max(0, Math.ceil(m.min - f)) };
     });
+  if (!comPartes) return linhas;
+  const partes = PARTES_OMBRO.filter((g) => !temMeta(g)).map((g) => ({ grupo: g, nome: GRUPO_LABEL[g] ?? g, feitas: Math.round((feitas[g] ?? 0) * 10) / 10 }));
+  return linhas.map((l) => (l.grupo === "ombros" ? { ...l, partes } : l));
 }
 
 /** Folga da meta tirada da ficha: até 25% a mais que o previsto ainda está na faixa. */
@@ -92,7 +110,8 @@ export function sugestaoDeAgora(placar: LinhaPlacar[], opts: { hoje: string; rec
   const peso = (l: LinhaPlacar) => l.faltam / Math.max(1, l.min) + (l.status === "zerado" ? 0.5 : 0) - (recentes.has(l.grupo) ? 1 : 0);
   const escolhidos = [...falta].sort((a, b) => peso(b) - peso(a) || b.faltam - a.faltam).slice(0, 3).filter((l, i) => i === 0 || !recentes.has(l.grupo));
   const motivos = escolhidos.map((l) => (l.status === "zerado" ? `${l.nome}: ainda nada na semana (0 de ${faixa(l)})` : `${l.nome}: ${fmt(l.feitas)} de ${faixa(l)}, faltam ${l.faltam}`));
-  const ok = placar.filter((l) => l.status === "na_faixa" || l.status === "limite" || l.status === "acima").map((l) => l.nome);
+  // “Já estão na faixa” só para quem está DENTRO da faixa (no limite/passou não é “na faixa”).
+  const ok = placar.filter((l) => l.status === "na_faixa").map((l) => l.nome);
   const nomes = escolhidos.map((l) => l.nome);
   const texto = `Hoje o melhor é ${juntar(nomes)}.${dias <= 2 ? ` A semana termina ${dias === 1 ? "hoje" : "amanhã"}: priorize o que mais falta.` : ""}${ok.length ? ` ${juntar(ok.slice(0, 3))} já ${ok.length === 1 ? "está" : "estão"} na faixa.` : ""}`;
   return { grupos: escolhidos.map((l) => l.grupo), texto, motivos };
@@ -114,7 +133,9 @@ export function somarNoPlacar(placar: LinhaPlacar[], grupo: GrupoMuscular | null
   return placar.map((x) => {
     if (!alvos.has(x.grupo)) return x;
     const feitas = Math.max(0, Math.round((x.feitas + n) * 10) / 10);
-    return { ...x, feitas, status: statusDaMeta(feitas, x), faltam: Math.max(0, Math.ceil(x.min - feitas)) };
+    // Parte do ombro sem meta própria (ex.: anterior): soma também no detalhe da linha “Ombros”.
+    const partes = x.partes?.map((p) => (p.grupo === grupo ? { ...p, feitas: Math.max(0, Math.round((p.feitas + n) * 10) / 10) } : p));
+    return { ...x, feitas, status: statusDaMeta(feitas, x), faltam: Math.max(0, Math.ceil(x.min - feitas)), ...(partes ? { partes } : {}) };
   });
 }
 

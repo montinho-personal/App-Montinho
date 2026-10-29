@@ -17,12 +17,16 @@ export function PlacarMetas({ placar, sugestao, titulo = "🎯 Sua semana por m�
       {sugestao ? <p className="mt-1 rounded-lg bg-accent/10 px-3 py-2 text-sm text-fg">💡 {sugestao.texto}</p> : null}
       <ul className={`mt-3 grid gap-x-4 gap-y-2 ${compacto ? "grid-cols-2" : "sm:grid-cols-2"}`}>
         {placar.map((l) => {
+          // Ombros = total; anterior/lateral/posterior aparecem como partes dele (pedido do Montinho, 29/10/2026).
+          const totalOmbros = l.grupo === "ombros" && (!!l.partes || placar.some((x) => x.grupo.startsWith("ombro_")));
+          const parteOmbro = l.grupo.startsWith("ombro_") && placar.some((x) => x.grupo === "ombros");
+          const nome = totalOmbros ? "Ombros (total)" : parteOmbro ? `↳ ${l.nome.replace("Ombro l", "L").replace("Ombro p", "P")}` : l.nome;
           const pct = Math.min(100, Math.round((l.feitas / Math.max(1, l.max)) * 100));
           const st = STATUS_META[l.status];
           return (
-            <li key={l.grupo} className="text-xs">
+            <li key={l.grupo} className={`text-xs ${parteOmbro ? "pl-4" : ""}`}>
               <div className="flex items-baseline gap-1">
-                <span className="font-semibold text-fg">{l.nome}</span>
+                <span className={parteOmbro ? "font-medium text-fg-muted" : "font-semibold text-fg"}>{nome}</span>
                 <span className="ml-auto tabular-nums text-fg-muted">
                   {String(l.feitas).replace(".", ",")} de {l.min}–{l.max}
                 </span>
@@ -32,6 +36,14 @@ export function PlacarMetas({ placar, sugestao, titulo = "🎯 Sua semana por m�
                 <div className={`h-full ${COR[l.status]}`} style={{ width: `${pct}%` }} />
                 <div className="absolute top-0 h-full w-px bg-fg/40" style={{ left: `${Math.round((l.min / Math.max(1, l.max)) * 100)}%` }} />
               </div>
+              {totalOmbros ? <p className="mt-0.5 text-[10px] text-fg-subtle">Soma de anterior + lateral + posterior</p> : null}
+              {l.partes?.map((p) => (
+                <p key={p.grupo} className="mt-1.5 flex items-baseline gap-1 pl-4 text-fg-muted">
+                  <span className="font-medium">↳ {p.nome.replace("Ombro a", "A")}</span>
+                  <span className="ml-auto tabular-nums">{String(p.feitas).replace(".", ",")} {p.feitas === 1 ? "série" : "séries"}</span>
+                  <span className="text-[10px] text-fg-subtle">(sem faixa própria)</span>
+                </p>
+              ))}
             </li>
           );
         })}

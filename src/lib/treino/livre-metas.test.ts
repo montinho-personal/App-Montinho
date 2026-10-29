@@ -71,4 +71,18 @@ describe("placar: secundários e ombros no geral (29/10/2026)", () => {
     expect(p.find((l) => l.grupo === "ombro_lateral")?.feitas).toBe(4);
     expect(ombrosNoGeral({ ombro_lateral: 3 }, { ombros: { min: 12, max: 15 } })).toEqual({ ombro_lateral: 3 });
   });
+  it("linha Ombros mostra a parte sem meta própria, e a soma das partes fecha o total", async () => {
+    const { ombrosNoGeral, somarNoPlacar, placarDaSemana } = await import("./livre-metas");
+    const metas = { ombros: { min: 12, max: 15 }, ombro_lateral: { min: 4, max: 8 }, ombro_posterior: { min: 4, max: 8 } };
+    const p = placarDaSemana(metas, ombrosNoGeral({ ombro_lateral: 3, ombro_posterior: 9.5, ombro_anterior: 2 }, metas));
+    const ombros = p.find((l) => l.grupo === "ombros")!;
+    expect(ombros.partes).toEqual([{ grupo: "ombro_anterior", nome: "Ombro anterior", feitas: 2 }]);
+    const soma = (o: typeof ombros, pl: typeof p) => (o.partes ?? []).reduce((n, x) => n + x.feitas, 0) + pl.filter((l) => l.grupo.startsWith("ombro_")).reduce((n, l) => n + l.feitas, 0);
+    expect(soma(ombros, p)).toBe(ombros.feitas);
+    const depois = somarNoPlacar(p, "ombro_anterior", 1);
+    const o2 = depois.find((l) => l.grupo === "ombros")!;
+    expect(o2.feitas).toBe(15.5);
+    expect(o2.partes?.[0].feitas).toBe(3);
+    expect(placarDaSemana({ ombros: { min: 12, max: 15 } }, { ombros: 5 })[0].partes).toBeUndefined();
+  });
 });
