@@ -37,7 +37,7 @@ export function mensagemMobilidade(id: string, d: DadosMobilidade): MensagemPush
     { titulo: "🧘 Corpo solto, treino melhor", corpo: `${nome}20 minutinhos de mobilidade hoje cuidam das articulações e deixam o treino render mais${meta}.${premio}` },
     { titulo: "🧘 Bora soltar o corpo?", corpo: `${nome}menos travamento, mais amplitude e carga subindo com segurança. Começa pelo app e conta!${premio}` },
   ];
-  let { titulo, corpo } = opcoes[hash(id) % opcoes.length];
-  corpo = corpo.charAt(0).toUpperCase() + corpo.slice(1);
+  const { titulo, corpo: texto } = opcoes[hash(id) % opcoes.length];
+  const corpo = texto.charAt(0).toUpperCase() + texto.slice(1);
   return { id, titulo, corpo, url: `/aluno/mobilidade/${p}`, tag: "mobilidade" };
 }
