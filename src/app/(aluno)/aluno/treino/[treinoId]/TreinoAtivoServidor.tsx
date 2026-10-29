@@ -115,8 +115,10 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   const campanha = camp ? { ...camp, ofertaHref: camp.oferta && BRAND.contact.whatsapp ? linkOferta(camp.oferta, BRAND.contact.whatsapp) : null } : null;
 
   const pulso = await pulsoP;
-  const sessaoAtiva = emAndamento && emAndamento.treino_id === treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
-  const outraSessao = emAndamento && emAndamento.treino_id !== treino.id && emAndamento.status === "em_andamento" ? emAndamento : null;
+  // Prévia do montador: nunca mostra nem continua treino de verdade (só a tela de abertura).
+  const real = presencial?.previa ? null : emAndamento;
+  const sessaoAtiva = real && real.treino_id === treino.id && real.status === "em_andamento" ? real : null;
+  const outraSessao = real && real.treino_id !== treino.id && real.status === "em_andamento" ? real : null;
 
   return (
     <TreinoAtivoClient
@@ -129,7 +131,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
       ultimasTroca={ultimasTroca}
       sessaoInicial={sessaoAtiva}
       outraSessao={outraSessao ? { id: outraSessao.id, treinoId: outraSessao.treino_id, nome: outraSessao.nome_treino, series: outraSessao.series_concluidas ?? 0 } : null}
-      sessaoConcluida={emAndamento && emAndamento.status !== "em_andamento" && sessaoId ? emAndamento : null}
+      sessaoConcluida={real && real.status !== "em_andamento" && sessaoId ? real : null}
       nomeAluno={nomeAluno.split(" ")[0]}
       presencial={presencial}
       versaoReduzida={{ permitida: !!plano.programa?.permite_versao_reduzida, prioridades: plano.programa?.prioridades ?? [] }}

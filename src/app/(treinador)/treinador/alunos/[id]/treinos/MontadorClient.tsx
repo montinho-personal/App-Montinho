@@ -50,6 +50,7 @@ import type { ExercicioPrescrito, PrioridadeExercicio, Programa, SnapshotProgram
 import { LETRAS_TREINO } from "@/lib/supabase/types-sessoes";
 import type { Treino } from "@/lib/supabase/types";
 import { VerExercicio } from "@/components/ui/VerExercicio";
+import { prontidaoDoProtocolo } from "@/lib/montador/prontidao";
 
 // ----------------------------------------------------------------------------
 // Tipos de view
@@ -809,6 +810,41 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   };
 
   const regioesLesao = useMemo(() => regioesLesionadas(anamnese), [anamnese]);
+  // Mapa da semana: os treinos lado a lado (séries válidas, tempo e os músculos com mais séries).
+  // Mesmas contas do montador (resolver de grupo, séries menos aquecimento, estimativa de tempo).
+  const mapa = useMemo(
+    () =>
+      estado.treinos
+        .filter((t) => t.ativo)
+        .map((t) => {
+          const porGrupo = new Map<GrupoMuscular, number>();
+          let series = 0;
+          for (const r of t.rows) {
+            if (!r.nome.trim()) continue;
+            const n = Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento);
+            series += n;
+            const g = resolver(r).grupo;
+            if (g && n) porGrupo.set(g, (porGrupo.get(g) ?? 0) + n);
+          }
+          return { key: t.key, letra: t.letra, nome: t.nome, exercicios: t.rows.filter((r) => r.nome.trim()).length, series, freq: Number(frequencia[t.letra] ?? 0), top: [...porGrupo].sort((a, b) => b[1] - a[1]).slice(0, 3), seg: duracoes[t.key]?.resultado.totalSeg ?? 0 };
+        }),
+    [estado.treinos, frequencia, resolver, duracoes],
+  );
+  const abrirNoMapa = (key: string) => {
+    setFechados(new Set(estado.treinos.filter((x) => x.key !== key).map((x) => x.key)));
+    requestAnimationFrame(() => document.getElementById(`treino-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  // “Seu protocolo está quase pronto”: só requisitos objetivos; nunca trava salvar.
+  const prontidao = useMemo(
+    () =>
+      prontidaoDoProtocolo({
+        nomeProtocolo: estado.programa.nome,
+        split: estado.programa.split,
+        fase: estado.programa.fase,
+        treinos: estado.treinos.map((t) => ({ letra: t.letra, ativo: t.ativo, frequencia: Number(frequencia[t.letra] ?? 0), exercicios: t.rows.map((r) => ({ nome: r.nome, series: totalSeries(r.seriesConfig), reps: repsResumo(r.seriesConfig), alerta: r.nome.trim() ? alertasDoExercicio(r.nome, anamnese).length > 0 : false })) })),
+      }),
+    [estado, frequencia, anamnese],
+  );
   const totalSeriesGeral = volume.subtotais.total;
   const letrasAtivas = estado.treinos.filter((t) => t.ativo).map((t) => t.letra);
 
@@ -968,6 +1004,64 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 items-start">
         {/* Dias */}
         <div className="space-y-4 min-w-0">
+          {mapa.length ? (
+            <section aria-label="Mapa da semana" className="rounded-xl border border-border bg-card p-3">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-fg-muted">🗺️ Mapa da semana{estado.programa.nome.trim() && estado.programa.nome !== "Programa atual" ? <span className="normal-case tracking-normal text-accent"> · {estado.programa.nome}</span> : null}</h2>
+                <span className="text-[11px] text-fg-subtle">toque para abrir</span>
+              </div>
+              <ul className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
+                {mapa.map((m) => (
+                  <li key={m.key} className="w-40 shrink-0 snap-start">
+                    <button type="button" onClick={() => abrirNoMapa(m.key)} className="flex h-full w-full flex-col gap-1.5 rounded-xl border border-border bg-bg/40 p-2.5 text-left hover:border-accent/60 motion-safe:transition-colors">
+                      <span className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-black text-bg">{m.letra}</span>
+                        <span className="min-w-0 truncate text-xs font-bold">{m.nome || `Treino ${m.letra}`}</span>
+                      </span>
+                      <span className="font-mono text-[11px] text-fg-muted">
+                        {m.exercicios} ex · {m.series} {m.series === 1 ? "série" : "séries"}{m.seg ? ` · ${formatarDuracao(m.seg)}` : ""}
+                      </span>
+                      <span className={`text-[11px] ${m.freq > 0 ? "text-fg-subtle" : "text-warning"}`}>{m.freq > 0 ? `${m.freq.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}× por semana` : "fora da semana"}</span>
+                      {m.top.length ? (
+                        <span className="flex flex-wrap gap-1">
+                          {m.top.map(([g, n]) => (
+                            <span key={g} className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: `${GRUPO_COR[g]}26`, color: GRUPO_COR[g] }}>
+                              {GRUPO_LABEL[g]} {n}
+                            </span>
+                          ))}
+                        </span>
+                      ) : <span className="text-[11px] text-fg-subtle">sem exercícios</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          <details className={`rounded-xl border px-4 py-3 ${prontidao.pronto ? "border-success/40 bg-success/5" : "border-accent/40 bg-accent/5"}`}>
+            <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+              <span className="font-bold">{prontidao.pronto ? "✅ Protocolo pronto para o aluno" : "🧩 Seu protocolo está quase pronto"}</span>
+              <span className="flex items-center gap-2 text-xs text-fg-muted">
+                <span className="h-1.5 w-20 overflow-hidden rounded-full bg-border" aria-hidden><span className={`block h-full rounded-full transition-[width] motion-reduce:transition-none ${prontidao.pronto ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round((prontidao.prontos / prontidao.total) * 100)}%` }} /></span>
+                {prontidao.prontos} de {prontidao.total}
+              </span>
+            </summary>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {prontidao.itens.map((i) => (
+                <li key={i.id} className="flex items-start gap-2">
+                  <span aria-hidden className={i.ok ? "text-success" : "text-fg-subtle"}>{i.ok ? "✓" : "○"}</span>
+                  <span className={i.ok ? "" : "text-fg-muted"}>
+                    {i.texto}
+                    {i.opcional ? <span className="text-[11px] text-fg-subtle"> (opcional)</span> : null}
+                    {!i.ok && i.detalhe ? <span className="block text-xs text-fg-subtle">{i.detalhe}</span> : null}
+                    {!i.ok && (i.id === "divisao" || i.id === "fase" || i.id === "nome" || i.id === "calendario") ? (
+                      <button type="button" onClick={() => setShowPrograma(true)} className="ml-1 text-xs font-semibold text-accent underline-offset-2 hover:underline">ajustar</button>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-fg-subtle">Só um guia: dá para salvar a qualquer momento. Nada aqui avalia a qualidade da prescrição.</p>
+          </details>
           {estado.treinos.length > 1 ? (
             <div className="flex justify-end gap-3 text-xs font-semibold text-fg-muted">
               <button type="button" onClick={() => setFechados(new Set())} className="hover:text-accent">Abrir todos</button>
@@ -978,7 +1072,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             const fechado = fechados.has(t.key);
             const totalT = t.rows.reduce((s, r) => s + (r.nome.trim() ? Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento) : 0), 0);
             return (
-              <section key={t.key} className={`rounded-xl border bg-card overflow-hidden ${t.ativo ? "border-border" : "border-dashed border-border opacity-70"}`} aria-label={`Treino ${t.letra}`}>
+              <section key={t.key} id={`treino-${t.key}`} className={`scroll-mt-20 rounded-xl border bg-card overflow-hidden ${t.ativo ? "border-border" : "border-dashed border-border opacity-70"}`} aria-label={`Treino ${t.letra}`}>
                 {focoEstrategia[t.letra] ? (
                   <p className="border-b border-border bg-bg/40 px-3 py-1.5 text-[11px] text-fg-muted"><span className="font-semibold text-fg">Foco da estratégia:</span> {focoEstrategia[t.letra]}</p>
                 ) : null}
@@ -1009,6 +1103,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   </select>
                   <DitarTreino letra={t.letra} foco={focoEstrategia[t.letra]} itens={itensBiblioteca} favoritos={favoritosSet} uso={usoMap} existentes={t.rows.filter((r) => r.nome.trim()).length} onAplicar={(linhas, substituir) => aplicarDitado(t.key, linhas, substituir)} />
                   <DitarTreino modo="criar" alunoId={alunoId} letra={t.letra} foco={focoEstrategia[t.letra]} itens={itensBiblioteca} favoritos={favoritosSet} uso={usoMap} existentes={t.rows.filter((r) => r.nome.trim()).length} onAplicar={(linhas, substituir) => aplicarDitado(t.key, linhas, substituir)} />
+                  {t.id ? (
+                    <Link href={`/treinador/alunos/${alunoId}/aula/${t.id}?previa=1`} onClick={(e) => { if (dirty && !confirm("A prévia mostra o que já está SALVO. Você tem alterações não salvas — abrir mesmo assim? (seu trabalho fica guardado neste aparelho)")) e.preventDefault(); }} className="inline-flex h-8 items-center rounded-md border border-accent/50 px-2 text-[11px] font-semibold text-accent hover:bg-accent/10" title="Ver este treino exatamente como o aluno vê (nada é registrado)">
+                      👁 Ver como o aluno vê
+                    </Link>
+                  ) : null}
                   <button type="button" onClick={() => duplicarDia(t.key)} className="h-8 rounded-md border border-border px-2 text-[11px] text-fg-muted hover:text-fg" title="Duplicar este dia em uma nova letra">Duplicar dia</button>
                   {t.id ? <button type="button" onClick={() => void finalizarDia(t)} className="h-8 rounded-md border border-border px-2 text-[11px] text-fg-muted hover:text-fg" title="Sai dos treinos ativos (histórico preservado)">Finalizar</button> : null}
                   <button type="button" onClick={() => removerDia(t.key)} className="h-8 rounded-md border border-red/30 px-2 text-[11px] text-red" title={t.id ? "Desativar (histórico preservado)" : "Remover dia"} aria-label={`Remover treino ${t.letra}`}><Icon name="trash" size={14} /></button>

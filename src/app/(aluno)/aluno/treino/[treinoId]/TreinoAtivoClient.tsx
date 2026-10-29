@@ -92,7 +92,7 @@ import { EscolherPadraoCarga, LembreteAparelho, salvarPadraoCarga } from "@/comp
 const CHAVE_OUTRO_APARELHO = "montinho:outro-aparelho";
 
 /** Modo aula presencial: o personal registra o treino do aluno pelo painel. */
-export type Presencial = { alunoId: string; nomeAluno: string; voltarHref: string };
+export type Presencial = { alunoId: string; nomeAluno: string; voltarHref: string; /** Prévia do montador: só mostra a tela que o aluno vê, sem começar nada. */ previa?: boolean };
 
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null; /** Equipamentos da biblioteca (padrão de carga e lembrete do aparelho). */ equipamento?: string[]; /** Trocado hoje pelo aluno. */ trocado?: boolean };
 
@@ -486,7 +486,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     let vivo = true;
     const atualizar = () => {
       const id = sessaoId ?? new URLSearchParams(window.location.search).get("sessao");
-      if (!id) return;
+      if (!id || presencial?.previa) return;
       fetchComPrazo(`/api/sessoes/${id}`, { headers: cab }, PRAZO_LEITURA_MS)
         .then((r) => (r.ok ? (r.json() as Promise<SessaoCompleta>) : null))
         .then((d) => {
@@ -510,7 +510,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       window.removeEventListener("pageshow", aoMostrar);
       document.removeEventListener("visibilitychange", aoVer);
     };
-  }, [sessaoId, cab, treino.id]);
+  }, [sessaoId, cab, treino.id, presencial?.previa]);
 
   const online = useSyncExternalStore(
     (cb) => {
@@ -1266,7 +1266,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         </Link>
         <Card className="border-accent/40 bg-grain-strong">
           <CardBody className="space-y-3">
-            {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">👥 Aula presencial · registrando para {presencial.nomeAluno}</p> : null}
+            {presencial?.previa ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">👁 Prévia: é assim que {presencial.nomeAluno} vê este treino ao abrir. Nada é registrado.</p> : presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">👥 Aula presencial · registrando para {presencial.nomeAluno}</p> : null}
             <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Treino {treino.letra}</p>
             <h1 className="text-2xl font-bold leading-tight">{treino.nome}</h1>
             <p className="text-sm text-fg-muted">{exercicios.length} {exercicios.length === 1 ? "exercício" : "exercícios"} · {exercicios.reduce((n, e) => n + e.series, 0)} {exercicios.reduce((n, e) => n + e.series, 0) === 1 ? "série" : "séries"}</p>
@@ -1285,7 +1285,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                 ) : null}
               </div>
             ) : null}
-            {pulso && !presencial ? (
+            {presencial?.previa ? (
+              <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-fg-muted">Aqui o aluno responde “como está hoje” (Montinho Pulso) e toca em <strong className="text-fg">Começar treino</strong>. Na prévia, nada começa.</p>
+            ) : pulso && !presencial ? (
               <PulsoCard
                 ctx={pulso}
                 momento="pre_treino"
@@ -1391,7 +1393,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                 📶 <span className="font-semibold text-fg">Academia sem sinal?</span> Comece o treino com internet (é só um instante). Depois, pode marcar tudo mesmo sem conexão: fica guardado no celular e vai sozinho quando a internet voltar.
               </p>
             ) : null}
-            {bloqueado ? (
+            {presencial?.previa ? null : bloqueado ? (
               <Button variant="secondary" size="lg" className="w-full touch" loading={iniciando} onClick={() => { setTempoDisp(null); setTempoOutro(""); void iniciar(); }}>
                 <Icon name="play" /> Fazer o treino completo mesmo assim
               </Button>

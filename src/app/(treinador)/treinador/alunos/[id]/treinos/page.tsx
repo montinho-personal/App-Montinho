@@ -19,6 +19,12 @@ import { porquesDosExercicios } from "@/lib/data/desbloqueia";
 import { estrategiaVigente } from "@/lib/data/estrategias";
 import { diasDaEstrategia, focoDoDia } from "@/lib/estrategia/divisao";
 import type { Anamnese } from "@/lib/supabase/types-extended";
+import { aderenciaDoAluno } from "@/lib/data/aderencia";
+import { listarHistoricoResumo } from "@/lib/data/historico";
+import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
+import { contaCarimbo } from "@/lib/conquistas/carimbos";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { ProtocoloEmAcao, type DadosEmAcao } from "@/components/montador/ProtocoloEmAcao";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -45,6 +51,16 @@ export default async function MontadorPage({ params }: PageProps) {
   const focoEstrategia = estrategia ? Object.fromEntries(diasDaEstrategia(estrategia.dados).map((d) => [d.letra, focoDoDia(d)])) : {};
   if (!aluno) notFound();
 
+  // “Seu protocolo em ação”: só o que o app registrou (sem nota, sem causalidade).
+  const [aderencia, historicoResumo] = await Promise.all([aderenciaDoAluno(aluno).catch(() => null), listarHistoricoResumo(id).catch(() => [])]);
+  const ultimaValida = [...sessoes].filter(contaCarimbo).sort((a, b) => (a.iniciado_em < b.iniciado_em ? 1 : -1))[0] ?? null;
+  const alta = cargasEmAlta(sessoes, historicoResumo, 1)[0] ?? null;
+  const emAcao: DadosEmAcao = {
+    semana: aderencia?.semanaAtual ? { meta: aderencia.semanaAtual.meta, feitos: aderencia.semanaAtual.pontos, pausada: aderencia.semanaAtual.pausada } : null,
+    ultimo: ultimaValida ? { titulo: ultimaValida.letra ? `Treino ${ultimaValida.letra}` : (ultimaValida.nome_treino ?? "Treino"), quando: dataLocal(ultimaValida.iniciado_em).split("-").reverse().slice(0, 2).join("/") } : null,
+    alta: alta ? { nome: alta.nome, antes: alta.primeira, agora: alta.ultima } : null,
+  };
+
   const p28 = periodoDias(28);
   const realizadoBruto = volumeRealizadoPorGrupo(seriesRealizadasPorGrupo(sessoes, p28));
   const realizadoSemanal = Object.fromEntries(Object.entries(realizadoBruto).map(([g, v]) => [g, Math.round(((v ?? 0) / 4) * 10) / 10]));
@@ -60,6 +76,7 @@ export default async function MontadorPage({ params }: PageProps) {
         </span>
         <span aria-hidden className="text-accent">→</span>
       </Link>
+      <div className="mt-2"><ProtocoloEmAcao alunoId={id} nome={aluno.profile?.nome ?? "Aluno"} d={emAcao} /></div>
       <CopiarProtocolo alunoId={id} alunoNome={aluno.profile?.nome ?? "Aluno"} opcoes={outros} treinos={plano.treinos.filter((t) => t.ativo).length} />
     </div>
     <MontadorClient
