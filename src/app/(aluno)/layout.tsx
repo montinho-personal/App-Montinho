@@ -10,6 +10,9 @@ import { requireAlunoPage } from "@/lib/auth/session";
 import { avatarDoUsuario } from "@/lib/data/perfil";
 import { AvisoAcessoVisitante } from "@/components/visitante/AvisoAcessoVisitante";
 import { RegistrarAcesso } from "@/components/aluno/RegistrarAcesso";
+import { PedirNotificacoes } from "@/components/aluno/PedirNotificacoes";
+import { proximoFeriado } from "@/lib/conquistas/feriados";
+import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 import { ConviteFimCard, TravaVisitanteProvider } from "@/components/visitante/TravaVisitante";
 import { SairButton } from "./aluno/perfil/SairButton";
 import { FEATURES } from "@/lib/env";
@@ -41,6 +44,10 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
   const camp = vencido ? await campanhaDoVisitante(sessao.alunoId, fimAcesso).catch(() => null) : null;
   const convite = vencido && BRAND.contact.whatsapp ? conviteDoFim({ fim: fimAcesso, oferta: camp?.oferta ?? null, whatsapp: BRAND.contact.whatsapp }) : null;
   const fechado = vencido && appEncerrado(fimAcesso);
+  // Aviso diário para ativar as notificações: cita o feriado que vale troféu se estiver perto (até 4 dias).
+  const hoje = dataLocal(new Date());
+  const fer = proximoFeriado(hoje);
+  const avisoFeriado = fer && fer.dia <= somarDias(hoje, 4) ? `${fer.feriado.emoji} ${fer.dia === hoje ? "Hoje" : `Dia ${fer.dia.slice(8, 10)}/${fer.dia.slice(5, 7)}`} é ${fer.feriado.nome}: treinar vale troféu especial com o nome do feriado!` : null;
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <header className="relative bg-[linear-gradient(180deg,#161616_0%,#0a0a0a_100%)]">
@@ -105,6 +112,7 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
         </TravaVisitanteProvider>
       )}
       <RegistrarAcesso id={sessao.alunoId} />
+      {fechado ? null : <PedirNotificacoes extra={avisoFeriado} ativo={!convite} />}
       <AjusteTecladoIphone />
     </div>
   );

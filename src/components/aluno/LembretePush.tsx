@@ -20,7 +20,7 @@ function base64ParaBytes(b64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-async function detectar(): Promise<EstadoPush> {
+export async function detectarPush(): Promise<EstadoPush> {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const instalado = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return ios && !instalado ? "iphone_instalar" : "sem_suporte";
@@ -41,7 +41,7 @@ export function LembretePush({ compacto = false, completo = false, treinador = f
 
   useEffect(() => {
     let vivo = true;
-    detectar()
+    detectarPush()
       .then((e) => vivo && setEstado(e))
       .catch(() => vivo && setEstado("sem_suporte"));
     return () => {
