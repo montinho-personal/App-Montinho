@@ -2,6 +2,8 @@
 
 // Série registrada em pedaços (rest-pause, drop-set, myo-reps, cluster, 3/7):
 // o aluno anota cada bloco, vê o total contra a meta e dispara a pausa curta.
+// Pode pôr ou tirar um drop, uma mini-série ou um bloco na hora.
+import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { arredondarCarga, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 
@@ -21,7 +23,8 @@ export function SerieEmBlocos({
   valores,
   cargaRef,
   cargaPorBloco,
-  livre,
+  ajuste,
+  planejar,
   alvoTotal,
   concluida,
   sincronizada,
@@ -38,8 +41,10 @@ export function SerieEmBlocos({
   cargaRef?: string | null;
   /** Drop-set: cada bloco tem a sua carga. */
   cargaPorBloco: boolean;
-  /** Rest-pause: pode acrescentar pedaços até bater a meta. */
-  livre: boolean;
+  /** Quanto dá para pôr ou tirar (drop, mini-série, bloco). Sem isso, a quantidade é fixa. */
+  ajuste?: { unidade: string; minimo: number; maximo: number } | null;
+  /** Os pedaços planejados para outra quantidade (rótulo, meta e carga sugerida de cada um). */
+  planejar?: (n: number) => BlocoPlanejado[];
   alvoTotal: number | null;
   concluida: boolean;
   sincronizada: boolean;
@@ -47,8 +52,16 @@ export function SerieEmBlocos({
   onConcluir: () => void;
   onPausa: (seg: number) => void;
 }) {
-  const n = Math.max(planejados.length, valores.length);
+  // Série já registrada volta com os pedaços que o aluno fez (ele pode ter tirado um drop).
+  const [qtd, setQtd] = useState(() => (concluida && valores.length ? valores.length : Math.max(planejados.length, valores.length)));
+  const n = Math.max(qtd, valores.length);
+  const plano = planejar && n !== planejados.length ? planejar(n) : planejados;
   const linhas = Array.from({ length: n }, (_, i) => valores[i] ?? { carga: "", reps: "" });
+  const mudarQtd = (nova: number) => {
+    if (!ajuste || nova < ajuste.minimo || nova > ajuste.maximo) return;
+    setQtd(nova);
+    onChange(nova > linhas.length ? [...linhas, ...Array.from({ length: nova - linhas.length }, () => ({ carga: "", reps: "" }))] : linhas.slice(0, nova));
+  };
   const total = somaBlocos(linhas.map((l) => l.reps));
   const carga0 = num(linhas[0]?.carga) ?? num(cargaRef ?? undefined);
   const mudar = (i: number, patch: Partial<BlocoDigitado>) => onChange(linhas.map((l, k) => (k === i ? { ...l, ...patch } : l)));
@@ -87,9 +100,9 @@ export function SerieEmBlocos({
 
       <ol className="space-y-1.5">
         {linhas.map((l, i) => {
-          const p = planejados[i] ?? planejados.at(-1) ?? { rotulo: `Mini ${i}`, meta: "o máx.", pausaAntesSeg: planejados.at(-1)?.pausaAntesSeg ?? 15, fracaoCarga: 1 };
+          const p = plano[i] ?? plano.at(-1) ?? { rotulo: `Mini ${i}`, meta: "o máx.", pausaAntesSeg: plano.at(-1)?.pausaAntesSeg ?? 15, fracaoCarga: 1 };
           const sugerida = cargaPorBloco && carga0 != null && i > 0 ? arredondarCarga(carga0 * p.fracaoCarga) : null;
-          const rotuloBloco = planejados[i]?.rotulo ?? `Mini ${i}`;
+          const rotuloBloco = plano[i]?.rotulo ?? `Mini ${i}`;
           return (
             <li key={i} className="space-y-1">
               {i > 0 && p.pausaAntesSeg > 0 ? (
@@ -127,12 +140,18 @@ export function SerieEmBlocos({
         })}
       </ol>
 
-      <div className="flex items-center gap-2">
-        {livre ? (
-          <button type="button" onClick={() => onChange([...linhas, { carga: "", reps: "" }])} disabled={linhas.length >= 12} className="touch rounded-md border border-border px-3 text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-40">
-            + pedaço
+      {ajuste ? (
+        <div className="flex gap-2">
+          <button type="button" onClick={() => mudarQtd(n - 1)} disabled={n <= ajuste.minimo} aria-label={`Tirar um ${ajuste.unidade}`} className="touch flex-1 rounded-md border border-border text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-40">
+            − {ajuste.unidade}
           </button>
-        ) : null}
+          <button type="button" onClick={() => mudarQtd(n + 1)} disabled={n >= ajuste.maximo} aria-label={`Pôr mais um ${ajuste.unidade}`} className="touch flex-1 rounded-md border border-border text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-40">
+            + {ajuste.unidade}
+          </button>
+        </div>
+      ) : null}
+
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={onConcluir}

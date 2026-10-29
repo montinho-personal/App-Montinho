@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blocosPlanejados, camposLegados, cargasDosDrops, configEfetiva, exemploRestPause, instrucaoTecnica, resumoTecnica, seriesDeFinalizacao, somaBlocos } from "./tecnica-config";
+import { ajusteDeBlocos, blocosComQuantidade, blocosPlanejados, camposLegados, cargasDosDrops, configEfetiva, exemploRestPause, instrucaoTecnica, resumoTecnica, seriesDeFinalizacao, somaBlocos } from "./tecnica-config";
 
 describe("configEfetiva", () => {
   it("usa os padrões da técnica quando nada foi salvo", () => {
@@ -69,5 +69,32 @@ describe("textos", () => {
     expect(resumoTecnica("dropset", { blocos: 1 })).toBe("1× no final · 12 reps + 1 drop de −20% · sem descanso");
     expect(instrucaoTecnica("rest_pause", { series: 2 })).toContain("2 séries de finalização");
     expect(instrucaoTecnica("negativo", {})).toContain("4 s descendo");
+  });
+});
+
+describe("pôr e tirar drops, mini-séries e blocos na série", () => {
+  it("drop-set: mais um drop segue tirando a mesma porcentagem; menos um drop encurta", () => {
+    const tres = blocosComQuantidade("dropset", {}, "12", 4);
+    expect(tres.map((b) => b.rotulo)).toEqual(["Carga inicial", "Drop 1 (−20%)", "Drop 2 (−20%)", "Drop 3 (−20%)"]);
+    expect(tres[3].fracaoCarga).toBeCloseTo(0.8 ** 3);
+    expect(blocosComQuantidade("dropset", {}, "12", 2).map((b) => b.rotulo)).toEqual(["Carga inicial", "Drop 1 (−20%)"]);
+  });
+  it("nunca abaixo do mínimo nem acima do máximo", () => {
+    expect(blocosComQuantidade("dropset", {}, "12", 1)).toHaveLength(2);
+    expect(blocosComQuantidade("dropset", {}, "12", 50)).toHaveLength(ajusteDeBlocos("dropset")!.maximo);
+    expect(blocosComQuantidade("cluster", {}, null, 0)).toHaveLength(1);
+  });
+  it("rest-pause, myo-reps e cluster mudam a quantidade de mini-séries/blocos", () => {
+    expect(blocosComQuantidade("rest_pause", {}, null, 4).map((b) => b.rotulo)).toEqual(["Até perto da falha", "Mini 1", "Mini 2", "Mini 3"]);
+    expect(blocosComQuantidade("myo_reps", {}, null, 3).map((b) => b.rotulo)).toEqual(["Ativação", "Mini 1", "Mini 2"]);
+    expect(blocosComQuantidade("cluster", {}, null, 5).map((b) => b.rotulo)).toEqual(["Bloco 1", "Bloco 2", "Bloco 3", "Bloco 4", "Bloco 5"]);
+  });
+  it("3/7: o protocolo fica, e o que passar vira bloco extra", () => {
+    expect(blocosComQuantidade("tres_sete", {}, null, 6).map((b) => b.rotulo)).toEqual(["3 reps", "4 reps", "5 reps", "6 reps", "7 reps", "Extra 1"]);
+    expect(blocosComQuantidade("tres_sete", {}, null, 4)).toHaveLength(4);
+  });
+  it("sem técnica em blocos não há ajuste", () => {
+    expect(ajusteDeBlocos("piramide")).toBeNull();
+    expect(ajusteDeBlocos("dropset")!.unidade).toBe("drop");
   });
 });

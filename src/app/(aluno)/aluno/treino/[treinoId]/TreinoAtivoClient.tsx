@@ -74,7 +74,7 @@ import { ehPorTempo, segundosPrevistos } from "@/lib/treino/medida";
 import { FRASE_FACIL, LIMITE_FACIL, conviteVaiQueTaFacil } from "@/lib/chalala/facil";
 import { CronometroSerie } from "./CronometroSerie";
 import { SerieEmBlocos, type BlocoDigitado } from "./SerieEmBlocos";
-import { arredondarCarga, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
+import { ajusteDeBlocos, arredondarCarga, blocosComQuantidade, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { samuraiNoTreino, trofeusNoTreino, type ItemAlcance } from "@/lib/conquistas/ao-alcance";
@@ -695,7 +695,9 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     const s = correcao ? { ...s0, ...(correcao.carga != null ? { carga: String(correcao.carga).replace(".", ",") } : {}), ...(correcao.reps != null ? { reps: String(correcao.reps) } : {}) } : s0;
     if (correcao) atualizar(seId, idx, { carga: s.carga, reps: s.reps });
     // Série em blocos: reps = soma dos pedaços; carga = a do 1º pedaço (drop-set guarda cada uma).
-    const planosBlocos = blocosDaSerie(ex, s, series[seId]);
+    const planosBase = blocosDaSerie(ex, s, series[seId]);
+    // O aluno pode ter posto ou tirado um drop: a carga sugerida de cada um segue a quantidade dele.
+    const planosBlocos = planosBase && s.blocos && s.blocos.length !== planosBase.length ? blocosComQuantidade(ex.tecnica, ex.tecnica_config, prescritoDaSerie(ex, s.serie), s.blocos.length) : planosBase;
     const nBloco = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
     // Drop-set: drop sem carga digitada usa a carga sugerida (a que aparece em cinza).
     const c0 = nBloco((s.blocos?.[0]?.carga ?? s.carga) || "");
@@ -1716,7 +1718,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                                 valores={s.blocos ?? [{ carga: s.carga, reps: "" }]}
                                 cargaRef={ref?.carga_kg != null ? String(ref.carga_kg).replace(".", ",") : null}
                                 cargaPorBloco={ex.tecnica === "dropset"}
-                                livre={ex.tecnica === "rest_pause"}
+                                ajuste={ajusteDeBlocos(ex.tecnica)}
+                                planejar={(q) => blocosComQuantidade(ex.tecnica, ex.tecnica_config, prescritoDaSerie(ex, s.serie), q)}
                                 alvoTotal={ex.tecnica === "rest_pause" ? (cfgT?.repsAlvo ?? null) : null}
                                 concluida={s.concluida}
                                 sincronizada={s.sincronizada}

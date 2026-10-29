@@ -241,6 +241,35 @@ export function blocosPlanejados(tecnica: Tecnica | string | null | undefined, s
   return [3, 4, 5, 6, 7].map((r, i) => ({ rotulo: `${r} reps`, meta: String(r), pausaAntesSeg: i === 0 ? 0 : c.pausaSeg, fracaoCarga: 1 }));
 }
 
+/**
+ * Quantos pedaços o aluno pode ter numa série em blocos: na tela ele põe ou
+ * tira um drop, uma mini-série ou um bloco (pedido do Montinho, 29/10/2026).
+ * O máximo respeita o limite da configuração (10) e o do servidor (12 pedaços).
+ */
+export function ajusteDeBlocos(tecnica: Tecnica | string | null | undefined): { unidade: string; minimo: number; maximo: number } | null {
+  if (!registraEmBlocos(tecnica)) return null;
+  if (tecnica === "dropset") return { unidade: "drop", minimo: 2, maximo: LIMITES_TECNICA.blocos[1] + 1 };
+  if (tecnica === "rest_pause" || tecnica === "myo_reps") return { unidade: "mini-série", minimo: 2, maximo: LIMITES_TECNICA.blocos[1] + 1 };
+  if (tecnica === "cluster") return { unidade: "bloco", minimo: 1, maximo: LIMITES_TECNICA.blocos[1] };
+  return { unidade: "bloco", minimo: 1, maximo: 12 };
+}
+
+/** Os pedaços planejados com outra quantidade (o aluno pôs ou tirou um drop, uma mini-série, um bloco). */
+export function blocosComQuantidade(tecnica: Tecnica | string | null | undefined, salvo: unknown, repsPrescritas: string | null | undefined, n: number): BlocoPlanejado[] {
+  const base = blocosPlanejados(tecnica, salvo, repsPrescritas);
+  const aj = ajusteDeBlocos(tecnica);
+  if (!base.length || !aj) return base;
+  const q = Math.min(aj.maximo, Math.max(aj.minimo, Math.round(n)));
+  if (q === base.length) return base;
+  if (tecnica === "tres_sete") {
+    // 3, 4, 5, 6, 7 é o protocolo; o que passar disso vira bloco extra.
+    const pausa = base.at(-1)?.pausaAntesSeg ?? 15;
+    return Array.from({ length: q }, (_, i) => base[i] ?? { rotulo: `Extra ${i - base.length + 1}`, meta: "o máx.", pausaAntesSeg: pausa, fracaoCarga: 1 });
+  }
+  const c = salvo && typeof salvo === "object" ? (salvo as ConfigTecnica) : {};
+  return blocosPlanejados(tecnica, { ...c, blocos: tecnica === "cluster" ? q : q - 1 }, repsPrescritas);
+}
+
 /** Total de repetições somando os blocos preenchidos. */
 export const somaBlocos = (reps: Array<string | number | null | undefined>) => reps.reduce<number>((s, r) => s + (Number(String(r ?? "").replace(",", ".")) || 0), 0);
 
