@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CONSULTORIA, HISTORIA, linkContato } from "./apresentacao";
+import { CONSULTORIA, HISTORIA, linkContato, PACOTE_FLEXIVEL, PRESENCIAL } from "./apresentacao";
 
 describe("Conheça o Montinho", () => {
   it("link do WhatsApp com a origem no fim", () => {
@@ -8,9 +8,11 @@ describe("Conheça o Montinho", () => {
     expect(l).toContain("valores");
     expect(l.endsWith("[APP-CONSULTORIA]")).toBe(true);
     expect(decodeURIComponent(linkContato("historia", "55")).endsWith("[APP-HISTORIA]")).toBe(true);
+    expect(decodeURIComponent(linkContato("pacote", "55")).endsWith("[APP-PACOTE]")).toBe(true);
+    expect(decodeURIComponent(linkContato("presencial", "55")).endsWith("[APP-PRESENCIAL]")).toBe(true);
   });
   it("sem preço e sem promessa", () => {
-    const tudo = JSON.stringify({ HISTORIA, CONSULTORIA });
+    const tudo = JSON.stringify({ HISTORIA, CONSULTORIA, PRESENCIAL, PACOTE_FLEXIVEL });
     expect(tudo).not.toMatch(/R\$|garant/i);
   });
 });

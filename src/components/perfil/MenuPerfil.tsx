@@ -36,6 +36,11 @@ export function ItemLink({ icone, titulo, sub, href, badge, externo }: { icone: 
     <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
       <Linha icone={icone} titulo={titulo} sub={sub} badge={badge} seta={SETA} />
     </a>
+  ) : href.startsWith("/api/") ? (
+    // Rota de API (troca o modo e redireciona): <a> comum, sem pré-carregar.
+    <a href={href} className={cls}>
+      <Linha icone={icone} titulo={titulo} sub={sub} badge={badge} seta={SETA} />
+    </a>
   ) : (
     <Link href={href} className={cls}>
       <Linha icone={icone} titulo={titulo} sub={sub} badge={badge} seta={SETA} />

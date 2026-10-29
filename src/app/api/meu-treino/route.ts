@@ -8,13 +8,15 @@ import { criarMeuAluno, meuAlunoId } from "@/lib/data/meu-treino";
 
 const OPCOES = { httpOnly: true, sameSite: "lax" as const, path: "/", secure: process.env.NODE_ENV === "production", maxAge: 60 * 60 * 12 };
 
-/** Entra no app do aluno (?ir= caminho do aluno); ?sair=1 → volta ao painel. */
+/** Entra no app do aluno (?ir= caminho do aluno); ?sair=1 → volta ao painel (?para= tela do painel). */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const jar = await cookies();
   if (url.searchParams.get("sair")) {
     jar.delete(COMO_ALUNO_COOKIE);
-    return NextResponse.redirect(new URL("/treinador", url));
+    // ?para=/treinador/… → volta ao painel já na tela certa (ex.: montar os próprios treinos).
+    const para = url.searchParams.get("para");
+    return NextResponse.redirect(new URL(para && /^\/treinador(\/[\w-]+)*$/.test(para) ? para : "/treinador", url));
   }
   const s = await getSessao();
   if (!s || (s.role !== "treinador" && !(s.role === "aluno" && s.comoPersonal))) return NextResponse.redirect(new URL("/login", url));

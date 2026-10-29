@@ -120,11 +120,61 @@ export const CONSULTORIA = {
   fecho: "Você não precisa de mais um treino. Precisa de alguém do seu lado até dar certo.",
 };
 
-export type OrigemContato = "historia" | "consultoria";
+// Personal presencial e Pacote Flexível (pedido do Montinho, 29/10/2026).
+// Presencial: textos da página “Personal Trainer em Alphaville” do site.
+export const PRESENCIAL = {
+  chamada: "Personal presencial",
+  titulo: "Eu do seu lado em cada série.",
+  intro: "Atendimento presencial no espaço fitness do seu condomínio, em casa, na Arena 18 ou, dependendo das regras do local, em outras academias de Alphaville, Barueri e Santana de Parnaíba. Eu olho a execução, ajusto a carga e decido com você o próximo passo — num treino que cabe na agenda que você realmente tem.",
+  passos: [
+    { titulo: "Conversa e avaliação", texto: "Histórico, objetivo, rotina, onde você vai treinar e qualquer limitação. Junto vem a avaliação física, com composição corporal." },
+    { titulo: "Um ponto de partida", texto: "Exercícios, cargas e frequência pensados para você. O primeiro treino é uma hipótese bem construída: a sua execução mostra o que continua e o que muda." },
+    { titulo: "A sessão, com alguém olhando para você", texto: "A série ainda tinha margem? Avançamos. A execução mudou no fim? Corrijo antes da próxima repetição. Chegou cansado? O treino daquele dia muda." },
+    { titulo: "Registrar, comparar, ajustar", texto: "Cargas e respostas ficam no app. Nas reavaliações a gente compara e decide o próximo ciclo." },
+  ],
+  app: "Nos dias em que eu não estou com você, o treino segue no app: carga da última vez, descanso contando sozinho, vídeo de cada exercício e os meus recados. Nenhum treino fica solto.",
+  formatos: [
+    { nome: "Pacote por frequência semanal", texto: "De 2 a 5 treinos por semana, com horário fixo. Quanto mais treinos na semana, menor o valor por sessão." },
+    { nome: "Pacote Flexível", texto: "10 aulas para usar quando você puder, sem horário fixo.", href: "/aluno/pacote-flexivel" },
+  ],
+};
+
+export const PACOTE_FLEXIVEL = {
+  chamada: "Pacote Flexível · 10 aulas",
+  titulo: "10 aulas comigo. Você decide quando.",
+  intro: "Você compra 10 aulas presenciais e usa no ritmo da sua vida — sem horário fixo, sem perder aula porque a semana virou de cabeça para baixo.",
+  paraQuem: [
+    { icone: "✈️", titulo: "Vive viajando", texto: "Rotina que muda toda hora, sem dias fixos? As aulas esperam você voltar." },
+    { icone: "💰", titulo: "Ainda não dá para ter personal toda semana", texto: "Comece com o pacote e tenha acompanhamento de perto sem o compromisso de todas as semanas." },
+    { icone: "📅", titulo: "Agenda irregular", texto: "Semana tranquila, aula. Semana corrida, o treino segue no app e a aula fica para depois." },
+  ],
+  jeitos: [
+    { icone: "🗓️", titulo: "1× por semana", texto: "Um encontro fixo na sua cabeça (não na agenda) para corrigir e ajustar." },
+    { icone: "🔁", titulo: "1× a cada 10 ou 15 dias", texto: "Rende quase meio protocolo: eu ajusto e você segue firme no app entre as aulas." },
+    { icone: "🔥", titulo: "Uma semana inteira junto", texto: "Concentre as aulas para dar um gás forte de uma vez." },
+    { icone: "🎓", titulo: "No começo, para aprender", texto: "Junte as aulas no início do protocolo para dominar a execução de cada exercício." },
+    { icone: "🚀", titulo: "No fim, para puxar mais", texto: "Junte as aulas no final do protocolo para intensificar e fechar com tudo." },
+  ],
+  vantagens: [
+    "Sem horário fixo: você usa quando puder",
+    "Eu corrijo a sua execução ao vivo e ajusto as cargas",
+    "Entre as aulas, o seu treino continua no app, com vídeo e carga da última vez",
+    "Dá para parcelar",
+  ],
+  atencao: [
+    "Não tem um horário fixo reservado: a gente marca cada aula conforme a agenda",
+    "Depende da agenda do Montinho: quanto antes você pedir, mais fácil encaixar",
+  ],
+  fecho: "Fale comigo no WhatsApp: eu explico como funciona, os valores e o parcelamento.",
+};
+
+export type OrigemContato = "historia" | "consultoria" | "presencial" | "pacote";
 
 export const CONTATO: Record<OrigemContato, { ref: string; mensagem: string; botao: string }> = {
   historia: { ref: "APP-HISTORIA", mensagem: "Oi, Montinho! Li a sua história no app e quero saber como é treinar com você.", botao: "💬 Quero treinar com o Montinho" },
   consultoria: { ref: "APP-CONSULTORIA", mensagem: "Oi, Montinho! Vi a consultoria no app e quero saber os valores e como funciona.", botao: "💬 Quero saber os valores" },
+  presencial: { ref: "APP-PRESENCIAL", mensagem: "Oi, Montinho! Vi o personal presencial no app e quero saber como funciona e os horários.", botao: "💬 Quero treinar presencial" },
+  pacote: { ref: "APP-PACOTE", mensagem: "Oi, Montinho! Vi o Pacote Flexível de 10 aulas no app e quero saber os valores e o parcelamento.", botao: "💬 Quero o Pacote Flexível" },
 };
 
 /** Link do WhatsApp oficial com o código de origem no fim (o Montinho sabe de onde veio a conversa). */
@@ -137,10 +187,14 @@ export function linkContato(origem: OrigemContato, whatsapp: string): string {
 export const ROTULO_CTA_PAGINAS: Record<string, string> = {
   historia: "📖 WhatsApp na página “Minha história”",
   consultoria: "💎 WhatsApp na página “Consultoria”",
+  presencial: "🏋️ WhatsApp na página “Personal presencial”",
+  pacote: "🎟️ WhatsApp na página “Pacote Flexível”",
 };
 
 /** Compartilhar: as páginas públicas do site (quem recebe não precisa de login). */
 export const COMPARTILHAR: Record<OrigemContato, { url: string; titulo: string; texto: string }> = {
   historia: { url: "https://www.montinhopersonal.com.br/minha-historia", titulo: "A história do Montinho", texto: "Olha essa história: do “gordinho da turma” a −40 kg em 12 meses. Vale a leitura!" },
   consultoria: { url: "https://www.montinhopersonal.com.br/consultoria", titulo: "Consultoria Montinho", texto: "Conheça a consultoria do Montinho: treino feito para a sua rotina e acompanhamento de verdade." },
+  presencial: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Personal presencial com o Montinho", texto: "Personal presencial em Alphaville com o Montinho: ele do seu lado em cada série." },
+  pacote: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Pacote Flexível do Montinho", texto: "10 aulas com o Montinho para usar quando você puder, sem horário fixo. Olha que legal:" },
 };

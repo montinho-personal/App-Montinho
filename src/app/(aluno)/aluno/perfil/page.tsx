@@ -79,11 +79,21 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
               <span className="font-bold">💎 Como funciona</span>
               <span className="text-[11px] text-fg-muted">A consultoria, passo a passo</span>
             </Link>
+            <Link href="/aluno/presencial" className="touch flex flex-col justify-center rounded-xl border border-border bg-bg px-3 py-2.5">
+              <span className="font-bold">🏋️ Presencial</span>
+              <span className="text-[11px] text-fg-muted">Eu do seu lado em cada série</span>
+            </Link>
+            <Link href="/aluno/pacote-flexivel" className="touch flex flex-col justify-center rounded-xl border border-border bg-bg px-3 py-2.5">
+              <span className="font-bold">🎟️ Pacote Flexível</span>
+              <span className="text-[11px] text-fg-muted">10 aulas, sem horário fixo</span>
+            </Link>
           </div>
         </section>
       ) : null}
 
       <Grupo titulo="Meu acompanhamento">
+        <ItemLink icone="🏋️" titulo="Meus treinos" sub="Ver e começar os treinos do seu programa" href="/aluno/treinar" />
+        {sessao.comoPersonal ? <ItemLink icone="✏️" titulo="Montar e editar meus treinos" sub="Abre o montador no painel" href={`/api/meu-treino?sair=1&para=/treinador/alunos/${sessao.alunoId}/treinos`} /> : null}
         <ItemAbrir icone="📋" titulo="Meu programa" sub={plano.programa ? plano.programa.nome : "Nenhum programa publicado ainda"}>
           <div className="space-y-2 text-sm">
             {plano.programa ? (
@@ -171,6 +181,8 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
         <Grupo titulo="Sobre o Montinho">
           <ItemLink icone="📖" titulo="Minha história" sub="Do “gordinho da turma” a −40 kg" href="/aluno/historia" />
           <ItemLink icone="💎" titulo="A consultoria" sub="Como funciona o acompanhamento" href="/aluno/consultoria" />
+          <ItemLink icone="🏋️" titulo="Personal presencial" sub="Eu do seu lado em cada série" href="/aluno/presencial" />
+          <ItemLink icone="🎟️" titulo="Pacote Flexível · 10 aulas" sub="Aulas presenciais quando você puder" href="/aluno/pacote-flexivel" />
         </Grupo>
       ) : null}
 

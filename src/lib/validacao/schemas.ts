@@ -605,9 +605,9 @@ export const desafioSchema = z
 
 // Modo Visitante, fase 6: eventos dos convites para o WhatsApp (0057)
 export const ctaEventoSchema = z.object({
-  cta: z.enum(["acesso_vencido", "acesso_vencendo", "desafio_concluido", "constancia", "evolucao", "montar_treino", "instagram", "oferta_desconto", "oferta_conversa", "oferta_feedback", "historia", "consultoria"]),
+  cta: z.enum(["acesso_vencido", "acesso_vencendo", "desafio_concluido", "constancia", "evolucao", "montar_treino", "instagram", "oferta_desconto", "oferta_conversa", "oferta_feedback", "historia", "consultoria", "presencial", "pacote"]),
   tipo: z.enum(["exibido", "clicado", "dispensado"]),
-  tela: z.enum(["aviso", "inicio", "evolucao", "meus_treinos", "jornada", "fim_treino", "comecar", "popup", "encerrado", "historia", "consultoria"]),
+  tela: z.enum(["aviso", "inicio", "evolucao", "meus_treinos", "jornada", "fim_treino", "comecar", "popup", "encerrado", "historia", "consultoria", "presencial", "pacote"]),
 });
 
 /** Pedido de avaliação no Google (0112): o que a pessoa fez com o pedido. */
