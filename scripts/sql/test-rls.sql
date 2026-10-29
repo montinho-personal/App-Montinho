@@ -436,9 +436,10 @@ end $$;
 -- ============================================================================
 -- T13 — 0019: conquistas idempotentes, reconhecimento do personal, eventos
 -- ============================================================================
-select test_login('22222222-2222-2222-2222-222222222222');
+-- Desde a 0124 quem grava troféu é o servidor (chave de serviço): simulado sem login.
 insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'primeiro_treino', '1', now(), 'Primeiro treino concluído');
 insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'primeiro_treino', '1', now(), 'Primeiro treino concluído') on conflict (aluno_id, codigo, referencia) do nothing;
+select test_login('22222222-2222-2222-2222-222222222222');
 insert into eventos_chalala (aluno_id, tipo, modelo, formato) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'card_gerado', 'A', 'stories');
 do $$
 declare n int; ok boolean := false;
@@ -603,8 +604,8 @@ begin
 end $$;
 select test_logout();
 -- T18 — 0028: conquistas 3.0 (códigos novos, versão; aluno só marca “vista” nas próprias)
-select test_login('22222222-2222-2222-2222-222222222222');
 insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, criterio_versao, evidencia, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'criando_raizes', '1', now(), 'Criando raízes', 1, '{"semanas":["2026-08-03","2026-08-10"]}', 'app');
+select test_login('22222222-2222-2222-2222-222222222222');
 do $$
 declare n int; ok boolean := false;
 begin
@@ -1051,9 +1052,9 @@ declare n int;
 begin
   select count(*) into n from campanhas;
   if n <> 1 then raise exception 'T34a: visitante deveria ver só a própria campanha (viu %)', n; end if;
-  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'desafio_concluido', current_setting('t34.cid'), now(), 'Desafio concluído');
 end $$;
 select test_logout();
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'desafio_concluido', current_setting('t34.cid'), now(), 'Desafio concluído');
 update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 \echo 'T34 OK: desafio do visitante e medalha do desafio'
 -- T35 — 0057: eventos dos convites (CTA): visitante grava só os próprios
@@ -2153,9 +2154,9 @@ begin
     raise exception 'T67c: aluno alterou a sessão direto';
   exception when insufficient_privilege then null;
   end;
-  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, descricao, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'mobilidade_7_inferiores', '1', 'x', 'x', now());
 end $$;
 select test_logout();
+insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, descricao, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'mobilidade_7_inferiores', '1', 'x', 'x', now());
 -- simula 15 min depois (como dono do banco) e conclui como o aluno
 update mobilidade_sessoes set iniciado_em = now() - interval '15 minutes' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 select test_login('22222222-2222-2222-2222-222222222222');
@@ -2369,3 +2370,21 @@ begin
 end $$;
 select test_logout();
 \echo 'T75 OK: eventos da Missão de Hoje'
+
+-- T76 — 0124: aluno não se dá troféu direto no banco; continua lendo e marcando como visto
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false; n int;
+begin
+  begin insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'semanas_consistentes_12', '1', now(), 'Hack');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T76a: aluno inseriu troféu para si'; end if;
+  select count(*) into n from conquistas_aluno where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if n = 0 then raise exception 'T76b: aluno deixou de ler os próprios troféus'; end if;
+  update conquistas_aluno set vista_em = now() where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'olhar_de_aguia', '1', now(), 'Olhar de Águia', 'personal') on conflict do nothing;
+select test_logout();
+\echo 'T76 OK: troféu só pelo servidor ou pelo personal'

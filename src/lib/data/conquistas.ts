@@ -20,6 +20,7 @@ import { codigoDoLink } from "@/lib/chalala/link";
 import { relatorioDaConclusao, type RelatorioConclusao } from "@/lib/relatorios/conclusao";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { uid } from "@/lib/mock/store";
 import { listSessoes, getSessao, type SessaoCompleta } from "@/lib/data/sessoes";
 import { aderenciaDoAluno, type AderenciaAluno } from "@/lib/data/aderencia";
@@ -110,7 +111,8 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const agora = new Date().toISOString();
     for (const l of linhas) if (!st.conquistas.some((c) => c.aluno_id === l.aluno_id && chave(c) === chave(l))) st.conquistas.push({ id: uid(), created_at: agora, ...l });
   } else {
-    const db = await getDb();
+    // Gravação só pelo servidor (0124: o aluno não insere troféu direto no banco).
+    const db = gravadorDeConquistas(aluno.id, linhas);
     // Medalhas novas vão num pedido separado: se o banco ainda não as aceitar
     // (migração 0037 pendente), as demais continuam sendo gravadas.
     const novasAlem = linhas.filter((l) => CODIGOS_ALEM.includes(l.codigo));
@@ -169,8 +171,20 @@ export async function registrarRelatorioVisto(alunoId: string): Promise<void> {
     if (!st.conquistas.some((c) => c.aluno_id === alunoId && c.codigo === "relatorio_mensal")) st.conquistas.push({ id: uid(), created_at: linha.conquistado_em, ...linha });
     return;
   }
-  const db = await getDb();
-  await db.from("conquistas_aluno").upsert([linha], { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+  await gravadorDeConquistas(alunoId, [linha]).from("conquistas_aluno").upsert([linha], { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+}
+
+/**
+ * Troféus são gravados SÓ pelo servidor (0124, auditoria de 29/10/2026): antes o
+ * aluno podia inserir qualquer código direto no banco pela chave pública e subir
+ * no ranking. Agora o INSERT do aluno foi retirado; o app calcula os troféus
+ * pelas regras (com leituras normais, RLS) e grava aqui com a chave do servidor.
+ * Confere que todas as linhas são do aluno já validado por quem chamou
+ * (requireAlunoApi, podeAcessarAluno → getAluno com RLS).
+ */
+function gravadorDeConquistas(alunoId: string, linhas: Array<{ aluno_id: string }>) {
+  if (!alunoId || linhas.some((l) => l.aluno_id !== alunoId)) throw new Error("conquistas: linha de outro aluno");
+  return createSupabaseAdminClient();
 }
 
 // ---------------------------------------------------------------------------
