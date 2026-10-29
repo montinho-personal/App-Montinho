@@ -100,6 +100,10 @@ export const programaInputSchema = z.object({
 });
 
 export const salvarPlanoSchema = z.object({
+  /** Versão do protocolo quando o montador abriu (proteção contra sobrescrever); ausente = sem conferência. */
+  versao_base: z.number().int().min(0).nullable().optional(),
+  /** Salvar por cima mesmo que outra tela tenha salvo antes (o personal confirmou). */
+  forcar: z.boolean().optional(),
   programa: programaInputSchema,
   treinos: z.array(treinoInputSchema).min(1).max(8),
   motivo: textoOpcional(300),

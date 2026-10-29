@@ -54,6 +54,8 @@ import { VerExercicio } from "@/components/ui/VerExercicio";
 // ----------------------------------------------------------------------------
 // Tipos de view
 // ----------------------------------------------------------------------------
+type RascunhoMontador = { em: string; versaoBase: number | null; estado: Estado };
+// ----------------------------------------------------------------------------
 type Row = {
   key: string;
   id: string | null;
@@ -259,6 +261,12 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const futuro = useRef<Estado[]>([]);
   const [hist, setHist] = useState({ passado: 0, futuro: 0 });
   const [dirty, setDirty] = useState(false);
+  // Proteção contra perda de trabalho: rascunho neste aparelho + versão em que a tela abriu.
+  const chaveRascunho = `montinho-montador:${alunoId}`;
+  const versaoBase = useRef<number | null>(programa?.versao ?? null);
+  const [rascunho, setRascunho] = useState<RascunhoMontador | null>(null);
+  /** Versão salva em outro lugar enquanto esta tela estava aberta (null = sem conflito). */
+  const [conflito, setConflito] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
@@ -625,7 +633,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     });
 
   // --- salvar -----------------------------------------------------------------
-  const salvar = useCallback(async () => {
+  const salvar = useCallback(async (forcar = false) => {
     setSaving(true);
     setErroSalvar(null);
     const corr: Array<{ nome: string; grupo: GrupoMuscular; secundarios: GrupoMuscular[] }> = [];
@@ -698,11 +706,25 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       motivo: motivo.trim() || null,
       volume: { linhas: volume.linhas.map((l) => ({ grupo: l.grupo, total: l.total, meta: l.meta, status: l.status, frequencia: l.frequencia })), sessoesSemana: volume.sessoesSemana, subtotais: volume.subtotais },
       correcoes: corr,
+      // Proteção contra sobrescrever: o servidor confere se o protocolo mudou desde que a tela abriu.
+      versao_base: versaoBase.current,
+      forcar,
     };
     try {
       const res = await fetch(`/api/alunos/${alunoId}/plano`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.conflito) {
+        setSaving(false);
+        setConflito(Number(data.versaoAtual) || 0);
+        setErroSalvar("alterado em outro lugar — seu trabalho está guardado neste aparelho");
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "Falha ao salvar");
+      versaoBase.current = data.versao?.versao ?? versaoBase.current;
+      setConflito(null);
+      try {
+        localStorage.removeItem(chaveRascunho);
+      } catch {}
       // ids estáveis vindos do servidor
       setEstado((cur) => ({
         ...cur,
@@ -725,7 +747,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     } finally {
       setSaving(false);
     }
-  }, [estado, frequencia, volume, motivo, alunoId, resolver, correcoesMap, biblioteca, toast, router, duracoes]);
+  }, [estado, frequencia, volume, motivo, alunoId, resolver, correcoesMap, biblioteca, toast, router, duracoes, chaveRascunho]);
 
   async function finalizarDia(t: TreinoVM) {
     if (!t.id) return;
@@ -754,6 +776,37 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
+
+  // Rascunho: ao abrir, oferece recuperar o que ficou sem salvar (queda de internet, aba fechada).
+  useEffect(() => {
+    try {
+      const r = JSON.parse(localStorage.getItem(chaveRascunho) ?? "null") as RascunhoMontador | null;
+      if (r?.estado?.treinos?.length) setRascunho(r); // eslint-disable-line react-hooks/set-state-in-effect
+    } catch {}
+  }, [chaveRascunho]);
+  // Guarda a cada mudança (só depois de decidir sobre o rascunho antigo, para não apagá-lo sem querer).
+  useEffect(() => {
+    if (!dirty || rascunho) return;
+    const t = window.setTimeout(() => {
+      try {
+        localStorage.setItem(chaveRascunho, JSON.stringify({ em: new Date().toISOString(), versaoBase: versaoBase.current, estado } satisfies RascunhoMontador));
+      } catch {}
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [estado, dirty, rascunho, chaveRascunho]);
+  const recuperarRascunho = () => {
+    if (!rascunho) return;
+    commit(() => rascunho.estado);
+    setFechados(new Set());
+    setRascunho(null);
+    toast.success("Rascunho recuperado. Confira e salve.");
+  };
+  const descartarRascunho = () => {
+    try {
+      localStorage.removeItem(chaveRascunho);
+    } catch {}
+    setRascunho(null);
+  };
 
   const regioesLesao = useMemo(() => regioesLesionadas(anamnese), [anamnese]);
   const totalSeriesGeral = volume.subtotais.total;
@@ -888,6 +941,25 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         ) : null}
       </section>
 
+      {conflito !== null ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm">
+          <span className="min-w-0 flex-1">
+            ⚠️ <strong>Este protocolo foi salvo em outro lugar</strong> depois que você abriu esta tela (agora na versão {conflito}). Nada do que você fez aqui se perdeu: está guardado neste aparelho.
+          </span>
+          <button type="button" onClick={() => void salvar(true)} disabled={saving} className="touch rounded-lg bg-accent px-3 py-2 font-bold text-bg disabled:opacity-50">Salvar o meu por cima</button>
+          <button type="button" onClick={() => window.location.reload()} className="touch rounded-lg border border-border px-3 py-2 text-fg-muted">Ver a outra versão</button>
+        </div>
+      ) : null}
+      {rascunho ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm">
+          <span className="min-w-0 flex-1">
+            💾 <strong>Há alterações não salvas</strong> deste protocolo, feitas em {new Date(rascunho.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.
+            {rascunho.versaoBase !== (programa?.versao ?? null) ? " Atenção: o protocolo foi salvo de novo depois disso — confira antes de salvar." : ""}
+          </span>
+          <button type="button" onClick={recuperarRascunho} className="touch rounded-lg bg-accent px-3 py-2 font-bold text-bg">Recuperar</button>
+          <button type="button" onClick={descartarRascunho} className="touch rounded-lg border border-border px-3 py-2 text-fg-muted">Descartar</button>
+        </div>
+      ) : null}
       {dirty ? (
         <button type="button" onClick={() => void salvar()} disabled={saving} className="fixed bottom-6 right-6 z-40 hidden rounded-xl bg-accent px-5 py-3 text-sm font-bold text-bg shadow-2xl hover:bg-accent-hover disabled:opacity-50 xl:block">
           {saving ? "Salvando…" : "Salvar alterações"}

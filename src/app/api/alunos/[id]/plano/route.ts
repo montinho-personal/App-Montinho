@@ -25,6 +25,13 @@ export async function PUT(request: Request, { params }: Ctx) {
   const { data, error: vErr } = await lerJson(request, salvarPlanoSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
 
+  // Proteção contra sobrescrever: o protocolo mudou desde que o montador abriu (outra aba,
+  // outro aparelho, cópia de protocolo)? Avisa em vez de apagar o trabalho de alguém.
+  if (data.versao_base != null && !data.forcar) {
+    const atual = await getPlanoAtivo(id).catch(() => null);
+    const versaoAtual = atual?.programa?.versao ?? null;
+    if (versaoAtual != null && versaoAtual !== data.versao_base) return NextResponse.json({ error: "O protocolo foi alterado em outro lugar.", conflito: true, versaoAtual }, { status: 409 });
+  }
   try {
     const resultado = await salvarPlano(id, sessao.userId, {
       programa: data.programa,

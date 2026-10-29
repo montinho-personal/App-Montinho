@@ -152,7 +152,9 @@ export function proximoMarco(d: Pick<DadosTribo, "contribuicoes" | "marcos">, tr
   const prox = marcos.find((m) => m.marco > total) ?? null;
   const anterior = [...marcos].reverse().find((m) => m.marco <= total)?.marco ?? 0;
   if (!prox) return { trilha, marco: null, total, faltam: 0, pct: 100, anterior };
-  const pct = Math.max(0, Math.min(100, Math.floor(((total - anterior) / (prox.marco - anterior)) * 100)));
+  // % do total até o próximo marco (54 de 100 treinos = 54%), igual ao número escrito ao lado.
+  // Antes era só o trecho desde o marco anterior (4 de 50 = 8%), o que parecia erro na tela.
+  const pct = Math.max(0, Math.min(99, Math.floor((total / prox.marco) * 100)));
   return { trilha, marco: prox, total, faltam: prox.marco - total, pct, anterior };
 }
 

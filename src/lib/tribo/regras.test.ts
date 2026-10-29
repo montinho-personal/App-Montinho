@@ -108,6 +108,11 @@ describe("totais e próximo marco", () => {
     expect(concessoes(d, "2026-03-01")).toEqual([]);
     expect(curiosidades(resumoTribo(d))).toEqual([]);
   });
+  it("% é do total até o próximo marco (54 de 100 treinos = 54%, não o trecho 50→100)", () => {
+    const p = proximoMarco(dados(Array.from({ length: 54 }, () => t())), "treinos");
+    expect(p.marco?.marco).toBe(100);
+    expect(p).toMatchObject({ total: 54, faltam: 46, pct: 54 });
+  });
 
   it("8) treinos de musculação somam na trilha de treinos", () => {
     const d = dados([t(true), t(), c(20)]);
