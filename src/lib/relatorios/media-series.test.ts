@@ -35,3 +35,11 @@ describe("força estimada e repetições com a mesma carga", () => {
     expect(p.at(-1)?.e1rmMax).toBe(63);
   });
 });
+
+describe("🏆 recordes no gráfico", () => {
+  it("marca quem passou de todos os anteriores, com 2+ dias antes", async () => {
+    const { indicesDeRecorde } = await import("./graficos-aluno");
+    expect(indicesDeRecorde([40, 45, 50, 50, 48, 52])).toEqual([2, 5]);
+    expect(indicesDeRecorde([40, 45])).toEqual([]);
+  });
+});

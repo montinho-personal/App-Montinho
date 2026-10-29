@@ -5,7 +5,8 @@
 // Contas em src/lib/relatorios/graficos-aluno.ts.
 import { useState } from "react";
 import Link from "next/link";
-import { cargasRepetidas, repsNaCarga, variacao, type BarraTreino } from "@/lib/relatorios/graficos-aluno";
+import { REGRAS_CONQUISTAS } from "@/lib/conquistas/regras";
+import { cargasRepetidas, indicesDeRecorde, repsNaCarga, variacao, type BarraTreino } from "@/lib/relatorios/graficos-aluno";
 
 export type PontoExercicio = { data: string; carga: number | null; volume: number; /** Média da carga das séries válidas do dia. */ media?: number | null; /** Força estimada (1RM por Epley, séries até 12 reps). */ forca?: number | null; /** Maior nº de reps em cada carga do dia. */ repsPorCarga?: Record<string, number> };
 type Aba = "treinos" | "exercicios" | "peso";
@@ -21,7 +22,7 @@ function Variacao({ v, sufixo = "" }: { v: number | null; sufixo?: string }) {
 }
 
 /** Linha com área, pontos e o valor do primeiro e do último. */
-function Linha({ valores, datas, rotulo, cor = "var(--color-accent)" }: { valores: number[]; datas: string[]; rotulo: (n: number) => string; cor?: string }) {
+function Linha({ valores, datas, rotulo, cor = "var(--color-accent)", recordes = [] }: { valores: number[]; datas: string[]; rotulo: (n: number) => string; cor?: string; /** Índices dos pontos de recorde (🏆). */ recordes?: number[] }) {
   const [sel, setSel] = useState(valores.length - 1);
   const W = 320;
   const H = 150;
@@ -47,6 +48,7 @@ function Linha({ valores, datas, rotulo, cor = "var(--color-accent)" }: { valore
           <g key={k} onClick={() => setSel(k)} className="cursor-pointer">
             <circle cx={x(k)} cy={y(v)} r="12" fill="transparent" />
             <circle cx={x(k)} cy={y(v)} r={k === i ? 5 : 3} fill={k === i ? cor : "var(--color-bg)"} stroke={cor} strokeWidth="2" />
+            {recordes.includes(k) ? <text x={x(k)} y={y(v) - 9} fontSize="12" textAnchor="middle">🏆</text> : null}
           </g>
         ))}
         <text x={x(0)} y={H - 4} fontSize="10" fill="currentColor" opacity="0.6" textAnchor="start">{ddmm(datas[0])}</text>
@@ -55,6 +57,7 @@ function Linha({ valores, datas, rotulo, cor = "var(--color-accent)" }: { valore
       <figcaption className="rounded-xl bg-bg px-3 py-2 text-center text-sm">
         <span className="text-fg-muted">{ddmm(datas[i])}: </span>
         <span className="font-bold">{rotulo(valores[i])}</span>
+        {recordes.includes(i) ? <span className="ml-1 font-bold text-accent">🏆 recorde!</span> : null}
         <span className="block text-[11px] text-fg-subtle">Toque nos pontos para ver cada dia.</span>
       </figcaption>
     </figure>
@@ -89,6 +92,8 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
   const valorDe = (p: PontoExercicio) => (medida === "carga" ? p.carga : medida === "media" ? (p.media ?? null) : medida === "forca" ? (p.forca ?? null) : p.volume);
   const pts: PontoExercicio[] = medida === "reps" ? naCarga.map((x) => ({ data: x.data, carga: null, volume: 0 })) : (pontos[chave] ?? []).filter((p) => (valorDe(p) ?? 0) > 0);
   const valores = medida === "reps" ? naCarga.map((x) => x.reps) : pts.map((p) => valorDe(p) as number);
+  // Dias de recorde (🏆): passou de todos os anteriores, mesma regra do troféu de recorde.
+  const recordes = indicesDeRecorde(valores, REGRAS_CONQUISTAS.registrosParaRecorde);
   const rotuloValor = medida === "reps" ? (n: number) => `${n} ${n === 1 ? "rep" : "reps"}` : kg;
   // Melhor média do exercício (o dia em que as séries válidas, juntas, ficaram mais pesadas).
   const melhorMedia = medida === "media" && pts.length ? pts.reduce((a, p) => ((p.media ?? 0) > (a.media ?? 0) ? p : a)) : null;
@@ -191,7 +196,8 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
                   </p>
                 ) : null}
                 {medida === "forca" ? <p className="rounded-lg bg-bg px-3 py-2 text-xs text-fg-muted">💪 Quanto você levantaria numa repetição só, calculado pelo peso e pelas repetições de cada série (fórmula de Epley, séries de até 12 repetições). É uma estimativa: não precisa testar a carga máxima.</p> : null}
-                <Linha key={`${chave}:${medida}:${carga}`} valores={valores} datas={pts.map((p) => p.data)} rotulo={rotuloValor} />
+                <Linha key={`${chave}:${medida}:${carga}`} valores={valores} datas={pts.map((p) => p.data)} rotulo={rotuloValor} recordes={recordes} />
+                {recordes.length ? <p className="text-[11px] text-fg-subtle">🏆 = dia de recorde: {medida === "reps" ? "mais repetições com essa carga" : medida === "volume" ? "maior volume" : medida === "media" ? "maior média" : medida === "forca" ? "maior força estimada" : "maior carga"} do que em todos os treinos anteriores.</p> : null}
               </>
             ) : (
               <p className="text-sm text-fg-muted">{medida === "reps" ? "Para comparar as repetições, use a mesma carga em pelo menos 2 treinos." : medida === "forca" && !valores.length ? "A força estimada usa séries de até 12 repetições com carga." : valores.length ? `Só 1 registro: ${rotuloValor(valores[0])}. O gráfico aparece a partir do 2º.` : "Ainda sem carga anotada neste exercício."}</p>

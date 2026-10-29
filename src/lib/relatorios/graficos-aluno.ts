@@ -76,3 +76,18 @@ export function repsNaCarga(pontos: ComReps[], carga: number): Array<{ data: str
     return r ? [{ data: p.data, reps: r }] : [];
   });
 }
+
+/**
+ * Dias de recorde no gráfico (🏆): o valor passou de TODOS os dias anteriores,
+ * com pelo menos REGRAS_CONQUISTAS.registrosParaRecorde dias antes (mesma regra
+ * do troféu de recorde). Devolve os índices dos pontos.
+ */
+export function indicesDeRecorde(valores: number[], minAntes = 2): number[] {
+  const out: number[] = [];
+  let max = -Infinity;
+  valores.forEach((v, i) => {
+    if (i >= minAntes && v > max) out.push(i);
+    max = Math.max(max, v);
+  });
+  return out;
+}
