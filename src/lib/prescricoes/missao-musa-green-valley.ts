@@ -1,6 +1,7 @@
 // ============================================================================
 // Prescrição — Missão Musa do Green Valley (Carol Zorzi; na ficha: Carolina
-// Zorzi). 4 treinos em sequência A → D (Lower / Upper / Lower / Full Body).
+// Zorzi). 3 treinos em sequência A → C (Lower / Upper / Lower) + o Full Body
+// (antigo Treino D) como treino extra liberado (EXTRAS).
 // Fonte: prints da ficha do personal (26/10/2026). Mesmas convenções das
 // fichas anteriores (ver operacao-mr-arena-18.ts):
 //  • Pirâmide: técnica "piramide" + séries detalhadas (20/15/12/10…).
@@ -22,14 +23,17 @@
 // no leg press 180” = Panturrilha no leg press. Objetivo, nível, divisão e
 // prioridades: os que o personal já tinha no programa da Carol.
 // Todos os exercícios têm vídeo na biblioteca.
+// v3 (29/10/2026): pedido do personal, o Full Body (Treino D) saiu da sequência
+// e virou treino extra liberado (mesmo esquema do Treino D da Brigida).
 // ============================================================================
 
+import type { ExtraInput } from "@/lib/data/extras";
 import type { ExercicioInput, SalvarPlanoInput, TreinoInput } from "@/lib/data/programas";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
 import { comRegras } from "./regras";
 
-export const ID_PRESCRICAO = "missao-musa-green-valley-v2";
+export const ID_PRESCRICAO = "missao-musa-green-valley-v3";
 export const NOME_ALUNA = "Carol Zorzi (Carolina)";
 export const ROTULO = "Missão Musa do Green Valley";
 
@@ -111,10 +115,10 @@ export const PRESCRICAO: SalvarPlanoInput = {
     nome: ROTULO,
     objetivo: "Emagrecimento",
     nivel: "Iniciante",
-    split: "Lower / Upper / Lower / Full Body",
+    split: "Lower / Upper / Lower + Full Body extra",
     modo_semana: "rotativo",
-    frequencia: { A: 1, B: 1, C: 1, D: 1 },
-    calendario: { modo: "rotativo", sequencia: ["A", "B", "C", "D"], diasPorSemana: 4 },
+    frequencia: { A: 1, B: 1, C: 1 },
+    calendario: { modo: "rotativo", sequencia: ["A", "B", "C"], diasPorSemana: 3 },
     metas_volume: {},
     prioridades: ["quadriceps", "posteriores", "gluteo"],
     equipamentos: [],
@@ -147,16 +151,31 @@ export const PRESCRICAO: SalvarPlanoInput = {
       pir("Cadeira adutora", ["20", "20", "15", "12"], `Nas duas primeiras séries, as 5 primeiras repetições isométricas e o restante explodindo (cadência normal). ${AUMENTAR}`),
       ex("Abdominal supra na polia em pé", x(4, "20"), null, { obs: AUMENTAR }),
     ]),
-    treino("D", "Full Body", [
-      pir("Cadeira extensora", P20),
-      biA("Desenvolvimento Arnold", ["12", "12", "10", "10"], "D1", AUMENTAR),
-      biB("Rosca martelo", ["12", "12", "10", "10"], "D1"),
-      pir("Tríceps pulley com barra W", P20),
-      ex("Panturrilha no leg press", x(4, "20"), null, { obs: `Leg press 180. 10 repetições isométricas e o restante normal. ${AUMENTAR}` }),
-    ]),
   ],
-  motivo: "Cadastro da prescrição Missão Musa do Green Valley (Lower/Upper/Lower/Full Body em sequência) a partir da ficha do personal; elevação pélvica na máquina",
+  motivo: "Missão Musa do Green Valley: Full Body (Treino D) fora da sequência, agora como treino extra liberado (pedido do personal)",
 };
+
+const item = (nome: string, series: number, reps: string) => ({ biblioteca_id: BIBLIOTECA[nome].id, nome, series, reps });
+
+/** O Full Body (antigo Treino D), como treino extra liberado (o aluno faz quando quiser, nas regras dos extras). */
+export const EXTRAS: ExtraInput[] = [
+  {
+    modalidade: "resistido",
+    titulo: "Treino D — Full Body",
+    descricao: "Cadeira extensora: pirâmide 20/15/12/10. Bi-set: Desenvolvimento Arnold 12/12/10/10 + Rosca martelo 12/12/10/10, sem descanso entre os dois. Tríceps pulley com barra W: pirâmide 20/15/12/10. Panturrilha no leg press (180): 4 × 20, 10 repetições isométricas e o restante normal. Conforme diminuir as repetições, aumentar o peso! Chegar todas até a falha!",
+    duracao_min: 40,
+    treino_id: null,
+    grupos: ["quadriceps", "ombro_anterior", "biceps", "triceps", "panturrilha"],
+    series_estimadas: 20,
+    exercicios: [
+      item("Cadeira extensora", 4, "20/15/12/10"),
+      item("Desenvolvimento Arnold", 4, "12/12/10/10"),
+      item("Rosca martelo", 4, "12/12/10/10"),
+      item("Tríceps pulley com barra W", 4, "20/15/12/10"),
+      item("Panturrilha no leg press", 4, "20"),
+    ],
+  },
+];
 
 /** Pontos que dependem de confirmação do personal (nada foi inventado no lugar). */
 export const PENDENCIAS: string[] = [];
