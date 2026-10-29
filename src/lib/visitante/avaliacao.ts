@@ -19,7 +19,7 @@ import type { EventoCta } from "@/lib/visitante/ctas";
  * Empresa → “Pedir avaliações” → copiar o link, ex.: https://g.page/r/XXXX/review).
  * Vazio = pedido desligado (até o Montinho mandar o link).
  */
-export const LINK_AVALIACAO_GOOGLE = "";
+export const LINK_AVALIACAO_GOOGLE = "https://g.page/r/CYpLHC9loIaIECE/review";
 
 export const REGRAS_AVALIACAO = {
   minTreinos: 5,
