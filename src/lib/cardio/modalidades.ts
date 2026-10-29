@@ -18,7 +18,7 @@ export const MODALIDADES: Record<ModalidadeCardio, InfoModalidade> = {
   remo: { nome: "Remo", emoji: "🚣", distancia: true, velocidade: false, inclinacao: false },
   natacao: { nome: "Natação", emoji: "🏊", distancia: true, velocidade: false, inclinacao: false },
   corda: { nome: "Pular corda", emoji: "🪢", distancia: false, velocidade: false, inclinacao: false },
-  hiit: { nome: "HIIT", emoji: "🔥", distancia: false, velocidade: false, inclinacao: false },
+  hiit: { nome: "HIIT", emoji: "🔥", distancia: true, velocidade: false, inclinacao: false },
   outro: { nome: "Outro cardio", emoji: "❤️", distancia: true, velocidade: false, inclinacao: false },
 };
 

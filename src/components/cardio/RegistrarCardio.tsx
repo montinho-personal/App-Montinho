@@ -26,11 +26,13 @@ type Props = {
   inicial?: { minutos?: number; modalidade?: ModalidadeCardio; status?: Status };
   /** Vindo do cronômetro: grava sozinho ao abrir (o esforço fica opcional, depois). */
   salvarAoAbrir?: boolean;
+  /** Início gravado pelo “▶ Começar” do cronômetro (troféus de horário). */
+  inicioId?: string | null;
 };
 
 const novaChave = () => `cardio-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio", inicial, salvarAoAbrir = false }: Props) {
+export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio", inicial, salvarAoAbrir = false, inicioId = null }: Props) {
   const router = useRouter();
   const [chave] = useState(novaChave);
   const [modalidade, setModalidade] = useState<ModalidadeCardio>(inicial?.modalidade ?? (prescricao && prescricao.modalidade !== "livre" ? prescricao.modalidade : "caminhada"));
@@ -75,6 +77,7 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
       fc_max: num(extra.fc_max),
       observacoes: extra.observacoes.trim() || null,
       session_id: sessionId ?? null,
+      ...(inicioId ? { inicio_id: inicioId } : {}),
     };
     try {
       const r = await fetch(rota, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });

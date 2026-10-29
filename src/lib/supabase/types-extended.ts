@@ -220,6 +220,9 @@ export type CardioRegistro = {
   client_key: string;
   data: string;
   realizado_em: string;
+  /** Início do cronômetro no app (hora do servidor, 0113); null = anotado sem começar no app. */
+  inicio_id?: string | null;
+  iniciado_em?: string | null;
   removido_em: string | null;
   created_at: string;
   updated_at: string;

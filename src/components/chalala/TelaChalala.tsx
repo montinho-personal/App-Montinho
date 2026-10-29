@@ -282,7 +282,7 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
 
       {celebrar && medalhasNovas.length ? <CelebracaoMedalha conquistas={medalhasNovas} nome={presencial ? presencial.nomeAluno : nome} animacoes={animacoes} onFechar={fecharCelebracao} /> : null}
 
-      {editor ? <EditorCard dados={dados} modeloInicial={r?.modeloSugerido ?? "A"} nome={presencial ? presencial.nomeAluno : nome} origem="conclusao" registrarEventos={!presencial} onFechar={() => setEditor(false)} /> : null}
+      {editor ? <EditorCard dados={dados} modeloInicial={r?.modeloSugerido ?? "A"} nome={presencial ? presencial.nomeAluno : nome} origem="conclusao" registrarEventos={!presencial} refEvento={`sessao:${base.sessaoId}`} onFechar={() => setEditor(false)} /> : null}
     </div>
   );
 }

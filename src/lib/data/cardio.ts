@@ -21,7 +21,7 @@ import type { TrainingSession } from "@/lib/supabase/types-sessoes";
 import type { ProgressoCardio } from "@/lib/conquistas/vitrine";
 import { diasCombo, sequenciaComboAtual } from "@/lib/conquistas/combo-seguido";
 
-type Demo = { prescricoes: CardioPrescricao[]; registros: CardioRegistro[]; semeado: boolean };
+type Demo = { prescricoes: CardioPrescricao[]; registros: CardioRegistro[]; inicios?: Array<{ id: string; aluno_id: string; iniciado_em: string }>; semeado: boolean };
 function demo(): Demo {
   const g = globalThis as unknown as { __montinhoCardio?: Demo };
   g.__montinhoCardio ??= { prescricoes: [], registros: [], semeado: false };
@@ -141,6 +141,8 @@ export type EntradaRegistro = {
   session_id?: string | null;
   /** AAAA-MM-DD (Brasília); padrão: hoje. Até 7 dias para trás. */
   data?: string | null;
+  /** Início no cronômetro (cardio_inicios): o banco copia a hora do servidor. */
+  inicio_id?: string | null;
 };
 
 /** Registra (idempotente por client_key). O planejado do dia vem da prescrição, no servidor. */
@@ -173,9 +175,14 @@ export async function registrarCardio(alunoId: string, e: EntradaRegistro, orige
     client_key: e.client_key,
     data,
     realizado_em: realizado,
+    // Só manda quando existe: sem a migração 0113, a coluna não existe e o resto segue igual.
+    ...(e.inicio_id ? { inicio_id: e.inicio_id } : {}),
   };
   if (isDemoMode()) {
     const d = demo();
+    // Demo imita o gatilho do banco: hora do início do mesmo aluno, até 6 h antes.
+    const ini = e.inicio_id ? d.inicios?.find((i) => i.id === e.inicio_id && i.aluno_id === alunoId && Date.now() - Date.parse(i.iniciado_em) < 6 * 3_600_000 && !d.registros.some((r) => r.inicio_id === i.id)) : undefined;
+    Object.assign(linha, { inicio_id: ini?.id ?? null, iniciado_em: ini?.iniciado_em ?? null });
     const ja = d.registros.find((r) => r.aluno_id === alunoId && (r.client_key === e.client_key || (!!linha.session_id && !!linha.prescricao_id && r.session_id === linha.session_id && r.prescricao_id === linha.prescricao_id && !r.removido_em)));
     if (ja) return ja;
     const r: CardioRegistro = { id: uid(), ...linha, removido_em: null, created_at: agora, updated_at: agora };
@@ -195,6 +202,23 @@ export async function registrarCardio(alunoId: string, e: EntradaRegistro, orige
     throw new Error(`Não foi possível registrar o cardio: ${error.message}`);
   }
   return nova as CardioRegistro;
+}
+
+/**
+ * “▶ Começar” do cronômetro: grava o início com a hora do SERVIDOR (troféus de
+ * madrugada). Sem a migração 0113, devolve null e o cardio segue normal.
+ */
+export async function iniciarCardio(alunoId: string, modalidade: ModalidadeCardio | null): Promise<{ id: string; iniciado_em: string } | null> {
+  if (isDemoMode()) {
+    const d = demo();
+    const i = { id: crypto.randomUUID(), aluno_id: alunoId, iniciado_em: new Date().toISOString() };
+    (d.inicios ??= []).push(i);
+    return { id: i.id, iniciado_em: i.iniciado_em };
+  }
+  const db = await getDb();
+  const { data, error } = await db.from("cardio_inicios").insert({ aluno_id: alunoId, modalidade }).select("id, iniciado_em").single();
+  if (error) return null;
+  return data as { id: string; iniciado_em: string };
 }
 
 export type CorrecaoRegistro = Partial<Pick<EntradaRegistro, "status" | "duracao_min" | "intensidade" | "esforco" | "distancia_km" | "velocidade_kmh" | "inclinacao_pct" | "fc_media" | "fc_max" | "observacoes" | "modalidade">> & { remover?: boolean };
@@ -237,7 +261,7 @@ const ehExtraCardio = (s: Pick<TrainingSession, "modo" | "status" | "snapshot">)
 
 function deExtra(s: TrainingSession): CardioFeito {
   const ex = (s.snapshot as { extra?: { titulo?: string; duracao_min?: number; modalidade?: string } }).extra!;
-  return { id: s.id, origem: "extra", modalidade: modalidadeDoTexto(ex.titulo ?? s.nome_treino), status: "concluido", duracaoMin: Math.round((s.duracao_seg ?? 0) / 60), planejadoMin: ex.duracao_min ?? null, intensidadePlanejada: ex.modalidade === "cardio_leve" ? "leve" : "moderada", intensidade: null, esforco: null, data: dataLocal(s.iniciado_em), realizadoEm: s.finalizado_em ?? s.iniciado_em, prescricaoId: null, sessionId: null, distanciaKm: null, fcMedia: null, fcMax: null, observacoes: ex.titulo ?? null, editavel: false };
+  return { id: s.id, origem: "extra", modalidade: modalidadeDoTexto(ex.titulo ?? s.nome_treino), status: "concluido", duracaoMin: Math.round((s.duracao_seg ?? 0) / 60), planejadoMin: ex.duracao_min ?? null, intensidadePlanejada: ex.modalidade === "cardio_leve" ? "leve" : "moderada", intensidade: null, esforco: null, data: dataLocal(s.iniciado_em), realizadoEm: s.finalizado_em ?? s.iniciado_em, prescricaoId: null, sessionId: null, distanciaKm: null, fcMedia: null, fcMax: null, observacoes: ex.titulo ?? null, editavel: false, iniciadoNoApp: s.iniciado_em };
 }
 
 async function extrasDeCardio(alunoId: string): Promise<TrainingSession[]> {

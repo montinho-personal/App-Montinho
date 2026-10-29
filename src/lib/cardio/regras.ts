@@ -66,6 +66,8 @@ export type CardioFeito = {
   observacoes: string | null;
   /** Só registros do app/personal podem ser corrigidos pelo aluno. */
   editavel: boolean;
+  /** Hora do servidor em que o cardio foi COMEÇADO no app (cronômetro ou treino extra); null = só anotado. */
+  iniciadoNoApp?: string | null;
 };
 
 export function deRegistro(r: CardioRegistro): CardioFeito {
@@ -88,6 +90,7 @@ export function deRegistro(r: CardioRegistro): CardioFeito {
     fcMax: r.fc_max,
     observacoes: r.observacoes,
     editavel: r.origem === "app",
+    iniciadoNoApp: r.iniciado_em ?? null,
   };
 }
 

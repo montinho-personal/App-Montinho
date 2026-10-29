@@ -1981,3 +1981,53 @@ begin
   if exists (select 1 from crm_fila where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and dados->>'convite' = 'avaliacao_google') then raise exception 'T63d: clique no Google foi ao CRM como WhatsApp'; end if;
 end $$;
 \echo 'T63 OK: avaliação no Google'
+
+-- T64 — 0113: início do cardio no app — hora do servidor, só do próprio aluno, 1 registro por início; troféus novos aceitos
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v_ini uuid; v_hora timestamptz; v_reg timestamptz;
+begin
+  insert into cardio_inicios (aluno_id, modalidade, iniciado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', '2026-01-01 07:00:00+00') returning id, iniciado_em into v_ini, v_hora;
+  if v_hora < now() - interval '1 minute' then raise exception 'T64a: o celular escolheu a hora do início'; end if;
+  update cardio_inicios set iniciado_em = '2026-01-01 07:00:00+00' where id = v_ini;
+  if (select iniciado_em from cardio_inicios where id = v_ini) <> v_hora then raise exception 'T64b: início mudou depois de gravado'; end if;
+  insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data, inicio_id, iniciado_em)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 30, 'app', 'cardio-ini-0113-1', current_date, v_ini, '2026-01-01 07:00:00+00') returning iniciado_em into v_reg;
+  if v_reg is distinct from v_hora then raise exception 'T64c: registro não ficou com a hora do início do servidor'; end if;
+  insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data, iniciado_em)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 30, 'app', 'cardio-ini-0113-2', current_date, '2026-01-01 07:00:00+00') returning iniciado_em into v_reg;
+  if v_reg is not null then raise exception 'T64d: registro sem início ficou com hora escolhida pelo celular'; end if;
+  begin
+    insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data, inicio_id)
+      values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 30, 'app', 'cardio-ini-0113-3', current_date, v_ini);
+    raise exception 'T64e: o mesmo início valeu para dois cardios';
+  exception when unique_violation then null;
+  end;
+  update cardio_registros set iniciado_em = '2026-01-01 07:00:00+00' where client_key = 'cardio-ini-0113-1';
+  if (select iniciado_em from cardio_registros where client_key = 'cardio-ini-0113-1') <> v_hora then raise exception 'T64f: correção mudou a hora do início'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from cardio_inicios where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T64g: outro aluno viu o início do cardio'; end if;
+  begin
+    insert into cardio_inicios (aluno_id) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+    raise exception 'T64h: outro aluno gravou início em nome de outro';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select test_logout();
+do $$
+declare v_b uuid; v_ini uuid; v_reg timestamptz;
+begin
+  v_b := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select id into v_ini from cardio_inicios where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' limit 1;
+  insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data)
+    values (v_b, 'esteira', 'concluido', 30, 'app', 'cardio-ini-0113-b', current_date);
+  update cardio_registros set inicio_id = v_ini where client_key = 'cardio-ini-0113-b';
+  if (select inicio_id from cardio_registros where client_key = 'cardio-ini-0113-b') is not null then raise exception 'T64i: registro ganhou início de outro aluno na correção'; end if;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, descricao, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'trofeus_compartilhados_50', '1', 'x', 'x', now()), ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cardio_madrugada', '1', 'x', 'x', now());
+  delete from conquistas_aluno where codigo in ('trofeus_compartilhados_50', 'cardio_madrugada');
+end $$;
+\echo 'T64 OK: início do cardio no app e troféus novos'

@@ -11,7 +11,10 @@
 //   sessão com dor relatada não vira recorde.
 // ============================================================================
 
-import { LIMITES_COMPARTILHAR, type MarcosCompartilhar } from "./compartilhar";
+import { LIMITES_COMPARTILHAR, trofeusCompartilharMais, type CodigoCompartilharMais, type EventoCompartilhar, type MarcosCompartilhar } from "./compartilhar";
+import { trofeusDeTempo, type CodigoAcompanhamento } from "./acompanhamento";
+import { trofeusDoQuiz, type CodigoQuiz, type RespostaQuiz } from "./quiz";
+import { trofeusCardioHorario, type CodigoCardioHorario } from "./cardio-horario";
 import { LIMITES_DESAFIO, type MarcosDesafios } from "@/lib/desafios/regras";
 import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
@@ -105,6 +108,14 @@ export type CodigoConquista =
   | CodigoCombo
   // Volume total: séries válidas acumuladas (src/lib/conquistas/volume-series.ts)
   | CodigoSeries
+  // 29/10/2026: acompanhamento em meses + retomada de 1 mês (acompanhamento.ts),
+  // autoconhecimento (quiz.ts), mais de compartilhar (compartilhar.ts),
+  // cardio por horário/10 km/escada (cardio-horario.ts)
+  | CodigoAcompanhamento
+  | "retomada_30"
+  | CodigoQuiz
+  | CodigoCompartilharMais
+  | CodigoCardioHorario
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -168,6 +179,8 @@ export { CODIGOS_DIA_DUPLO } from "./dia-duplo";
 export { CODIGOS_COMBO } from "./combo-seguido";
 /** Volume total (0111): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_SERIES } from "./volume-series";
+/** Troféus de 29/10/2026 (0113): gravados à parte, como as outras famílias novas. */
+export const CODIGOS_29OUT: CodigoConquista[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_1_ano", "retomada_30", "quiz_1", "quiz_10", "quiz_30", "quiz_50", "semana_compartilhada", "cards_10", "cards_20", "cards_30", "trofeus_compartilhados_10", "trofeus_compartilhados_20", "trofeus_compartilhados_30", "trofeus_compartilhados_50", "cardio_madrugada", "cardio_4h", "cardio_meia_noite", "cardio_10km", "cardio_escada_1h"];
 export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -277,6 +290,27 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
+  acompanhamento_3_meses: { titulo: "Três meses de acompanhamento", criterio: "Treinar em 3 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
+  acompanhamento_6_meses: { titulo: "Seis meses de acompanhamento", criterio: "Treinar em 6 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
+  acompanhamento_1_ano: { titulo: "Um ano de acompanhamento", criterio: "Treinar em 12 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
+  retomada_30: { titulo: "A Volta por Cima", criterio: "Fazer um treino válido depois de 30 dias ou mais sem treinar.", repete: true },
+  quiz_1: { titulo: "Primeiro Acerto", criterio: "Acertar a primeira resposta do “Mito ou verdade?”.", repete: false },
+  quiz_10: { titulo: "Mente Afiada", criterio: "Acertar 10 respostas do “Mito ou verdade?” (vale a primeira resposta de cada).", repete: false },
+  quiz_30: { titulo: "Caçador de Mitos", criterio: "Acertar 30 respostas do “Mito ou verdade?” (vale a primeira resposta de cada).", repete: false },
+  quiz_50: { titulo: "Mestre do Conhecimento", criterio: "Acertar 50 respostas do “Mito ou verdade?” (vale a primeira resposta de cada).", repete: false },
+  semana_compartilhada: { titulo: "Semana Compartilhada", criterio: "Cumprir a meta da semana e compartilhar (ou baixar) o card do fim de cada treino dela.", repete: false },
+  cards_10: { titulo: "10 Cards no Feed", criterio: "Compartilhar o card do fim do treino de 10 treinos diferentes.", repete: false },
+  cards_20: { titulo: "20 Cards no Feed", criterio: "Compartilhar o card do fim do treino de 20 treinos diferentes.", repete: false },
+  cards_30: { titulo: "30 Cards no Feed", criterio: "Compartilhar o card do fim do treino de 30 treinos diferentes.", repete: false },
+  trofeus_compartilhados_10: { titulo: "Galeria de 10 Troféus", criterio: "Compartilhar 10 troféus diferentes.", repete: false },
+  trofeus_compartilhados_20: { titulo: "Galeria de 20 Troféus", criterio: "Compartilhar 20 troféus diferentes.", repete: false },
+  trofeus_compartilhados_30: { titulo: "Galeria de 30 Troféus", criterio: "Compartilhar 30 troféus diferentes.", repete: false },
+  trofeus_compartilhados_50: { titulo: "Galeria de 50 Troféus", criterio: "Compartilhar 50 troféus diferentes.", repete: false },
+  cardio_madrugada: { titulo: "Madrugador do Cardio", criterio: "Começar no app (▶ Começar do cronômetro) um cardio de 10+ minutos entre 3h00 e 4h59 (Brasília). 5h00 já não vale.", repete: false },
+  cardio_4h: { titulo: "Cardio das 4h", criterio: "Começar no app (▶ Começar do cronômetro) um cardio de 10+ minutos entre 3h00 e 4h00 (Brasília). 4h01 já não vale.", repete: false },
+  cardio_meia_noite: { titulo: "Cardio da Meia-Noite", criterio: "Começar no app (▶ Começar do cronômetro) um cardio de 10+ minutos entre 0h00 e 2h59 (Brasília). 3h00 já não vale.", repete: false },
+  cardio_10km: { titulo: "10 km no Dia", criterio: "Somar 10 km ou mais no mesmo dia em esteira, caminhada, corrida ou HIIT.", repete: false },
+  cardio_escada_1h: { titulo: "1 Hora de Escada", criterio: "Somar 60 minutos ou mais de escada no mesmo dia.", repete: false },
 };
 
 /** Versão do critério de cada conquista (gravada junto; mudar critério nunca apaga conquista antiga). */
@@ -420,6 +454,10 @@ export type EntradaConquistas = {
   desafios?: DesafioConquista[];
   /** Montinho Cardio: prescrições (com as antigas) e cardios feitos. */
   cardio?: EntradaCardio | null;
+  /** Respostas do “Mito ou verdade?” (Autoconhecimento). */
+  quiz?: RespostaQuiz[] | null;
+  /** Compartilhamentos/downloads do aluno (cards e troféus compartilhados). */
+  eventosCompartilhar?: EventoCompartilhar[] | null;
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
@@ -507,6 +545,10 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (cp?.vitrine) out.push(nova("vitrine_de_trofeus", "1", cp.vitrine, null, `${LIMITES_COMPARTILHAR.trofeusVitrine} troféus diferentes compartilhados.`));
   if (cp?.inspiracao) out.push(nova("inspiracao_galera", "1", cp.inspiracao, null, "Alguém abriu o link de um card que você compartilhou."));
   if (cp?.amigo) out.push(nova("trouxe_amigo", "1", cp.amigo, null, "Um amigo entrou no app pelo seu convite."));
+  if (e.eventosCompartilhar) {
+    const treinos = validas.filter(ehDoApp).map((s) => ({ id: s.id, dia: dataLocal(s.iniciado_em) }));
+    for (const t of trofeusCompartilharMais(e.eventosCompartilhar, e.aderencia.semanas, treinos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
+  }
   const da = e.desafiosAmigos;
   if (da?.criador) out.push(nova("criador_desafios", "1", da.criador, null, "Você criou um desafio que chegou até o fim com os amigos."));
   if (da?.campeao) out.push(nova("campeao_desafio", "1", da.campeao, null, "1º lugar num desafio entre amigos."));
@@ -516,6 +558,9 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   for (const t of trofeusDoDiaDuplo(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDoComboSeguido(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeSeries(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDeTempo(e.sessoes)) out.push(nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, t.codigo === "retomada_30" ? { diasAfastado: Number(t.evidencia.diasAfastado) } : undefined, t.evidencia));
+  if (e.quiz) for (const t of trofeusDoQuiz(e.quiz)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
+  if (e.cardio) for (const t of trofeusCardioHorario(e.cardio.feitos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

@@ -25,6 +25,8 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
   const [inicio, setInicio] = useState<number | null>(null);
   const [agora, setAgora] = useState(0);
   const [registrar, setRegistrar] = useState<{ minutos: number; completo: boolean } | null>(null);
+  // Início gravado no servidor (a hora oficial para os troféus de horário).
+  const [inicioId, setInicioId] = useState<string | null>(null);
   const trava = useRef<Sentinela | null>(null);
   const seg = inicio ? Math.max(0, Math.floor((agora - inicio) / 1000)) : 0;
   const restante = Math.max(0, alvo - seg);
@@ -52,6 +54,10 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
     setInicio(t);
     setAgora(t);
     eventoGa("cardio_started", { prescrito: prescricao ? 1 : 0, minutos });
+    fetch("/api/cardio/iniciar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalidade }) })
+      .then((r) => r.json())
+      .then((d: { inicio_id?: string | null }) => setInicioId(d.inicio_id ?? null))
+      .catch(() => undefined);
   }
 
   if (registrar)
@@ -62,6 +68,7 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
         nome={nome}
         inicial={{ minutos: registrar.minutos, modalidade, status: registrar.completo ? "concluido" : "parcial" }}
         salvarAoAbrir
+        inicioId={inicioId}
         onFechar={onFechar}
       />
     );

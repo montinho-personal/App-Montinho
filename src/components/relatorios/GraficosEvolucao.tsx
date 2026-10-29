@@ -61,6 +61,15 @@ function Linha({ valores, datas, rotulo, cor = "var(--color-accent)" }: { valore
   );
 }
 
+/** “Treino A · Push”: a letra e o nome do treino (o mais recente com essa letra), curtinho. */
+function rotuloDoChip(l: string, treinos: BarraTreino[]): string {
+  const base = l.length === 1 ? `Treino ${l}` : l;
+  const nome = [...treinos].reverse().find((t) => t.rotulo === l)?.nome?.trim() ?? "";
+  const resto = nome.replace(new RegExp(`^treino\\s*${l}\\b\\s*[-–—:·]?\\s*`, "i"), "").trim();
+  if (!resto || resto.toLowerCase() === base.toLowerCase() || l.length > 1) return base;
+  return `${base} · ${resto.length > 16 ? `${resto.slice(0, 15)}…` : resto}`;
+}
+
 export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioHref }: { treinos: BarraTreino[]; exercicios: Array<{ chave: string; nome: string; vezes: number }>; pontos: Record<string, PontoExercicio[]>; peso: Array<{ data: string; kg: number }>; relatorioHref: string }) {
   const abas: Array<[Aba, string]> = [["treinos", "🏋️ Treinos"], ["exercicios", "💪 Exercícios"], ...(peso.length >= 2 ? ([["peso", "⚖️ Peso"]] as Array<[Aba, string]>) : [])];
   const [aba, setAba] = useState<Aba>("treinos");
@@ -95,10 +104,12 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
               <div className="flex flex-wrap gap-1.5">
                 {[...letras, ""].map((l) => (
                   <button key={l || "todos"} type="button" aria-pressed={letra === l} onClick={() => { setLetra(l); setBarra(null); }} className={`min-h-8 rounded-full border px-3 text-xs font-bold ${letra === l ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
-                    {l ? (l.length === 1 ? `Treino ${l}` : l) : "Todos"}
+                    {l ? rotuloDoChip(l, treinos) : "Todos"}
                   </button>
                 ))}
               </div>
+            ) : letras.length === 1 ? (
+              <p className="text-xs font-semibold text-fg-muted">{letras[0].length === 1 ? `Treino ${letras[0]}` : `Treino ${letras[0].toLowerCase()}`} · quando você tiver outros treinos (A, B, C…), dá para escolher cada um aqui.</p>
             ) : null}
             {letra === "" && letras.length > 1 ? (
               <p className="rounded-lg bg-bg px-3 py-2 text-xs text-fg-muted">Treinos diferentes têm exercícios diferentes: para ver a evolução, escolha um treino acima.</p>
@@ -114,7 +125,7 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
                 return (
                   <button key={t.id} type="button" role="listitem" onClick={() => setBarra(t.id)} aria-label={`${t.nome}, ${ddmm(t.data)}: ${kg(t.volumeKg)}`} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
                     <span className={`w-full rounded-t-md ${on ? "bg-accent" : "bg-accent/40"}`} style={{ height: `${Math.max(4, (t.volumeKg / maxBarra) * 100)}%` }} />
-                    <span className={`whitespace-nowrap text-[10px] font-bold ${on ? "text-accent" : "text-fg-subtle"}`}>{letra ? ddmm(t.data) : t.rotulo.length === 1 ? t.rotulo : t.rotulo[0]}</span>
+                    <span className={`whitespace-nowrap text-[10px] font-bold ${on ? "text-accent" : "text-fg-subtle"}`}>{letra || letras.length <= 1 ? ddmm(t.data) : t.rotulo.length === 1 ? t.rotulo : t.rotulo[0]}</span>
                   </button>
                 );
               })}

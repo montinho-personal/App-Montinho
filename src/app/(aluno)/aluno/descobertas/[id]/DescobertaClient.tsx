@@ -1,7 +1,7 @@
 "use client";
 
 // Quiz → feedback imediato → níveis 1, 2 e 3 (divulgação progressiva).
-// Errar não tira nada; responder não concede medalha.
+// Errar não tira nada; acertos somam para os troféus de Autoconhecimento.
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -10,15 +10,18 @@ import { CATEGORIAS, type ConteudoConhecimento } from "@/lib/desbloqueia/tipos";
 import { responder } from "@/lib/desbloqueia/motor";
 import { enviarEvento } from "@/components/chalala/evento";
 import { CardDescoberta } from "@/components/desbloqueia/CardDescoberta";
+import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
 
 type Fonte = { id: string; citacao: string; link: string | null; nota: string | null };
 type Origem = "conquista" | "periodo" | "personal" | "contexto" | "biblioteca";
 
-async function postar(url: string, body: unknown) {
+async function postar(url: string, body: unknown): Promise<{ novas?: Array<ConquistaCelebravel & { id: string }> } | null> {
   try {
-    await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return await r.json().catch(() => null);
   } catch {
     // offline: a leitura continua; o progresso fica para a próxima vez
+    return null;
   }
 }
 
@@ -29,6 +32,7 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
   const [card, setCard] = useState(false);
   const [semQuiz, setSemQuiz] = useState(false);
   const registrado = useRef(false);
+  const [trofeus, setTrofeus] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
   const cat = CATEGORIAS.find((k) => k.id === c.categoria);
   const resultado = resposta ? responder(c, resposta) : null;
   const revelado = !!resultado || semQuiz;
@@ -39,7 +43,7 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
   function explorar(alternativa: string | null) {
     if (registrado.current && !alternativa) return;
     registrado.current = true;
-    void postar(`/api/conhecimento/${c.id}/explorar`, { resposta: alternativa, origem });
+    void postar(`/api/conhecimento/${c.id}/explorar`, { resposta: alternativa, origem }).then((d) => d?.novas?.length && setTrofeus(d.novas));
   }
   function escolher(id: string) {
     setResposta(id);
@@ -57,8 +61,14 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
     void postar(`/api/conhecimento/${c.id}/salvar`, { salvo: novo });
   }
 
+  function fecharTrofeus() {
+    void postar("/api/conquistas/vistas", { ids: trofeus.map((t) => t.id) });
+    setTrofeus([]);
+  }
+
   return (
     <article className="space-y-4">
+      {trofeus.length ? <CelebracaoMedalha conquistas={trofeus} onFechar={fecharTrofeus} /> : null}
       <header className="space-y-2">
         <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: cat?.cor }}>
           #{String(c.numero).padStart(2, "0")} · {cat?.rotulo}{c.essencial ? " · Orientação essencial" : ""}

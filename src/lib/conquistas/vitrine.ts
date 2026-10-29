@@ -7,6 +7,8 @@
 // ============================================================================
 
 import { totalDeSeries } from "./volume-series";
+import { mesesComTreino } from "./acompanhamento";
+import { JANELAS_CARDIO } from "./cardio-horario";
 import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
@@ -57,6 +59,9 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "semanas_consistentes_10", selo: "10 sem" },
   { codigo: "semanas_consistentes_12", selo: "12" },
   { codigo: "acompanhamento_12_semanas", selo: "12 sem" },
+  { codigo: "acompanhamento_3_meses", selo: "3 m" },
+  { codigo: "acompanhamento_6_meses", selo: "6 m" },
+  { codigo: "acompanhamento_1_ano", selo: "1 ano" },
   { codigo: "constancia_verdade", selo: "8/12" },
   { codigo: "treinos_50", selo: "50" },
   { codigo: "recomeco_consistente", selo: "Volta" },
@@ -93,6 +98,19 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "criador_desafios", selo: "⚔️" },
   { codigo: "campeao_desafio", selo: "🥇" },
   { codigo: "palavra_cumprida", selo: "✅" },
+  { codigo: "semana_compartilhada", selo: "7📸" },
+  { codigo: "cards_10", selo: "10📸" },
+  { codigo: "cards_20", selo: "20📸" },
+  { codigo: "cards_30", selo: "30📸" },
+  { codigo: "trofeus_compartilhados_10", selo: "10🏆" },
+  { codigo: "trofeus_compartilhados_20", selo: "20🏆" },
+  { codigo: "trofeus_compartilhados_30", selo: "30🏆" },
+  { codigo: "trofeus_compartilhados_50", selo: "50🏆" },
+  // Autoconhecimento: respostas certas no “Mito ou verdade?” (50 só com 50+ perguntas no app)
+  { codigo: "quiz_1", selo: "1✓" },
+  { codigo: "quiz_10", selo: "10✓" },
+  { codigo: "quiz_30", selo: "30✓" },
+  { codigo: "quiz_50", selo: "50✓" },
   { codigo: "desafiante_nato", selo: "🔥" },
   // Montinho Cardio (500 e 1.000 ainda desligados: não aparecem)
   { codigo: "cardio_1", selo: "❤️" },
@@ -109,6 +127,11 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "cardio_folego_extra", selo: "150%" },
   { codigo: "cardio_dobro", selo: "2×" },
   { codigo: "cardio_uma_hora", selo: "60′" },
+  { codigo: "cardio_meia_noite", selo: "0h" },
+  { codigo: "cardio_madrugada", selo: "<5h" },
+  { codigo: "cardio_4h", selo: "4h" },
+  { codigo: "cardio_10km", selo: "10km" },
+  { codigo: "cardio_escada_1h", selo: "🪜60′" },
   // Dia em dobro
   { codigo: "dois_folegos", selo: "2❤️‍🔥" },
   { codigo: "combo_completo", selo: "💪❤️" },
@@ -125,7 +148,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -149,7 +172,10 @@ export type ProgressoCardio = {
   comboSeguidos?: number;
 };
 
-export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null }): Medalha[] {
+/** Progresso dos troféus de compartilhar e do “Mito ou verdade?” (quando a tela tem esses dados). */
+export type ProgressoExtras = { cardsCompartilhados?: number; trofeusCompartilhados?: number; quizCertas?: number; quizTotal?: number };
+
+export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null; extras?: ProgressoExtras | null }): Medalha[] {
   const ganhas = new Map<string, string>();
   for (const c of e.conquistas) if (!ganhas.has(c.codigo) || c.conquistado_em < ganhas.get(c.codigo)!) ganhas.set(c.codigo, c.conquistado_em);
 
@@ -158,6 +184,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const seq = e.aderencia.sequencia;
   const meta = e.aderencia.semanaAtual?.meta ?? null;
   // Mesma conta da regra: semanas com meta, sem pausa e com ao menos um treino.
+  const mesesTreinados = mesesComTreino(e.sessoes);
   const participando = e.aderencia.semanas.filter((w) => w.meta && !w.pausada && w.concluidas + w.parciais > 0).length;
 
   // Além do necessário: treinos curtos concluídos, extras e séries além das prescritas.
@@ -195,6 +222,50 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "semanas_consistentes_8": return semanas(8);
       case "semanas_consistentes_10": return semanas(10);
       case "semanas_consistentes_12": return semanas(12);
+      case "acompanhamento_3_meses":
+      case "acompanhamento_6_meses":
+      case "acompanhamento_1_ano": {
+        const n = c === "acompanhamento_1_ano" ? 12 : Number(c.split("_")[1]);
+        const m = Math.min(mesesTreinados, n);
+        return { atual: m, alvo: n, falta: `Treine em ${n} meses diferentes (blocos de 30 dias desde o 1º treino; não precisam ser seguidos) — você está em ${plural(m, "mês", "meses")}.`, disponivel: true };
+      }
+      case "retomada_30":
+        return { atual: null, alvo: null, falta: "Só acontece depois de 30 dias ou mais sem treinar: volte e faça um treino.", disponivel: false };
+      case "quiz_1":
+      case "quiz_10":
+      case "quiz_30":
+      case "quiz_50": {
+        const n = Number(c.slice(5));
+        const certas = e.extras?.quizCertas;
+        return { atual: certas == null ? null : Math.min(certas, n), alvo: certas == null ? null : n, falta: `${certas == null ? `Acerte ${n === 1 ? "uma resposta" : `${n} respostas`}` : faltaN(Math.max(0, n - certas), "resposta certa", "respostas certas")} no “Mito ou verdade?” da tela Conhecimento (vale a primeira resposta de cada).`, disponivel: true };
+      }
+      case "semana_compartilhada":
+        return { atual: null, alvo: null, falta: "Cumpra a meta da semana e compartilhe (ou baixe) o card do fim de CADA treino dela.", disponivel: true };
+      case "cards_10":
+      case "cards_20":
+      case "cards_30": {
+        const n = Number(c.slice(6));
+        const feitos = e.extras?.cardsCompartilhados;
+        return { atual: feitos == null ? null : Math.min(feitos, n), alvo: feitos == null ? null : n, falta: `${feitos == null ? `Compartilhe o card do fim do treino de ${n} treinos diferentes` : `${faltaN(Math.max(0, n - feitos), "treino", "treinos")} com o card do fim compartilhado`}.`, disponivel: true };
+      }
+      case "trofeus_compartilhados_10":
+      case "trofeus_compartilhados_20":
+      case "trofeus_compartilhados_30":
+      case "trofeus_compartilhados_50": {
+        const n = Number(c.split("_").at(-1));
+        const feitos = e.extras?.trofeusCompartilhados;
+        return { atual: feitos == null ? null : Math.min(feitos, n), alvo: feitos == null ? null : n, falta: `${feitos == null ? `Compartilhe ${n} troféus diferentes` : faltaN(Math.max(0, n - feitos), "troféu diferente", "troféus diferentes") + " para compartilhar"} (abra o troféu e toque em “📲 Compartilhar”).`, disponivel: true };
+      }
+      case "cardio_madrugada":
+      case "cardio_4h":
+      case "cardio_meia_noite": {
+        const j = JANELAS_CARDIO[c];
+        return { atual: null, alvo: null, falta: `Comece o cardio no app (▶ Começar do cronômetro) ${j.texto}, horário de Brasília — 1 minuto depois já não vale. Só com o sono em dia.`, disponivel: (e.cardio?.feitos ?? 0) > 0 || !!e.cardio?.temPrescricao };
+      }
+      case "cardio_10km":
+        return { atual: null, alvo: null, falta: "Some 10 km no mesmo dia em esteira, caminhada, corrida ou HIIT (anote a distância no registro).", disponivel: (e.cardio?.feitos ?? 0) > 0 || !!e.cardio?.temPrescricao };
+      case "cardio_escada_1h":
+        return { atual: null, alvo: null, falta: "Some 60 minutos de escada no mesmo dia (partes de 10+ minutos).", disponivel: (e.cardio?.feitos ?? 0) > 0 || !!e.cardio?.temPrescricao };
       case "acompanhamento_12_semanas": return { atual: Math.min(participando, 12), alvo: 12, falta: `Treine em 12 semanas do acompanhamento (não precisam ser seguidas) — você está em ${Math.min(participando, 12)}.`, disponivel: true };
       case "criando_raizes": {
         const a = avaliarRaizes(e.aderencia.semanas, validas, e.hoje);
@@ -365,7 +436,9 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
     }
   };
 
-  return ORDEM.map(({ codigo, selo }) => {
+  // “Mestre do Conhecimento” (50) só aparece quando o app tiver 50 perguntas ou mais (ou já ganho).
+  const quiz50 = (e.extras?.quizTotal ?? 0) >= 50 || ganhas.has("quiz_50");
+  return ORDEM.filter(({ codigo }) => codigo !== "quiz_50" || quiz50).map(({ codigo, selo }) => {
     const data = ganhas.get(codigo) ?? null;
     const p = progresso(codigo);
     return {

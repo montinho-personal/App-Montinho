@@ -865,8 +865,12 @@ export const registroCardioSchema = z
     observacoes: z.string().trim().max(300).nullable().optional(),
     session_id: z.string().min(1).max(64).nullable().optional(),
     data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    /** Início no cronômetro (api/cardio/iniciar): a hora vem do banco, nunca daqui. */
+    inicio_id: z.string().uuid().nullable().optional(),
   })
   .refine((r) => r.status === "nao_realizado" || r.duracao_min >= 1, { message: "Informe quantos minutos você fez." });
+
+export const iniciarCardioSchema = z.object({ modalidade: modalidadeCardio.nullable().optional() });
 
 export const correcaoCardioSchema = z.object({
   status: z.enum(["concluido", "parcial", "nao_realizado"]).optional(),

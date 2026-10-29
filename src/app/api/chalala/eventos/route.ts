@@ -6,6 +6,7 @@ import { registrarEvento, sincronizarConquistas } from "@/lib/data/conquistas";
 import { eventoChalalaSchema, lerJson } from "@/lib/validacao/schemas";
 import { paraComemorar } from "@/lib/conquistas/comemorar";
 import { CODIGOS_COMPARTILHAR } from "@/lib/conquistas/regras";
+import { CODIGOS_COMPARTILHAR_MAIS } from "@/lib/conquistas/compartilhar";
 
 /**
  * Envios que podem dar troféu de compartilhamento: grava na hora e devolve só os
@@ -23,6 +24,6 @@ export async function POST(request: Request) {
   if (!ENVIOS.has(data.tipo)) return NextResponse.json({ ok: true });
   const aluno = await getAluno(sessao.alunoId).catch(() => null);
   const sync = aluno ? await sincronizarConquistas(aluno).catch(() => null) : null;
-  const novas = sync ? paraComemorar(sync.todas, t0, (c) => (CODIGOS_COMPARTILHAR as string[]).includes(c)) : [];
+  const novas = sync ? paraComemorar(sync.todas, t0, (c) => (CODIGOS_COMPARTILHAR as string[]).includes(c) || (CODIGOS_COMPARTILHAR_MAIS as string[]).includes(c)) : [];
   return NextResponse.json({ ok: true, novas });
 }
