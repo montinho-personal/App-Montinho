@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   cardDaTribo,
+  previsaoDoMarco,
+  ultimosDiasDaTribo,
   concessoes,
   curiosidades,
   MARCOS_PADRAO,
@@ -190,5 +192,23 @@ describe("11) card para compartilhar", () => {
   it("os dois maiores marcos têm visual lendário", () => {
     expect(cardDaTribo({ id: "x", codigo: "tribo_cardio_100000", referencia: "100000", metodo: "recuperacao", conquistado_em: "2026-03-01T12:00:00Z", dados: { trilha: "cardio", marco: 100000, meta: 10000, acumulado: 10000 } }, "Ana").lendaria).toBe(true);
     expect(cardDaTribo({ id: "x", codigo: "tribo_cardio_1000", referencia: "1000", metodo: "participacao", conquistado_em: "2026-03-01T12:00:00Z", dados: {} }, "Ana").lendaria).toBe(false);
+  });
+});
+
+describe("meta da tribo em gráfico", () => {
+  const c = (em: string, min: number, eu = false): Contribuicao => ({ t: "c", em, min, mod: null, eu, a: null });
+  it("soma por dia (Brasília), com a parte da pessoa", () => {
+    const d = ultimosDiasDaTribo([c("2026-10-29T12:00:00Z", 30, true), c("2026-10-29T13:00:00Z", 20), c("2026-10-30T01:00:00Z", 15), c("2026-10-20T12:00:00Z", 99)], "cardio", "2026-10-29", 3);
+    expect(d).toEqual([
+      { dia: "2026-10-27", total: 0, meu: 0 },
+      { dia: "2026-10-28", total: 0, meu: 0 },
+      { dia: "2026-10-29", total: 65, meu: 30 },
+    ]);
+  });
+  it("previsão pelo ritmo", () => {
+    const ult = [{ dia: "a", total: 70, meu: 0 }, { dia: "b", total: 70, meu: 0 }];
+    expect(previsaoDoMarco({ marco: { trilha: "cardio", marco: 1000, nome: "x" }, faltam: 700 }, ult)).toBe(10);
+    expect(previsaoDoMarco({ marco: null, faltam: 0 }, ult)).toBeNull();
+    expect(previsaoDoMarco({ marco: { trilha: "cardio", marco: 1000, nome: "x" }, faltam: 10 }, [{ dia: "a", total: 0, meu: 0 }])).toBeNull();
   });
 });

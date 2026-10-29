@@ -406,3 +406,38 @@ export function cardDaTribo(c: ConquistaTribo, nome: string, marcos: MarcoTribo[
     lendaria: lendariaDaTribo(c.codigo, marcos),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Meta da tribo em gráfico (pedido do Montinho, 29/10/2026): os últimos dias,
+// a parte da pessoa e o ritmo até o próximo marco.
+// ---------------------------------------------------------------------------
+const FMT_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+const diaBR = (iso: string) => FMT_DIA.format(new Date(iso));
+const menosDias = (dia: string, n: number) => {
+  const x = new Date(`${dia}T12:00:00Z`);
+  x.setUTCDate(x.getUTCDate() - n);
+  return x.toISOString().slice(0, 10);
+};
+
+export type DiaTribo = { dia: string; total: number; meu: number };
+
+/** Quanto a tribo (e a pessoa) somou em cada um dos últimos `n` dias, do mais antigo para hoje. */
+export function ultimosDiasDaTribo(contribuicoes: Contribuicao[], trilha: Trilha, hoje: string, n = 7): DiaTribo[] {
+  const dias = Array.from({ length: n }, (_, i) => menosDias(hoje, n - 1 - i));
+  const mapa = new Map(dias.map((d) => [d, { dia: d, total: 0, meu: 0 }]));
+  for (const c of contribuicoes.filter(daTrilha(trilha))) {
+    const x = mapa.get(diaBR(c.em));
+    if (!x) continue;
+    x.total += qtd(c);
+    if (c.eu) x.meu += qtd(c);
+  }
+  return dias.map((d) => mapa.get(d)!);
+}
+
+/** No ritmo dos últimos 7 dias, em quantos dias a tribo chega no próximo marco (null = sem ritmo ou sem marco). */
+export function previsaoDoMarco(p: Pick<ProximoMarco, "marco" | "faltam">, ultimos: DiaTribo[]): number | null {
+  if (!p.marco || p.faltam <= 0) return null;
+  const soma = ultimos.reduce((t, d) => t + d.total, 0);
+  if (soma <= 0) return null;
+  return Math.max(1, Math.ceil(p.faltam / (soma / ultimos.length)));
+}

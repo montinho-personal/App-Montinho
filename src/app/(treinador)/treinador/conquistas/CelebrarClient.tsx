@@ -78,10 +78,12 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   }, [alunoInicial]);
 
   /** Escolher uma conquista já deixa a mensagem sugerida pronta e leva até o botão de enviar. */
+  /** No celular, a mensagem abre DENTRO do cartão (sem rolar a página); no computador, no painel ao lado. */
   function escolher(c: Conquista) {
+    if (sel?.id === c.id) return setSel(null);
     setSel(c);
     setMsg((atual) => (atual.trim() ? atual : EXEMPLO));
-    rolarParaMensagem();
+    if (window.matchMedia("(min-width: 1024px)").matches) rolarParaMensagem();
   }
 
   async function enviar() {
@@ -208,12 +210,31 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
                           aria-pressed={escolhida}
                           className={`min-h-11 rounded-lg px-2 py-2 text-sm font-bold leading-tight ${c.reconhecida ? "border border-border text-fg-muted hover:text-fg" : "bg-accent text-bg"}`}
                         >
-                          {escolhida ? "✍️ Escrevendo…" : c.reconhecida ? "🎉 Celebrar de novo" : "🎉 Celebrar no app"}
+                          {escolhida ? "✖ Fechar mensagem" : c.reconhecida ? "🎉 Celebrar de novo" : "🎉 Celebrar no app"}
                         </button>
                         <a href={linkWhatsApp(c.telefone, mensagemWhatsConquista(c.aluno, c.titulo, c.codigo))} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center rounded-lg bg-success px-2 py-2 text-center text-sm font-bold leading-tight text-bg">
                           💬 Parabenizar no WhatsApp
                         </a>
                       </div>
+                      {escolhida ? (
+                        <div className="mt-3 space-y-2 border-t border-accent/30 pt-3 lg:hidden">
+                          <p className="text-xs font-bold">✍️ Mensagem para {c.aluno.split(" ")[0]} (já pronta, pode editar)</p>
+                          <textarea value={msg} onChange={(e) => setMsg(e.target.value.slice(0, 600))} rows={4} aria-label="Mensagem de reconhecimento" className="w-full rounded-md border border-border bg-bg p-3 text-base" />
+                          <label className="flex min-h-11 items-center gap-2 text-xs">
+                            <input type="checkbox" checked={notificar} onChange={(e) => setNotificar(e.target.checked)} className="h-5 w-5 shrink-0 accent-[var(--color-accent)]" />
+                            Avisar no celular (quem ativou as notificações recebe)
+                          </label>
+                          <div className="grid grid-cols-[auto_1fr] gap-2">
+                            <button type="button" disabled={msg.trim().length < 3} onClick={() => setPreview(true)} className="touch rounded-lg border border-border px-3 py-2.5 text-sm font-semibold text-fg-muted disabled:opacity-50">
+                              Ver card
+                            </button>
+                            <button type="button" disabled={enviando || msg.trim().length < 3} onClick={() => void enviar()} className="touch rounded-lg bg-accent px-3 py-2.5 font-bold text-bg disabled:opacity-50">
+                              {enviando ? "Enviando…" : `🎉 Enviar para ${c.aluno.split(" ")[0]}`}
+                            </button>
+                          </div>
+                          <button type="button" onClick={() => setSel(null)} className="min-h-11 w-full text-xs text-fg-muted">Cancelar</button>
+                        </div>
+                      ) : null}
                       {!c.telefone ? <p className="mt-1 text-[11px] text-fg-subtle">Sem WhatsApp na ficha: o WhatsApp vai pedir o contato.</p> : null}
                       {c.dispensada ? (
                         <button type="button" disabled={dispensando === c.id} onClick={() => void dispensar([c], true)} className="mt-1 min-h-11 text-xs font-semibold text-accent">↩ Voltar para a lista</button>
@@ -238,7 +259,7 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
         </section>
 
         <div className="min-w-0 space-y-5">
-          <div ref={cartaoMensagem} className="scroll-mt-20 lg:sticky lg:top-4">
+          <div ref={cartaoMensagem} className={`scroll-mt-20 lg:sticky lg:top-4 ${sel ? "hidden lg:block" : ""}`}>
             <Card>
               <CardBody className="space-y-3 px-4 text-sm sm:px-6">
                 <h2 className="font-bold">✍️ Sua mensagem</h2>

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { telaDaTribo } from "@/lib/data/tribo";
 import { dataLocal } from "@/lib/aderencia/calcular";
-import { curiosidades, mensagensDaTribo, progressoMissao, proximoMarco, resumoTribo, situacaoDosMarcos } from "@/lib/tribo/regras";
+import { curiosidades, mensagensDaTribo, previsaoDoMarco, progressoMissao, proximoMarco, resumoTribo, situacaoDosMarcos, ultimosDiasDaTribo, type Trilha } from "@/lib/tribo/regras";
+import { MetaDaTribo } from "@/components/tribo/MetaDaTribo";
 import { AbasConquistas } from "@/components/tribo/AbasConquistas";
 import { CelebrarTribo } from "@/components/tribo/CelebrarTribo";
-import { BarraMarco, CuriosidadesTribo, GaleriaTribo, MensagensTribo, MissaoCard, ResumoColetivo } from "@/components/tribo/PainelTribo";
+import { CuriosidadesTribo, GaleriaTribo, MensagensTribo, MissaoCard, ResumoColetivo } from "@/components/tribo/PainelTribo";
 
 export const metadata = { title: "Conquistas da Tribo" };
 
@@ -31,6 +32,11 @@ export default async function TriboPage() {
   const galeria = (trilha: "cardio" | "treinos") => situacaoDosMarcos(dados, trilha).map((s) => ({ s, minha: porCodigo.get(s.codigo) ?? null }));
   const missoes = dados.missoes.map((m) => progressoMissao(m, dados.contribuicoes, hoje));
   const ativa = missoes.find((m) => m.status === "ativa") ?? missoes.find((m) => m.status === "concluida" && m.fim >= hoje) ?? null;
+  const meta = (trilha: Trilha, meus: number) => {
+    const p = proximoMarco(dados, trilha);
+    const ultimos = ultimosDiasDaTribo(dados.contribuicoes, trilha, hoje);
+    return { p, marcos: situacaoDosMarcos(dados, trilha), ultimos, previsao: previsaoDoMarco(p, ultimos), meus };
+  };
   return (
     <div className="space-y-5">
       <CelebrarTribo conquistas={minhas.filter((c) => !c.vista_em)} nome={sessao.nome} marcos={dados.marcos} />
@@ -39,11 +45,11 @@ export default async function TriboPage() {
         <p className="mt-1 text-sm text-fg-muted">Cada treino conta. Cada minuto importa. E juntos, a Tribo Montinho vai mais longe.</p>
       </div>
       <AbasConquistas ativa="tribo" />
+      {/* Meta em destaque: % até o próximo troféu, trilha dos marcos e os últimos 7 dias. */}
+      <MetaDaTribo cardio={meta("cardio", r.meus.minutos)} treinos={meta("treinos", r.meus.treinos)} />
       <MensagensTribo mensagens={mensagensDaTribo(dados, hoje, recuperouAgora)} />
       <ResumoColetivo r={r} />
       <CuriosidadesTribo itens={curiosidades(r, dados.contribuicoes)} />
-      <BarraMarco titulo="❤️‍🔥 Cardio coletivo" p={proximoMarco(dados, "cardio")} meus={r.meus.minutos} />
-      <BarraMarco titulo="🏋️ Musculação coletiva" p={proximoMarco(dados, "treinos")} meus={r.meus.treinos} />
       <section className="rounded-2xl border border-border bg-surface p-4" aria-labelledby="minha-contribuicao">
         <h2 id="minha-contribuicao" className="text-sm font-bold">💛 Minha contribuição</h2>
         <p className="mt-1 text-sm text-fg-muted">
