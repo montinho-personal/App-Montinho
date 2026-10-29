@@ -76,6 +76,9 @@ import { contaCarimbo } from "@/lib/conquistas/carimbos";
 import { carimbosDe } from "@/lib/data/ranking";
 import { LIMITES_CARDIO } from "@/lib/cardio/regras";
 import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
+import { telaDaTribo } from "@/lib/data/tribo";
+import { mensagensDaTribo } from "@/lib/tribo/regras";
+import { CelebrarTribo } from "@/components/tribo/CelebrarTribo";
 
 export const metadata = { title: "Início" };
 
@@ -147,11 +150,18 @@ export default async function AlunoHomePage() {
   const estadoDia = emAndamento ? "a_fazer" : estadoDoDia({ treinoHoje: !!treinoDeHoje, cardioHoje: cardioMinHoje >= LIMITES_CARDIO.minutosMin, cardioPendente: cardioPendentes.length > 0 });
   const carimbos = estadoDia === "a_fazer" ? null : await carimbosDe([alunoId]).then((r) => r[alunoId] ?? 0).catch(() => sessoes.filter(contaCarimbo).length);
 
+  const ativadas = conquistas.filter((c) => !c.vista_em && (CODIGOS_MANUAIS.includes(c.codigo) || (codigosMedalha.has(c.codigo) && c.created_at >= recenteIso))).slice(0, 6);
+  // Conquistas da Tribo (0115): concede o que for devido (também o que saiu com o aluno fora do app).
+  const tribo = await telaDaTribo(alunoId).catch(() => null);
+  const recadoTribo = tribo?.dados ? mensagensDaTribo(tribo.dados, hojeSP).find((m) => m.includes("hoje")) ?? null : null;
+
   return (
     <div className="space-y-5">
       {/* Troféu que saiu fora de uma tela de comemoração (Strava, semana, ativado pelo personal…) e
           ainda não foi visto: comemora aqui, uma vez só (até 6 por vez; o resto na próxima). */}
-      <CelebrarAtivadas conquistas={conquistas.filter((c) => !c.vista_em && (CODIGOS_MANUAIS.includes(c.codigo) || (codigosMedalha.has(c.codigo) && c.created_at >= recenteIso))).slice(0, 6)} nome={primeiroNome} />
+      <CelebrarAtivadas conquistas={ativadas} nome={primeiroNome} />
+      {/* Troféus da tribo: só quando não há outra comemoração na tela (a fila fica para a próxima visita). */}
+      {!ativadas.length && tribo?.minhas.some((c) => !c.vista_em) ? <CelebrarTribo conquistas={tribo.minhas.filter((c) => !c.vista_em)} nome={primeiroNome} marcos={tribo.dados?.marcos} /> : null}
       {/* Treinos guardados no celular para abrir sem internet na academia. */}
       <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento && emAndamento.treino_id ? [hrefDaSessao(emAndamento)] : [])]} />
       <SincronizarCardios />
@@ -163,6 +173,13 @@ export default async function AlunoHomePage() {
       </header>
 
       <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
+
+      {recadoTribo ? (
+        <Link href="/aluno/conquistas/tribo" className="flex items-center justify-between gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-2.5 text-sm font-semibold">
+          <span>🤝 {recadoTribo}</span>
+          <span aria-hidden className="text-accent">→</span>
+        </Link>
+      ) : null}
 
       {/* Depois do fim do acesso, a oferta já vem no topo de todas as telas (layout). */}
       {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}

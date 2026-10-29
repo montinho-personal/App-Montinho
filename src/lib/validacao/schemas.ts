@@ -339,7 +339,7 @@ export const eventoChalalaSchema = z
     ref: z.string().regex(/^[A-Za-z0-9_:-]{1,80}$/).nullable().optional(),
     modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({
@@ -886,3 +886,21 @@ export const correcaoCardioSchema = z.object({
   observacoes: z.string().trim().max(300).nullable().optional(),
   remover: z.boolean().optional(),
 });
+
+// Conquistas da Tribo (0115) ---------------------------------------------------
+export const triboVistasSchema = z.object({ ids: z.array(z.string().min(1).max(80)).min(1).max(50) }).strict();
+const dataMissao = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
+export const triboMissaoSchema = z
+  .object({
+    nome: z.string().trim().min(3, "Dê um nome à missão").max(60),
+    descricao: z.string().trim().max(300).nullable().optional(),
+    meta_minutos: z.number().int().min(10).max(10_000_000).nullable().optional(),
+    meta_treinos: z.number().int().min(1).max(1_000_000).nullable().optional(),
+    inicio: dataMissao,
+    fim: dataMissao,
+    recorrente: z.boolean().optional(),
+  })
+  .strict()
+  .refine((m) => m.meta_minutos != null || m.meta_treinos != null, { message: "Escolha a meta de minutos, de treinos ou as duas" })
+  .refine((m) => m.fim >= m.inicio, { message: "O fim precisa ser depois do início" });
+export const triboMissaoAtivaSchema = z.object({ ativa: z.boolean() }).strict();

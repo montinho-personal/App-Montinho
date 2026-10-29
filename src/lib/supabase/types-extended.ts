@@ -275,3 +275,8 @@ export type Conhecimento = {
   created_at: string;
   updated_at: string;
 };
+
+// 0115 — Conquistas da Tribo -------------------------------------------------
+export type TriboMarco = { trilha: "cardio" | "treinos"; marco: number; nome: string };
+export type TriboMissao = { id: string; serie_id: string; nome: string; descricao: string | null; meta_minutos: number | null; meta_treinos: number | null; inicio: string; fim: string; recorrente: boolean; ativa: boolean; criada_por: string | null; created_at: string };
+export type TriboConquista = { id: string; aluno_id: string; codigo: string; referencia: string; metodo: "participacao" | "recuperacao" | "missao"; conquistado_em: string; dados: Record<string, unknown>; vista_em: string | null; created_at: string };

@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { BRAND } from "@/config/brand";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
-import { cardDaMedalha } from "@/lib/conquistas/compartilhavel";
+import { cardDaMedalha, type CardMedalha } from "@/lib/conquistas/compartilhavel";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import type { ConquistaRow } from "@/lib/data/conquistas";
 import { gerarImagemMedalha } from "./cardMedalha";
@@ -29,7 +29,12 @@ function baixar(f: File) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-export type ConquistaCelebravel = Pick<ConquistaRow, "codigo" | "titulo" | "descricao" | "conquistado_em" | "dados">;
+export type ConquistaCelebravel = Pick<ConquistaRow, "codigo" | "titulo" | "descricao" | "conquistado_em" | "dados"> & {
+  /** Card pronto (Conquistas da Tribo): substitui o card da medalha individual. */
+  card?: CardMedalha;
+  /** Frase do “toque para abrir” (padrão: “desbloqueou uma medalha!”). */
+  chamada?: string;
+};
 
 export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa = false, onFechar }: { conquistas: ConquistaCelebravel[]; nome?: string; animacoes?: boolean; /** Personal vendo como o aluno vê (nada é gravado). */ previa?: boolean; onFechar: () => void }) {
   const [i, setI] = useState(0);
@@ -41,14 +46,15 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
   const lista: ConquistaCelebravel[] = useMemo(() => [...conquistas, ...extras.filter((x) => !conquistas.some((c) => c.codigo === x.codigo))], [conquistas, extras]);
   const atual = lista[i];
   // Confete com posições fixas por medalha (sem Math.random no render).
-  const lendaria = !!atual && LENDARIAS.has(atual.codigo);
+  const tribo = !!atual?.card;
+  const lendaria = !!atual && (atual.card ? !!atual.card.lendaria : LENDARIAS.has(atual.codigo));
   const confete = useMemo(
     () => Array.from({ length: lendaria ? 90 : 36 }, (_, k) => ({ left: `${(k * 37) % 100}%`, dx: `${((k * 53) % 160) - 80}px`, delay: `${(k % 15) * (lendaria ? 0.12 : 0.06)}s`, cor: (lendaria ? CORES_LENDARIAS : CORES)[k % 6] })),
     [lendaria]
   );
   if (!atual || typeof document === "undefined") return null;
   const primeiroNome = (nome ?? "").split(" ")[0];
-  const card = cardDaMedalha(atual, nome ?? "");
+  const card = atual.card ?? cardDaMedalha(atual, nome ?? "");
 
   async function compartilhar() {
     setEnviando(true);
@@ -60,7 +66,9 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
     } catch {
       r = "erro";
     }
-    const evento = { tipo: r === "baixado" ? "download" : r === "cancelado" ? "compartilhar_cancelado" : "compartilhar_nativo", modelo: atual.codigo, formato: "stories", origem: "medalha" } as const;
+    const tipo = r === "baixado" ? "download" : r === "cancelado" ? "compartilhar_cancelado" : "compartilhar_nativo";
+    // Troféu da tribo: origem própria (não entra na contagem dos troféus individuais compartilhados).
+    const evento = tribo ? ({ tipo, formato: "stories", origem: "tribo", ref: `tribo:${atual.codigo}` } as const) : ({ tipo, modelo: atual.codigo, formato: "stories", origem: "medalha" } as const);
     if (!previa) {
       const novos = await enviarEventoComTrofeus(evento);
       if (novos.length) setExtras((x) => [...x, ...(novos as Array<ConquistaCelebravel & { id: string }>).filter((n) => !x.some((y) => y.id === n.id))]);
@@ -104,19 +112,19 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
         {/* eslint-disable-next-line @next/next/no-img-element -- logo SVG oficial */}
         <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-4 h-auto w-[150px]" />
         {previa ? <p className="mb-3 inline-block rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-accent">👁 Pré-visualização · assim o aluno vê</p> : null}
-        {lista.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">Medalha {i + 1} de {lista.length}</p> : null}
+        {lista.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">{tribo ? "Conquista" : "Medalha"} {i + 1} de {lista.length}</p> : null}
         {!aberta ? (
           <button type="button" onClick={abrir} className="mx-auto flex flex-col items-center gap-4 rounded-3xl p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" aria-label="Abrir a medalha">
             {lendaria ? (
               <>
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-[#f5c451]">Conquista lendária</span>
                 <span className="medalha-chamar relative grid h-44 w-44 place-items-center rounded-full border-4 border-[#f59e0b] bg-[#f59e0b]/15 text-7xl shadow-[0_0_90px_rgba(245,158,11,0.7)]">🏆</span>
-                <span className="text-2xl font-black">{primeiroNome ? `${primeiroNome}, você` : "Você"} conquistou um troféu lendário!</span>
+                <span className="text-2xl font-black">{primeiroNome ? `${primeiroNome}, você` : "Você"} {atual.chamada ?? "conquistou um troféu lendário!"}</span>
               </>
             ) : (
               <>
                 <span className="medalha-chamar relative grid h-40 w-40 place-items-center rounded-full border-4 border-dashed border-accent/70 bg-accent/10 text-6xl shadow-[0_0_60px_rgba(186,158,80,0.45)]">🏅</span>
-                <span className="text-xl font-extrabold">{primeiroNome ? `${primeiroNome}, você` : "Você"} desbloqueou uma medalha!</span>
+                <span className="text-xl font-extrabold">{primeiroNome ? `${primeiroNome}, você` : "Você"} {atual.chamada ?? "desbloqueou uma medalha!"}</span>
               </>
             )}
             <span className="animate-pulse rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-bg">Toque para abrir</span>
@@ -127,12 +135,12 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
               <span aria-hidden className={`chalala-brilho absolute inset-0 rounded-full ${lendaria ? "bg-[#f59e0b]/70" : "bg-accent/50"}`} />
               <MedalhaIcone selo={card.selo} conquistada atual={null} alvo={null} tamanho={lendaria ? 190 : 150} lendaria={lendaria} />
             </div>
-            <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${lendaria ? "text-[#f5c451]" : "text-accent"}`}>{lendaria ? "Troféu lendário" : "Nova medalha"}</p>
+            <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${lendaria ? "text-[#f5c451]" : "text-accent"}`}>{tribo ? "Conquista da Tribo" : lendaria ? "Troféu lendário" : "Nova medalha"}</p>
             <h2 className="text-2xl font-extrabold leading-tight">{card.titulo}</h2>
             {card.destaque ? <p className="text-sm font-semibold text-accent">{card.destaque}</p> : null}
             <p className="mt-1 text-lg font-bold leading-snug">“{card.frase}”</p>
             {card.porque ? <p className="text-xs text-fg-muted">{card.porque}</p> : null}
-            {lendaria ? <p className="rounded-full border border-[#f59e0b]/60 bg-[#f59e0b]/10 px-3 py-1 text-[11px] font-bold text-[#f5c451]">Só quem cumpre a meta 12 semanas seguidas chega aqui.</p> : null}
+            {lendaria && !tribo ? <p className="rounded-full border border-[#f59e0b]/60 bg-[#f59e0b]/10 px-3 py-1 text-[11px] font-bold text-[#f5c451]">Só quem cumpre a meta 12 semanas seguidas chega aqui.</p> : null}
             <button type="button" onClick={() => void compartilhar()} disabled={enviando} className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-bg disabled:opacity-60">
               {enviando ? "Preparando a imagem…" : "📲 Compartilhar no Story / WhatsApp"}
             </button>

@@ -23,6 +23,7 @@ import { PainelConquistas } from "@/components/conquistas/PainelConquistas";
 import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
 import { tecnicasFeitas } from "@/lib/conquistas/regras";
 import { getPlanoAtivo } from "@/lib/data/programas";
+import { AbasConquistas } from "@/components/tribo/AbasConquistas";
 
 export const metadata = { title: "Conquistas" };
 
@@ -60,6 +61,8 @@ export default async function ConquistasPage() {
           Evolução →
         </Link>
       </div>
+      {/* Central de Conquistas: Minhas (esta tela) · Tribo · Missões coletivas (0115). */}
+      <AbasConquistas ativa="minhas" />
       <PainelConquistas
         r={{
           trofeus: medalhas.filter((m) => m.conquistada).length,

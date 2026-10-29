@@ -2052,3 +2052,83 @@ begin
 end $$;
 select test_logout();
 \echo 'T65 OK: revisão do quiz'
+
+-- T66 — 0115: Conquistas da Tribo — participação, recuperação 10%, missão, idempotência e privacidade
+select test_logout();
+update cardio_registros set removido_em = now() where removido_em is null;
+delete from cardios_strava;
+insert into tribo_marcos (trilha, marco, nome) values ('cardio', 20, 'Teste 20'), ('cardio', 40, 'Teste 40'), ('cardio', 100, 'Teste 100');
+insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data, realizado_em) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 15, 'app', 'tribo-0115-a1', '2026-03-01', '2026-03-01 08:00-03'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'bike', 'concluido', 10, 'app', 'tribo-0115-b1', '2026-03-01', '2026-03-01 09:00-03'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'escada', 'concluido', 5, 'app', 'tribo-0115-a2', '2026-03-02', '2026-03-02 08:00-03'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'corrida', 'concluido', 20, 'app', 'tribo-0115-b2', '2026-03-02', '2026-03-02 10:00-03'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'corrida', 'nao_realizado', 0, 'app', 'tribo-0115-b3', '2026-03-03', '2026-03-03 10:00-03');
+do $$
+declare n int;
+begin
+  -- 5 min sozinho no dia não vale; “não realizado” não conta.
+  select coalesce(sum(minutos), 0) into n from public.tribo_contribuicoes() where trilha = 'cardio';
+  if n <> 45 then raise exception 'T66a: total de cardio da tribo deveria ser 45, veio %', n; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into tribo_missoes (nome, meta_minutos, inicio, fim) values ('Março em movimento', 30, '2026-03-01', '2026-03-31');
+insert into tribo_missoes (nome, meta_treinos, inicio, fim, recorrente) values ('Treinos do mês', 500, '2026-01-01', '2026-01-31', true);
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v jsonb; n int;
+begin
+  v := public.tribo_sincronizar();
+  if jsonb_array_length(v) <> 3 then raise exception 'T66b: esperava 3 troféus novos para A, veio %', v; end if;
+  if (select metodo from tribo_conquistas where codigo = 'tribo_cardio_20') <> 'participacao' then raise exception 'T66c: A participou do marco 20'; end if;
+  if (select metodo from tribo_conquistas where codigo = 'tribo_cardio_40') <> 'recuperacao' then raise exception 'T66d: A recupera o marco 40 com 10%%'; end if;
+  if (select (dados->>'acumulado')::int from tribo_conquistas where codigo = 'tribo_cardio_40') <> 15 then raise exception 'T66d2: acumulado de A deveria ser 15'; end if;
+  if not exists (select 1 from tribo_conquistas where codigo = 'tribo_missao' and metodo = 'missao') then raise exception 'T66e: A ajudou a missão de março'; end if;
+  if exists (select 1 from tribo_conquistas where codigo = 'tribo_cardio_100') then raise exception 'T66f: marco 100 não foi alcançado'; end if;
+  if jsonb_array_length(public.tribo_sincronizar()) <> 0 then raise exception 'T66g: sincronizar de novo não pode repetir'; end if;
+  v := public.tribo_dados();
+  if exists (select 1 from jsonb_array_elements(v->'contribuicoes') e where not (e->>'eu')::boolean and e->>'a' is not null) then raise exception 'T66h: aluno viu quem é outro aluno'; end if;
+  if (v->'participantes'->>'cardio')::int <> 2 then raise exception 'T66i: participantes de cardio = 2'; end if;
+  begin
+    insert into tribo_conquistas (aluno_id, codigo, referencia, metodo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'tribo_cardio_100', '100', 'participacao', now());
+    raise exception 'T66j: aluno gravou troféu da tribo direto';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into tribo_missoes (nome, meta_minutos, inicio, fim) values ('Pirata', 10, '2026-03-01', '2026-03-31');
+    raise exception 'T66k: aluno criou missão';
+  exception when insufficient_privilege then null;
+  end;
+  update tribo_conquistas set vista_em = now() where codigo = 'tribo_cardio_20';
+  if (select vista_em from tribo_conquistas where codigo = 'tribo_cardio_20') is null then raise exception 'T66l: marcar como visto'; end if;
+  select count(*) into n from tribo_missoes where nome = 'Treinos do mês';
+  if n < 2 then raise exception 'T66m: missão recorrente não criou o mês seguinte (%)', n; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+begin
+  if exists (select 1 from tribo_conquistas where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') then raise exception 'T66n: B viu troféus de A'; end if;
+  perform public.tribo_sincronizar();
+  if (select count(*) from tribo_conquistas where codigo like 'tribo_cardio_%' and metodo = 'participacao') <> 2 then raise exception 'T66o: B participou dos marcos 20 e 40'; end if;
+end $$;
+select test_logout();
+-- Corrigir/excluir registro: o total muda, o troféu já ganho fica.
+update cardio_registros set removido_em = now() where client_key = 'tribo-0115-a1';
+do $$
+begin
+  if (select coalesce(sum(minutos), 0) from public.tribo_contribuicoes() where trilha = 'cardio') <> 30 then raise exception 'T66p: excluído saiu do total'; end if;
+  if not exists (select 1 from tribo_conquistas where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and codigo = 'tribo_cardio_20') then raise exception 'T66q: troféu não pode ser retirado'; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare v jsonb;
+begin
+  v := public.tribo_dados();
+  if not exists (select 1 from jsonb_array_elements(v->'contribuicoes') e where e->>'a' is not null) then raise exception 'T66r: personal vê quem contribuiu'; end if;
+  if (select count(*) from tribo_conquistas) < 5 then raise exception 'T66s: personal lê os troféus da tribo'; end if;
+end $$;
+select test_logout();
+delete from tribo_marcos where nome like 'Teste %';
+\echo 'T66 OK: Conquistas da Tribo'

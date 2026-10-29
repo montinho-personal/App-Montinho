@@ -16,6 +16,7 @@ const NAV = [
   { label: "Montinho Cardio", href: "/treinador/cardio", icon: "timer" },
   { label: "Celebrar conquistas", href: "/treinador/conquistas", icon: "star" },
   { label: "Ranking de troféus", href: "/treinador/ranking", icon: "trophy" },
+  { label: "Conquistas da Tribo", href: "/treinador/tribo", icon: "users" },
   { label: "Desafios entre alunos", href: "/treinador/desafios", icon: "star" },
   { label: "Evoluções dos alunos", href: "/treinador/evolucoes", icon: "chart" },
   { label: "Montinho Desbloqueia", href: "/treinador/conhecimento", icon: "book" },
