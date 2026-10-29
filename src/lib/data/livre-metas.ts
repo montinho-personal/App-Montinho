@@ -7,8 +7,11 @@ import { getPlanoAtivo } from "@/lib/data/programas";
 import { listSessoes } from "@/lib/data/sessoes";
 import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 import { calcularVolumeSemanal, volumeRealizadoPorGrupo, type MetaVolume, type Tecnica } from "@/lib/volume/calcular";
-import { inicioDaSemanaDe, metasDaFicha, placarDaSemana, resumoDaSemana, sugestaoDeAgora, type LinhaPlacar, type Sugestao } from "@/lib/treino/livre-metas";
+import { inicioDaSemanaDe, metasDaFicha, ombrosNoGeral, placarDaSemana, volumeDaSemana, resumoDaSemana, sugestaoDeAgora, type LinhaPlacar, type Sugestao } from "@/lib/treino/livre-metas";
 import { referenciasPorNivel } from "@/lib/volume/referencias";
+import { listarBiblioteca } from "@/lib/data/biblioteca";
+import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
+import { normalizarNome } from "@/lib/grupos";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { Programa } from "@/lib/supabase/types-sessoes";
 
@@ -87,9 +90,14 @@ export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | nu
   const desde = somarDias(inicio < somarDias(hoje, -2) ? inicio : somarDias(hoje, -2), 0);
   const sessoes = (await listSessoes(alunoId, { desde: `${desde}T00:00:00-03:00`, limite: 60, status: "todas" })).filter((s) => s.status !== "abandonada");
   const agruparOmbros = !Object.keys(metas).some((g) => g.startsWith("ombro_"));
-  const series = (lista: typeof sessoes) => lista.flatMap((s) => s.exercicios.flatMap((e) => e.series.map((x) => ({ grupo: e.grupo_muscular, tipo: x.tipo }))));
+  // Secundários pela biblioteca (mesmo cálculo da tabela de volume do montador).
+  const biblioteca: ItemBiblioteca[] = await listarBiblioteca().catch(() => []);
+  const porId = new Map(biblioteca.map((b) => [b.id, b]));
+  const porNome = new Map(biblioteca.map((b) => [normalizarNome(b.nome), b]));
+  const secDe = (e: { biblioteca_id: string | null; nome: string }) => (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined)?.pesosSecundarios ?? porNome.get(normalizarNome(e.nome))?.pesosSecundarios ?? null;
+  const series = (lista: typeof sessoes) => lista.flatMap((s) => s.exercicios.flatMap((e) => { const sec = secDe(e); return e.series.map((x) => ({ grupo: e.grupo_muscular, tipo: x.tipo, secundarios: sec })); }));
   const daSemana = sessoes.filter((s) => dataLocal(s.iniciado_em) >= inicio);
-  const feitas = volumeRealizadoPorGrupo(series(daSemana), agruparOmbros);
+  const feitas = ombrosNoGeral(volumeDaSemana(series(daSemana), agruparOmbros), metas);
   const atual = sessoes.find((s) => s.id === sessaoAtualId);
   const jaHoje = Object.keys(volumeRealizadoPorGrupo(series(atual ? [atual] : []), agruparOmbros)) as GrupoMuscular[];
   const recentes = Object.entries(volumeRealizadoPorGrupo(series(sessoes.filter((s) => s.id !== sessaoAtualId && dataLocal(s.iniciado_em) >= somarDias(hoje, -2) && dataLocal(s.iniciado_em) < hoje)), agruparOmbros)).filter(([, n]) => (n ?? 0) >= 3).map(([g]) => g as GrupoMuscular);

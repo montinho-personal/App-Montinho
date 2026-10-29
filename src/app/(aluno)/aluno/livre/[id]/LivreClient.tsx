@@ -456,6 +456,20 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                     Anotação (opcional)
                     <textarea value={e.observacao} onChange={(ev) => mudarEx(e.seId, (x) => ({ ...x, observacao: ev.target.value.slice(0, 300) }))} onBlur={() => void ajustar(e, { observacao: e.observacao })} rows={2} placeholder="Ex.: máquina 3, banco na posição 4, senti mais o glúteo" className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm font-normal text-fg" />
                   </label>
+                  {e.series.some((x) => x.salva) ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAberto(null);
+                        setEscolhendoSerie(null);
+                        setBuscando(true);
+                        requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }));
+                      }}
+                      className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg"
+                    >
+                      <Icon name="check" size={18} /> Concluir exercício e escolher o próximo
+                    </button>
+                  ) : null}
                   <button type="button" onClick={() => void tirar(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-red/40 text-sm font-semibold text-red">
                     <Icon name="trash" size={16} /> Tirar este exercício do treino
                   </button>

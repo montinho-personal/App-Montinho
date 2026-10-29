@@ -54,3 +54,21 @@ describe("treino livre por metas", () => {
     expect(resumoDaSemana(placarDaSemana(metas, {}))).toMatch(/ainda não treinou/);
   });
 });
+
+describe("placar: secundários e ombros no geral (29/10/2026)", () => {
+  it("conta o secundário pelo peso da biblioteca", async () => {
+    const { volumeDaSemana } = await import("./livre-metas");
+    const v = volumeDaSemana([{ grupo: "costas", tipo: "valida", secundarios: { antebraco: 0.25, biceps: 0.5 } }, { grupo: "costas", tipo: "valida", secundarios: { antebraco: 0.25, biceps: 0.5 } }, { grupo: "costas", tipo: "aquecimento", secundarios: { biceps: 0.5 } }], false);
+    expect(v).toEqual({ costas: 2, antebraco: 0.5, biceps: 1 });
+  });
+  it("Ombros soma anterior, lateral e posterior quando as partes têm meta", async () => {
+    const { ombrosNoGeral, somarNoPlacar, placarDaSemana } = await import("./livre-metas");
+    const metas = { ombros: { min: 12, max: 15 }, ombro_lateral: { min: 4, max: 8 }, ombro_posterior: { min: 4, max: 8 } };
+    const f = ombrosNoGeral({ ombro_lateral: 3, ombro_posterior: 6, ombro_anterior: 1.5 }, metas);
+    expect(f.ombros).toBe(10.5);
+    const p = somarNoPlacar(placarDaSemana(metas, f), "ombro_lateral", 1);
+    expect(p.find((l) => l.grupo === "ombros")?.feitas).toBe(11.5);
+    expect(p.find((l) => l.grupo === "ombro_lateral")?.feitas).toBe(4);
+    expect(ombrosNoGeral({ ombro_lateral: 3 }, { ombros: { min: 12, max: 15 } })).toEqual({ ombro_lateral: 3 });
+  });
+});

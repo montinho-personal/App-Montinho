@@ -9,7 +9,8 @@
 
 import { GRUPO_LABEL, GRUPOS_ORDEM } from "@/lib/grupos";
 import { diaDaSemana, somarDias } from "@/lib/aderencia/calcular";
-import type { MetaVolume } from "@/lib/volume/calcular";
+import { canonizarGrupo, type MetaVolume } from "@/lib/volume/calcular";
+import { GRUPOS_SEM_VOLUME } from "@/lib/grupos";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 
 export type StatusMeta = "zerado" | "abaixo" | "na_faixa" | "limite" | "acima";
@@ -107,11 +108,50 @@ export function linhaDoGrupo(placar: LinhaPlacar[], grupo: GrupoMuscular | null 
 export function somarNoPlacar(placar: LinhaPlacar[], grupo: GrupoMuscular | null | undefined, n: number): LinhaPlacar[] {
   const l = linhaDoGrupo(placar, grupo);
   if (!l) return placar;
+  // Ombro lateral/posterior/anterior também conta em “Ombros” (o geral), quando os dois existem.
+  const alvos = new Set<string>([l.grupo]);
+  if (grupo?.startsWith("ombro_") && placar.some((x) => x.grupo === "ombros")) alvos.add("ombros");
   return placar.map((x) => {
-    if (x.grupo !== l.grupo) return x;
+    if (!alvos.has(x.grupo)) return x;
     const feitas = Math.max(0, Math.round((x.feitas + n) * 10) / 10);
     return { ...x, feitas, status: statusDaMeta(feitas, x), faltam: Math.max(0, Math.ceil(x.min - feitas)) };
   });
+}
+
+/** Série feita, com os músculos secundários do exercício e o peso de cada um (biblioteca). */
+export type SerieFeita = { grupo: GrupoMuscular | null | undefined; tipo?: string | null; secundarios?: Partial<Record<GrupoMuscular, number>> | null };
+
+/**
+ * Séries da semana por músculo, como a tabela de volume do montador: cada série
+ * válida conta 1 no músculo principal e a fração da biblioteca em cada
+ * secundário (ex.: remada → costas 1 + antebraço 0,25). Pedido do Montinho
+ * (29/10/2026): o placar usa o mesmo cálculo de volume secundário da tabela.
+ */
+export function volumeDaSemana(series: SerieFeita[], agruparOmbros: boolean): Partial<Record<GrupoMuscular, number>> {
+  const out: Partial<Record<GrupoMuscular, number>> = {};
+  for (const s of series) {
+    if (s.tipo && !contaNoPlacar(s.tipo)) continue;
+    const g = canonizarGrupo(s.grupo ?? null, agruparOmbros);
+    if (GRUPOS_SEM_VOLUME.includes(g)) continue;
+    out[g] = (out[g] ?? 0) + 1;
+    for (const [sec, peso] of Object.entries(s.secundarios ?? {}) as Array<[GrupoMuscular, number]>) {
+      const gs = canonizarGrupo(sec, agruparOmbros);
+      if (gs === g || GRUPOS_SEM_VOLUME.includes(gs) || !(peso > 0)) continue;
+      out[gs] = (out[gs] ?? 0) + Math.min(1, peso);
+    }
+  }
+  for (const k of Object.keys(out) as GrupoMuscular[]) out[k] = Math.round((out[k] ?? 0) * 100) / 100;
+  return out;
+}
+
+/**
+ * “Ombros” é o geral: quando a meta tem Ombros E as partes (anterior/lateral/
+ * posterior) separadas, a linha Ombros soma tudo (pedido do Montinho, 29/10/2026).
+ */
+export function ombrosNoGeral(feitas: Partial<Record<GrupoMuscular, number>>, metas: Partial<Record<GrupoMuscular, MetaVolume>>): Partial<Record<GrupoMuscular, number>> {
+  if (!metas.ombros || !Object.keys(metas).some((g) => g.startsWith("ombro_"))) return feitas;
+  const soma = (["ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior"] as GrupoMuscular[]).reduce((n, g) => n + (feitas[g] ?? 0), 0);
+  return { ...feitas, ombros: Math.round(soma * 100) / 100 };
 }
 
 /** Tipos de série que contam no volume (os mesmos de volumeRealizadoPorGrupo). */

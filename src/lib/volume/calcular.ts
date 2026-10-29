@@ -161,7 +161,7 @@ export function seriesValidas(ex: ExercicioVolume): number {
   return total - aquec;
 }
 
-function canonizarGrupo(g: GrupoMuscular | null | undefined, agruparOmbros: boolean): GrupoMuscular {
+export function canonizarGrupo(g: GrupoMuscular | null | undefined, agruparOmbros: boolean): GrupoMuscular {
   if (!g) return "nao_classificado";
   if (g === "outro") return "nao_classificado";
   if (agruparOmbros && SUBGRUPOS_OMBRO.includes(g)) return "ombros";
