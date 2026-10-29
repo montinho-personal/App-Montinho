@@ -310,6 +310,11 @@ export async function marcosDosDesafios(alunoId: string): Promise<MarcosDesafios
     const disputa = TIPOS_DESAFIO[d.tipo].modo === "disputa";
     resultados.push({ id: d.id, fim: d.fim, souCriador: d.souCriador, aceitos: det.placar.length, venci: disputa && !!eu?.cumpriu, cumpri: !disputa && !!eu?.cumpriu, aceitei: true });
   }
+  // 0118: guarda o resultado de cada desafio encerrado (vitórias/metas no perfil do ranking).
+  if (!isDemoMode() && resultados.length) {
+    const db = await getDb();
+    await db.rpc("salvar_resultados_desafio", { p_resultados: resultados.map((r) => ({ desafio: r.id, venceu: r.venci, cumpriu: r.cumpri })) }).then(() => undefined, () => undefined);
+  }
   return marcosDesafios(resultados);
 }
 

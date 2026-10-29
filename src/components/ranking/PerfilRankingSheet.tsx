@@ -5,8 +5,14 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { CUTUCADAS, fatoresDeDesempate, trofeusDoPerfil, type PerfilRanking } from "@/lib/ranking/perfil";
+import { CUTUCADAS, fatoresDeDesempate, resumoDesafios, trofeusDoPerfil, type PerfilRanking } from "@/lib/ranking/perfil";
 import { PODIO, podioDaPosicao } from "@/lib/ranking/trofeus";
+
+/** Selo cabe no círculo: quanto mais letras, menor a fonte (“Medida”, “Vídeo”). */
+const tamanhoSelo = (selo: string) => {
+  const n = [...selo].length;
+  return n >= 6 ? "text-[9px]" : n === 5 ? "text-[10px]" : n === 4 ? "text-[11px]" : "text-sm";
+};
 
 const dataBR = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
@@ -48,6 +54,7 @@ export function PerfilRankingSheet({ refPessoa, nome, posicao, interagir, onFech
   const trofeus = perfil ? trofeusDoPerfil(perfil) : [];
   const fatores = perfil ? fatoresDeDesempate(perfil) : [];
   const primeiro = (perfil?.nome ?? nome).split(" ")[0];
+  const desafios = perfil ? resumoDesafios(perfil.desafios, primeiro, perfil.eu) : null;
 
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 sm:items-center" role="dialog" aria-modal="true" aria-label={`Perfil de ${nome}`} onClick={onFechar}>
@@ -79,6 +86,21 @@ export function PerfilRankingSheet({ refPessoa, nome, posicao, interagir, onFech
               </section>
             ) : null}
 
+            {desafios ? (
+              <section aria-labelledby="desafios-perfil">
+                <h3 id="desafios-perfil" className="text-xs font-bold uppercase tracking-wider text-fg-muted">⚔️ Desafios</h3>
+                <ul className="mt-2 grid grid-cols-3 gap-2">
+                  {desafios.numeros.map((n) => (
+                    <li key={n.rotulo} className="rounded-xl border border-border bg-surface px-2 py-2 text-center">
+                      <p className="text-xl font-black leading-none">{n.valor}</p>
+                      <p className="mt-1 text-[10px] leading-tight text-fg-muted"><span aria-hidden>{n.emoji}</span> {n.rotulo}</p>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-fg-muted">{desafios.frase}</p>
+              </section>
+            ) : null}
+
             <section aria-labelledby="desempate-perfil">
               <h3 id="desempate-perfil" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Fatores de desempate (nesta ordem)</h3>
               <ol className="mt-2 divide-y divide-border rounded-xl border border-border bg-surface">
@@ -101,7 +123,7 @@ export function PerfilRankingSheet({ refPessoa, nome, posicao, interagir, onFech
                   {trofeus.map((t) => (
                     <li key={t.codigo}>
                       <button type="button" onClick={() => setAberto(aberto === t.codigo ? null : t.codigo)} className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 text-center ${aberto === t.codigo ? "border-accent" : "border-border"} bg-surface`}>
-                        <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-accent/70 bg-accent/10 text-sm font-black">{t.selo}</span>
+                        <span className={`grid h-12 w-12 place-items-center overflow-hidden rounded-full border-2 border-accent/70 bg-accent/10 px-0.5 font-black leading-none tracking-tight ${tamanhoSelo(t.selo)}`}>{t.selo}</span>
                         <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{t.nome}</span>
                         {aberto === t.codigo ? <span className="text-[10px] text-fg-muted">{dataBR(t.em)}{t.contaNoRanking ? "" : " · não conta no ranking"}</span> : null}
                       </button>

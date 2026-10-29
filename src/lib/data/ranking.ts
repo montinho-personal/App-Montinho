@@ -114,7 +114,7 @@ export async function perfilRanking(ref: string, meuAlunoId: string | null): Pro
     const hoje = Date.now();
     const trofeus = ORDEM.slice(0, d.trofeus).map((o, i) => ({ codigo: o.codigo as string, em: new Date(hoje - (d.trofeus - i) * 2 * 86_400_000).toISOString() }));
     const dia = new Date().toISOString().slice(0, 10);
-    return { ref: d.id, nome: d.nome, eu: d.id === meuAlunoId, visitante: !!d.visitante, trofeus, desempate: { pct_semana: d.semana, carimbos: d.carimbos ?? d.trofeus * 2, semanas_seguidas: d.seguidas, pct_4sem: d.pct4 }, cutuquei_hoje: demoCutucadas.some((c) => c.de === meuAlunoId && c.para === ref && c.dia === dia) };
+    return { ref: d.id, nome: d.nome, eu: d.id === meuAlunoId, visitante: !!d.visitante, trofeus, desempate: { pct_semana: d.semana, carimbos: d.carimbos ?? d.trofeus * 2, semanas_seguidas: d.seguidas, pct_4sem: d.pct4 }, cutuquei_hoje: demoCutucadas.some((c) => c.de === meuAlunoId && c.para === ref && c.dia === dia), desafios: { criados: d.trofeus % 4, chamado: (d.trofeus % 5) + 1, aceitos: (d.trofeus % 6) + 1, em_andamento: d.trofeus % 2, chamou: d.trofeus % 7, vitorias: d.trofeus % 3, metas: d.trofeus % 2 } };
   }
   const db = await getDb();
   const { data, error } = await db.rpc("ranking_perfil", { p_aluno: ref });

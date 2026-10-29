@@ -16,7 +16,36 @@ export type PerfilRanking = {
   trofeus: Array<{ codigo: string; em: string }>;
   desempate: { pct_semana: number | null; carimbos: number; semanas_seguidas: number; pct_4sem: number | null };
   cutuquei_hoje: boolean;
+  /** 0118: números dos desafios (sem a 0118 no banco, não vem). */
+  desafios?: DesafiosDoPerfil;
 };
+
+export type DesafiosDoPerfil = { criados: number; chamado: number; aceitos: number; em_andamento: number; chamou: number; vitorias: number; metas: number };
+
+export type NumeroDesafio = { valor: number; rotulo: string; emoji: string };
+
+/** Os números dos desafios na ordem da tela + uma frase (pura). */
+export function resumoDesafios(d: DesafiosDoPerfil | undefined, primeiroNome: string, eu: boolean): { numeros: NumeroDesafio[]; frase: string } | null {
+  if (!d) return null;
+  const numeros: NumeroDesafio[] = [
+    { valor: d.vitorias, rotulo: d.vitorias === 1 ? "vitória" : "vitórias", emoji: "🏆" },
+    { valor: d.metas, rotulo: d.metas === 1 ? "meta cumprida" : "metas cumpridas", emoji: "✅" },
+    { valor: d.aceitos, rotulo: d.aceitos === 1 ? "desafio aceito" : "desafios aceitos", emoji: "🤝" },
+    { valor: d.criados, rotulo: d.criados === 1 ? "desafio criado" : "desafios criados", emoji: "⚔️" },
+    { valor: d.chamado, rotulo: d.chamado === 1 ? "convite recebido" : "convites recebidos", emoji: "📨" },
+    { valor: d.chamou, rotulo: d.chamou === 1 ? "pessoa chamada" : "pessoas chamadas", emoji: "📣" },
+  ];
+  const quem = eu ? "Você" : primeiroNome;
+  const frase =
+    d.aceitos === 0 && d.criados === 0
+      ? eu ? "Você ainda não entrou em nenhum desafio. Que tal começar?" : `${primeiroNome} ainda não entrou em nenhum desafio. Seja o primeiro a chamar!`
+      : d.em_andamento > 0
+        ? `${quem} ${d.em_andamento === 1 ? "está em 1 desafio" : `está em ${d.em_andamento} desafios`} agora.`
+        : d.vitorias > 0
+          ? `${quem} já ${d.vitorias === 1 ? "venceu 1 desafio" : `venceu ${d.vitorias} desafios`}. Tem coragem?`
+          : `${quem} já ${d.aceitos === 1 ? "encarou 1 desafio" : `encarou ${d.aceitos} desafios`}.`;
+  return { numeros, frase };
+}
 
 export type TrofeuDoPerfil = { codigo: string; nome: string; selo: string; categoria: string; em: string; contaNoRanking: boolean };
 

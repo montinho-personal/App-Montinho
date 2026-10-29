@@ -2235,3 +2235,32 @@ begin
 end $$;
 select test_logout();
 \echo 'T69 OK: Montinho no ranking'
+
+-- T70 — 0118: resultado dos desafios encerrados (só pela função, só quem aceitou, só depois do fim)
+do $$
+declare v_fim uuid; v_aberto uuid;
+begin
+  insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim) values ('RES118', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Encerrado', 'mais_treinos', current_date - 10, current_date - 3) returning id into v_fim;
+  insert into desafios (codigo, criador_aluno_id, nome, tipo, inicio, fim) values ('RES119', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Aberto', 'mais_treinos', current_date, current_date + 3) returning id into v_aberto;
+  perform set_config('t70.fim', v_fim::text, false);
+  perform set_config('t70.aberto', v_aberto::text, false);
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; v jsonb;
+begin
+  n := public.salvar_resultados_desafio(jsonb_build_array(
+    jsonb_build_object('desafio', current_setting('t70.fim'), 'venceu', true, 'cumpriu', false),
+    jsonb_build_object('desafio', current_setting('t70.aberto'), 'venceu', true, 'cumpriu', false)));
+  if n <> 1 then raise exception 'T70a: só o encerrado conta (%)', n; end if;
+  begin
+    insert into desafio_resultados (desafio_id, aluno_id, venceu) values (current_setting('t70.aberto')::uuid, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true);
+    raise exception 'T70b: gravou direto';
+  exception when insufficient_privilege then null;
+  end;
+  v := public.ranking_perfil('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  if (v->'desafios'->>'vitorias')::int < 1 then raise exception 'T70c: vitória no perfil'; end if;
+  if (v->'desafios'->>'criados')::int < 2 then raise exception 'T70d: criados'; end if;
+end $$;
+select test_logout();
+\echo 'T70 OK: desafios no perfil do ranking'
