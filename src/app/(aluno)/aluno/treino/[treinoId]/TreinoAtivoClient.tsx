@@ -1192,6 +1192,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                 ))}
               </div>
               {feedback === "dor" ? <p className="text-xs text-fg-muted">Obrigado por avisar. O {BRAND.name} verá isso antes do próximo treino. Se a dor for forte, procure avaliação.</p> : null}
+              <RecadoDoTreino onSalvar={async (texto) => {
+                const r = await fetch(`/api/sessoes/${concluida.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ status: concluida.status === "abandonada" ? "abandonada" : "concluida", feedback_comentario: texto || null }) }).catch(() => null);
+                return !!r?.ok;
+              }} paraAluno={!presencial} />
             </CardBody>
           </Card>
           {pedirAvaliacao && campanha?.avaliacao ? (
@@ -1816,6 +1820,17 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         <Icon name="check" size={18} /> Concluir exercício e ir para o próximo
                       </button>
                     ) : null}
+                    <AnotacaoExercicio
+                      key={`nota-${se.id}`}
+                      inicial={se.observacao_aluno ?? ""}
+                      presencial={!!presencial}
+                      onSalvar={async (texto) => {
+                        if (!sessao) return false;
+                        const r = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ observacao_aluno: texto || null }) }).catch(() => null);
+                        if (r?.ok) setSessao((cur) => (cur ? { ...cur, exercicios: cur.exercicios.map((x) => (x.id === se.id ? { ...x, observacao_aluno: texto || null } : x)) } : cur));
+                        return !!r?.ok;
+                      }}
+                    />
                     {!presencial ? (
                       <a
                         href={linkExecucao(textoExecucao({ nomeAluno, exercicio: ex.nome, treino: `Treino ${treino.letra} · ${treino.nome}`, dataISO: new Date(sessao?.iniciado_em ?? Date.now()).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }), series: lista.filter((x) => x.concluida && x.tipo !== "aquecimento").map((x) => ({ carga: x.carga, reps: x.reps })) }))}
@@ -2049,6 +2064,74 @@ const OPCOES_ESFORCO: Array<{ v: PercepcaoExercicio; titulo: string; desc: strin
   { v: "moderado", titulo: "Moderado", desc: "Exigiu esforço, mas com folga no fim.", emoji: "💪" },
   { v: "pesado", titulo: "Pesado", desc: "Cheguei perto do meu limite.", emoji: "🔥" },
 ];
+
+/** Recado do fim do treino (feedback_comentario), visto pelo personal em “Treinos feitos”. */
+function RecadoDoTreino({ onSalvar, paraAluno }: { onSalvar: (texto: string) => Promise<boolean>; paraAluno: boolean }) {
+  const [texto, setTexto] = useState("");
+  const [estado, setEstado] = useState<"ok" | "salvando" | "erro" | null>(null);
+  return (
+    <div className="space-y-1">
+      <textarea
+        value={texto}
+        onChange={(e) => { setTexto(e.target.value.slice(0, 500)); setEstado(null); }}
+        rows={2}
+        placeholder={paraAluno ? "Quer contar algo sobre o treino ao Montinho? (opcional)" : "Anotação sobre a aula (opcional)"}
+        className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm"
+      />
+      {texto.trim() ? (
+        <button
+          type="button"
+          disabled={estado === "salvando"}
+          onClick={async () => { setEstado("salvando"); setEstado((await onSalvar(texto.trim())) ? "ok" : "erro"); }}
+          className="touch w-full rounded-lg border border-accent px-3 py-2 text-sm font-bold text-accent disabled:opacity-60"
+        >
+          {estado === "salvando" ? "Enviando…" : estado === "ok" ? "✓ Enviado" : "📝 Enviar anotação"}
+        </button>
+      ) : null}
+      {estado === "erro" ? <p className="text-xs text-danger">Não foi possível enviar agora. Tente de novo.</p> : null}
+    </div>
+  );
+}
+
+/** Anotação do exercício (29/10/2026): o personal vê em “Treinos feitos”. */
+function AnotacaoExercicio({ inicial, presencial, onSalvar }: { inicial: string; presencial: boolean; onSalvar: (texto: string) => Promise<boolean> }) {
+  const [aberto, setAberto] = useState(!!inicial);
+  const [texto, setTexto] = useState(inicial);
+  const [salvo, setSalvo] = useState(inicial);
+  const [estado, setEstado] = useState<"ok" | "salvando" | "erro" | null>(null);
+  async function salvar() {
+    const t = texto.trim();
+    if (t === salvo.trim()) return;
+    setEstado("salvando");
+    const ok = await onSalvar(t);
+    setEstado(ok ? "ok" : "erro");
+    if (ok) setSalvo(t);
+  }
+  if (!aberto) {
+    return (
+      <button type="button" onClick={() => setAberto(true)} className="touch flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 py-2.5 text-sm font-semibold text-fg-muted hover:text-fg">
+        📝 Anotar algo sobre este exercício
+      </button>
+    );
+  }
+  return (
+    <label className="block space-y-1 rounded-lg border border-border bg-bg/60 p-3">
+      <span className="text-xs font-semibold text-fg-muted">📝 {presencial ? "Anotação do exercício" : "Sua anotação (o Montinho vê)"}</span>
+      <textarea
+        value={texto}
+        onChange={(e) => { setTexto(e.target.value.slice(0, 300)); setEstado(null); }}
+        onBlur={() => void salvar()}
+        rows={2}
+        placeholder="Ex.: máquina 3, banco na posição 4, senti o ombro na última"
+        className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+      />
+      <span className="flex items-center justify-between text-[11px] text-fg-subtle">
+        <span>{estado === "salvando" ? "Salvando…" : estado === "ok" ? "✓ Salvo" : estado === "erro" ? "Não salvou. Toque fora do campo para tentar de novo." : "Salva sozinho quando você sai do campo."}</span>
+        <span>{texto.length}/300</span>
+      </span>
+    </label>
+  );
+}
 
 /** Descanso também dentro do cartão do exercício (iPhone: o flutuante às vezes fica fora da tela). */
 function DescansoNoCartao({ fim, onPular }: { fim: number; onPular: () => void }) {

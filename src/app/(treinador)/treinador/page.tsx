@@ -1,3 +1,5 @@
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { treinosFeitosRecentes } from "@/lib/data/treinos-feitos";
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
@@ -25,7 +27,7 @@ export const metadata = { title: "Visão geral" };
 
 export default async function TreinadorDashboardPage() {
   const sessao = await requireTreinadorPage();
-  const [m, alunos, adaptacoes, acessos, semVideo, aoVivo] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null), listarSemVideo().catch(() => []), treinandoAgora().catch(() => [])]);
+  const [m, alunos, adaptacoes, acessos, semVideo, aoVivo, feitosRecentes] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null), listarSemVideo().catch(() => []), treinandoAgora().catch(() => []), treinosFeitosRecentes(1).catch(() => [])]);
   const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   // Dados por aluno ativo (limitado para manter o painel rápido)
@@ -105,6 +107,22 @@ export default async function TreinadorDashboardPage() {
         </span>
         <span aria-hidden className="text-fg-muted">›</span>
       </Link>
+      {(() => {
+        const hojeSP = dataLocal(new Date());
+        const deHoje = feitosRecentes.filter((t) => t.data === hojeSP);
+        const notas = deHoje.filter((t) => t.anotacoes.length).length;
+        const alerta = deHoje.filter((t) => t.sinais.some((x) => x === "dor" || x === "desconforto" || x === "nao_consegui")).length;
+        return (
+          <Link href="/treinador/treinos-feitos?dias=1" className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 hover:border-accent">
+            <span aria-hidden className="text-2xl">📋</span>
+            <span className="flex-1">
+              <span className="block font-bold">{deHoje.length ? `${deHoje.length} ${deHoje.length === 1 ? "treino feito" : "treinos feitos"} hoje` : "Treinos feitos e anotações"}</span>
+              <span className="block text-xs text-fg-muted">{deHoje.length ? `${notas ? `📝 ${notas} com anotações` : "sem anotações"}${alerta ? ` · ⚠️ ${alerta} com alerta` : ""} · toque para ver cada treino` : "Veja o que cada aluno fez e escreveu, treino a treino"}</span>
+            </span>
+            <span aria-hidden className="text-fg-muted">›</span>
+          </Link>
+        );
+      })()}
       {acessos ? <AcessosDoDia r={acessos} /> : null}
 
       <ExerciciosSemVideo lista={semVideo} />
@@ -165,7 +183,10 @@ export default async function TreinadorDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Treinos recentes</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle>Treinos recentes</CardTitle>
+              <Link href="/treinador/treinos-feitos" className="text-xs font-semibold text-accent">Ver todos e anotações →</Link>
+            </div>
           </CardHeader>
           <CardBody className="p-0">
             {recentes.length === 0 ? (
@@ -183,7 +204,7 @@ export default async function TreinadorDashboardPage() {
                         <AlunoStatusPill status={aluno.status} />
                       </div>
                       <p className="text-xs text-fg-subtle mt-0.5">
-                        {ultima!.letra ? `Treino ${ultima!.letra}` : "Sessão"} {tempoRelativo(ultima!.finalizado_em ?? ultima!.iniciado_em)} · {ultima!.series_concluidas}/{ultima!.series_planejadas} séries · semana: {r7.sessoesFeitas}/{r7.sessoesPlanejadas || "—"}
+                        <Link href={`/treinador/alunos/${aluno.id}/treinos-feitos`} className="font-semibold text-accent">{ultima!.letra ? `Treino ${ultima!.letra}` : "Treino"}</Link> {tempoRelativo(ultima!.finalizado_em ?? ultima!.iniciado_em)} · {ultima!.series_concluidas}/{ultima!.series_planejadas} séries · semana: {r7.sessoesFeitas}/{r7.sessoesPlanejadas || "—"}
                         {ultima!.feedback_percepcao === "dor" ? <span className="text-warning"> · relatou dor</span> : null}
                       </p>
                     </div>

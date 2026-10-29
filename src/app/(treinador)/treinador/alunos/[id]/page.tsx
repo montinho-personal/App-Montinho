@@ -1,3 +1,4 @@
+import { rotuloDia, treinosFeitos } from "@/lib/historico/treinos-feitos";
 import { notFound } from "next/navigation";
 import { listarCardio, listarCardiosStrava } from "@/lib/data/strava";
 import { CardiosStrava } from "@/components/strava/CardiosStrava";
@@ -169,6 +170,21 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               </Link>
               {/* Montar/revisar o treino: duas portas, musculação e cardio. */}
               <AbasTreinoCardio alunoId={id} resumoCardio={resumoDoCardio(cardioAluno)} />
+              {/* Treinos feitos: o que o aluno fez e anotou, treino a treino. */}
+              {(() => {
+                const feitos = treinosFeitos(sessoes);
+                const ult = feitos[0];
+                const notas = feitos.slice(0, 10).reduce((n, t) => n + t.anotacoes.length, 0);
+                return (
+                  <Link href={`/treinador/alunos/${id}/treinos-feitos`} className="touch flex items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3">
+                    <span className="min-w-0">
+                      <span className="block font-bold">📋 Treinos feitos e anotações</span>
+                      <span className="block truncate text-xs text-fg-muted">{ult ? `Último: ${ult.titulo} · ${rotuloDia(ult.data, hojeLocal).toLowerCase()}${notas ? ` · 📝 ${notas} ${notas === 1 ? "anotação" : "anotações"} recentes` : ""}` : "Nenhum treino registrado ainda"}</span>
+                    </span>
+                    <span aria-hidden className="text-accent">→</span>
+                  </Link>
+                );
+              })()}
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🏆</span>

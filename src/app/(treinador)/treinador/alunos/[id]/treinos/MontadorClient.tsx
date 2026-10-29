@@ -1230,8 +1230,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
 
           {/* “Finalizados” aqui = fichas antigas arquivadas. Os treinos FEITOS pelo aluno ficam na ficha (abas Evolução e Consistência). */}
           <div>
-            <Link href={`/treinador/alunos/${alunoId}#evolucao`} className="touch flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold">
-              <span>📋 Treinos que {alunoNome.split(" ")[0]} já fez</span><span aria-hidden className="text-accent">→</span>
+            <Link href={`/treinador/alunos/${alunoId}/treinos-feitos`} className="touch flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold">
+              <span>📋 Treinos que {alunoNome.split(" ")[0]} já fez e anotações</span><span aria-hidden className="text-accent">→</span>
             </Link>
           </div>
 

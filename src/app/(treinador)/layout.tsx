@@ -7,6 +7,7 @@ import { requireTreinadorPage } from "@/lib/auth/session";
 const NAV = [
   { label: "Visão geral", href: "/treinador", icon: "home" },
   { label: "Treinando agora", href: "/treinador/ao-vivo", icon: "play" },
+  { label: "Treinos feitos", href: "/treinador/treinos-feitos", icon: "table" },
   { label: "Meu treino", href: "/treinador/meu-treino", icon: "dumbbell" },
   { label: "Buscar", href: "/treinador/busca", icon: "search" },
   { label: "Alunos", href: "/treinador/alunos", icon: "users" },
