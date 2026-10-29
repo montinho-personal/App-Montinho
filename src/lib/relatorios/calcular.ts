@@ -240,7 +240,7 @@ export function recordesNoPeriodo(sessoes: SessaoCompleta[], p: Periodo): Record
   return out;
 }
 
-export type PontoEvolucao = { data: string; cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number; fonte: "app" | "resumo"; /** Média da carga das séries válidas do dia (sem aquecimento, só com carga). */ cargaMedia?: number | null };
+export type PontoEvolucao = { data: string; cargaMax: number | null; e1rmMax: number | null; tonelagem: number; series: number; fonte: "app" | "resumo"; /** Média da carga das séries válidas do dia (sem aquecimento, só com carga). */ cargaMedia?: number | null; /** Maior nº de repetições feito em cada carga no dia (chave = carga em kg). */ repsPorCarga?: Record<string, number> };
 export type ResumoEvolucao = { data: string; exercicio_nome: string; series: number; carga_max_kg: number | null; volume_kg: number | null };
 
 /** Evolução por data. O resumo de outro app entra só nos dias sem registro no app (e sem e1RM: não há reps por série). */
@@ -260,6 +260,10 @@ export function evolucaoExercicio(sessoes: SessaoCompleta[], chave: string, resu
       m.n += 1;
       media.set(s.data, m);
       d.cargaMedia = Math.round((m.soma / m.n) * 10) / 10;
+    }
+    if (s.carga_kg != null && s.carga_kg > 0 && s.reps != null && s.reps > 0) {
+      const k = String(s.carga_kg);
+      d.repsPorCarga = { ...(d.repsPorCarga ?? {}), [k]: Math.max(d.repsPorCarga?.[k] ?? 0, s.reps) };
     }
     if (s.e1rm != null) d.e1rmMax = Math.max(d.e1rmMax ?? 0, s.e1rm);
     if (s.carga_kg != null && s.reps != null) d.tonelagem += s.carga_kg * s.reps;

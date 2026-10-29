@@ -67,7 +67,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
 
   // Gráficos fáceis (antes do relatório completo): treino a treino, exercício a exercício e peso.
   const exerciciosGrafico = exerciciosComCarga(sessoes).slice(0, 25);
-  const pontosGrafico: Record<string, PontoExercicio[]> = Object.fromEntries(exerciciosGrafico.map((e) => [e.chave, evolucaoExercicio(sessoes, e.chave, historicoResumo).map((p) => ({ data: p.data, carga: p.cargaMax, volume: p.tonelagem, media: p.cargaMedia ?? null }))]));
+  const pontosGrafico: Record<string, PontoExercicio[]> = Object.fromEntries(exerciciosGrafico.map((e) => [e.chave, evolucaoExercicio(sessoes, e.chave, historicoResumo).map((p) => ({ data: p.data, carga: p.cargaMax, volume: p.tonelagem, media: p.cargaMedia ?? null, forca: p.e1rmMax, repsPorCarga: p.repsPorCarga }))]));
   const pesoGrafico = evolucao.filter((m) => m.peso_kg != null).map((m) => ({ data: m.data, kg: Number(m.peso_kg) }));
 
   return (

@@ -17,3 +17,21 @@ describe("média das séries válidas", () => {
     expect(p.map((x) => [x.cargaMax, x.cargaMedia])).toEqual([[45, 40], [45, 44.2]]);
   });
 });
+
+describe("força estimada e repetições com a mesma carga", () => {
+  it("guarda o maior nº de reps em cada carga e escolhe a carga repetida", async () => {
+    const { cargasRepetidas, repsNaCarga } = await import("./graficos-aluno");
+    const p = evolucaoExercicio(
+      [
+        sessao("a", "2026-10-20", [{ tipo: "valida", carga_kg: 45, reps: 10 }, { tipo: "valida", carga_kg: 45, reps: 9 }, { tipo: "valida", carga_kg: 40, reps: 12 }]),
+        sessao("b", "2026-10-24", [{ tipo: "valida", carga_kg: 45, reps: 11 }, { tipo: "valida", carga_kg: 50, reps: 8 }]),
+        sessao("c", "2026-10-28", [{ tipo: "valida", carga_kg: 45, reps: 12 }, { tipo: "valida", carga_kg: 40, reps: 15 }]),
+      ],
+      "Crucifixo na polia"
+    );
+    expect(cargasRepetidas(p)).toEqual([45, 40]);
+    expect(repsNaCarga(p, 45).map((x) => x.reps)).toEqual([10, 11, 12]);
+    // Epley: 45 × (1 + 12/30) = 63
+    expect(p.at(-1)?.e1rmMax).toBe(63);
+  });
+});

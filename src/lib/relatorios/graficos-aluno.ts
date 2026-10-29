@@ -55,3 +55,24 @@ export function exerciciosComCarga(sessoes: SessaoCompleta[]): Array<{ chave: st
   }
   return [...m.entries()].map(([chave, v]) => ({ chave, nome: v.nome, vezes: v.dias.size })).sort((a, b) => b.vezes - a.vezes || a.nome.localeCompare(b.nome));
 }
+
+// ---------------------------------------------------------------------------
+// Repetições com a mesma carga (pedido do Montinho, 29/10/2026): a forma mais
+// comum de evoluir é fazer mais repetições com o mesmo peso.
+// ---------------------------------------------------------------------------
+type ComReps = { data: string; repsPorCarga?: Record<string, number> | null };
+
+/** Cargas usadas em 2 dias ou mais (as que dá para comparar): mais dias primeiro; empate, a maior carga. */
+export function cargasRepetidas(pontos: ComReps[]): number[] {
+  const dias = new Map<number, number>();
+  for (const p of pontos) for (const k of Object.keys(p.repsPorCarga ?? {})) dias.set(Number(k), (dias.get(Number(k)) ?? 0) + 1);
+  return [...dias.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1] || b[0] - a[0]).map(([c]) => c);
+}
+
+/** Dias em que a carga apareceu, com o maior nº de repetições feito nela. */
+export function repsNaCarga(pontos: ComReps[], carga: number): Array<{ data: string; reps: number }> {
+  return pontos.flatMap((p) => {
+    const r = p.repsPorCarga?.[String(carga)];
+    return r ? [{ data: p.data, reps: r }] : [];
+  });
+}

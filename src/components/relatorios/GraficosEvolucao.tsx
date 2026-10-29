@@ -5,9 +5,9 @@
 // Contas em src/lib/relatorios/graficos-aluno.ts.
 import { useState } from "react";
 import Link from "next/link";
-import { variacao, type BarraTreino } from "@/lib/relatorios/graficos-aluno";
+import { cargasRepetidas, repsNaCarga, variacao, type BarraTreino } from "@/lib/relatorios/graficos-aluno";
 
-export type PontoExercicio = { data: string; carga: number | null; volume: number; /** Média da carga das séries válidas do dia. */ media?: number | null };
+export type PontoExercicio = { data: string; carga: number | null; volume: number; /** Média da carga das séries válidas do dia. */ media?: number | null; /** Força estimada (1RM por Epley, séries até 12 reps). */ forca?: number | null; /** Maior nº de reps em cada carga do dia. */ repsPorCarga?: Record<string, number> };
 type Aba = "treinos" | "exercicios" | "peso";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
@@ -80,10 +80,16 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
   const [barra, setBarra] = useState<string | null>(null);
   const atual = lista.find((t) => t.id === barra) ?? lista.at(-1);
   const [chave, setChave] = useState(exercicios[0]?.chave ?? "");
-  const [medida, setMedida] = useState<"carga" | "media" | "volume">("carga");
-  const valorDe = (p: PontoExercicio) => (medida === "carga" ? p.carga : medida === "media" ? (p.media ?? null) : p.volume);
-  const pts = (pontos[chave] ?? []).filter((p) => (valorDe(p) ?? 0) > 0);
-  const valores = pts.map((p) => valorDe(p) as number);
+  const [medida, setMedida] = useState<"carga" | "media" | "forca" | "reps" | "volume">("carga");
+  const [cargaReps, setCargaReps] = useState<number | null>(null);
+  // Repetições com a mesma carga: só cargas usadas em 2+ dias (as que dá para comparar).
+  const cargas = cargasRepetidas(pontos[chave] ?? []);
+  const carga = cargaReps != null && cargas.includes(cargaReps) ? cargaReps : (cargas[0] ?? null);
+  const naCarga = carga != null ? repsNaCarga(pontos[chave] ?? [], carga) : [];
+  const valorDe = (p: PontoExercicio) => (medida === "carga" ? p.carga : medida === "media" ? (p.media ?? null) : medida === "forca" ? (p.forca ?? null) : p.volume);
+  const pts: PontoExercicio[] = medida === "reps" ? naCarga.map((x) => ({ data: x.data, carga: null, volume: 0 })) : (pontos[chave] ?? []).filter((p) => (valorDe(p) ?? 0) > 0);
+  const valores = medida === "reps" ? naCarga.map((x) => x.reps) : pts.map((p) => valorDe(p) as number);
+  const rotuloValor = medida === "reps" ? (n: number) => `${n} ${n === 1 ? "rep" : "reps"}` : kg;
   // Melhor média do exercício (o dia em que as séries válidas, juntas, ficaram mais pesadas).
   const melhorMedia = medida === "media" && pts.length ? pts.reduce((a, p) => ((p.media ?? 0) > (a.media ?? 0) ? p : a)) : null;
   const maxBarra = Math.max(1, ...lista.map((t) => t.volumeKg));
@@ -153,19 +159,29 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
                 <option key={e.chave} value={e.chave}>{e.nome} ({e.vezes}×)</option>
               ))}
             </select>
-            <div className="flex gap-1.5">
-              {(["carga", "media", "volume"] as const).map((m) => (
+            <div className="flex flex-wrap gap-1.5">
+              {(["carga", "media", "forca", "reps", "volume"] as const).map((m) => (
                 <button key={m} type="button" aria-pressed={medida === m} onClick={() => setMedida(m)} className={`min-h-8 rounded-full border px-3 text-xs font-bold ${medida === m ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
-                  {m === "carga" ? "Maior carga" : m === "media" ? "Média das séries" : "Volume do dia"}
+                  {m === "carga" ? "Maior carga" : m === "media" ? "Média das séries" : m === "forca" ? "Força estimada" : m === "reps" ? "Reps na mesma carga" : "Volume do dia"}
                 </button>
               ))}
             </div>
+            {medida === "reps" && cargas.length > 1 ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-fg-muted">Carga:</span>
+                {cargas.slice(0, 6).map((c) => (
+                  <button key={c} type="button" aria-pressed={carga === c} onClick={() => setCargaReps(c)} className={`min-h-8 rounded-full border px-3 text-xs font-bold ${carga === c ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                    {kg(c)}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {valores.length >= 2 ? (
               <>
                 <div className="flex items-end justify-between gap-2">
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-fg-subtle">Antes → agora</p>
-                    <p className="text-2xl font-black tabular-nums">{kg(valores[0])} → <span className="text-accent">{kg(valores.at(-1)!)}</span></p>
+                    <p className="text-2xl font-black tabular-nums">{medida === "reps" && carga != null ? <span className="text-base font-bold text-fg-muted">{kg(carga)}: </span> : null}{rotuloValor(valores[0])} → <span className="text-accent">{rotuloValor(valores.at(-1)!)}</span></p>
                   </div>
                   <Variacao v={variacao(valores[0], valores.at(-1)!)} />
                 </div>
@@ -174,10 +190,11 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
                     🏆 Melhor média: <b className="text-accent">{kg(melhorMedia.media as number)}</b> em {ddmm(melhorMedia.data)}. Média = carga de todas as séries válidas do dia (sem aquecimento) somada e dividida pelo número de séries.
                   </p>
                 ) : null}
-                <Linha key={`${chave}:${medida}`} valores={valores} datas={pts.map((p) => p.data)} rotulo={kg} />
+                {medida === "forca" ? <p className="rounded-lg bg-bg px-3 py-2 text-xs text-fg-muted">💪 Quanto você levantaria numa repetição só, calculado pelo peso e pelas repetições de cada série (fórmula de Epley, séries de até 12 repetições). É uma estimativa: não precisa testar a carga máxima.</p> : null}
+                <Linha key={`${chave}:${medida}:${carga}`} valores={valores} datas={pts.map((p) => p.data)} rotulo={rotuloValor} />
               </>
             ) : (
-              <p className="text-sm text-fg-muted">{valores.length ? `Só 1 registro com carga: ${kg(valores[0])}. O gráfico aparece a partir do 2º.` : "Ainda sem carga anotada neste exercício."}</p>
+              <p className="text-sm text-fg-muted">{medida === "reps" ? "Para comparar as repetições, use a mesma carga em pelo menos 2 treinos." : medida === "forca" && !valores.length ? "A força estimada usa séries de até 12 repetições com carga." : valores.length ? `Só 1 registro: ${rotuloValor(valores[0])}. O gráfico aparece a partir do 2º.` : "Ainda sem carga anotada neste exercício."}</p>
             )}
           </div>
         ) : (
