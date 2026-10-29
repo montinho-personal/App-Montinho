@@ -68,7 +68,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
     }
     const tipo = r === "baixado" ? "download" : r === "cancelado" ? "compartilhar_cancelado" : "compartilhar_nativo";
     // Troféu da tribo: origem própria (não entra na contagem dos troféus individuais compartilhados).
-    const evento = tribo ? ({ tipo, formato: "stories", origem: "tribo", ref: `tribo:${atual.codigo}` } as const) : ({ tipo, modelo: atual.codigo, formato: "stories", origem: "medalha" } as const);
+    const evento = tribo ? ({ tipo, formato: "stories", origem: "tribo", ref: `tribo:${atual.codigo}` } as const) : ({ tipo, ref: `medalha:${atual.codigo}`, formato: "stories", origem: "medalha" } as const);
     if (!previa) {
       const novos = await enviarEventoComTrofeus(evento);
       if (novos.length) setExtras((x) => [...x, ...(novos as Array<ConquistaCelebravel & { id: string }>).filter((n) => !x.some((y) => y.id === n.id))]);

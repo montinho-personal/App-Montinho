@@ -51,7 +51,7 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
     setEnviando(false);
     if (r !== "enviado_ao_sistema") setAvisoEnvio(MENSAGEM_RESULTADO[r]);
     if (r === "enviado_ao_sistema" || r === "baixado") {
-      const novas = await enviarEventoComTrofeus({ tipo: r === "baixado" ? "download" : "compartilhar_nativo", modelo: m.codigo, formato: "stories", origem: "medalha" });
+      const novas = await enviarEventoComTrofeus({ tipo: r === "baixado" ? "download" : "compartilhar_nativo", ref: `medalha:${m.codigo}`, formato: "stories", origem: "medalha" });
       if (novas.length) setTrofeus(novas as Array<ConquistaCelebravel & { id: string }>);
     }
   }
