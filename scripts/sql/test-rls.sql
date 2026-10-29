@@ -2132,3 +2132,51 @@ end $$;
 select test_logout();
 delete from tribo_marcos where nome like 'Teste %';
 \echo 'T66 OK: Conquistas da Tribo'
+
+-- T67 — 0116: mobilidade — hora do servidor, concluir só depois de 10 min, só a própria, troféus aceitos
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v_id uuid; v mobilidade_sessoes;
+begin
+  insert into mobilidade_sessoes (aluno_id, protocolo, nota_antes, iniciado_em, status, concluido_em)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'superiores', 7, now() - interval '2 hours', 'concluida', now()) returning id into v_id;
+  select * into v from mobilidade_sessoes where id = v_id;
+  if v.status <> 'em_andamento' or v.concluido_em is not null or v.iniciado_em < now() - interval '1 minute' then raise exception 'T67a: o app escolheu a hora/status'; end if;
+  begin
+    perform public.concluir_mobilidade(v_id, 3::smallint, 13::smallint);
+    raise exception 'T67b: concluiu antes de 10 min';
+  exception when raise_exception then
+    if sqlerrm not like 'mobilidade: cedo demais%' then raise; end if;
+  end;
+  begin
+    update mobilidade_sessoes set status = 'concluida' where id = v_id;
+    raise exception 'T67c: aluno alterou a sessão direto';
+  exception when insufficient_privilege then null;
+  end;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, descricao, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'mobilidade_7_inferiores', '1', 'x', 'x', now());
+end $$;
+select test_logout();
+-- simula 15 min depois (como dono do banco) e conclui como o aluno
+update mobilidade_sessoes set iniciado_em = now() - interval '15 minutes' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v mobilidade_sessoes;
+begin
+  select * into v from public.concluir_mobilidade((select id from mobilidade_sessoes limit 1), 3::smallint, 13::smallint);
+  if v.status <> 'concluida' or v.nota_depois <> 3 then raise exception 'T67d: não concluiu'; end if;
+end $$;
+select test_logout();
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$
+declare n int;
+begin
+  select count(*) into n from mobilidade_sessoes;
+  if n <> 0 then raise exception 'T67e: outro aluno viu a mobilidade'; end if;
+  begin
+    perform public.concluir_mobilidade((select id from mobilidade_sessoes limit 1), 1::smallint, 1::smallint);
+  exception when others then null;
+  end;
+end $$;
+select test_logout();
+delete from conquistas_aluno where codigo = 'mobilidade_7_inferiores';
+\echo 'T67 OK: mobilidade'

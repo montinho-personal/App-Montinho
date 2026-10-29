@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -29,6 +29,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   compartilhar: "Compartilhar",
   desafios: "Desafios",
   cardio: "Cardio & Resistência",
+  mobilidade: "Mobilidade & Alongamento",
 };
 
 /** Ícone de cada categoria (abas do topo da tela Conquistas). */
@@ -46,6 +47,7 @@ export const CATEGORIA_EMOJI: Record<Categoria, string> = {
   compartilhar: "📣",
   desafios: "⚔️",
   cardio: "❤️‍🔥",
+  mobilidade: "🧘",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -1254,6 +1256,61 @@ const BASE: Record<CodigoConquista, Base> = {
     explicacao: "Vale somar partes do mesmo dia (horário de Brasília), cada uma com 10 minutos ou mais. Vale uma vez.",
     proximoPasso: "Combine com o Montinho como encaixar isso sem atrapalhar o treino de perna.",
     fontes: ["oms2020"],
+  },
+  mobilidade_superiores: {
+    categoria: "mobilidade",
+    resumo: "Primeira Mobilidade de Superiores concluída no app.",
+    mensagem: "Ombros livres! Ombro, pescoço e costas agradecem.",
+    comoConquistar: "Abra Treinar → 🧘 Mobilidade, escolha Superiores, toque em “Começar” e conclua o protocolo (são cerca de 22 minutos).",
+    significado: "Você fez o protocolo completo de mobilidade de superiores.",
+    importancia: "Mobilidade e alongamento ajudam a sentir o corpo mais solto e a se movimentar melhor no dia a dia e no treino.",
+    explicacao: "Só vale começado no app: o horário de começar e de concluir é o do servidor, com pelo menos 10 minutos entre os dois. Vale uma vez.",
+    proximoPasso: "Topa o Desafio 7 Dias? Faça todos os dias e compare a nota de desconforto do 1º e do 7º dia.",
+    fontes: ["sdt2025"],
+  },
+  mobilidade_inferiores: {
+    categoria: "mobilidade",
+    resumo: "Primeira Mobilidade de Inferiores concluída no app.",
+    mensagem: "Quadril livre! Quadril, lombar e joelho agradecem.",
+    comoConquistar: "Abra Treinar → 🧘 Mobilidade, escolha Inferiores, toque em “Começar” e conclua o protocolo (são cerca de 22 minutos).",
+    significado: "Você fez o protocolo completo de mobilidade de inferiores.",
+    importancia: "Mobilidade e alongamento ajudam a sentir o corpo mais solto e a se movimentar melhor no dia a dia e no treino.",
+    explicacao: "Só vale começado no app: o horário de começar e de concluir é o do servidor, com pelo menos 10 minutos entre os dois. Vale uma vez.",
+    proximoPasso: "Topa o Desafio 7 Dias? Faça todos os dias e compare a nota de desconforto do 1º e do 7º dia.",
+    fontes: ["sdt2025"],
+  },
+  mobilidade_completa: {
+    categoria: "mobilidade",
+    resumo: "Os dois protocolos de mobilidade concluídos: superiores e inferiores.",
+    mensagem: "Corpo todo solto! De cima a baixo.",
+    comoConquistar: "Conclua no app a Mobilidade de Superiores e a de Inferiores (em dias diferentes ou no mesmo dia).",
+    significado: "Você cuidou do corpo inteiro: ombros, costas, quadril e pernas.",
+    importancia: "Variar os protocolos cuida de todas as regiões que costumam travar.",
+    explicacao: "Vale quando os dois estiverem concluídos no app, em qualquer ordem. Vale uma vez.",
+    proximoPasso: "Encaixe a mobilidade nos dias de descanso ou depois do treino.",
+    fontes: ["sdt2025"],
+  },
+  mobilidade_7_superiores: {
+    categoria: "mobilidade",
+    resumo: "Mobilidade de Superiores 7 dias seguidos.",
+    mensagem: "Desafio 7 Dias cumprido! Superiores todos os dias.",
+    comoConquistar: "Faça a Mobilidade de Superiores no app 7 dias seguidos (horário de Brasília). Pulou um dia, a contagem recomeça.",
+    significado: "Uma semana inteira cuidando de ombro, pescoço e costas.",
+    importancia: "Repetir todos os dias, mesmo que por pouco tempo, é o que transforma um cuidado em rotina.",
+    explicacao: "Conta 1 por dia (mais de uma no mesmo dia vale 1). Só sessões começadas e concluídas no app. Vale uma vez.",
+    proximoPasso: "Mande para o Montinho a sua nota de desconforto do 1º e do 7º dia.",
+    fontes: ["habitos2024"],
+  },
+  mobilidade_7_inferiores: {
+    categoria: "mobilidade",
+    resumo: "Mobilidade de Inferiores 7 dias seguidos.",
+    mensagem: "Desafio 7 Dias cumprido! Inferiores todos os dias.",
+    comoConquistar: "Faça a Mobilidade de Inferiores no app 7 dias seguidos (horário de Brasília). Pulou um dia, a contagem recomeça.",
+    significado: "Uma semana inteira cuidando de quadril, lombar e joelho.",
+    importancia: "Repetir todos os dias, mesmo que por pouco tempo, é o que transforma um cuidado em rotina.",
+    explicacao: "Conta 1 por dia (mais de uma no mesmo dia vale 1). Só sessões começadas e concluídas no app. Vale uma vez.",
+    proximoPasso: "Mande para o Montinho a sua nota de desconforto do 1º e do 7º dia.",
+    fontes: ["habitos2024"],
   },
 };
 

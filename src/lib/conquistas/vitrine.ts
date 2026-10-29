@@ -132,6 +132,12 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "cardio_4h", selo: "4h" },
   { codigo: "cardio_10km", selo: "10km" },
   { codigo: "cardio_escada_1h", selo: "🪜60′" },
+  // Mobilidade e alongamento (0116)
+  { codigo: "mobilidade_superiores", selo: "💪🧘" },
+  { codigo: "mobilidade_inferiores", selo: "🦵🧘" },
+  { codigo: "mobilidade_completa", selo: "🧘" },
+  { codigo: "mobilidade_7_superiores", selo: "7💪" },
+  { codigo: "mobilidade_7_inferiores", selo: "7🦵" },
   // Dia em dobro
   { codigo: "dois_folegos", selo: "2❤️‍🔥" },
   { codigo: "combo_completo", selo: "💪❤️" },
@@ -173,7 +179,7 @@ export type ProgressoCardio = {
 };
 
 /** Progresso dos troféus de compartilhar e do “Mito ou verdade?” (quando a tela tem esses dados). */
-export type ProgressoExtras = { cardsCompartilhados?: number; trofeusCompartilhados?: number; quizCertas?: number; quizTotal?: number };
+export type ProgressoExtras = { cardsCompartilhados?: number; trofeusCompartilhados?: number; quizCertas?: number; quizTotal?: number; /** Mobilidade: dias seguidos agora de cada protocolo. */ mobilidade?: { superiores: number; inferiores: number } };
 
 export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null; extras?: ProgressoExtras | null }): Medalha[] {
   const ganhas = new Map<string, string>();
@@ -264,6 +270,16 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       }
       case "cardio_10km":
         return { atual: null, alvo: null, falta: "Some 10 km no mesmo dia em esteira, caminhada, corrida ou HIIT (anote a distância no registro).", disponivel: (e.cardio?.feitos ?? 0) > 0 || !!e.cardio?.temPrescricao };
+      case "mobilidade_superiores":
+      case "mobilidade_inferiores":
+        return { atual: null, alvo: null, falta: `Em Treinar → 🧘 Mobilidade, comece a de ${c === "mobilidade_superiores" ? "Superiores" : "Inferiores"} no app e conclua (cerca de 22 minutos).`, disponivel: true };
+      case "mobilidade_completa":
+        return { atual: null, alvo: null, falta: "Conclua no app os dois protocolos de mobilidade: superiores e inferiores.", disponivel: true };
+      case "mobilidade_7_superiores":
+      case "mobilidade_7_inferiores": {
+        const seq = e.extras?.mobilidade?.[c === "mobilidade_7_superiores" ? "superiores" : "inferiores"] ?? 0;
+        return { atual: Math.min(seq, 7), alvo: 7, falta: `Faça a mobilidade de ${c === "mobilidade_7_superiores" ? "superiores" : "inferiores"} no app 7 dias seguidos — agora: ${Math.min(seq, 7)} de 7.`, disponivel: true };
+      }
       case "cardio_escada_1h":
         return { atual: null, alvo: null, falta: "Some 60 minutos de escada no mesmo dia (partes de 10+ minutos).", disponivel: (e.cardio?.feitos ?? 0) > 0 || !!e.cardio?.temPrescricao };
       case "acompanhamento_12_semanas": return { atual: Math.min(participando, 12), alvo: 12, falta: `Treine em 12 semanas do acompanhamento (não precisam ser seguidas) — você está em ${Math.min(participando, 12)}.`, disponivel: true };

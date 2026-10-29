@@ -15,6 +15,7 @@ import { LIMITES_COMPARTILHAR, trofeusCompartilharMais, type CodigoCompartilharM
 import { trofeusDeTempo, type CodigoAcompanhamento } from "./acompanhamento";
 import { trofeusDoQuiz, type CodigoQuiz, type RespostaQuiz } from "./quiz";
 import { trofeusCardioHorario, type CodigoCardioHorario } from "./cardio-horario";
+import { trofeusDaMobilidade, type CodigoMobilidade, type SessaoMobilidade } from "@/lib/mobilidade/regras";
 import { LIMITES_DESAFIO, type MarcosDesafios } from "@/lib/desafios/regras";
 import type { BaseCarga } from "@/lib/historico/resumo";
 import { normalizarNome } from "@/lib/grupos";
@@ -116,6 +117,8 @@ export type CodigoConquista =
   | CodigoQuiz
   | CodigoCompartilharMais
   | CodigoCardioHorario
+  // Mobilidade e alongamento (0116, src/lib/mobilidade/regras.ts)
+  | CodigoMobilidade
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -181,6 +184,8 @@ export { CODIGOS_COMBO } from "./combo-seguido";
 export { CODIGOS_SERIES } from "./volume-series";
 /** Troféus de 29/10/2026 (0113): gravados à parte, como as outras famílias novas. */
 export const CODIGOS_29OUT: CodigoConquista[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_1_ano", "retomada_30", "quiz_1", "quiz_10", "quiz_30", "quiz_50", "semana_compartilhada", "cards_10", "cards_20", "cards_30", "trofeus_compartilhados_10", "trofeus_compartilhados_20", "trofeus_compartilhados_30", "trofeus_compartilhados_50", "cardio_madrugada", "cardio_4h", "cardio_meia_noite", "cardio_10km", "cardio_escada_1h"];
+/** Mobilidade e alongamento (0116): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_MOBILIDADE } from "@/lib/mobilidade/regras";
 export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -311,6 +316,11 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   cardio_meia_noite: { titulo: "Cardio da Meia-Noite", criterio: "Começar no app (▶ Começar do cronômetro) um cardio de 10+ minutos entre 0h00 e 2h59 (Brasília). 3h00 já não vale.", repete: false },
   cardio_10km: { titulo: "10 km no Dia", criterio: "Somar 10 km ou mais no mesmo dia em esteira, caminhada, corrida ou HIIT.", repete: false },
   cardio_escada_1h: { titulo: "1 Hora de Escada", criterio: "Somar 60 minutos ou mais de escada no mesmo dia.", repete: false },
+  mobilidade_superiores: { titulo: "Ombros Livres", criterio: "Concluir a Mobilidade de Superiores começada no app (10+ minutos entre começar e concluir).", repete: false },
+  mobilidade_inferiores: { titulo: "Quadril Livre", criterio: "Concluir a Mobilidade de Inferiores começada no app (10+ minutos entre começar e concluir).", repete: false },
+  mobilidade_completa: { titulo: "Corpo Todo Solto", criterio: "Concluir os dois protocolos de mobilidade no app: superiores e inferiores.", repete: false },
+  mobilidade_7_superiores: { titulo: "Desafio 7 Dias: Superiores", criterio: "Fazer a Mobilidade de Superiores no app 7 dias seguidos (horário de Brasília).", repete: false },
+  mobilidade_7_inferiores: { titulo: "Desafio 7 Dias: Inferiores", criterio: "Fazer a Mobilidade de Inferiores no app 7 dias seguidos (horário de Brasília).", repete: false },
 };
 
 /** Versão do critério de cada conquista (gravada junto; mudar critério nunca apaga conquista antiga). */
@@ -458,6 +468,8 @@ export type EntradaConquistas = {
   quiz?: RespostaQuiz[] | null;
   /** Compartilhamentos/downloads do aluno (cards e troféus compartilhados). */
   eventosCompartilhar?: EventoCompartilhar[] | null;
+  /** Sessões de mobilidade (começadas no app; hora do servidor). */
+  mobilidade?: SessaoMobilidade[] | null;
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
@@ -561,6 +573,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   for (const t of trofeusDeTempo(e.sessoes)) out.push(nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, t.codigo === "retomada_30" ? { diasAfastado: Number(t.evidencia.diasAfastado) } : undefined, t.evidencia));
   if (e.quiz) for (const t of trofeusDoQuiz(e.quiz)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.cardio) for (const t of trofeusCardioHorario(e.cardio.feitos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
+  if (e.mobilidade) for (const t of trofeusDaMobilidade(e.mobilidade)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {

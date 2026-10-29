@@ -339,7 +339,7 @@ export const eventoChalalaSchema = z
     ref: z.string().regex(/^[A-Za-z0-9_:-]{1,80}$/).nullable().optional(),
     modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({
@@ -904,3 +904,7 @@ export const triboMissaoSchema = z
   .refine((m) => m.meta_minutos != null || m.meta_treinos != null, { message: "Escolha a meta de minutos, de treinos ou as duas" })
   .refine((m) => m.fim >= m.inicio, { message: "O fim precisa ser depois do início" });
 export const triboMissaoAtivaSchema = z.object({ ativa: z.boolean() }).strict();
+
+// Mobilidade e alongamento (0116) ----------------------------------------------
+export const mobilidadeIniciarSchema = z.object({ protocolo: z.enum(["superiores", "inferiores"]), nota_antes: z.number().int().min(0).max(10).nullable().optional() }).strict();
+export const mobilidadeConcluirSchema = z.object({ nota_depois: z.number().int().min(0).max(10).nullable().optional(), feitos: z.number().int().min(0).max(50).nullable().optional() }).strict();
