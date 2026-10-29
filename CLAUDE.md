@@ -137,6 +137,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - Perfil no Ranking (29/10/2026, pedido do Montinho): tocar no nome (aluno e personal) abre `PerfilRankingSheet` (`src/components/ranking/`): troféus (mais recentes primeiro; os de `FORA_DO_RANKING` marcados), fatores de desempate na ordem do `DESEMPATE`, e para o aluno ⚔️ Desafiar + 🔥 Cutucar (5 emojis com recado, `CUTUCADAS` em `src/lib/ranking/perfil.ts`); APIs `api/ranking/perfil/[ref]`, `api/ranking/cutucar`, `api/ranking/cutucadas`; recebidas aparecem no topo do Ranking (`CutucadasRecebidas`, “🔥 De volta”). Sem a 0117 no banco, a lista volta para a v2 e o nome não abre.
 
+- Perfil do aluno reorganizado (29/10/2026, pedido do Montinho: “mais profissional e intuitivo”): cabeçalho (foto, nome, status, acesso até) e menu em grupos (`Grupo`/`ItemLink`/`ItemAbrir` em `src/components/perfil/MenuPerfil.tsx`; “abrir aqui” = `<details>`): Meu acompanhamento (programa, medidas, plano alimentar, adaptações com selo “aguardando”, recados), Meu treino no app (como anoto o peso, tela acesa, Strava — abre sozinho ao voltar do Strava), Notificações e privacidade (Chalalá, Pulso, ranking), Indique e ganhe, Sobre o Montinho (só aluno), Minha conta (dados, senha, WhatsApp) e Sair. Visitante: logo abaixo do cabeçalho, “Treine com o Montinho” com “💬 Quero fechar minha consultoria” (`FalarComMontinho origem="consultoria"`, vai para o painel de leads) + Minha história + Como funciona.
+
 ## Ao editar
 - Português correto, com acentos. Horários/datas/kg/cm no padrão do Brasil.
 - Removeu uma tela? Remova os links em `src/app/(treinador)/layout.tsx` (NAV) e `src/app/(aluno)/layout.tsx` (TABS).
