@@ -7,6 +7,7 @@
 // do servidor, com 10+ minutos entre as duas (0116).
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 import { CelebrarAtivadas } from "@/components/conquistas/CelebrarAtivadas";
 import type { ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
 import { gerarImagemMedalha } from "@/components/chalala/cardMedalha";
@@ -100,6 +101,7 @@ function Exercicio({ e, feito, onToggle }: { e: ExercicioMobilidade; feito: bool
 export function MobilidadeClient({ slug, emAndamento, nome, demo = false }: { slug: SlugMobilidade; emAndamento: Em; nome: string; /** Demo: sem esperar os 10 minutos. */ demo?: boolean }) {
   const p = PROTOCOLOS[slug];
   const lista = useMemo(() => todosExercicios(p), [p]);
+  const trava = useTravaVisitante();
   const [fase, setFase] = useState<Fase>(emAndamento ? "fazendo" : "antes");
   const [sessao, setSessao] = useState<Em>(emAndamento);
   const [notaAntes, setNotaAntes] = useState<number | null>(emAndamento?.nota_antes ?? null);
@@ -120,6 +122,7 @@ export function MobilidadeClient({ slug, emAndamento, nome, demo = false }: { sl
   }, [fase]);
 
   async function comecar() {
+    if (trava.travado) return trava.abrir();
     setOcupado(true);
     setErro(null);
     const r = await fetch("/api/mobilidade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ protocolo: slug, nota_antes: notaAntes }) }).catch(() => null);

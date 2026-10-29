@@ -3,6 +3,7 @@
 import { NextResponse, after } from "next/server";
 import { agendarLembreteTrofeu } from "@/lib/data/lembrete-trofeu";
 import { requireAlunoApi } from "@/lib/auth/session";
+import { podeRegistrar } from "@/lib/visitante/acesso";
 import { getAluno } from "@/lib/db";
 import { cardioDoAluno, registrarCardio } from "@/lib/data/cardio";
 import { CODIGOS_CARDIO, pendentesHoje } from "@/lib/cardio/regras";
@@ -15,6 +16,8 @@ import { CODIGOS_CARDIO_HORARIO } from "@/lib/conquistas/cardio-horario";
 export async function POST(request: Request) {
   const { sessao, error } = await requireAlunoApi();
   if (error) return error;
+  // Visitante com acesso vencido não registra (o banco também barra: pode_registrar()).
+  if (!podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null)) return NextResponse.json({ error: "Seu acesso de 30 dias terminou. Para voltar a registrar, fale com o Montinho." }, { status: 403 });
   const { data, error: vErr } = await lerJson(request, registroCardioSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {

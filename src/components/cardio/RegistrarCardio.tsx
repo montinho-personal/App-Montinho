@@ -6,6 +6,7 @@
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CampoNumero } from "@/components/ui/CampoNumero";
+import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 import { useRouter } from "next/navigation";
 import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
 import { eventoGa } from "@/components/analytics/ga";
@@ -34,6 +35,13 @@ const novaChave = () => `cardio-${Date.now().toString(36)}-${Math.random().toStr
 
 export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegistrado, rota = "/api/cardio", inicial, salvarAoAbrir = false, inicioId = null }: Props) {
   const router = useRouter();
+  // Visitante com acesso vencido: em vez de registrar, abre o convite (o banco também barra).
+  const trava = useTravaVisitante();
+  useEffect(() => {
+    if (!trava.travado || rota !== "/api/cardio") return;
+    trava.abrir();
+    onFechar();
+  }, [trava, rota, onFechar]);
   const [chave] = useState(novaChave);
   const [modalidade, setModalidade] = useState<ModalidadeCardio>(inicial?.modalidade ?? (prescricao && prescricao.modalidade !== "livre" ? prescricao.modalidade : "caminhada"));
   const [status, setStatus] = useState<Status | null>(inicial?.status ?? null);

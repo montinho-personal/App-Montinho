@@ -5,6 +5,7 @@
 // Ao terminar (ou parar antes), abre o registro já preenchido.
 import { useEffect, useRef, useState } from "react";
 import { RegistrarCardio } from "./RegistrarCardio";
+import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
 import { eventoGa } from "@/components/analytics/ga";
 import { MODALIDADES, MODALIDADE_IDS } from "@/lib/cardio/modalidades";
 import { fraseDoCronometro, minutosDoCronometro } from "@/lib/cardio/incentivo";
@@ -49,7 +50,12 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
     if (terminou && "vibrate" in navigator) navigator.vibrate?.([200, 100, 200]);
   }, [terminou]);
 
+  const travaVisitante = useTravaVisitante();
   function comecar() {
+    if (travaVisitante.travado) {
+      travaVisitante.abrir();
+      return onFechar();
+    }
     const t = Date.now();
     setInicio(t);
     setAgora(t);

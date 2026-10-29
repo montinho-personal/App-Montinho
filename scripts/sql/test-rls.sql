@@ -2325,3 +2325,31 @@ do $$ begin
 end $$;
 reset role;
 \echo 'T73 OK: troféus de feriado + calendário'
+
+-- T74 — 0122: visitante vencido não grava cardio, início de cardio nem mobilidade; em dia grava
+update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update acessos_visitante set fim = now() - interval '1 day' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean;
+begin
+  ok := false;
+  begin insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 20, 'app', 't74-vencido', current_date);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T74a: visitante vencido registrou cardio'; end if;
+  ok := false;
+  begin insert into cardio_inicios (aluno_id) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T74b: visitante vencido começou cardio'; end if;
+  ok := false;
+  begin insert into mobilidade_sessoes (aluno_id, protocolo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'superiores');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T74c: visitante vencido começou mobilidade'; end if;
+end $$;
+select test_logout();
+update acessos_visitante set fim = now() + interval '30 days' where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('22222222-2222-2222-2222-222222222222');
+insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem, client_key, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'esteira', 'concluido', 20, 'app', 't74-em-dia', current_date);
+select test_logout();
+update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+\echo 'T74 OK: visitante vencido não grava cardio nem mobilidade'
