@@ -25,7 +25,7 @@ describe("prescrição Missão Celtic Queen - Intensificação (Camilla) — con
     const reps = (l: string) => PRESCRICAO.treinos.find((t) => t.letra === l)!.exercicios.map((e) => e.reps);
     expect(reps("A")).toEqual(["60s", "20/15/12/10/8", "15/12/10/10/8", "20/15/12/10/8", "20", "20"]);
     expect(reps("C")).toEqual(["60s", "15", "15", "15", "20", "20/15/12/12/10"]);
-    expect(reps("D")).toEqual(["15/12/10/10/8", "15/12/10/10/10", "20/15/12/10", "15", "15", "12", "12", "20", "60s"]);
+    expect(reps("D")).toEqual(["15/12/10/10/8", "15/12/10/10/10", "20/15/12/10", "15", "15", "12", "12", "20", "20"]);
   });
 
   it("padrão do Montinho: até a falha, aquecimento no 1º (depois da prancha), bi-sets sem descanso entre os dois", () => {
@@ -40,8 +40,8 @@ describe("prescrição Missão Celtic Queen - Intensificação (Camilla) — con
   });
 
   it("aparece só para a Camilla e deixa as dúvidas registradas", () => {
-    expect(prescricoesParaAluno("Camilla L Valentim").map((p) => p.id)).toEqual(["missao-celtic-queen-intensificacao-v1"]);
-    expect(prescricoesParaAluno("Carol Zorzi (Carolina)").map((p) => p.id)).not.toContain("missao-celtic-queen-intensificacao-v1");
-    expect(PENDENCIAS).toHaveLength(4);
+    expect(prescricoesParaAluno("Camilla L Valentim").map((p) => p.id)).toEqual(["missao-celtic-queen-intensificacao-v2"]);
+    expect(prescricoesParaAluno("Carol Zorzi (Carolina)").map((p) => p.id)).not.toContain("missao-celtic-queen-intensificacao-v2");
+    expect(PENDENCIAS).toHaveLength(3);
   });
 });

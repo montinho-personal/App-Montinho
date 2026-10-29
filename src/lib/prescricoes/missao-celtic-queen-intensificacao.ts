@@ -22,7 +22,9 @@
 // Walking Lunges; “Agachamento búlgaro halteres” = Agachamento búlgaro;
 // “Bom Dia” = Good morning (confirmar); “Face pull na polia” = Face pull;
 // “Triceps francês com halter bilateral” = Tríceps francês com halter;
-// “Abdominal supra na polia” = em pé. Todos têm vídeo na biblioteca, menos
+// “Abdominal supra na polia” = em pé.
+// v2 (29/10/2026): o personal confirmou o abdominal supra na polia do D em 4 × 20
+// (não por tempo). Todos têm vídeo na biblioteca, menos
 // Good morning e Rosca direta com barra W (sem vídeo validado ainda).
 // Objetivo, nível e prioridades ficam em branco: a Camilla ainda não tem
 // ficha de avaliação no app.
@@ -33,7 +35,7 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { SerieConfig } from "@/lib/series";
 import { comRegras } from "./regras";
 
-export const ID_PRESCRICAO = "missao-celtic-queen-intensificacao-v1";
+export const ID_PRESCRICAO = "missao-celtic-queen-intensificacao-v2";
 export const NOME_ALUNA = "Camilla L Valentim";
 export const ROTULO = "Missão Celtic Queen - Intensificação";
 
@@ -165,7 +167,7 @@ export const PRESCRICAO: SalvarPlanoInput = {
       biA("Supino reto com halteres", x(4, "12"), "D2"),
       biB("Tríceps francês com halter", x(4, "12"), "D2", "Bilateral (com as duas mãos)."),
       biA("Abdominal remador", x(4, "20"), "D3"),
-      biB("Abdominal supra na polia em pé", x(4, "60s"), "D3", "Por tempo: 60 segundos em cada série."),
+      biB("Abdominal supra na polia em pé", x(4, "20"), "D3"),
     ]),
   ],
   motivo: "Cadastro da prescrição Missão Celtic Queen - Intensificação (Lower/Upper/Lower/Full Body em sequência) a partir da ficha do personal",
@@ -176,5 +178,4 @@ export const PENDENCIAS: string[] = [
   "Treino D, Agachamento no Smith: o print corta antes das séries. Foram usadas as mesmas do Smith do Treino A (15/12/10/10/8, 5 séries, que bate com as 5 séries de quadríceps do volume da ficha). Confirmar repetições.",
   "Elevação pélvica (Treinos A e C): a ficha não diz o equipamento. Foi cadastrada na máquina, como na ficha da Carol. É na máquina, no solo ou com barra?",
   "“Bom Dia” (Treino D): na biblioteca há o Good morning (com barra, sem vídeo ainda) e o Bom dia no hack (máquina). Foi cadastrado o Good morning. Confirmar qual.",
-  "Abdominal supra na polia (Treino D) está com 60 s por série, como na ficha (as outras fichas usam repetições). Confirmar se é por tempo mesmo.",
 ];
