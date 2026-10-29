@@ -2,7 +2,7 @@
 
 // Painel editorial: lista com status e uso, editor completo (nova versão a
 // cada gravação), histórico de versões, recomendação a aluno e analytics.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -35,79 +35,204 @@ function rascunhoNovo(numero: number): ConteudoConhecimento {
   };
 }
 
+type FiltroStatus = StatusEditorial | "todos";
+const FILTROS_STATUS: Array<{ id: FiltroStatus; rotulo: string }> = [
+  { id: "todos", rotulo: "Todos" },
+  { id: "publicado", rotulo: "Publicados" },
+  { id: "rascunho", rotulo: "Rascunhos" },
+  { id: "em_revisao", rotulo: "Em revisão" },
+  { id: "arquivado", rotulo: "Arquivados" },
+];
+/** Sem acento e em minúsculas, para a busca achar “nutricao” em “Nutrição”. */
+const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const chip = (ativo: boolean) =>
+  `inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors ${ativo ? "border-accent bg-accent-soft text-fg" : "border-border bg-card text-fg-muted hover:border-border-strong"}`;
+
 export function ConhecimentoClient({ conteudos, problemas, fontes, medalhas, alunos, analytics }: { conteudos: ConteudoConhecimento[]; problemas: Record<string, string[]>; fontes: Array<{ id: string; citacao: string }>; medalhas: Opcao[]; alunos: Opcao[]; analytics: AnalyticsDesbloqueia }) {
-  const [filtroStatus, setFiltroStatus] = useState<StatusEditorial | "todos">("todos");
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos");
   const [filtroCat, setFiltroCat] = useState<string>("todas");
+  const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<ConteudoConhecimento | null>(null);
-  const lista = useMemo(() => conteudos.filter((c) => (filtroStatus === "todos" || c.status === filtroStatus) && (filtroCat === "todas" || c.categoria === filtroCat)), [conteudos, filtroStatus, filtroCat]);
+  const rolagem = useRef(0);
+  const lista = useMemo(() => {
+    const q = normalizar(busca.trim());
+    return conteudos.filter(
+      (c) =>
+        (filtroStatus === "todos" || c.status === filtroStatus) &&
+        (filtroCat === "todas" || c.categoria === filtroCat) &&
+        (!q || normalizar(`${c.numero} ${c.titulo} ${c.pergunta}`).includes(q)),
+    );
+  }, [conteudos, filtroStatus, filtroCat, busca]);
   const titulo = (id: string) => conteudos.find((c) => c.id === id)?.titulo ?? id;
-
-  if (editando) return <Editor inicial={editando} fontes={fontes} medalhas={medalhas} alunos={alunos} onFechar={() => setEditando(null)} />;
-
   const a = analytics;
+
+  // Números do topo: contagem por status e uso somado de todas as perguntas.
+  const resumo = useMemo(() => {
+    const porStatus: Record<StatusEditorial, number> = { rascunho: 0, em_revisao: 0, publicado: 0, arquivado: 0 };
+    for (const c of conteudos) porStatus[c.status]++;
+    let exploracoes = 0;
+    let respostas = 0;
+    let acertos = 0;
+    for (const l of Object.values(a.porConteudo)) {
+      exploracoes += l.explorados;
+      if (l.acertoPct != null && l.respostas) {
+        respostas += l.respostas;
+        acertos += (l.acertoPct / 100) * l.respostas;
+      }
+    }
+    return { porStatus, exploracoes, acertoMedio: respostas ? Math.round((acertos / respostas) * 100) : null };
+  }, [conteudos, a.porConteudo]);
+
+  function abrir(c: ConteudoConhecimento) {
+    rolagem.current = window.scrollY;
+    setEditando(c);
+    window.scrollTo({ top: 0 });
+  }
+  function fechar() {
+    setEditando(null);
+    requestAnimationFrame(() => window.scrollTo({ top: rolagem.current }));
+  }
+
+  if (editando) return <Editor inicial={editando} fontes={fontes} medalhas={medalhas} alunos={alunos} onFechar={fechar} />;
+
+  const temFiltro = filtroStatus !== "todos" || filtroCat !== "todas" || busca.trim() !== "";
+  const contagem = (s: FiltroStatus) => (s === "todos" ? conteudos.length : resumo.porStatus[s]);
+
   return (
     <div className="space-y-5">
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4" aria-label="Uso pelos alunos">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Uso pelos alunos (90 dias de eventos)</p>
-        <dl className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-          {[
-            ["Alunos com ≥ 1 descoberta", `${a.alunosComDescoberta} de ${a.alunosAtivos}`],
-            ["Média explorada por aluno", a.mediaPorAluno != null ? String(a.mediaPorAluno).replace(".", ",") : "—"],
-            ["Sugestões abertas", a.taxaAberturaPct != null ? `${a.taxaAberturaPct}% (${a.sugestoesAbertas}/${a.sugestoesVistas})` : "—"],
-            ["Cards compartilhados", String(a.compartilhamentos)],
-          ].map(([r, v]) => (
-            <div key={r} className="rounded-lg bg-surface px-2 py-2">
-              <dd className="font-mono text-base font-bold">{v}</dd>
-              <dt className="text-[10px] leading-tight text-fg-subtle">{r}</dt>
-            </div>
-          ))}
-        </dl>
-        {a.maisExplorados.length ? <p className="text-sm"><span className="font-semibold">Mais exploradas:</span> {a.maisExplorados.map(titulo).join(" · ")}</p> : null}
-        {a.maisErros.length ? <p className="text-sm"><span className="font-semibold">Onde os alunos mais erram (vale reforçar na conversa):</span> {a.maisErros.map((id) => `${titulo(id)} (${a.porConteudo[id].acertoPct}% de acerto)`).join(" · ")}</p> : null}
-        {a.aderencia.nEngajados && a.aderencia.nDemais ? (
-          <p className="text-xs text-fg-muted">
-            Aderência média (4 sem): quem explorou 3+ descobertas <strong>{a.aderencia.engajados}%</strong> (n={a.aderencia.nEngajados}) · demais <strong>{a.aderencia.demais}%</strong> (n={a.aderencia.nDemais}). <em>Isto é só uma correlação — não mostra que as descobertas causam mais aderência.</em>
-          </p>
-        ) : null}
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Resumo">
+        {[
+          { r: "Publicadas", v: String(resumo.porStatus.publicado), d: "o aluno já vê" },
+          { r: "Rascunhos", v: String(resumo.porStatus.rascunho + resumo.porStatus.em_revisao), d: resumo.porStatus.em_revisao ? `${resumo.porStatus.em_revisao} em revisão` : "ainda não aparecem" },
+          { r: "Explorações", v: String(resumo.exploracoes), d: "somando todas" },
+          { r: "Acerto médio", v: resumo.acertoMedio != null ? `${resumo.acertoMedio}%` : "—", d: "nas respostas do quiz" },
+        ].map((x) => (
+          <div key={x.r} className="flex flex-col rounded-xl border border-border bg-card px-3 py-2.5">
+            <dt className="order-2 text-xs font-semibold text-fg-muted">{x.r}</dt>
+            <dd className="order-1 font-mono text-2xl font-bold leading-tight">{x.v}</dd>
+            <dd className="order-3 text-[11px] leading-tight text-fg-subtle">{x.d}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <Button variant="gold" size="lg" className="w-full" onClick={() => abrir(rascunhoNovo(Math.max(30, ...conteudos.map((c) => c.numero)) + 1))}>
+        + Nova pergunta
+      </Button>
+
+      <section className="space-y-3" aria-label="Filtros">
+        <label className="block">
+          <span className="sr-only">Buscar pergunta</span>
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="🔎 Buscar pelo título, pergunta ou número"
+            className="h-12 w-full rounded-xl border border-border bg-card px-4 text-base placeholder:text-fg-subtle focus:border-accent focus:outline-none"
+          />
+        </label>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-fg-muted">Situação</p>
+          <div className="flex flex-wrap gap-2">
+            {FILTROS_STATUS.map((s) => (
+              <button key={s.id} type="button" aria-pressed={filtroStatus === s.id} onClick={() => setFiltroStatus(s.id)} className={chip(filtroStatus === s.id)}>
+                {s.rotulo} <span className="font-mono text-xs text-fg-subtle">{contagem(s.id)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-fg-muted">Tema</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" aria-pressed={filtroCat === "todas"} onClick={() => setFiltroCat("todas")} className={chip(filtroCat === "todas")}>Todos</button>
+            {CATEGORIAS.map((k) => (
+              <button key={k.id} type="button" aria-pressed={filtroCat === k.id} onClick={() => setFiltroCat(k.id)} className={chip(filtroCat === k.id)}>
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: k.cor }} aria-hidden />
+                {k.rotulo}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value as StatusEditorial | "todos")} aria-label="Filtrar por status" className="h-10 rounded-lg border border-border bg-card px-3 text-sm">
-          <option value="todos">Todos os status</option>
-          {(Object.keys(STATUS) as StatusEditorial[]).map((s) => <option key={s} value={s}>{STATUS[s].rotulo}</option>)}
-        </select>
-        <select value={filtroCat} onChange={(e) => setFiltroCat(e.target.value)} aria-label="Filtrar por categoria" className="h-10 rounded-lg border border-border bg-card px-3 text-sm">
-          <option value="todas">Todas as categorias</option>
-          {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.rotulo}</option>)}
-        </select>
-        <Button size="sm" variant="gold" className="ml-auto" onClick={() => setEditando(rascunhoNovo(Math.max(30, ...conteudos.map((c) => c.numero)) + 1))}>+ Novo conteúdo</Button>
+      <div className="flex min-h-11 items-center justify-between gap-2">
+        <p className="text-sm text-fg-muted" aria-live="polite">
+          {lista.length === 1 ? "1 pergunta" : `${lista.length} perguntas`}
+          {temFiltro ? " com esses filtros" : ""}
+        </p>
+        {temFiltro ? (
+          <button type="button" className="alvo min-h-11 px-2 text-sm font-semibold text-accent" onClick={() => { setFiltroStatus("todos"); setFiltroCat("todas"); setBusca(""); }}>
+            Limpar filtros
+          </button>
+        ) : null}
       </div>
 
-      <ul className="space-y-2">
-        {lista.map((c) => {
-          const u = a.porConteudo[c.id];
-          const p = problemas[c.id] ?? [];
-          return (
-            <li key={c.id}>
-              <button type="button" onClick={() => setEditando(c)} className="flex w-full items-start gap-3 rounded-xl border border-border bg-card p-3 text-left hover:border-accent/40">
-                <span className="mt-0.5 font-mono text-xs" style={{ color: CATEGORIAS.find((k) => k.id === c.categoria)?.cor }}>#{String(c.numero).padStart(2, "0")}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold leading-tight">{c.titulo}</span>
-                  <span className="block text-xs text-fg-muted">{c.pergunta}</span>
-                  <span className="mt-1 block text-[11px] text-fg-subtle">
-                    v{c.versao}{c.personalizado ? " · criado por você" : ""}{c.essencial ? " · essencial" : ""}
-                    {u ? ` · ${u.explorados} exploraram · ${u.acertoPct != null ? `${u.acertoPct}% acerto` : "sem respostas"} · ${u.salvos} salvos` : ""}
-                    {!c.fontes.length ? " · sem fonte específica verificada" : ""}
+      {lista.length ? (
+        <ul className="space-y-2">
+          {lista.map((c) => {
+            const u = a.porConteudo[c.id];
+            const p = problemas[c.id] ?? [];
+            const cat = CATEGORIAS.find((k) => k.id === c.categoria);
+            return (
+              <li key={c.id}>
+                <button type="button" onClick={() => abrir(c)} className="block w-full min-w-0 rounded-xl border border-border bg-card p-3.5 text-left transition-colors hover:border-accent/40 active:bg-card-hover">
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold" style={{ color: cat?.cor }}>#{String(c.numero).padStart(2, "0")}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-fg-subtle">{cat?.rotulo}</span>
+                    <span className={`shrink-0 rounded-full border px-2 py-px text-[10px] font-semibold ${STATUS[c.status].classe}`}>{STATUS[c.status].rotulo}</span>
                   </span>
-                  {p.length ? <span className="block text-[11px] text-warning">{p[0]}</span> : null}
-                </span>
-                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS[c.status].classe}`}>{STATUS[c.status].rotulo}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="text-xs text-fg-subtle">Não há assistente de IA configurado neste app: o editor é manual. Fontes só podem ser escolhidas da lista verificada (referências conferidas); para incluir outra, peça a atualização da lista.</p>
+                  <span className="mt-1.5 block break-words text-base font-semibold leading-snug">{c.titulo || "Sem título"}</span>
+                  {c.pergunta ? <span className="mt-0.5 line-clamp-2 block break-words text-sm text-fg-muted">{c.pergunta}</span> : null}
+                  <span className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                    {u ? (
+                      <>
+                        <span className="rounded-md bg-surface px-2 py-0.5" title="Alunos que exploraram">👀 {u.explorados}</span>
+                        <span className="rounded-md bg-surface px-2 py-0.5" title="Acerto no quiz">✅ {u.acertoPct != null ? `${u.acertoPct}%` : "—"}</span>
+                        <span className="rounded-md bg-surface px-2 py-0.5" title="Alunos que salvaram">🔖 {u.salvos}</span>
+                      </>
+                    ) : null}
+                    {c.essencial ? <span className="rounded-md bg-surface px-2 py-0.5 text-fg-muted">🛟 Essencial</span> : null}
+                    <span className="text-fg-subtle">v{c.versao}{c.personalizado ? " · criada por você" : ""}</span>
+                  </span>
+                  {!c.fontes.length ? <span className="mt-1 block text-[11px] text-fg-subtle">Sem fonte específica verificada</span> : null}
+                  {p.length ? <span className="mt-1 block text-xs text-warning">⚠️ {p[0]}</span> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Nenhuma pergunta encontrada. Tente outro filtro ou limpe a busca.</p>
+      )}
+
+      <details className="group rounded-xl border border-border bg-card">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 text-sm font-semibold">
+          📊 Como os alunos estão usando (90 dias)
+          <span className="text-fg-subtle transition-transform group-open:rotate-180" aria-hidden>▾</span>
+        </summary>
+        <div className="space-y-3 border-t border-border p-4">
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              ["Alunos com ≥ 1 descoberta", `${a.alunosComDescoberta} de ${a.alunosAtivos}`],
+              ["Média explorada por aluno", a.mediaPorAluno != null ? String(a.mediaPorAluno).replace(".", ",") : "—"],
+              ["Sugestões abertas", a.taxaAberturaPct != null ? `${a.taxaAberturaPct}% (${a.sugestoesAbertas}/${a.sugestoesVistas})` : "—"],
+              ["Cards compartilhados", String(a.compartilhamentos)],
+            ].map(([r, v]) => (
+              <div key={r} className="flex flex-col rounded-lg bg-surface px-2 py-2 text-center">
+                <dt className="order-2 text-[11px] leading-tight text-fg-subtle">{r}</dt>
+                <dd className="order-1 font-mono text-base font-bold">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          {a.maisExplorados.length ? <p className="text-sm"><span className="font-semibold">Mais exploradas:</span> {a.maisExplorados.map(titulo).join(" · ")}</p> : null}
+          {a.maisErros.length ? <p className="text-sm"><span className="font-semibold">Onde os alunos mais erram (vale reforçar na conversa):</span> {a.maisErros.map((id) => `${titulo(id)} (${a.porConteudo[id].acertoPct}% de acerto)`).join(" · ")}</p> : null}
+          {a.aderencia.nEngajados && a.aderencia.nDemais ? (
+            <p className="text-xs text-fg-muted">
+              Aderência média (4 sem): quem explorou 3+ descobertas <strong>{a.aderencia.engajados}%</strong> (n={a.aderencia.nEngajados}) · demais <strong>{a.aderencia.demais}%</strong> (n={a.aderencia.nDemais}). <em>Isto é só uma correlação — não mostra que as descobertas causam mais aderência.</em>
+            </p>
+          ) : null}
+        </div>
+      </details>
+      <p className="text-xs text-fg-subtle">O editor é manual. Fontes só podem ser escolhidas da lista verificada (referências conferidas); para incluir outra, peça a atualização da lista.</p>
     </div>
   );
 }
@@ -121,7 +246,8 @@ function Campo({ rotulo, children, dica }: { rotulo: string; children: React.Rea
     </label>
   );
 }
-const inp = "w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm";
+// text-base (16 px) evita o zoom automático do iPhone ao tocar no campo.
+const inp = "w-full min-w-0 rounded-lg border border-border bg-bg px-3 py-2.5 text-base sm:text-sm";
 
 function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: ConteudoConhecimento; fontes: Array<{ id: string; citacao: string }>; medalhas: Opcao[]; alunos: Opcao[]; onFechar: () => void }) {
   const router = useRouter();
@@ -132,7 +258,8 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
   const [alunoRec, setAlunoRec] = useState("");
   const mudar = (p: Partial<ConteudoConhecimento>) => setC((x) => ({ ...x, ...p }));
   const problemas = problemasEditoriais(c, fontes.map((f) => f.id));
-  const novo = inicial.versao === 0;
+  // Depois da 1ª gravação já existe versão: libera arquivar, recomendar e histórico.
+  const novo = c.versao === 0;
 
   async function salvar(status: StatusEditorial) {
     setSalvando(true);
@@ -170,8 +297,8 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <button type="button" onClick={onFechar} className="alvo text-sm text-fg-muted hover:text-fg">← Voltar à lista</button>
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS[c.status].classe}`}>{novo ? "Novo" : `${STATUS[c.status].rotulo} · v${c.versao}`}</span>
+        <button type="button" onClick={onFechar} className="alvo -ml-2 min-h-11 px-2 text-sm font-semibold text-fg-muted hover:text-fg">← Voltar à lista</button>
+        <span className={`shrink-0 rounded-full border px-2 py-px text-[11px] font-semibold ${STATUS[c.status].classe}`}>{novo ? "Nova" : `${STATUS[c.status].rotulo} · v${c.versao}`}</span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -203,7 +330,7 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
           {c.alternativas.map((a, i) => (
             <input key={a.id} className={inp} placeholder={`Alternativa ${a.id.toUpperCase()}`} value={a.texto} maxLength={120} onChange={(e) => mudar({ alternativas: c.alternativas.map((x, k) => (k === i ? { ...x, texto: e.target.value } : x)) })} />
           ))}
-          {c.alternativas.length < 4 ? <button type="button" className="text-xs text-accent" onClick={() => mudar({ alternativas: [...c.alternativas, { id: "abcd"[c.alternativas.length], texto: "" }] })}>+ alternativa</button> : null}
+          {c.alternativas.length < 4 ? <button type="button" className="alvo min-h-11 px-1 text-sm font-semibold text-accent" onClick={() => mudar({ alternativas: [...c.alternativas, { id: "abcd"[c.alternativas.length], texto: "" }] })}>+ alternativa</button> : null}
         </div>
       ) : null}
 
@@ -223,8 +350,8 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
         <legend className="text-xs font-semibold text-fg-muted">Fontes (somente referências verificadas)</legend>
         <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border p-2">
           {fontes.map((f) => (
-            <label key={f.id} className="flex items-start gap-2 text-xs">
-              <input type="checkbox" className="mt-0.5" checked={c.fontes.includes(f.id)} onChange={() => mudar({ fontes: alternar(c.fontes, f.id) })} />
+            <label key={f.id} className="flex items-start gap-2.5 rounded-md px-1 py-1.5 text-xs">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0" checked={c.fontes.includes(f.id)} onChange={() => mudar({ fontes: alternar(c.fontes, f.id) })} />
               <span>{f.citacao}</span>
             </label>
           ))}
@@ -235,7 +362,7 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
         <legend className="text-xs font-semibold text-fg-muted">Desbloqueia com a medalha</legend>
         <div className="flex flex-wrap gap-1.5">
           {medalhas.map((m) => (
-            <button key={m.id} type="button" aria-pressed={c.gatilhos.conquistas.includes(m.id)} onClick={() => mudar({ gatilhos: { ...c.gatilhos, conquistas: alternar(c.gatilhos.conquistas, m.id) } })} className={`rounded-full border px-2.5 py-1 text-xs ${c.gatilhos.conquistas.includes(m.id) ? "border-accent bg-accent-soft" : "border-border text-fg-muted"}`}>{m.nome}</button>
+            <button key={m.id} type="button" aria-pressed={c.gatilhos.conquistas.includes(m.id)} onClick={() => mudar({ gatilhos: { ...c.gatilhos, conquistas: alternar(c.gatilhos.conquistas, m.id) } })} className={`min-h-10 rounded-full border px-3 py-1.5 text-sm ${c.gatilhos.conquistas.includes(m.id) ? "border-accent bg-accent-soft" : "border-border text-fg-muted"}`}>{m.nome}</button>
           ))}
         </div>
       </fieldset>
@@ -243,13 +370,14 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
         <legend className="text-xs font-semibold text-fg-muted">Sugerir durante/depois do treino quando…</legend>
         <div className="flex flex-wrap gap-1.5">
           {CONTEXTOS.map((k) => (
-            <button key={k} type="button" title={CHAMADA_CONTEXTO[k]} aria-pressed={c.gatilhos.contexto.includes(k)} onClick={() => mudar({ gatilhos: { ...c.gatilhos, contexto: alternar(c.gatilhos.contexto, k) as typeof c.gatilhos.contexto } })} className={`rounded-full border px-2.5 py-1 text-xs ${c.gatilhos.contexto.includes(k) ? "border-accent bg-accent-soft" : "border-border text-fg-muted"}`}>{ROTULO_CONTEXTO[k]}</button>
+            <button key={k} type="button" title={CHAMADA_CONTEXTO[k]} aria-pressed={c.gatilhos.contexto.includes(k)} onClick={() => mudar({ gatilhos: { ...c.gatilhos, contexto: alternar(c.gatilhos.contexto, k) as typeof c.gatilhos.contexto } })} className={`min-h-10 rounded-full border px-3 py-1.5 text-sm ${c.gatilhos.contexto.includes(k) ? "border-accent bg-accent-soft" : "border-border text-fg-muted"}`}>{ROTULO_CONTEXTO[k]}</button>
           ))}
         </div>
       </fieldset>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={!!c.essencial} onChange={(e) => mudar({ essencial: e.target.checked })} /> Orientação essencial de segurança/saúde
+      <label className="flex min-h-11 items-center gap-2.5 text-sm">
+        <input type="checkbox" className="h-5 w-5 shrink-0" checked={!!c.essencial} onChange={(e) => mudar({ essencial: e.target.checked })} /> Orientação essencial de segurança/saúde
       </label>
+      <p className="-mt-2 text-[11px] text-fg-subtle">Orientações essenciais nunca ficam bloqueadas para o aluno.</p>
 
       {problemas.length ? (
         <ul className="list-disc space-y-0.5 rounded-lg border border-warning/40 bg-warning/10 p-3 pl-7 text-xs text-warning">{problemas.map((p) => <li key={p}>{p}</li>)}</ul>
@@ -266,12 +394,12 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
       {!novo ? (
         <section className="space-y-2 rounded-xl border border-border bg-card p-3">
           <p className="text-sm font-semibold">Recomendar a um aluno</p>
-          <div className="flex gap-2">
-            <select className={inp} value={alunoRec} onChange={(e) => setAlunoRec(e.target.value)} aria-label="Aluno">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select className={`${inp} h-11`} value={alunoRec} onChange={(e) => setAlunoRec(e.target.value)} aria-label="Aluno">
               <option value="">Escolha o aluno…</option>
               {alunos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>
-            <Button size="sm" variant="gold" disabled={!alunoRec || c.status !== "publicado"} onClick={recomendar}>Recomendar</Button>
+            <Button variant="gold" className="shrink-0" disabled={!alunoRec || c.status !== "publicado"} onClick={recomendar}>Recomendar</Button>
           </div>
           {c.status !== "publicado" ? <p className="text-[11px] text-fg-subtle">Publique antes de recomendar.</p> : null}
         </section>
@@ -279,7 +407,7 @@ function Editor({ inicial, fontes, medalhas, alunos, onFechar }: { inicial: Cont
 
       {!novo ? (
         <section className="space-y-1">
-          <button type="button" className="text-sm font-semibold text-accent" onClick={verVersoes}>Ver histórico de versões</button>
+          <button type="button" className="alvo min-h-11 text-sm font-semibold text-accent" onClick={verVersoes}>Ver histórico de versões</button>
           {versoes ? (
             versoes.length ? (
               <ul className="space-y-1 text-xs text-fg-muted">{versoes.map((v) => <li key={v.versao}>v{v.versao} · {STATUS[v.status as StatusEditorial]?.rotulo ?? v.status} · {fmt.format(new Date(v.created_at))}</li>)}</ul>

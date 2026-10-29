@@ -35,8 +35,8 @@ export default async function ConhecimentoPage() {
     <div className="space-y-5">
       <header>
         <p className="text-xs font-bold uppercase tracking-wider text-accent">Montinho Desbloqueia</p>
-        <h1 className="text-2xl font-bold">Mitos, verdades e ciência</h1>
-        <p className="mt-1 text-sm text-fg-muted">Edite, revise e publique as descobertas dos alunos. Cada gravação vira uma nova versão (o histórico fica). Orientações de segurança marcadas como essenciais nunca ficam bloqueadas para o aluno.</p>
+        <h1 className="text-2xl font-bold">Mito ou verdade?</h1>
+        <p className="mt-1 text-sm text-fg-muted">As perguntas que os alunos desbloqueiam no app. Toque numa pergunta para editar, publicar ou arquivar — o histórico de versões fica guardado.</p>
       </header>
       <ConhecimentoClient
         conteudos={conteudos}
