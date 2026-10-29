@@ -116,6 +116,8 @@ export type Evolucao = {
   abdomen_cm?: number | null;
   panturrilha_cm?: number | null;
   origem?: "aluno" | "personal" | "importado";
+  /** 0125: medidas sem campo próprio (ex.: braço esquerdo, dobras cutâneas), lidas do arquivo da avaliação. */
+  extras?: Array<{ nome: string; valor: number; unidade: string }> | null;
   observacoes: string | null;
   created_at: string;
 };

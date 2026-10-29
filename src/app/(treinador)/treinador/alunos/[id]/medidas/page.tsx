@@ -23,10 +23,10 @@ export default async function MedidasDoAlunoPage({ params }: { params: Promise<{
       <Link href={`/treinador/alunos/${id}`} className="inline-flex min-h-6 items-center text-sm text-fg-muted hover:text-fg">← {nome}</Link>
       <header>
         <h1 className="text-2xl font-bold">Medidas e avaliações</h1>
-        <p className="mt-1 text-sm text-fg-muted">O que você ou o aluno registrarem aqui aparece na Evolução dele, no comparador e no relatório. Arquivos (PDF, foto, print) ficam guardados só para vocês dois.</p>
+        <p className="mt-1 text-sm text-fg-muted">O que você ou o aluno registrarem aqui aparece na Evolução dele, no comparador e no relatório. Arquivos (PDF, foto, print) ficam guardados só para vocês dois. Em cada arquivo, “✨ Puxar as medidas” lê os números de todas as datas do laudo.</p>
       </header>
-      <MedidasAvaliacoes alunoId={id} medidas={medidas} arquivos={arquivos} nome={nome.split(" ")[0]} demo={isDemoMode()} doPersonal />
       {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} /> : null}
+      <MedidasAvaliacoes alunoId={id} medidas={medidas} arquivos={arquivos} nome={nome.split(" ")[0]} demo={isDemoMode()} doPersonal />
     </div>
   );
 }

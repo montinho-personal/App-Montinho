@@ -661,6 +661,11 @@ export const medidasSchema = z
     coxa_cm: medida(20, 120),
     panturrilha_cm: medida(15, 80),
     observacoes: textoOpcional(500),
+    // 0125: medidas sem campo próprio (lidas do arquivo da avaliação ou digitadas).
+    extras: z
+      .array(z.object({ nome: z.string().trim().min(1).max(60), valor: z.coerce.number().positive().max(10000), unidade: z.string().trim().max(12) }).strict())
+      .max(60)
+      .optional(),
   })
   .strict();
 export const urlArquivoAvaliacaoSchema = z.object({

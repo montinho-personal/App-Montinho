@@ -7,9 +7,10 @@ import { demoStore, uid } from "@/lib/mock/store";
 import { listEvolucao } from "@/lib/db";
 import { caminhoDoArquivo, CAMPOS_MEDIDA, type ChaveMedida } from "@/lib/medidas/campos";
 import { dataLocal } from "@/lib/aderencia/calcular";
+import type { MedidaExtra } from "@/lib/medidas/leitura";
 import type { AvaliacaoArquivo, Evolucao } from "@/lib/supabase/types";
 
-export type NovasMedidas = { data: string; observacoes?: string | null } & Partial<Record<ChaveMedida, number | null>>;
+export type NovasMedidas = { data: string; observacoes?: string | null; extras?: MedidaExtra[] } & Partial<Record<ChaveMedida, number | null>>;
 
 function demoArquivos(): AvaliacaoArquivo[] {
   const g = globalThis as unknown as { __montinhoAvaliacoes?: AvaliacaoArquivo[] };
@@ -28,8 +29,10 @@ export async function listarAvaliacoes(alunoId: string): Promise<{ medidas: Evol
 /** Grava as medidas (só os campos preenchidos). Altura também vai para o cadastro do aluno. */
 export async function salvarMedidas(alunoId: string, quem: "aluno" | "personal", m: NovasMedidas): Promise<Evolucao> {
   const valores = Object.fromEntries(CAMPOS_MEDIDA.map((c) => [c.chave, m[c.chave] ?? null]));
-  if (!Object.values(valores).some((v) => v != null)) throw new Error("Preencha pelo menos uma medida");
-  const linha = { aluno_id: alunoId, data: m.data, observacoes: m.observacoes ?? null, origem: quem, ...valores };
+  const extras = m.extras ?? [];
+  if (!Object.values(valores).some((v) => v != null) && !extras.length) throw new Error("Preencha pelo menos uma medida");
+  // `extras` (0125) só vai quando existe, para quem ainda não rodou a migration continuar salvando o resto.
+  const linha = { aluno_id: alunoId, data: m.data, observacoes: m.observacoes ?? null, origem: quem, ...valores, ...(extras.length ? { extras } : {}) };
   if (isDemoMode()) {
     const nova = { id: uid(), created_at: new Date().toISOString(), ...linha } as unknown as Evolucao;
     demoStore().evolucao.push(nova);
@@ -77,6 +80,17 @@ export async function linkDoArquivo(id: string): Promise<string | null> {
   if (!a) return null;
   const { data } = await db.storage.from("avaliacoes").createSignedUrl(String(a.caminho), 300);
   return data?.signedUrl ?? null;
+}
+
+/** Conteúdo do arquivo (para a leitura pela IA). A RLS decide se a pessoa pode ver. */
+export async function baixarArquivo(id: string): Promise<{ alunoId: string; tipo: string; base64: string } | null> {
+  if (isDemoMode()) return null;
+  const db = await getDb();
+  const { data: a } = await db.from("avaliacoes_arquivos").select("aluno_id, caminho, tipo_mime").eq("id", id).maybeSingle();
+  if (!a) return null;
+  const { data, error } = await db.storage.from("avaliacoes").download(String(a.caminho));
+  if (error || !data) return null;
+  return { alunoId: String(a.aluno_id), tipo: String(a.tipo_mime), base64: Buffer.from(await data.arrayBuffer()).toString("base64") };
 }
 
 /** Primeira avaliação registrada (medidas ou arquivo) — troféu “Ponto de Partida”. */

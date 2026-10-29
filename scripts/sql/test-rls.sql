@@ -2388,3 +2388,18 @@ select test_login('11111111-1111-1111-1111-111111111111');
 insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'olhar_de_aguia', '1', now(), 'Olhar de Águia', 'personal') on conflict do nothing;
 select test_logout();
 \echo 'T76 OK: troféu só pelo servidor ou pelo personal'
+
+-- T77 — 0125: personal grava medidas extras; lista inválida é barrada
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare ok boolean := false; n int;
+begin
+  insert into evolucao (aluno_id, data, peso_kg, extras) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date - 90, 71.2, '[{"nome":"Braço esquerdo","valor":29,"unidade":"cm"}]');
+  select count(*) into n from evolucao where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and jsonb_array_length(extras) = 1;
+  if n = 0 then raise exception 'T77a: extras não gravadas'; end if;
+  begin insert into evolucao (aluno_id, data, peso_kg, extras) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date, 70, '{"x":1}');
+  exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T77b: extras fora de lista aceitas'; end if;
+end $$;
+select test_logout();
+\echo 'T77 OK: medidas extras da avaliação'

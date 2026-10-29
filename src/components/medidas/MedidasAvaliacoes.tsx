@@ -12,6 +12,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { dataBR } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
+import { LerAvaliacaoIA } from "./LerAvaliacaoIA";
 
 type Nova = ConquistaCelebravel;
 
@@ -141,12 +142,15 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
           <h3 id="arq-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Arquivos de avaliação</h3>
           <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
             {arquivos.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{a.tipo_mime === "application/pdf" ? "📄" : "🖼️"} {a.nome_original ?? "Avaliação"}</span>
-                  <span className="text-xs text-fg-subtle">{dataBR(a.data_avaliacao)}{a.descricao ? ` · ${a.descricao}` : ""}</span>
-                </span>
-                <a href={`/api/medidas/arquivos/${a.id}`} target="_blank" rel="noopener noreferrer" className="alvo shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:border-accent">Abrir</a>
+              <li key={a.id} className="text-sm">
+                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{a.tipo_mime === "application/pdf" ? "📄" : "🖼️"} {a.nome_original ?? "Avaliação"}</span>
+                    <span className="text-xs text-fg-subtle">{dataBR(a.data_avaliacao)}{a.descricao ? ` · ${a.descricao}` : ""}</span>
+                  </span>
+                  <a href={`/api/medidas/arquivos/${a.id}`} target="_blank" rel="noopener noreferrer" className="alvo shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:border-accent">Abrir</a>
+                </div>
+                {doPersonal && a.tipo_mime !== "image/heic" && a.tipo_mime !== "image/heif" ? <LerAvaliacaoIA alunoId={alunoId} arquivoId={a.id} datasJaSalvas={medidas.map((m) => m.data)} /> : null}
               </li>
             ))}
           </ul>
@@ -159,10 +163,12 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
           <ul className="space-y-2">
             {medidas.slice(0, 12).map((m) => {
               const itens = CAMPOS_MEDIDA.filter((c) => typeof m[c.chave] === "number");
+              const extras = m.extras ?? [];
               return (
                 <li key={m.id} className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm">
                   <p className="font-semibold">{dataBR(m.data)}{m.origem === "personal" ? <span className="ml-2 text-xs font-normal text-fg-subtle">registrado pelo personal</span> : null}</p>
-                  <p className="mt-0.5 text-xs text-fg-muted">{itens.length ? itens.map((c) => `${c.rotulo} ${br(m[c.chave] as number)} ${c.unidade}`).join(" · ") : "Sem números"}</p>
+                  <p className="mt-0.5 text-xs text-fg-muted">{itens.length ? itens.map((c) => `${c.rotulo} ${br(m[c.chave] as number)} ${c.unidade}`).join(" · ") : extras.length ? "" : "Sem números"}</p>
+                  {extras.length ? <p className="mt-0.5 text-xs text-fg-subtle">{extras.map((e) => `${e.nome} ${br(e.valor)} ${e.unidade}`).join(" · ")}</p> : null}
                   {m.observacoes ? <p className="mt-0.5 text-xs text-fg-subtle">{m.observacoes}</p> : null}
                 </li>
               );
