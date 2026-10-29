@@ -12,8 +12,8 @@ describe("pedido de avaliação no Google", () => {
     expect(devePedirAvaliacao(base())).toBe(true);
   });
   it("não pede cedo demais, com dor, com a oferta na tela, vencido ou sem link", () => {
-    expect(devePedirAvaliacao(base({ treinosConcluidos: 4 }))).toBe(false);
-    expect(devePedirAvaliacao(base({ inicio: diasAtras(5) }))).toBe(false);
+    expect(devePedirAvaliacao(base({ treinosConcluidos: 2 }))).toBe(false);
+    expect(devePedirAvaliacao(base({ treinosConcluidos: 3, inicio: diasAtras(2) }))).toBe(true);
     expect(devePedirAvaliacao(base({ dor: true }))).toBe(false);
     expect(devePedirAvaliacao(base({ temOferta: true }))).toBe(false);
     expect(devePedirAvaliacao(base({ acessoVencido: true }))).toBe(false);
@@ -24,10 +24,11 @@ describe("pedido de avaliação no Google", () => {
     expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_feita", "clicado", 20)] }))).toBe(false);
     expect(avaliacaoEncerrada([ev("avaliacao_sugestao", "clicado", 1)])).toBe(false);
   });
-  it("no máximo 2 pedidos, com 7 dias entre eles", () => {
+  it("no máximo 3 pedidos, com 5 dias entre eles", () => {
     expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 3), ev("avaliacao_google", "dispensado", 3)] }))).toBe(false);
-    expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 8), ev("avaliacao_google", "dispensado", 8)] }))).toBe(true);
-    expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 20), ev("avaliacao_google", "exibido", 9)] }))).toBe(false);
+    expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 5), ev("avaliacao_google", "dispensado", 5)] }))).toBe(true);
+    expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 20), ev("avaliacao_google", "exibido", 9)] }))).toBe(true);
+    expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 20), ev("avaliacao_google", "exibido", 14), ev("avaliacao_google", "exibido", 8)] }))).toBe(false);
   });
   it("o mesmo pedido de hoje continua na tela; “Agora não” hoje some", () => {
     expect(devePedirAvaliacao(base({ eventos: [ev("avaliacao_google", "exibido", 0)] }))).toBe(true);

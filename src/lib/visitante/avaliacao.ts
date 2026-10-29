@@ -21,11 +21,12 @@ import type { EventoCta } from "@/lib/visitante/ctas";
  */
 export const LINK_AVALIACAO_GOOGLE = "https://g.page/r/CYpLHC9loIaIECE/review";
 
+/** Pedido do Montinho (29/10/2026): começa no 3º treino concluído; até 3 pedidos, 5 dias entre eles. */
 export const REGRAS_AVALIACAO = {
-  minTreinos: 5,
-  minDias: 7,
-  maxPedidos: 2,
-  intervaloDias: 7,
+  minTreinos: 3,
+  minDias: 0,
+  maxPedidos: 3,
+  intervaloDias: 5,
 } as const;
 
 /** Códigos gravados em cta_eventos (sem dado pessoal). */
