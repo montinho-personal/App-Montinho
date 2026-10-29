@@ -109,7 +109,7 @@ export function ListaAlunosClient({ alunos }: { alunos: LinhaAluno[] }) {
                       <AlunoStatusPill status={a.status as AlunoStatus} />
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-fg-subtle">
-                      <span>Último treino {a.ultimoTexto}</span>
+                      <span>{a.ultimoTreino ? `Último treino ${a.ultimoTexto}` : "Ainda não treinou"}</span>
                       {ordem === "novos" || ordem === "antigos" ? <span>· desde {a.inicio ? a.inicio.slice(0, 10).split("-").reverse().join("/") : "—"}</span> : null}
                       {ordem === "vence" || (a.dias !== null && a.dias <= 7) ? <span className={a.dias !== null && a.dias < 0 ? "text-red" : a.dias !== null && a.dias <= 7 ? "text-gold" : ""}>· {a.acessoTexto}</span> : null}
                     </div>

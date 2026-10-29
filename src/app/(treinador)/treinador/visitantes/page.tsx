@@ -53,7 +53,7 @@ export default async function VisitantesPage() {
       indicacao: ind?.amigos || ind?.convidadoPor ? [ind?.amigos ? `🤝 Convidou ${ind.amigos} ${ind.amigos === 1 ? "amigo" : "amigos"} · ganhou +${ind.diasGanhos} dias` : null, ind?.convidadoPor ? `Entrou pelo convite de ${nomeVisitante.get(ind.convidadoPor) || "outro visitante"}` : null].filter(Boolean).join(" · ") : null,
       questionarioPendente: !v.perfil?.onboarding_concluido_em,
       semWhatsapp: !v.telefone?.trim(),
-      ultimoTreino: tempoRelativo(v.ultimo_treino_em),
+      ultimoTreino: v.ultimo_treino_em ? tempoRelativo(v.ultimo_treino_em) : "",
       telefone: v.telefone ?? null,
       mensagem: mensagemBoasVindas({ nome: v.profile?.nome ?? null, objetivo: v.perfil?.objetivo ?? null, frequenciaSemanal: v.perfil?.frequencia_semanal ?? null, acessoAte: e.estado === "permanente" || e.estado === "vencido" ? null : dataBR(e.fim), appUrl: base }),
     };

@@ -140,7 +140,7 @@ export function VisitantesPainel({ pessoas, pendencias, numeros, urgentes, convi
                       <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${COR[p.estado]}`} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">{p.nome}</span>
-                        <span className="block text-xs text-fg-muted">{p.prazo} · último treino {p.ultimoTreino}</span>
+                        <span className="block text-xs text-fg-muted">{p.prazo} · {p.ultimoTreino ? `último treino ${p.ultimoTreino}` : "ainda não treinou"}</span>
                         {p.questionarioPendente || p.semWhatsapp ? <span className="block text-[11px] text-gold">{[p.semWhatsapp ? "sem WhatsApp" : null, p.questionarioPendente ? "questionário pendente" : null].filter(Boolean).join(" · ")}</span> : null}
                       </span>
                       <span aria-hidden className="text-fg-subtle">{abre ? "▲" : "▼"}</span>
