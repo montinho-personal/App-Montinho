@@ -52,6 +52,7 @@ import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { PedirWhatsapp } from "@/components/visitante/PedirWhatsapp";
 import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
+import { ConhecaOMontinho } from "@/components/montinho/ConhecaOMontinho";
 import { GuardarTreinosOffline } from "@/components/offline/GuardarTreinosOffline";
 import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { conviteLiberado, linkOferta } from "@/lib/visitante/campanhas";
@@ -260,6 +261,7 @@ export default async function AlunoHomePage() {
         </div>
       ) : null}
       {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !sessao.comoPersonal ? <ConhecaOMontinho /> : null}
       {indicacao?.pct ? <DescontoIndicacao r={indicacao} nome={sessao.nome} link aluno={!ehVisitante(sessao)} /> : null}
       {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}
       {FEATURES.modoVisitante && !ehVisitante(sessao) && !sessao.comoPersonal && !indicacao?.pct ? <IncentivoIndicacao momento="inicio" aluno fecharam={indicacao?.fecharam ?? 0} /> : null}

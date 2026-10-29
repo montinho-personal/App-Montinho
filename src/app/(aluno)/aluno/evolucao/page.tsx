@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { listarCardiosStrava } from "@/lib/data/strava";
 import { CardiosStrava } from "@/components/strava/CardiosStrava";
 import { SincronizarCardios } from "@/components/strava/SincronizarCardios";
@@ -14,7 +13,6 @@ import { getAluno } from "@/lib/db";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { listarHistoricoResumo } from "@/lib/data/historico";
 import { dataLocal } from "@/lib/aderencia/calcular";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
 import { ResumoAderencia } from "@/components/aderencia/ResumoAderencia";
 import { CalendarioConsistencia } from "@/components/aderencia/CalendarioConsistencia";
@@ -25,6 +23,14 @@ import { compararMeses } from "@/lib/visitante/evolucao";
 import { MesContraMes } from "@/components/visitante/MesContraMes";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
+import { AtalhosEvolucao, PainelEvolucaoAluno } from "@/components/relatorios/PainelEvolucaoAluno";
+import { Acordeao } from "@/components/relatorios/Acordeao";
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
+import { painelEvolucao } from "@/lib/relatorios/painel-aluno";
+import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
+import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
+import { sessaoParaConquista } from "@/lib/conquistas/mapear";
+import { dataBR } from "@/lib/format";
 
 export const metadata = { title: "Evolução" };
 
@@ -50,49 +56,52 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   const semanaFraca = Boolean(ultimaFechada && ultimaFechada.meta && ultimaFechada.pontos < ultimaFechada.meta);
   const comentario = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem" || i.tipo === "revisao_treino"));
 
+  // Topo no estilo das redes: manchete, 3 números e destaques (regras em painel-aluno.ts).
+  const hoje = dataLocal(new Date());
+  const inicio = aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null;
+  const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje, inicioAcompanhamento: inicio ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hoje });
+  const painel = painelEvolucao({ sessoes, dias, emAlta: cargasEmAlta(sessoes, historicoResumo, 3), invisivel, medidas: evolucao, sequencia: aderencia?.sequencia.atual ?? 0 });
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold">Sua evolução</h1>
-        <p className="text-sm text-fg-muted mt-1">Primeiro o essencial. Depois, os detalhes — sempre a partir do que você registrou.</p>
-        <Link href="/aluno/conquistas" className="mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
-          Minhas conquistas e card dos 30 dias →
-        </Link>
-        <Link href="/aluno/vitorias" className="ml-4 mt-2 inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">Sua evolução da semana →</Link>
-        <Link href={`/relatorio/${sessao.alunoId}`} className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
-          <span><span className="font-bold text-accent">Seu relatório completo de evolução</span><span className="block text-xs text-fg-muted">Carga músculo a músculo, marcas pessoais e constância. Dá para baixar em PDF.</span></span>
-          <span aria-hidden className="text-accent">→</span>
-        </Link>
-        <SincronizarCardios />
-        <div className="mt-3"><CardiosStrava cardios={cardios} hoje={dataLocal(new Date())} titulo="Seus cardios (Strava)" /></div>
-        <Link href="/aluno/cardio" className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
-          <span><span className="font-bold">❤️‍🔥 Montinho Cardio</span><span className="block text-xs text-fg-muted">Seu cardio da semana, histórico, esforço e troféus de cardio.</span></span>
-          <span aria-hidden className="text-accent">→</span>
-        </Link>
-        <Link href="/aluno/medidas" className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-accent/40">
-          <span><span className="font-bold">📏 Medidas e avaliações</span><span className="block text-xs text-fg-muted">Peso, medidas, bioimpedância ou o arquivo (PDF/foto) da sua avaliação.</span></span>
-          <span aria-hidden className="text-accent">→</span>
-        </Link>
-        <RegistrarRelatorio />
+        <p className="mt-1 text-sm text-fg-muted">O que mudou desde que você começou, a partir do que você registrou.</p>
       </header>
-      {aderencia ? (
-        <Card id="consistencia" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Sua consistência</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-4">
-            <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-fg-muted">Últimas 12 semanas</p>
-              <SemanasBarras semanas={aderencia.semanas} quantidade={12} altura={72} />
-            </div>
-            <ResumoAderencia r={aderencia} />
-            <CalendarioConsistencia dias={aderencia.dias} sessoes={aderencia.sessoesPorId} hoje={dataLocal(new Date())} />
-          </CardBody>
-        </Card>
+      <RegistrarRelatorio />
+      <SincronizarCardios />
+
+      <PainelEvolucaoAluno p={painel} dias={dias} periodos={[7, 30, 90]} basePath="/aluno/evolucao" anterior={dias === 7 ? "os 7 dias anteriores" : `os ${dias} dias anteriores`} />
+
+      {comentario ? (
+        <blockquote className="rounded-2xl border-l-4 border-accent bg-card px-4 py-3 text-sm">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Recado do {BRAND.name}</p>
+          <p className="mt-1">{comentario.descricao}</p>
+          <footer className="mt-1 text-[11px] text-fg-subtle">{comentario.autor?.nome ?? BRAND.name} · {dataBR(comentario.created_at)}</footer>
+        </blockquote>
       ) : null}
+
+      {aderencia ? (
+        <section id="consistencia" aria-label="Sua semana" className="scroll-mt-20 space-y-3 rounded-2xl border border-border bg-card p-4">
+          <h2 className="text-lg font-bold">Sua semana</h2>
+          <ProgressoSemana semana={aderencia.semanaAtual} sequencia={aderencia.sequencia} extras={aderencia.semanaAtual?.extras ?? 0} />
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-fg-muted">Últimas 12 semanas</p>
+            <SemanasBarras semanas={aderencia.semanas} quantidade={12} altura={72} />
+          </div>
+        </section>
+      ) : null}
+
+      <AtalhosEvolucao alunoId={sessao.alunoId} />
+      <ChamadaTrofeu acao="relatorio" />
+
       {visitante ? <MesContraMes c={compararMeses(sessoes)} semanaFraca={semanaFraca} /> : null}
       {visitante ? <CtaVisitante alunoId={sessao.alunoId} tela="evolucao" acessoFim={sessao.acessoFim ?? null} /> : null}
+
+      <div className="space-y-1 pt-2">
+        <h2 className="text-lg font-bold">Em detalhe</h2>
+        <p className="text-xs text-fg-muted">Exercício por exercício, treino a treino e músculo a músculo.</p>
+      </div>
       <RelatorioEvolucao
         modo="aluno"
         dias={dias}
@@ -103,12 +112,22 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         evolucao={evolucao}
         checkIns={checkIns}
         versoes={versoes}
-        comentarioTreinador={comentario ? { texto: comentario.descricao, autor: comentario.autor?.nome ?? BRAND.name, data: comentario.created_at } : null}
         exportarHref={`/api/alunos/${sessao.alunoId}/exportar`}
         aderencia={aderencia}
         historicoResumo={historicoResumo}
-        inicioAcompanhamento={aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null}
+        inicioAcompanhamento={inicio}
+        semPeriodo
+        semResumo
       />
+      {aderencia ? (
+        <Acordeao titulo="Calendário da constância" resumo="Dia a dia, aderência e sequência">
+          <div className="space-y-4">
+            <ResumoAderencia r={aderencia} />
+            <CalendarioConsistencia dias={aderencia.dias} sessoes={aderencia.sessoesPorId} hoje={hoje} />
+          </div>
+        </Acordeao>
+      ) : null}
+      {cardios.length ? <CardiosStrava cardios={cardios} hoje={hoje} titulo="Seus cardios (Strava)" /> : null}
       {evolucao.length >= 2 ? <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" /> : null}
     </div>
   );

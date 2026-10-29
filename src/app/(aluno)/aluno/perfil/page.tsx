@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { FotoPerfil } from "./FotoPerfil";
+import { ConhecaOMontinho } from "@/components/montinho/ConhecaOMontinho";
 import { AlunoStatusPill } from "@/components/ui/StatusPill";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno, listDieta } from "@/lib/db";
@@ -59,6 +60,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
       <TelaAcesaPerfil />
       <PulsoPerfil inicial={pulsoConsent} />
       <PadraoCargaPerfil inicial={padraoCarga} />
+      <ConhecaOMontinho />
       <Link href="/aluno/indicar" className="flex items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/5 px-4 py-3 text-sm hover:border-accent">
         <span><span className="font-bold">🎁 Indique um amigo</span><span className="block text-xs text-fg-muted">1 amigo que fechar = 10%, 2 = 20%, 3 = 30% de desconto.</span></span>
         <span aria-hidden className="text-accent">→</span>

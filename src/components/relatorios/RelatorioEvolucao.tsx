@@ -56,11 +56,14 @@ type Props = {
   pedidosExtra?: Array<{ titulo: string; status: string; data: string; resposta: string | null }>;
   /** Resumo do histórico de outro app (só para o gráfico por exercício). */
   historicoResumo?: ResumoEvolucao[];
+  /** Tela do aluno: o período e o resumo ficam no topo da página (PainelEvolucaoAluno). */
+  semPeriodo?: boolean;
+  semResumo?: boolean;
 };
 
 const PERIODOS = [7, 30, 90] as const;
 
-export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, treinos, evolucao, checkIns, versoes, comentarioTreinador, exportarHref, aderencia = null, inicioAcompanhamento = null, pedidosExtra, historicoResumo = [] }: Props) {
+export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, treinos, evolucao, checkIns, versoes, comentarioTreinador, exportarHref, aderencia = null, inicioAcompanhamento = null, pedidosExtra, historicoResumo = [], semPeriodo = false, semResumo = false }: Props) {
   const hojeLocal = dataLocal(new Date());
   const desdeLocal = somarDias(hojeLocal, -(dias - 1));
   const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje: hojeLocal, inicioAcompanhamento: inicioAcompanhamento ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hojeLocal });
@@ -111,7 +114,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
   return (
     <div className="space-y-5">
       {/* Período */}
-      <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Período do relatório">
+      {semPeriodo ? null : <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Período do relatório">
         {PERIODOS.map((p) => (
           <Link key={p} href={`${basePath}?dias=${p}${modo === "treinador" ? "#evolucao" : ""}`} aria-current={dias === p ? "true" : undefined} className={`touch inline-flex items-center rounded-full border px-4 text-sm font-semibold ${dias === p ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted hover:text-fg"}`}>
             {p} dias
@@ -122,10 +125,10 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
             Exportar registros (CSV)
           </a>
         ) : null}
-      </div>
+      </div>}
 
       {/* NÍVEL 1 — Resumo */}
-      <Card className="border-accent/30">
+      {semResumo ? null : <Card className="border-accent/30">
         <CardBody className="space-y-4">
           {!resumo.dadosSuficientes ? (
             <div className="text-center py-4">
@@ -189,7 +192,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
             </blockquote>
           ) : null}
         </CardBody>
-      </Card>
+      </Card>}
 
       {historicoResumo.length && exerciciosGrafico.length ? (
         <Card>

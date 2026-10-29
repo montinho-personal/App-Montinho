@@ -1,0 +1,136 @@
+// ============================================================================
+// “Conheça o Montinho” (pedido do Montinho, 29/10/2026): a história dele e a
+// consultoria, dentro do app. Fatos tirados do site oficial (minha-historia e
+// consultoria): obesidade na infância, efeito sanfona, virada aos ~29 anos,
+// −40 kg em 12 meses com ganho de músculo, +20 anos de musculação, 100+ alunos,
+// presencial em Alphaville/Barueri/Santana de Parnaíba e online no Brasil.
+// Sem preço (os valores são pelo WhatsApp) e sem prometer resultado ou prazo.
+// Mudou um fato? Mude aqui — as duas telas leem deste arquivo.
+// ============================================================================
+
+export const NUMEROS = [
+  { valor: "−40 kg", rotulo: "na própria transformação, em 12 meses" },
+  { valor: "+20", rotulo: "anos de musculação" },
+  { valor: "100+", rotulo: "alunos acompanhados" },
+] as const;
+
+export type Capitulo = { titulo: string; paragrafos: string[]; destaque?: string };
+
+export const HISTORIA: { abertura: string; subtitulo: string; capitulos: Capitulo[]; fecho: string } = {
+  abertura: "Eu sei como é.",
+  subtitulo: "Não porque eu li em algum lugar. Porque eu vivi.",
+  capitulos: [
+    {
+      titulo: "O gordinho da turma",
+      paragrafos: [
+        "Eu era o gordinho da turma. O engraçado, o que fazia todo mundo rir. O humor era o meu jeito de ser aceito — e de esconder o que eu sentia quando me olhava no espelho.",
+        "E não era falta de tentar. Eu fazia esporte, arte marcial, musculação. Eu vivia tentando mudar o meu corpo.",
+      ],
+    },
+    {
+      titulo: "O efeito sanfona",
+      paragrafos: [
+        "Veio a adolescência e, com ela, todas as dietas da moda. Eu perdia peso fechando a boca. E, poucos meses depois, recuperava tudo.",
+        "Eu achava que o problema era eu. Que me faltava força de vontade.",
+      ],
+      destaque: "Não era força de vontade. Era método.",
+    },
+    {
+      titulo: "A virada",
+      paragrafos: [
+        "Perto dos 29 anos, eu decidi parar de tentar no escuro. Fui estudar de verdade: fisiologia do exercício, nutrição esportiva, metabolismo. Cursos, livros, conversas com quem entendia.",
+        "Mas o que mudou o jogo não foi só estudar. Foi levar isso para a minha rotina de verdade, observar como o meu corpo respondia e ajustar. De novo. E de novo.",
+        "Nos 12 meses seguintes, eu perdi mais de 40 kg. E ganhei músculo. Sem milagre. Sem sofrimento que não dá para sustentar.",
+      ],
+      destaque: "−40 kg em 12 meses. E nunca mais voltei para o meu pior momento.",
+    },
+    {
+      titulo: "A parte que ninguém conta",
+      paragrafos: [
+        "Eu já engordei um pouco de novo depois disso. Todo mundo engorda. A diferença é que hoje eu percebo cedo e volto rápido.",
+        "É isso que eu ensino: não é sobre nunca errar. É sobre quanto tempo você fica fora antes de voltar.",
+      ],
+    },
+    {
+      titulo: "Por que eu virei personal",
+      paragrafos: [
+        "Comecei ajudando amigos e família. E percebi uma coisa: a maioria das pessoas esforçadas já sabe mais ou menos o que fazer. O que falta é conseguir continuar. E ter alguém olhando de perto quando a vida aperta.",
+        "Então eu me formei, me aprofundei em musculação e em transformação corporal que dura, separando o que a ciência mostra do que é mito e modismo.",
+        "Hoje são mais de 20 anos de musculação e mais de 100 alunos acompanhados — no presencial em Alphaville, Barueri e Santana de Parnaíba, e online em todo o Brasil.",
+      ],
+    },
+    {
+      titulo: "O chalalá",
+      paragrafos: [
+        "Eu chamo de chalalá aquele detalhe a mais que faz diferença: a carga que sobe, a técnica no fim da série, o treino que você fez mesmo num dia corrido.",
+        "Foi por isso que eu criei este app. Para o chalalá não depender de memória, de caderninho ou de sorte.",
+      ],
+    },
+  ],
+  fecho: "Fazendo o que precisa ser feito, por tempo suficiente, é impossível dar errado.",
+};
+
+export const CONSULTORIA = {
+  abertura: "Treino é o começo.",
+  subtitulo: "Acompanhamento é o que faz funcionar.",
+  intro: [
+    "Todo mundo já recebeu um treino. Um PDF, uma planilha, um print. E todo mundo sabe o que acontece duas semanas depois: a rotina aperta, a carga trava, a motivação some — e ninguém percebe.",
+    "A minha consultoria existe para essa hora. Eu não entrego o treino e desapareço. Eu acompanho, enxergo quando algo sai do trilho e ajusto junto com você.",
+  ],
+  pilares: [
+    { icone: "🎯", titulo: "Feito para a sua vida real", texto: "Seu objetivo, sua rotina, seu tempo, seu histórico. O plano cabe na semana que você tem, não na semana perfeita." },
+    { icone: "👀", titulo: "Eu percebo antes", texto: "Sumiu uma semana? A carga parou de subir? A rotina mudou? Eu vejo no app e a gente ajusta — sem bronca, com estratégia." },
+    { icone: "💬", titulo: "Direto comigo no WhatsApp", texto: "Sem intermediário. Mandou o vídeo da série, eu olho a execução e te devolvo o que ajustar." },
+    { icone: "🔬", titulo: "Base científica", texto: "Volume, progressão de carga e técnica com base no que a ciência mostra — não no modismo da semana." },
+  ],
+  modalidades: [
+    { nome: "Personal presencial", onde: "Alphaville, Barueri e Santana de Parnaíba", texto: "Eu do seu lado em cada série: corrijo a execução na hora, ajusto a carga ao seu dia e te acompanho pelo WhatsApp entre as aulas. Começa com uma avaliação e reavaliações periódicas decidem o próximo ciclo." },
+    { nome: "Consultoria online", onde: "Em qualquer lugar do Brasil", texto: "Anamnese completa, treino no app com vídeo de cada exercício, revisão dos seus vídeos de execução e ajustes quando a evolução trava ou a rotina muda." },
+    { nome: "Modelo híbrido", onde: "Presencial + online", texto: "Aulas presenciais para lapidar a técnica e o resto da semana pelo app. Viajou, apertou a semana? O plano se adapta." },
+  ],
+  passos: [
+    { titulo: "Conversa gratuita", texto: "Objetivo, histórico e rotina. Sem compromisso." },
+    { titulo: "Planejamento", texto: "Seu treino e seu ponto de partida, montados para a sua rotina real." },
+    { titulo: "Acompanhamento ativo", texto: "Faltas, carga travada, rotina nova: a gente percebe e ajusta junto." },
+    { titulo: "Evolução contínua", texto: "Reavaliações periódicas e decisões com base nos seus dados." },
+  ],
+  app: [
+    "A carga da última vez já aparece na série — sem caderninho.",
+    "Vídeo de cada exercício e as minhas observações no meio do treino.",
+    "Dia corrido? O app ajusta o treino ao tempo que você tem.",
+    "Volume da semana, recordes e evolução de carga para você ver que está funcionando.",
+    "Troféus, Jornada do Chalalá e desafios para você continuar quando a vontade some.",
+  ],
+  resultados: [
+    { nome: "Adriana N.", texto: "−20 kg em 8 meses" },
+    { nome: "Elisa C.", texto: "−20 kg em 9 meses" },
+    { nome: "Natália N.", texto: "−13 kg em 9 meses, com ganho de massa magra" },
+  ],
+  avisoResultados: "Resultados de alunos do Montinho. Cada corpo responde de um jeito: não é promessa de resultado nem de prazo.",
+  perguntas: [
+    { p: "Quanto custa?", r: "Depende da modalidade, da frequência e do tempo de plano. Me chama no WhatsApp que eu te explico tudo, sem compromisso." },
+    { p: "Consultoria online funciona mesmo?", r: "Com plano individual e acompanhamento de verdade, sim. Não é um PDF genérico: eu revejo os seus vídeos de execução e ajusto o plano com você." },
+    { p: "Posso começar do zero?", r: "Pode. Muitos alunos chegaram sedentários ou depois de várias tentativas. O plano começa onde você está e evolui aos poucos." },
+    { p: "E se eu falhar uma semana?", r: "Vai acontecer. O que importa é voltar rápido — e é exatamente aí que eu entro." },
+  ],
+  fecho: "Você não precisa de mais um treino. Precisa de alguém do seu lado até dar certo.",
+};
+
+export type OrigemContato = "historia" | "consultoria";
+
+export const CONTATO: Record<OrigemContato, { ref: string; mensagem: string; botao: string }> = {
+  historia: { ref: "APP-HISTORIA", mensagem: "Oi, Montinho! Li a sua história no app e quero saber como é treinar com você.", botao: "💬 Quero treinar com o Montinho" },
+  consultoria: { ref: "APP-CONSULTORIA", mensagem: "Oi, Montinho! Vi a consultoria no app e quero saber os valores e como funciona.", botao: "💬 Quero saber os valores" },
+};
+
+/** Link do WhatsApp oficial com o código de origem no fim (o Montinho sabe de onde veio a conversa). */
+export function linkContato(origem: OrigemContato, whatsapp: string): string {
+  const c = CONTATO[origem];
+  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(`${c.mensagem} [${c.ref}]`)}`;
+}
+
+/** Nomes no painel de leads. */
+export const ROTULO_CTA_PAGINAS: Record<string, string> = {
+  historia: "📖 WhatsApp na página “Minha história”",
+  consultoria: "💎 WhatsApp na página “Consultoria”",
+};
