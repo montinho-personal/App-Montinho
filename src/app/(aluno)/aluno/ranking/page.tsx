@@ -15,6 +15,12 @@ import { listarMeusDesafios } from "@/lib/data/desafios";
 export const metadata = { title: "Ranking de troféus" };
 export const dynamic = "force-dynamic";
 
+/** Personal no “Meu treino”: fora do ranking, mas vê onde estaria (nunca “conquiste o 1º troféu”). */
+function fraseDoPersonal(eu: { posicao: number; trofeus: number } | null): string {
+  if (!eu) return "Seus troféus aparecem aqui assim que você ganhar o primeiro.";
+  return `Com ${eu.trofeus} ${eu.trofeus === 1 ? "troféu" : "troféus"}, você estaria em ${eu.posicao}º lugar (só você vê isto).`;
+}
+
 export default async function RankingPage() {
   const sessao = await requireAlunoPage();
   const incentivo = await incentivoIndicacao(sessao).catch(() => null);
@@ -32,7 +38,7 @@ export default async function RankingPage() {
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
         {sessao.comoPersonal ? <p className="text-xs text-fg-muted">🏋️ Você está como aluno pelo “Meu treino”: seus troféus contam para você, mas você fica fora do ranking.</p> : null}
         {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} {eu.trofeus === 1 ? "troféu" : "troféus"}</span></p> : null}
-        <p className="text-sm font-semibold">{fraseDoRanking(linhas)}</p>
+        <p className="text-sm font-semibold">{sessao.comoPersonal ? fraseDoPersonal(todas.find((l) => l.eu) ?? null) : fraseDoRanking(linhas)}</p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs">
           <Link href="/aluno/conquistas/todas" className="alvo font-semibold text-accent underline-offset-2 hover:underline">Ver os troféus que faltam →</Link>
           <Link href="/aluno/conquistas/todas?aba=desafiadores" className="alvo font-semibold text-accent underline-offset-2 hover:underline">🔥 Mais desafiadores</Link>
