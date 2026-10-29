@@ -31,7 +31,7 @@ export function DiaConcluido({ estado, nome, treinoHoje, cardioMinHoje, frase, t
       <p className="text-sm text-fg-muted">{frase}</p>
       <ul className="space-y-1 text-sm">
         <li>💪 <span className="font-semibold">{treinoHoje}</span> ✅</li>
-        {cardioMinHoje > 0 ? <li>❤️‍🔥 <span className="font-semibold">Cardio: {cardioMinHoje} min</span> ✅</li> : null}
+        {cardioMinHoje > 0 ? <li>❤️‍🔥 <span className="font-semibold">Cardio: {cardioMinHoje} min</span> {estado === "completo" ? "✅" : <span className="text-xs text-fg-muted">(ainda falta o cardio de hoje)</span>}</li> : null}
       </ul>
       <div className="grid grid-cols-2 gap-2 text-center">
         <Link href="/aluno/conquistas" className="rounded-xl border border-border bg-card px-2 py-2">

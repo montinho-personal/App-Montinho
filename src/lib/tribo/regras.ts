@@ -83,16 +83,20 @@ export type ResumoTribo = {
 export function resumoTribo(d: Pick<DadosTribo, "contribuicoes" | "participantes">): ResumoTribo {
   let minutos = 0, sessoesCardio = 0, treinos = 0;
   const meus = { minutos: 0, sessoesCardio: 0, treinos: 0 };
+  // “Meus cardios” = dias com cardio (1 por dia, como no Montinho Cardio; auditoria 29/10/2026:
+  // dois pedaços no mesmo dia contavam como 2). O total da tribo segue sendo de registros.
+  const meusDias = new Set<string>();
   for (const c of d.contribuicoes) {
     if (c.t === "c") {
       minutos += c.min;
       sessoesCardio++;
-      if (c.eu) { meus.minutos += c.min; meus.sessoesCardio++; }
+      if (c.eu) { meus.minutos += c.min; meusDias.add(diaBR(c.em)); }
     } else {
       treinos++;
       if (c.eu) meus.treinos++;
     }
   }
+  meus.sessoesCardio = meusDias.size;
   return { minutos, sessoesCardio, treinos, participantes: d.participantes.total, meus };
 }
 
@@ -394,7 +398,7 @@ export type CardTribo = { selo: string; titulo: string; destaque: string | null;
 /** Card no mesmo formato do card de medalha (src/lib/conquistas/compartilhavel.ts). */
 export function cardDaTribo(c: ConquistaTribo, nome: string, marcos: MarcoTribo[] = MARCOS_PADRAO): CardTribo {
   const titulo = nomeDaConquistaTribo(c, marcos).toUpperCase();
-  const data = c.conquistado_em.slice(0, 10);
+  const data = diaBR(c.conquistado_em); // dia de Brasília (não UTC)
   const feito = feitoDaTribo(c);
   return {
     selo: seloDaTribo(c.codigo, marcos),

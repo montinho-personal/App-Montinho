@@ -5,6 +5,7 @@ import { cadastroVisitanteSchema, lerJson } from "@/lib/validacao/schemas";
 import { codigoValido, fimDoAcesso, MENSAGEM_CONVITE, normalizarCodigo, type MotivoConviteInvalido } from "@/lib/visitante/acesso";
 import type { Convite } from "@/lib/supabase/types";
 import { contaOrfa } from "@/lib/auth/conta-orfa";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 /**
  * POST /api/public/convite/cadastro — cadastro do visitante por código.
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     await admin.from("profiles").update({ nome: body.nome, role: "aluno" }).eq("id", userId);
     const { data: aluno, error: alunoErr } = await admin
       .from("alunos")
-      .insert({ profile_id: userId, telefone: body.whatsapp, status: "ativo", modalidade: "visitante", data_inicio: agora.toISOString().slice(0, 10), acesso_ate: fim ? fim.toISOString().slice(0, 10) : null })
+      .insert({ profile_id: userId, telefone: body.whatsapp, status: "ativo", modalidade: "visitante", data_inicio: dataLocal(agora), acesso_ate: fim ? dataLocal(fim) : null }) /* dias de Brasília (auditoria 29/10/2026: em UTC gravava 1 dia a mais) */
       .select("id")
       .single();
     if (alunoErr || !aluno) throw alunoErr ?? new Error("aluno");

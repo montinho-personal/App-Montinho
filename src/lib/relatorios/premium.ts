@@ -92,7 +92,7 @@ export function relatorioPremium(input: { sessoes: SessaoCompleta[]; resumos?: R
   const { inicio, fim } = input;
   const resumos = (input.resumos ?? []).filter((r) => r.data >= inicio && r.data <= fim);
   const concluidas = input.sessoes.filter((s) => s.status === "concluida");
-  const doDia = (s: SessaoCompleta) => (s.finalizado_em ?? s.iniciado_em).slice(0, 10);
+  const doDia = (s: SessaoCompleta) => dataLocal(s.finalizado_em ?? s.iniciado_em); // dia de Brasília
   const noPeriodo = concluidas.filter((s) => doDia(s) >= inicio && doDia(s) <= fim);
 
   // Totais do período

@@ -22,7 +22,7 @@ const dataBR = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { time
 export function ResumoColetivo({ r }: { r: ResumoTribo }) {
   const itens = [
     { emoji: "⏱️", valor: fmt(r.minutos), rotulo: "minutos de cardio" },
-    { emoji: "❤️‍🔥", valor: fmt(r.sessoesCardio), rotulo: "cardios concluídos" },
+    { emoji: "❤️‍🔥", valor: fmt(r.sessoesCardio), rotulo: "cardios registrados" },
     { emoji: "🏋️", valor: fmt(r.treinos), rotulo: "treinos de musculação" },
     { emoji: "🤝", valor: fmt(r.participantes), rotulo: "pessoas na tribo" },
   ];

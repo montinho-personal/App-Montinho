@@ -172,7 +172,7 @@ export async function detalheDesafio(desafioId: string, alunoId: string | null):
 function montarDetalhe(d: Desafio, dados: ParticipanteDados[], parts: Part[], eu: string | null): DetalheDesafio {
   return {
     ...resumir(d, parts, eu),
-    placar: placarDesafio(d, dados),
+    placar: placarDesafio(d, dados, diaBrasilia(new Date())),
     convidados: dados.filter((x) => x.status === "convidado").map((x) => ({ nome: x.nome })),
     criadorNome: dados.find((x) => x.criador)?.nome ?? "",
   };

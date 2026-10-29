@@ -336,7 +336,7 @@ export async function painelCardio(): Promise<LinhaPainelCardio[]> {
   }
   const linhas = await Promise.all(
     alunos.map(async (a) => {
-      const c = await cardioDoAluno(a.id);
+      const c = await cardioDoAluno(a.id, await semanasPausadasDoAluno(a.id));
       if (!c.todasPrescricoes.length && !c.feitos.length) return null;
       const fechadas = c.semanas.filter((s) => !s.atual && s.alvoSessoes > 0);
       const recentes = c.feitos.filter((f) => f.esforco != null && f.data >= somarDias(hoje, -28));
@@ -368,14 +368,27 @@ async function sessoesParaCombo(alunoId: string): Promise<TrainingSession[]> {
 }
 
 /** Para o progresso dos troféus de cardio na sala de troféus. */
+/**
+ * Semanas em pausa combinada do aluno (mesma régua da aderência). Os troféus de cardio já as
+ * consideram; o “ao alcance” e a lista do personal passam a considerar também (auditoria 29/10/2026).
+ */
+export async function semanasPausadasDoAluno(alunoId: string): Promise<string[]> {
+  const { getAluno } = await import("@/lib/db");
+  const { aderenciaDoAluno } = await import("@/lib/data/aderencia");
+  const aluno = await getAluno(alunoId).catch(() => null);
+  if (!aluno) return [];
+  const ad = await aderenciaDoAluno(aluno).catch(() => null);
+  return ad ? ad.semanas.filter((w) => w.pausada).map((w) => w.inicio) : [];
+}
+
 export async function progressoCardio(alunoId: string): Promise<ProgressoCardio> {
-  const [todas, feitos] = await Promise.all([listarPrescricoesCardio(alunoId, { todas: true }), cardiosFeitos(alunoId)]);
+  const [todas, feitos, semanasPausadas] = await Promise.all([listarPrescricoesCardio(alunoId, { todas: true }), cardiosFeitos(alunoId), semanasPausadasDoAluno(alunoId)]);
   const temPrescricao = todas.some((p) => p.ativo);
   let semana: ProgressoCardio["semana"] = null;
   let semanaMin: ProgressoCardio["semanaMin"] = null;
   let seguidas = 0;
   if (temPrescricao) {
-    const semanas = semanasDeCardio({ prescricoes: todas, feitos, hoje: dataLocal(new Date()) });
+    const semanas = semanasDeCardio({ prescricoes: todas, feitos, hoje: dataLocal(new Date()), semanasPausadas });
     const atual = semanas.find((w) => w.atual);
     if (atual && atual.alvoMin > 0) semanaMin = { minutos: atual.minutos, alvoMin: atual.alvoMin };
     if (atual && !atual.cumpridaEm && (atual.alvoSessoes > 0 || atual.alvoMin > 0)) {

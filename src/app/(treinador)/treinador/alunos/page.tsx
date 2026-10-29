@@ -19,7 +19,7 @@ export default async function AlunosListPage() {
       acessoAte: a.acesso_ate ?? null,
       avatar: a.profile?.avatar_url ?? null,
       ultimoTexto: tempoRelativo(a.ultimo_treino_em),
-      acessoTexto: a.acesso_ate ? (dias !== null && dias < 0 ? `acesso vencido há ${Math.abs(dias)}d` : `acesso até ${dataBR(a.acesso_ate)}${dias !== null ? ` (${dias}d)` : ""}`) : "sem data de acesso",
+      acessoTexto: a.acesso_ate ? (dias !== null && dias < 0 ? `acesso vencido há ${Math.abs(dias)}d` : `acesso até ${dataBR(a.acesso_ate)}${dias === 0 ? " (último dia)" : dias !== null ? ` (${dias}d)` : ""}`) : "sem data de acesso",
       dias,
     };
   });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireTreinadorApi } from "@/lib/auth/session";
 import { FEATURES, isDemoMode } from "@/lib/env";
+import { dataLocal } from "@/lib/aderencia/calcular";
 import { getDb } from "@/lib/supabase/rls";
 import { acaoVisitanteSchema, lerJson } from "@/lib/validacao/schemas";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
@@ -50,6 +51,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   const { error: e } = await db.from("acessos_visitante").upsert({ aluno_id: id, tipo: "dias", fim: fim.toISOString(), updated_at: agora.toISOString() }, { onConflict: "aluno_id" });
   if (e) return NextResponse.json({ error: "Não foi possível alterar o acesso." }, { status: 500 });
-  await db.from("alunos").update({ acesso_ate: fim.toISOString().slice(0, 10) }).eq("id", id);
+  await db.from("alunos").update({ acesso_ate: dataLocal(fim) }).eq("id", id); // dia de Brasília
   return NextResponse.json({ ok: true, fim: fim.toISOString() });
 }

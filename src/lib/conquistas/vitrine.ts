@@ -479,7 +479,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       atual: data ? p.alvo : p.atual,
       alvo: p.alvo,
       falta: data ? null : p.falta,
-      nova: !!data && dias(dataLocal(data), e.hoje) <= 7,
+      nova: !!data && dias(dataLocal(data), e.hoje) < 7, // últimos 7 dias (hoje + 6)
       disponivel: !!data || p.disponivel,
       detalhe: detalheTecnica(codigo, !!data),
     };

@@ -76,7 +76,8 @@ export function carga(kg: number): string {
 
 export function painelEvolucao(e: EntradaPainel): PainelEvolucao {
   const { atual, anterior } = compararPeriodos(e.sessoes, e.dias, e.agora);
-  const periodo = e.dias === 7 ? "nesta semana" : `nos últimos ${e.dias} dias`;
+  // Janela corrida (não a semana seg–dom): “nos últimos 7 dias” (auditoria 29/10/2026).
+  const periodo = `nos últimos ${e.dias} dias`;
   const numeros: Numero[] = [
     { valor: String(atual.treinos), rotulo: atual.treinos === 1 ? "treino" : "treinos", delta: delta(atual.treinos, anterior.treinos) },
     { valor: carga(atual.cargaKg), rotulo: "levantados", delta: delta(atual.cargaKg, anterior.cargaKg, true) },

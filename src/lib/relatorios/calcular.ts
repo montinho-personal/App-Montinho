@@ -14,7 +14,7 @@ import { normalizarNome } from "@/lib/grupos";
 import type { SessaoCompleta } from "@/lib/data/sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { Frequencia } from "@/lib/volume/calcular";
-import { indice, type ResultadoAderencia } from "@/lib/aderencia/calcular";
+import { classificarSessao, dataLocal, indice, inicioDaSemana, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { REGRAS_CONQUISTAS } from "@/lib/conquistas/regras";
 
 export type Periodo = { inicio: Date; fim: Date };
@@ -97,10 +97,14 @@ export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia 
   const contam = sessoes.filter(contaAderencia);
   const feitas = sessoesNoPeriodo(contam, p).filter((s) => s.status === "concluida");
   const feitasAnt = sessoesNoPeriodo(contam, ant).filter((s) => s.status === "concluida");
+  // Sessões “feitas” contra as planejadas: só treinos da ficha concluídos (≥ 50% das séries; sem
+  // extra/livre), a mesma régua da aderência (auditoria 29/10/2026: contava extras e “13/13” ao lado de 77%).
+  const feitasDoPlano = feitas.filter((s) => classificarSessao(s) === "concluida");
+  const feitasDoPlanoAnt = feitasAnt.filter((s) => classificarSessao(s) === "concluida");
   const planejadas = sessoesPlanejadasNoPeriodo(frequencia, p);
   const planejadasAnt = sessoesPlanejadasNoPeriodo(frequencia, ant);
-  let aderencia = planejadas > 0 ? Math.min(100, Math.round((feitas.length / planejadas) * 100)) : null;
-  let aderenciaAnterior = planejadasAnt > 0 && feitasAnt.length > 0 ? Math.min(100, Math.round((feitasAnt.length / planejadasAnt) * 100)) : null;
+  let aderencia = planejadas > 0 ? Math.min(100, Math.round((feitasDoPlano.length / planejadas) * 100)) : null;
+  let aderenciaAnterior = planejadasAnt > 0 && feitasDoPlanoAnt.length > 0 ? Math.min(100, Math.round((feitasDoPlanoAnt.length / planejadasAnt) * 100)) : null;
   let aderenciaJanela: string | null = null;
   // Com a central de aderência, o número é o mesmo do card “Consistência”.
   const janela = central ? aderenciaDaJanela(central, dias) : null;
@@ -119,8 +123,10 @@ export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia 
   const duracaoMediaMin = duracoes.length ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length / 60) : null;
 
   const conquistas: Conquista[] = [];
-  if (planejadas > 0 && feitas.length >= planejadas) {
-    conquistas.push({ tipo: "consistencia", titulo: "Semana(s) completa(s)", detalhe: `${feitas.length} de ${planejadas} sessões planejadas no período.` });
+  // Com a central, “completa” = 100% de aderência nas semanas fechadas (a mesma do card Consistência).
+  const completas = janela && janela.pct !== null ? janela.pct >= 100 : planejadas > 0 && feitasDoPlano.length >= planejadas;
+  if (completas) {
+    conquistas.push({ tipo: "consistencia", titulo: "Semana(s) completa(s)", detalhe: janela && janela.pct !== null ? `Meta cumprida em todas as semanas (${janela.rotulo}).` : `${feitasDoPlano.length} de ${planejadas} sessões planejadas no período.` });
   } else if (aderenciaAnterior !== null && aderencia !== null && aderencia > aderenciaAnterior) {
     conquistas.push({ tipo: "frequencia", titulo: "Mais constante que no período anterior", detalhe: `Aderência ${aderencia}% contra ${aderenciaAnterior}% antes${aderenciaJanela ? ` (${aderenciaJanela})` : ""}.` });
   }
@@ -140,7 +146,7 @@ export function resumoPeriodo(sessoes: SessaoCompleta[], frequencia: Frequencia 
 
   return {
     dias,
-    sessoesFeitas: feitas.length,
+    sessoesFeitas: feitasDoPlano.length,
     sessoesPlanejadas: planejadas,
     aderencia,
     aderenciaAnterior,
@@ -169,7 +175,7 @@ export function seriesPorExercicio(sessoes: SessaoCompleta[]): Map<string, { nom
   const out = new Map<string, { nome: string; series: SerieHistorica[] }>();
   for (const s of sessoes) {
     if (s.status !== "concluida") continue;
-    const data = (s.finalizado_em ?? s.iniciado_em).slice(0, 10);
+    const data = dataLocal(s.finalizado_em ?? s.iniciado_em); // dia de Brasília (igual à aba Treinos)
     for (const e of s.exercicios) {
       const k = normalizarNome(e.nome);
       if (!k) continue;
@@ -295,11 +301,12 @@ export type DiaCalendario = { data: string; status: "feito" | "abandonado" | "ne
 export function calendarioSessoes(sessoes: SessaoCompleta[], p: Periodo): DiaCalendario[] {
   const porDia = new Map<string, DiaCalendario>();
   for (let t = p.inicio.getTime(); t <= p.fim.getTime(); t += DIA_MS) {
-    const d = new Date(t).toISOString().slice(0, 10);
+    // Meio-dia do passo → dia de Brasília (funciona com o período montado no servidor em UTC ou no navegador).
+    const d = dataLocal(new Date(t + 12 * 3_600_000));
     porDia.set(d, { data: d, status: "nenhum", letra: null, duracaoMin: null });
   }
   for (const s of sessoesNoPeriodo(sessoes.filter(contaAderencia), p)) {
-    const d = (s.finalizado_em ?? s.iniciado_em).slice(0, 10);
+    const d = dataLocal(s.finalizado_em ?? s.iniciado_em);
     const atual = porDia.get(d);
     if (!atual) continue;
     if (s.status === "concluida") porDia.set(d, { data: d, status: "feito", letra: s.letra, duracaoMin: s.duracao_seg ? Math.round(s.duracao_seg / 60) : null });
@@ -321,12 +328,12 @@ export type EstadoSemana = {
 };
 
 export function estadoSemana(sessoes: SessaoCompleta[], frequencia: Frequencia | null | undefined, letrasAtivas: string[], agora = new Date()): EstadoSemana {
-  const inicioSemana = new Date(agora);
-  const dow = (inicioSemana.getDay() + 6) % 7; // segunda = 0
-  inicioSemana.setDate(inicioSemana.getDate() - dow);
-  inicioSemana.setHours(0, 0, 0, 0);
+  // Semana seg–dom no horário de Brasília (auditoria 29/10/2026: em UTC, a semana virava
+  // domingo às 21h e o “feito esta semana”/próximo treino mudavam no domingo à noite).
+  const hoje = dataLocal(agora);
+  const inicioSemana = inicioDaSemana(hoje);
   const concluidas = sessoes.filter((s) => s.status === "concluida" && contaAderencia(s)).sort((a, b) => (a.iniciado_em < b.iniciado_em ? 1 : -1));
-  const semana = concluidas.filter((s) => new Date(s.finalizado_em ?? s.iniciado_em).getTime() >= inicioSemana.getTime());
+  const semana = concluidas.filter((s) => dataLocal(s.finalizado_em ?? s.iniciado_em) >= inicioSemana);
   const letrasFeitas: string[] = semana.map((s) => s.letra).filter((l): l is NonNullable<typeof l> => Boolean(l));
   const planejadasSemana = Math.round(sessoesSemanaPlanejadas(frequencia));
 
@@ -341,8 +348,9 @@ export function estadoSemana(sessoes: SessaoCompleta[], frequencia: Frequencia |
     for (const l of letrasFeitas) contagem[l] = (contagem[l] ?? 0) + 1;
     proximaLetra = ordemCiclo.find((l) => (contagem[l] ?? 0) < Math.max(1, Math.round(Number(frequencia?.[l] ?? 1)))) ?? ordemCiclo[0] ?? null;
   }
-  const ultimaData = concluidas[0] ? new Date(concluidas[0].finalizado_em ?? concluidas[0].iniciado_em) : null;
-  const diasSem = ultimaData ? Math.floor((agora.getTime() - ultimaData.getTime()) / DIA_MS) : null;
+  // Dias de calendário (Brasília) desde o último treino: treino de ontem à noite = 1 dia.
+  const ultimaDia = concluidas[0] ? dataLocal(concluidas[0].finalizado_em ?? concluidas[0].iniciado_em) : null;
+  const diasSem = ultimaDia ? Math.round((Date.parse(`${hoje}T12:00:00Z`) - Date.parse(`${ultimaDia}T12:00:00Z`)) / DIA_MS) : null;
   return { feitasSemana: semana.length, planejadasSemana, letrasFeitasSemana: letrasFeitas, proximaLetra, diasSemUltimoTreino: diasSem, retomada: diasSem !== null && diasSem >= 7 };
 }
 

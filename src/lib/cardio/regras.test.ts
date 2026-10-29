@@ -99,6 +99,8 @@ describe("meta por minutos na semana", () => {
     const atual = semanasDeCardio({ prescricoes: [p], feitos, hoje: "2026-10-08" }).at(-1)!;
     expect(atual).toMatchObject({ alvoMin: 120, alvoSessoes: 5, sessoes: 2, status: "cumprida" });
     expect(resumoSemana(atual)).toEqual({ pct: 100, faltamMin: 0, faltamSessoes: 0 });
+    // Semana fechada pelos dias de cardio com metade dos minutos: o % é dos minutos (auditoria 29/10).
+    expect(resumoSemana({ ...atual!, status: "cumprida", minutos: 45, alvoMin: 90 })).toEqual({ pct: 50, faltamMin: 0, faltamSessoes: 0 });
     expect(pendentesHoje([p], feitos, "2026-10-08")).toHaveLength(0);
   });
   it("Fôlego de Ferro também vale batendo os minutos em menos dias", () => {

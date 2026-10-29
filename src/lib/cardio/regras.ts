@@ -218,7 +218,9 @@ export function resumoSemana(s: SemanaCardio | undefined): { pct: number | null;
   if (!s || !s.alvoMin) return { pct: null, faltamMin: 0, faltamSessoes: 0 };
   const batida = s.status === "cumprida";
   return {
-    pct: batida ? 100 : Math.min(100, Math.round((s.minutos / s.alvoMin) * 100)),
+    // % = sempre os minutos feitos ÷ meta (auditoria 29/10/2026: com a semana fechada pelos
+    // dias de cardio, mostrava 100% com metade dos minutos). “Cumprida” fica no texto/selo.
+    pct: Math.min(100, Math.round((s.minutos / s.alvoMin) * 100)),
     faltamMin: batida ? 0 : Math.max(0, s.alvoMin - s.minutos),
     faltamSessoes: batida ? 0 : Math.max(0, s.alvoSessoes - s.sessoes),
   };

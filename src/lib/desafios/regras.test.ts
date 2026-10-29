@@ -106,6 +106,15 @@ describe("desafios de peso, corrida e time", () => {
     expect(r.map((l) => [l.nome, l.pontos, l.rotulo])).toEqual([["A", 50, "+50% de volume por semana"], ["B", 0, "sem treinos nas 4 semanas antes para comparar"]]);
   });
 
+  it("evolução %: no meio do desafio divide pelos dias que já passaram (sem −77% no 2º dia)", () => {
+    const d = { tipo: "evolucao" as const, meta: null, inicio: "2026-10-29", fim: "2026-11-27" };
+    // base: 1.000 kg/semana nas 4 semanas antes; no 1º dia (29/10) fez 1.000 kg
+    const a = P("A", [], [s("2026-10-05T12:00:00Z", 100, 10), s("2026-10-12T12:00:00Z", 100, 10), s("2026-10-19T12:00:00Z", 100, 10), s("2026-10-26T12:00:00Z", 100, 10), s("2026-10-29T12:00:00Z", 100, 10)]);
+    // 2 dias passados (29 e 30/10): 1.000 kg em 2 dias = 3.500 kg/semana → +250% (antes: ÷30 dias → −77%)
+    expect(placarDesafio(d, [a], "2026-10-30")[0].pontos).toBe(250);
+    // terminado: usa o período inteiro
+    expect(placarDesafio(d, [a], "2026-12-10")[0].pontos).toBe(Math.round(((1000 / 30) * 7 / 1000 - 1) * 100));
+  });
   it("músculo da vez, recordes e time", () => {
     const m = placarDesafio({ tipo: "musculo", meta: null, inicio: "2026-10-01", fim: "2026-10-07", foco: "pernas" }, [
       P("A", [], [s("2026-10-02T12:00:00Z", 10, 10, { grupo: "quadriceps" }), s("2026-10-02T12:00:00Z", 10, 10, { grupo: "peito" })]),

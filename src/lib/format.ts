@@ -17,12 +17,18 @@ export function dataBR(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? "—" : FMT_DATA_BR.format(d);
 }
 
-export function diasAte(iso: string | null | undefined): number | null {
+const FMT_DIA_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+
+/**
+ * Dias de calendário (Brasília) de hoje até a data: 0 = hoje é o último dia, 1 = amanhã,
+ * negativo = já passou. Auditoria 29/10/2026: com o servidor em UTC, depois das 21h o
+ * último dia virava “acesso encerrado / vencido há 1d”.
+ */
+export function diasAte(iso: string | null | undefined, agora: Date = new Date()): number | null {
   if (!iso) return null;
-  const diff =
-    (new Date(iso).getTime() - new Date().setHours(0, 0, 0, 0)) /
-    (1000 * 60 * 60 * 24);
-  return Math.floor(diff);
+  const alvo = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : FMT_DIA_ISO.format(new Date(iso));
+  const hoje = FMT_DIA_ISO.format(agora);
+  return Math.round((Date.parse(`${alvo}T12:00:00Z`) - Date.parse(`${hoje}T12:00:00Z`)) / 86_400_000);
 }
 
 export function tempoRelativo(iso: string | null | undefined): string {

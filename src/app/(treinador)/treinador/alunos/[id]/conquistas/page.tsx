@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { progressoCardio } from "@/lib/data/cardio";
-import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
+import { listarReconhecimentos, resumoMensalDoAluno, totalQuizPublicado } from "@/lib/data/conquistas";
 import { vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
@@ -25,7 +25,7 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
   const aluno = await getAluno(id);
   if (!aluno) notFound();
   const [{ conquistas, sessoes, aderencia }, reconhecimentos, cardio] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), progressoCardio(aluno.id).catch(() => null)]);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()), cardio });
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()), cardio, extras: { quizTotal: await totalQuizPublicado() } });
   const ganhas = medalhas.filter((m) => m.conquistada).length;
   const recordes = conquistas.filter((c) => c.codigo === "recorde").slice(0, 10);
   const nome = aluno.profile?.nome ?? "Aluno";

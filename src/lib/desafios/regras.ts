@@ -155,7 +155,7 @@ export const kgBR = (n: number) => `${Math.round(n).toLocaleString("pt-BR")} kg`
 const volumeDe = (ss: SerieDesafio[]) => ss.reduce((t, s) => t + (s.carga && s.reps && s.carga > 0 && s.reps > 0 ? s.carga * s.reps : 0), 0);
 
 /** Placar dos que aceitaram. */
-export function placarDesafio(d: DesafioBase, participantes: ParticipanteDados[]): LinhaPlacar[] {
+export function placarDesafio(d: DesafioBase, participantes: ParticipanteDados[], hoje?: string): LinhaPlacar[] {
   const info = TIPOS_DESAFIO[d.tipo];
   const aceitos = participantes.filter((p) => p.status === "aceito");
   const semanas = semanasDoDesafio(d.inicio, d.fim);
@@ -221,7 +221,10 @@ export function placarDesafio(d: DesafioBase, participantes: ParticipanteDados[]
           const x = diaBrasilia(s.em);
           return x >= inicioBase && x < d.inicio;
         }));
-        const diasPeriodo = diasEntre(d.inicio, d.fim) + 1;
+        // Só os dias que já passaram (auditoria 29/10/2026: dividir pelo período inteiro
+        // mostrava cerca de −77% para todo mundo nos primeiros dias).
+        const ate = hoje && hoje < d.fim ? (hoje < d.inicio ? d.inicio : hoje) : d.fim;
+        const diasPeriodo = diasEntre(d.inicio, ate) + 1;
         const atualPorSemana = (volumeDe(series) / diasPeriodo) * 7;
         const basePorSemana = (base / LIMITES_DESAFIO.diasBase) * 7;
         if (basePorSemana <= 0) {

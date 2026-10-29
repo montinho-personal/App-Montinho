@@ -24,7 +24,7 @@ import { dataBR, tempoRelativo } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
-import { acoesAlcance, listarConquistas, listarReconhecimentos } from "@/lib/data/conquistas";
+import { acoesAlcance, listarConquistas, listarReconhecimentos, totalQuizPublicado } from "@/lib/data/conquistas";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { sessaoParaConquista } from "@/lib/conquistas/mapear";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
@@ -117,7 +117,7 @@ export default async function AlunoHomePage() {
   const cardio = await cardioDoAluno(alunoId, aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio)).catch(() => null);
   const cardioPendentes = cardio ? pendentesHoje(cardio.prescricoes, cardio.feitos, dataLocal(new Date())) : [];
   const albumResumo = progressoAlbum(album.itens);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null });
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null, extras: { quizTotal: await totalQuizPublicado() } });
   const proximaMed = proximaMedalha(medalhas);
   const codigosMedalha = new Set<string>(medalhas.map((m) => m.codigo));
   const recenteIso = somarDias(dataLocal(new Date()), -7);
@@ -154,7 +154,7 @@ export default async function AlunoHomePage() {
   const hojeSP = dataLocal(new Date());
   const treinoDeHoje = sessoes.filter((s) => dataLocal(s.iniciado_em) === hojeSP && contaCarimbo(s)).at(-1) ?? null;
   const cardioMinHoje = (cardio?.feitos ?? []).filter((f) => f.data === hojeSP && f.status !== "nao_realizado").reduce((a, f) => a + f.duracaoMin, 0);
-  const estadoDia = emAndamento ? "a_fazer" : estadoDoDia({ treinoHoje: !!treinoDeHoje, cardioHoje: cardioMinHoje >= LIMITES_CARDIO.minutosMin, cardioPendente: cardioPendentes.length > 0 });
+  const estadoDia = emAndamento ? "a_fazer" : estadoDoDia({ treinoHoje: !!treinoDeHoje, cardioHoje: cardioPendentes.length === 0 && cardioMinHoje >= LIMITES_CARDIO.minutosMin, cardioPendente: cardioPendentes.length > 0 }) /* com cardio prescrito pendente hoje, não é “Dia completo” (auditoria 29/10/2026) */;
   const carimbos = estadoDia === "a_fazer" ? null : await carimbosDe([alunoId]).then((r) => r[alunoId] ?? 0).catch(() => sessoes.filter(contaCarimbo).length);
 
   const ativadas = conquistas.filter((c) => !c.vista_em && (CODIGOS_MANUAIS.includes(c.codigo) || (codigosMedalha.has(c.codigo) && c.created_at >= recenteIso))).slice(0, 6);
@@ -193,7 +193,7 @@ export default async function AlunoHomePage() {
       <GuardarTreinosOffline urls={["/aluno/treinar", ...treinos.map((t) => `/aluno/treino/${t.id}`), ...(emAndamento && emAndamento.treino_id ? [hrefDaSessao(emAndamento)] : [])]} />
       <SincronizarCardios />
       <header>
-        <p className="text-xs text-fg-subtle uppercase tracking-wider">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <p className="text-xs text-fg-subtle uppercase tracking-wider">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Sao_Paulo" })}</p>
         <h1 className="text-2xl font-bold leading-tight mt-1">
           {saudacao}, <span className="text-accent">{primeiroNome}</span>
         </h1>

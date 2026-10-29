@@ -6,7 +6,7 @@ import { getDb } from "@/lib/supabase/rls";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { progressoCardio } from "@/lib/data/cardio";
-import { sincronizarConquistas } from "@/lib/data/conquistas";
+import { sincronizarConquistas, totalQuizPublicado } from "@/lib/data/conquistas";
 import { lembreteDoAlcance, trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
 import { tecnicasFeitas } from "@/lib/conquistas/regras";
 import { vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
@@ -16,7 +16,7 @@ export async function agendarLembreteTrofeu(aluno: AlunoBase): Promise<void> {
   if (isDemoMode()) return;
   const [{ todas, sessoes, aderencia }, plano, cardio] = await Promise.all([sincronizarConquistas(aluno), getPlanoAtivo(aluno.id).catch(() => null), progressoCardio(aluno.id).catch(() => null)]);
   const hoje = dataLocal(new Date());
-  const medalhas = vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje, cardio });
+  const medalhas = vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje, cardio, extras: { quizTotal: await totalQuizPublicado() } });
   const itens = trofeusNosProximosDias({ medalhas, aderencia, hoje, cardio, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
   const l = lembreteDoAlcance(itens);
   const db = await getDb();

@@ -12,6 +12,7 @@
 import { LENDARIAS, type CodigoConquista, type ItemRecorde } from "./regras";
 import { CONTEUDO, nomeDaConquista } from "./conteudo";
 import { ORDEM } from "./vitrine";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porque: string }> = {
   primeiro_treino: { frase: "Eu tirei o “um dia” do papel.", porque: "O primeiro treino transforma intenção em ação. Toda evolução começa aqui." },
@@ -222,7 +223,8 @@ export const seloDaConquista = (codigo: string) => ORDEM.find((o) => o.codigo ==
 export function cardDaMedalha(c: { codigo: string; titulo?: string | null; descricao?: string | null; conquistado_em: string; dados?: { recordes?: ItemRecorde[]; diasAfastado?: number; meta?: number } | null }, nome: string): CardMedalha {
   const t = TEXTO_COMPARTILHAVEL[c.codigo as CodigoConquista] ?? { frase: CONTEUDO[c.codigo as CodigoConquista]?.mensagem ?? "Mais uma conquista.", porque: "" };
   const titulo = nomeDaConquista(c.codigo, c.titulo);
-  const data = c.conquistado_em.slice(0, 10);
+  // Dia de Brasília (auditoria 29/10/2026: em UTC, troféu das 21h em diante saía com a data de amanhã).
+  const data = dataLocal(c.conquistado_em);
   const dataBR = `${data.slice(8, 10)}/${data.slice(5, 7)}/${data.slice(0, 4)}`;
   return {
     selo: seloDaConquista(c.codigo),

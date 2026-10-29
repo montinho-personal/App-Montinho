@@ -103,11 +103,32 @@ export async function listSessoes(alunoId: string, opts: { desde?: string; ate?:
   const { data: sessions } = await q;
   const ids = (sessions ?? []).map((s) => s.id);
   if (!ids.length) return [];
-  const [{ data: exs }, { data: sets }] = await Promise.all([
-    db.from("session_exercises").select("*").in("session_id", ids),
-    db.from("session_sets").select("*").in("session_id", ids),
-  ]);
-  return (sessions as TrainingSession[]).map((s) => montarCompleta(s, (exs ?? []) as SessionExercise[], (sets ?? []) as SessionSet[]));
+  const [exs, sets] = await Promise.all([porSessoes<SessionExercise>(db, "session_exercises", ids), porSessoes<SessionSet>(db, "session_sets", ids)]);
+  return (sessions as TrainingSession[]).map((s) => montarCompleta(s, exs, sets));
+}
+
+/**
+ * Busca as linhas de várias sessões sem perder nada: o banco devolve no máximo
+ * 1.000 linhas por pedido, então vai em lotes de sessões e pagina cada lote
+ * (auditoria 29/10/2026: acima de 1.000 séries, as antigas sumiam sem aviso).
+ */
+async function porSessoes<T>(db: Awaited<ReturnType<typeof getDb>>, tabela: "session_exercises" | "session_sets", ids: string[]): Promise<T[]> {
+  const PAGINA = 1000;
+  const lotes: string[][] = [];
+  for (let i = 0; i < ids.length; i += 50) lotes.push(ids.slice(i, i + 50));
+  const partes = await Promise.all(
+    lotes.map(async (lote) => {
+      const out: T[] = [];
+      for (let de = 0; ; de += PAGINA) {
+        const { data, error } = await db.from(tabela).select("*").in("session_id", lote).order("id").range(de, de + PAGINA - 1);
+        if (error) break; // como antes: falha na leitura não derruba a tela
+        out.push(...((data ?? []) as T[]));
+        if (!data || data.length < PAGINA) break;
+      }
+      return out;
+    }),
+  );
+  return partes.flat();
 }
 
 export type UltimaExecucao = {

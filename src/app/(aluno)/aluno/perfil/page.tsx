@@ -60,7 +60,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
         <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
           <AlunoStatusPill status={aluno.status} />
           {visitante ? <span className="rounded-full border border-accent/50 px-2.5 py-0.5 text-[11px] font-bold text-accent">Visitante</span> : null}
-          {aluno.acesso_ate ? <span className="text-xs text-fg-muted">{dias != null && dias < 0 ? "acesso encerrado" : `acesso até ${dataBR(aluno.acesso_ate)}${dias != null ? ` · ${dias} ${dias === 1 ? "dia" : "dias"}` : ""}`}</span> : null}
+          {aluno.acesso_ate ? <span className="text-xs text-fg-muted">{dias != null && dias < 0 ? "acesso encerrado" : `acesso até ${dataBR(aluno.acesso_ate)}${dias === 0 ? " · último dia" : dias != null ? ` · ${dias} ${dias === 1 ? "dia" : "dias"}` : ""}`}</span> : null}
         </div>
       </header>
 

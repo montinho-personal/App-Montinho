@@ -293,7 +293,8 @@ export type DadosAlcance = { medalhas: Medalha[]; aderencia: Pick<AderenciaAluno
 export async function dadosAlcance(aluno: AlunoBase): Promise<DadosAlcance> {
   const { todas, sessoes, aderencia } = await sincronizarConquistas(aluno);
   const hoje = dataLocal(new Date());
-  return { medalhas: vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje }), aderencia: { sequencia: aderencia.sequencia, semanaAtual: aderencia.semanaAtual }, tecnicasFeitas: tecnicasFeitas(sessoes).map((t) => t.familia), hoje };
+  const quizTotal = await totalQuizPublicado();
+  return { medalhas: vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje, extras: { quizTotal } }), aderencia: { sequencia: aderencia.sequencia, semanaAtual: aderencia.semanaAtual }, tecnicasFeitas: tecnicasFeitas(sessoes).map((t) => t.familia), hoje };
 }
 
 // ---------------------------------------------------------------------------
@@ -373,7 +374,7 @@ export async function listarEventos(desde: string): Promise<EventoChalala[]> {
 export async function dadosDaJornada(aluno: AlunoBase) {
   const [{ todas, sessoes, aderencia }, reconhecimentos] = await Promise.all([sincronizarConquistas(aluno), listarReconhecimentos(aluno.id)]);
   const hoje = dataLocal(new Date());
-  const medalhas = vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje });
+  const medalhas = vitrineDeMedalhas({ conquistas: todas, sessoes, aderencia, hoje, extras: { quizTotal: await totalQuizPublicado() } });
   const jornada = { ...montarJornada({ medalhas, proxima: proximaMedalha(medalhas), conquistas: todas, semanas: aderencia.semanas }), caminho: caminhoDaJornada({ semanas: aderencia.semanas, sessoes, conquistas: todas }) };
   const eventos = linhaDoTempo({
     conquistas: todas,
@@ -458,6 +459,17 @@ export async function progressoExtras(alunoId: string): Promise<ProgressoExtras>
   const { sequenciaAtual } = await import("@/lib/mobilidade/regras");
   const hoje = dataLocal(new Date());
   return { cardsCompartilhados: c?.cards, trofeusCompartilhados: c?.trofeus, quizCertas: certasDoQuiz(quiz).length, quizTotal: conteudos.filter((x) => x.status === "publicado").length, mobilidade: { superiores: sequenciaAtual(mob, "superiores", hoje), inferiores: sequenciaAtual(mob, "inferiores", hoje) } };
+}
+
+/**
+ * Quantas perguntas do “Mito ou verdade?” estão publicadas. Toda tela que monta a
+ * vitrine passa esse número: o “Mestre do Conhecimento” (quiz_50) só entra no total
+ * com 50+ perguntas, e sem ele o total de troféus mudava de uma tela para outra
+ * (auditoria 29/10/2026).
+ */
+export async function totalQuizPublicado(): Promise<number> {
+  const conteudos = await import("@/lib/data/desbloqueia").then((m) => m.listarConteudos()).catch(() => []);
+  return conteudos.filter((x) => x.status === "publicado").length;
 }
 
 /** Respostas do “Mito ou verdade?” (troféus de Autoconhecimento). */

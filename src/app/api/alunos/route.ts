@@ -1,3 +1,4 @@
+import { dataLocal } from "@/lib/aderencia/calcular";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTreinadorApi } from "@/lib/auth/session";
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
       objetivo: body.objetivo ?? null,
       observacoes: body.observacoes ?? null,
       status: "pendente",
-      data_inicio: body.data_inicio ?? new Date().toISOString().slice(0, 10),
+      data_inicio: body.data_inicio ?? dataLocal(new Date()),
       acesso_ate: body.acesso_ate ?? null,
     })
     .select("*, profile:profiles(*)")

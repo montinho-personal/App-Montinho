@@ -1,3 +1,4 @@
+import { dataLocal } from "@/lib/aderencia/calcular";
 // ============================================================================
 // Evolução geral por TREINO (A, B, C…) e por MÚSCULO — contas puras.
 // Usadas no relatório premium (PDF) e na aba Evolução do app.
@@ -56,7 +57,7 @@ const mediana = (xs: number[]) => {
   const m = Math.floor(o.length / 2);
   return r1(o.length % 2 ? o[m] : (o[m - 1] + o[m]) / 2);
 };
-const doDia = (s: SessaoCompleta) => (s.finalizado_em ?? s.iniciado_em).slice(0, 10);
+const doDia = (s: SessaoCompleta) => dataLocal(s.finalizado_em ?? s.iniciado_em); // dia de Brasília
 const validas = (e: SessaoCompleta["exercicios"][number]) => e.series.filter((x) => x.tipo !== "aquecimento");
 const tonelagemDe = (s: SessaoCompleta) =>
   s.exercicios.reduce((n, e) => n + validas(e).reduce((m, x) => m + (x.carga_kg != null && x.reps != null ? x.carga_kg * x.reps : 0), 0), 0);

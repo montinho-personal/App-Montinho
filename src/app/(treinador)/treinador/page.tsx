@@ -28,7 +28,7 @@ export const metadata = { title: "Visão geral" };
 export default async function TreinadorDashboardPage() {
   const sessao = await requireTreinadorPage();
   const [m, alunos, adaptacoes, acessos, semVideo, aoVivo, feitosRecentes] = await Promise.all([getDashboardMetrics(), listAlunos(), listAdaptacoes(undefined, true), resumoDeAcessos().catch(() => null), listarSemVideo().catch(() => []), treinandoAgora().catch(() => []), treinosFeitosRecentes(1).catch(() => [])]);
-  const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+  const hojeLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", timeZone: "America/Sao_Paulo" });
 
   // Dados por aluno ativo (limitado para manter o painel rápido)
   const ativos = alunos.filter((a) => a.status === "ativo").slice(0, 40);
@@ -193,7 +193,7 @@ export default async function TreinadorDashboardPage() {
               <p className="text-sm text-fg-subtle text-center py-8">Nenhuma sessão registrada ainda.</p>
             ) : (
               <ul className="divide-y divide-border">
-                {recentes.map(({ aluno, ultima, r7 }) => (
+                {recentes.map(({ aluno, ultima }) => (
                   <li key={aluno.id} className="px-5 py-3 flex items-center gap-3">
                     <Avatar nome={aluno.profile?.nome ?? "?"} url={aluno.profile?.avatar_url} size={36} />
                     <div className="flex-1 min-w-0">
@@ -204,7 +204,11 @@ export default async function TreinadorDashboardPage() {
                         <AlunoStatusPill status={aluno.status} />
                       </div>
                       <p className="text-xs text-fg-subtle mt-0.5">
-                        <Link href={`/treinador/alunos/${aluno.id}/treinos-feitos`} className="font-semibold text-accent">{ultima!.letra ? `Treino ${ultima!.letra}` : "Treino"}</Link> {tempoRelativo(ultima!.finalizado_em ?? ultima!.iniciado_em)} · {ultima!.series_concluidas}/{ultima!.series_planejadas} séries · semana: {r7.sessoesFeitas}/{r7.sessoesPlanejadas || "—"}
+                        <Link href={`/treinador/alunos/${aluno.id}/treinos-feitos`} className="font-semibold text-accent">{ultima!.letra ? `Treino ${ultima!.letra}` : "Treino"}</Link> {tempoRelativo(ultima!.finalizado_em ?? ultima!.iniciado_em)} · {ultima!.series_concluidas}/{ultima!.series_planejadas} séries{(() => {
+                          // Mesma conta da barra ao lado (semana seg–dom da aderência; auditoria 29/10/2026).
+                          const sa = aderencias[aluno.id]?.semanaAtual;
+                          return sa?.meta ? ` · semana: ${Math.min(sa.pontos, sa.meta).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}/${sa.meta}` : "";
+                        })()}
                         {ultima!.feedback_percepcao === "dor" ? <span className="text-warning"> · relatou dor</span> : null}
                       </p>
                     </div>

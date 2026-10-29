@@ -12,7 +12,7 @@ import { acoesAlcance, listarReconhecimentos, progressoExtras, resumoMensalDoAlu
 import { ConquistasClient } from "./ConquistasClient";
 import { medalhasEmDestaque, proximasMedalhas, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { mensagemDaJornada } from "@/lib/conquistas/conteudo";
-import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
+import { dataLocal, inicioDaSemana, somarDias } from "@/lib/aderencia/calcular";
 import { albumParaAluno } from "@/lib/data/desbloqueia";
 import { candidatasAnuncio, progressoAlbum } from "@/lib/desbloqueia/motor";
 import { paraVisao } from "@/components/desbloqueia/visao";
@@ -91,7 +91,8 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
           recordes: conquistas.filter((c) => c.codigo === "recorde").reduce((n, c) => n + Math.max(1, c.dados?.recordes?.length ?? 0), 0),
           cardios: cardio ? cardio.feitos : null,
           aoAlcance: aoAlcance.length,
-          ganhosNaSemana: medalhas.filter((m) => m.conquistada && m.nova).length,
+          // “+N esta semana” = desde a segunda-feira (Brasília), não os últimos 8 dias (auditoria 29/10/2026).
+          ganhosNaSemana: medalhas.filter((m) => m.conquistada && m.data && dataLocal(m.data) >= inicioDaSemana(hoje)).length,
         }}
       />
       <div id="ao-alcance" className="scroll-mt-24"><TrofeusAoAlcance itens={aoAlcance} /></div>

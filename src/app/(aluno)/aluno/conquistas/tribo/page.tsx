@@ -54,7 +54,7 @@ export default async function TriboPage() {
         <h2 id="minha-contribuicao" className="text-sm font-bold">💛 Minha contribuição</h2>
         <p className="mt-1 text-sm text-fg-muted">
           {r.meus.minutos || r.meus.treinos
-            ? `Você já somou ${[r.meus.minutos ? `${r.meus.minutos.toLocaleString("pt-BR")} minutos de cardio (${r.meus.sessoesCardio} ${r.meus.sessoesCardio === 1 ? "cardio" : "cardios"})` : null, r.meus.treinos ? `${r.meus.treinos} ${r.meus.treinos === 1 ? "treino" : "treinos"} de musculação` : null].filter(Boolean).join(" e ")} à tribo. Obrigado por fazer parte!`
+            ? `Você já somou ${[r.meus.minutos ? `${r.meus.minutos.toLocaleString("pt-BR")} minutos de cardio (em ${r.meus.sessoesCardio} ${r.meus.sessoesCardio === 1 ? "dia" : "dias"} de cardio)` : null, r.meus.treinos ? `${r.meus.treinos} ${r.meus.treinos === 1 ? "treino" : "treinos"} de musculação` : null].filter(Boolean).join(" e ")} à tribo. Obrigado por fazer parte!`
             : "Seu primeiro treino ou cardio válido já entra na conta da tribo. Sem pressa: no seu ritmo, do jeito combinado."}
         </p>
         <p className="mt-2 text-xs text-fg-subtle">{minhas.length ? `${minhas.length} ${minhas.length === 1 ? "troféu da tribo" : "troféus da tribo"} com você.` : "Ainda sem troféus da tribo: o primeiro vem com a sua primeira contribuição num marco."}</p>

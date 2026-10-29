@@ -109,10 +109,14 @@ describe("relatórios — fórmulas e denominadores", () => {
     expect(parado.retomada).toBe(true);
     expect(parado.proximaLetra).toBe("A");
     expect(estadoSemana([], { A: 1 }, [], AGORA).proximaLetra).toBeNull();
+    // Domingo 21h30 em Brasília (= segunda 00h30 UTC): o treino de domingo ainda é desta semana.
+    const domingoNoite = new Date("2026-11-02T00:30:00Z");
+    const t = { ...sessao(0, "A", [{ ex: "Supino", carga: 40, reps: 10 }]), iniciado_em: "2026-11-01T22:00:00Z", finalizado_em: "2026-11-01T23:00:00Z" };
+    expect(estadoSemana([t], { A: 1, B: 1 }, ["A", "B"], domingoNoite)).toMatchObject({ feitasSemana: 1, letrasFeitasSemana: ["A"], proximaLetra: "B", diasSemUltimoTreino: 0 });
   });
 
   it("alertas do treinador trazem evidência, janela e ação", () => {
-    const alertas = alertasDoAluno({ alunoId: "a", alunoNome: "Ana", status: "ativo", sessoes: [sessao(1, "A", [])], frequencia: { A: 1, B: 1, C: 1 }, temPlano: true, adaptacoesAbertas: 1, checkinsDorAlta: 0, agora: AGORA });
+    const alertas = alertasDoAluno({ alunoId: "a", alunoNome: "Ana", status: "ativo", sessoes: [sessao(1, "A", [{ ex: "Supino", carga: 40, reps: 10 }])], frequencia: { A: 1, B: 1, C: 1 }, temPlano: true, adaptacoesAbertas: 1, checkinsDorAlta: 0, agora: AGORA });
     expect(alertas.find((a) => a.tipo === "aderencia")).toMatchObject({ evidencia: "1 de 6 sessões planejadas", janela: "últimas 2 semanas" });
     expect(alertas.find((a) => a.tipo === "adaptacao")?.acao).toContain("Responder");
     expect(alertasDoAluno({ alunoId: "b", alunoNome: "Bruno", status: "ativo", sessoes: [], frequencia: null, temPlano: false, adaptacoesAbertas: 0, checkinsDorAlta: 0, agora: AGORA })[0].tipo).toBe("sem_plano");
