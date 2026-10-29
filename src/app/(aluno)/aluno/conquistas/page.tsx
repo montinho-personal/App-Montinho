@@ -19,6 +19,7 @@ import { CategoriasTrofeus } from "@/components/conquistas/CategoriasTrofeus";
 import { CartaoCarimbos } from "@/components/conquistas/CartaoCarimbos";
 import { contarCarimbos } from "@/lib/conquistas/carimbos";
 import { TrofeusAoAlcance } from "@/components/conquistas/TrofeusAoAlcance";
+import { PainelConquistas } from "@/components/conquistas/PainelConquistas";
 import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
 import { tecnicasFeitas } from "@/lib/conquistas/regras";
 import { getPlanoAtivo } from "@/lib/data/programas";
@@ -58,8 +59,20 @@ export default async function ConquistasPage() {
           Evolução →
         </Link>
       </div>
-      <TrofeusAoAlcance itens={aoAlcance} />
-      <CartaoCarimbos total={contarCarimbos(sessoes)} />
+      <PainelConquistas
+        r={{
+          trofeus: medalhas.filter((m) => m.conquistada).length,
+          totalTrofeus: medalhas.length,
+          carimbos: contarCarimbos(sessoes),
+          semanasSeguidas: aderencia.sequencia.atual,
+          recordes: conquistas.filter((c) => c.codigo === "recorde").reduce((n, c) => n + Math.max(1, c.dados?.recordes?.length ?? 0), 0),
+          cardios: cardio ? cardio.feitos : null,
+          aoAlcance: aoAlcance.length,
+          ganhosNaSemana: medalhas.filter((m) => m.conquistada && m.nova).length,
+        }}
+      />
+      <div id="ao-alcance" className="scroll-mt-24"><TrofeusAoAlcance itens={aoAlcance} /></div>
+      <div id="carimbos" className="scroll-mt-24"><CartaoCarimbos total={contarCarimbos(sessoes)} /></div>
       {incentivo ? <IncentivoIndicacao momento="conquistas" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <section className="space-y-2" aria-labelledby="categorias-titulo">
         <div className="flex items-baseline justify-between gap-2">

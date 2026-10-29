@@ -150,6 +150,8 @@ export const finalizarSessaoSchema = z.object({
 
 export const exercicioSessaoPatchSchema = z.object({
   status: z.enum(["pendente", "concluido", "pulado", "nao_consegui"]).optional(),
+  /** Bi-set montado pelo aluno durante o treino (mesmo código = juntos; null = separa). */
+  bloco_aluno: z.string().regex(/^[A-Za-z0-9]{1,8}$/).nullable().optional(),
   observacao_aluno: textoOpcional(300),
   percepcao: z.enum(["muito_leve", "moderado", "pesado", "muito_pesado"]).nullable().optional(),
 });
@@ -726,6 +728,10 @@ export const livreExercicioSchema = z
   .refine((e) => Boolean(e.biblioteca_id) !== Boolean(e.nome_livre), "Escolha um exercício da biblioteca ou escreva o nome dele");
 export const livreAjusteSchema = z.object({
   tecnica: z.enum(TECNICAS_LIVRE_IDS).optional(),
+  /** Como a técnica é feita (finalização × quantas séries, blocos, pausa) — mesmo formato do montador. */
+  tecnica_config: tecnicaConfigSchema.nullable().optional(),
+  /** Bi-set/tri-set: exercícios com o mesmo código ficam juntos. null = solto. */
+  bloco: z.string().regex(/^[A-Za-z0-9]{1,8}$/).nullable().optional(),
   /** Sem o campo = não mexe na anotação; vazio = apaga. */
   observacao: z.string().trim().max(300).nullable().optional(),
 });

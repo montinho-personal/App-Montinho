@@ -11,6 +11,8 @@ import { podeRegistrar } from "@/lib/visitante/acesso";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { LivreClient, type ExercicioTela } from "./LivreClient";
+import { juntarBlocosAdjacentes } from "@/lib/treino/tecnica-aluno";
+import type { ConfigTecnica } from "@/lib/treino/tecnica-config";
 import { FimLivreClient } from "./FimLivreClient";
 
 export const metadata = { title: "Treino livre" };
@@ -36,14 +38,18 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
   const [biblioteca, metas, ultimas] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id, { qualquerPlano: true }).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);
   const itens = biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento, video: Boolean(i.midia?.verificada), midia: i.midia?.verificada ? { provider: i.midia.provider, id: i.midia.id } : null, passos: i.execucao.slice(0, 3) }));
   // Retomar: as séries já salvas voltam marcadas (a chave “livre:<key>” vem do aparelho).
-  const inicial: ExercicioTela[] = s.exercicios.filter((e) => e.status !== "pulado").sort((a, b) => a.ordem - b.ordem).map((e) => ({
+  const presc = (p: unknown) => (p ?? {}) as { tecnica_config?: ConfigTecnica | null; bloco?: string | null };
+  const txt = (n: number | null) => (n != null ? String(n).replace(".", ",") : "");
+  const inicial: ExercicioTela[] = juntarBlocosAdjacentes(s.exercicios.filter((e) => e.status !== "pulado").sort((a, b) => a.ordem - b.ordem).map((e) => ({
     seId: e.id,
     nome: e.nome,
     grupo: e.grupo_muscular,
     tecnica: tecnicaDe(e.prescricao),
+    config: presc(e.prescricao).tecnica_config ?? null,
+    bloco: presc(e.prescricao).bloco ?? null,
     observacao: e.observacao_aluno ?? "",
     ultima: textoUltimaVez(ultimas[e.id]),
-    series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: x.carga_kg != null ? String(x.carga_kg).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "", salva: true })),
-  }));
+    series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: txt(x.carga_kg), reps: x.reps != null ? String(x.reps) : "", salva: true, ...(x.blocos?.length ? { blocos: x.blocos.map((b) => ({ carga: txt(b.carga), reps: b.reps != null ? String(b.reps) : "" })) } : {}) })),
+  })));
   return <LivreClient sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} metas={metas?.placar.length ? { placar: metas.placar, hoje: dataLocal(new Date()), recentes: metas.recentes } : null} />;
 }

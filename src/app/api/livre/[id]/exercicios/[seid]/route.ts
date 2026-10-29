@@ -1,4 +1,4 @@
-// PATCH /api/livre/[id]/exercicios/[seid] — técnica e anotação do exercício no treino livre.
+// PATCH /api/livre/[id]/exercicios/[seid] — técnica (e como é feita), bi-set e anotação do exercício no treino livre.
 // DELETE — tira do treino um exercício sem séries (fica “pulado”; nada é apagado).
 import { NextResponse } from "next/server";
 import { ajustarExercicioLivre, tirarExercicioLivre } from "@/lib/data/livre";
@@ -14,7 +14,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   const { data, error: vErr } = await lerJson(request, livreAjusteSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
-    const ok = await ajustarExercicioLivre(sessao.alunoId, id, seid, { tecnica: data.tecnica, ...(data.observacao !== undefined ? { observacao: data.observacao } : {}) });
+    const ok = await ajustarExercicioLivre(sessao.alunoId, id, seid, { tecnica: data.tecnica, ...(data.tecnica_config !== undefined ? { tecnicaConfig: data.tecnica_config } : {}), ...(data.bloco !== undefined ? { bloco: data.bloco } : {}), ...(data.observacao !== undefined ? { observacao: data.observacao } : {}) });
     return ok ? NextResponse.json({ ok }) : NextResponse.json({ error: "Exercício não encontrado" }, { status: 404 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível salvar agora.";

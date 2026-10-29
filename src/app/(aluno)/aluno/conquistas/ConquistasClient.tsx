@@ -114,7 +114,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
       </section>
 
       {recordes.length ? (
-        <section className="space-y-2" aria-labelledby="rec-pessoais-titulo">
+        <section id="recordes" className="scroll-mt-24 space-y-2" aria-labelledby="rec-pessoais-titulo">
           <div className="flex items-baseline justify-between gap-2">
             <h2 id="rec-pessoais-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Recordes pessoais</h2>
             <p className="text-xs text-fg-muted"><span className="font-bold text-fg">{recordes.length}</span> treino(s) com recorde</p>

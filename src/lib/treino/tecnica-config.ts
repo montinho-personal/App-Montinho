@@ -132,7 +132,7 @@ export function camposLegados(tecnica: Tecnica | string | null | undefined, salv
   const c = configEfetiva(tecnica, salvo);
   if (!c || !salvo) return null;
   if (!podeFinalizar(tecnica)) return null;
-  const extras = tecnica === "rest_pause" && c.repsAlvo != null ? minisPrevistasRestPause(c.repsAlvo) : c.blocos;
+  const extras = tecnica === "rest_pause" && c.repsAlvo != null && !blocosEscolhidos(salvo) ? minisPrevistasRestPause(c.repsAlvo) : c.blocos;
   return { tecnicaExtras: extras, tecnicaSeries: c.aplicar === "finalizacao" ? 0 : Math.min(validas, Math.max(1, c.series)) };
 }
 
@@ -146,8 +146,9 @@ export function cadenciaDaConfig(tecnica: Tecnica | string | null | undefined, s
 // ---------------------------------------------------------------------------
 // Rest-pause: exemplo de divisão do total (≈60% na ativação, depois metade).
 // ---------------------------------------------------------------------------
-export function exemploRestPause(alvo: number): number[] {
+export function exemploRestPause(alvo: number, partes?: number): number[] {
   const total = Math.max(1, Math.round(alvo));
+  if (partes && partes >= 1) return dividirEmPartes(total, Math.min(partes, total));
   const out = [Math.max(1, Math.round(total * 0.6))];
   let falta = total - out[0];
   while (falta > 0 && out.length < 8) {
@@ -157,6 +158,25 @@ export function exemploRestPause(alvo: number): number[] {
   }
   return out;
 }
+/** Total dividido em `n` pedaços decrescentes (~60% no 1º, o resto cada vez menor). */
+function dividirEmPartes(total: number, n: number): number[] {
+  if (n <= 1) return [total];
+  const primeiro = Math.min(total - (n - 1), Math.max(1, Math.round(total * 0.6)));
+  const resto = total - primeiro;
+  const pesos = Array.from({ length: n - 1 }, (_, i) => n - 1 - i);
+  const soma = pesos.reduce((a, b) => a + b, 0);
+  const out = [primeiro, ...pesos.map((w) => Math.max(1, Math.round((resto * w) / soma)))];
+  let dif = total - out.reduce((a, b) => a + b, 0);
+  for (let i = 1; dif !== 0 && i < out.length * 4; i++) {
+    const k = 1 + ((i - 1) % (n - 1));
+    if (dif > 0) { out[k]++; dif--; } else if (out[k] > 1) { out[k]--; dif++; }
+  }
+  return out;
+}
+
+/** O treinador escolheu o nº de blocos do rest-pause? (prescrições antigas só têm o total.) */
+const blocosEscolhidos = (salvo: unknown) => !!salvo && typeof salvo === "object" && (salvo as ConfigTecnica).blocos != null;
+
 /** Mini-séries (depois da ativação) que o exemplo usa para chegar no total. */
 export const minisPrevistasRestPause = (alvo: number) => Math.max(1, exemploRestPause(alvo).length - 1);
 
@@ -196,8 +216,10 @@ export function blocosPlanejados(tecnica: Tecnica | string | null | undefined, s
   const c = configEfetiva(tecnica, salvo);
   if (!c || !registraEmBlocos(tecnica)) return [];
   if (tecnica === "rest_pause") {
-    const ex = c.repsAlvo != null ? exemploRestPause(c.repsAlvo) : [];
-    const n = c.repsAlvo != null ? ex.length : c.blocos + 1;
+    // Blocos escolhidos (ex.: 3 = 1ª até perto da falha + 2 minis) mandam; sem escolha, o total define.
+    const escolhidos = blocosEscolhidos(salvo);
+    const ex = c.repsAlvo != null ? exemploRestPause(c.repsAlvo, escolhidos ? c.blocos + 1 : undefined) : [];
+    const n = c.repsAlvo != null && !escolhidos ? ex.length : c.blocos + 1;
     return Array.from({ length: n }, (_, i) => ({ rotulo: i === 0 ? "Até perto da falha" : `Mini ${i}`, meta: i === 0 ? (ex[0] ? `~${ex[0]}` : "falha") : ex[i] ? `~${ex[i]}` : "o máx.", pausaAntesSeg: i === 0 ? 0 : c.pausaSeg, fracaoCarga: 1 }));
   }
   if (tecnica === "dropset") {
@@ -235,7 +257,7 @@ export function resumoTecnica(tecnica: Tecnica | string | null | undefined, salv
   const onde = c.aplicar === "finalizacao" ? `${vezes(c.series)} no final` : c.series > 0 ? `nas últimas ${c.series === 1 ? "série" : `${c.series} séries`}` : "em todas as séries";
   switch (tecnica) {
     case "rest_pause":
-      return `${onde} · ${c.repsAlvo != null ? `meta ${c.repsAlvo} reps` : `${c.blocos} mini-séries`} · pausas de ${seg(c.pausaSeg)}`;
+      return `${onde} · ${blocosEscolhidos(salvo) ? `${c.blocos + 1} blocos${c.repsAlvo != null ? ` · meta ${c.repsAlvo} reps` : ""}` : c.repsAlvo != null ? `meta ${c.repsAlvo} reps` : `${c.blocos} mini-séries`} · pausas de ${seg(c.pausaSeg)}`;
     case "dropset":
       return `${onde} · ${c.reps != null ? `${c.reps} reps + ` : ""}${c.blocos} ${c.blocos === 1 ? "drop" : "drops"} de −${c.reducaoPct}%${c.pausaSeg ? ` · ${seg(c.pausaSeg)} entre drops` : " · sem descanso"}`;
     case "myo_reps":
@@ -258,7 +280,7 @@ export function instrucaoTecnica(tecnica: Tecnica | string | null | undefined, s
   const fim = c.aplicar === "finalizacao" ? (c.series === 1 ? "Depois das séries principais, faça 1 série de finalização: " : `Depois das séries principais, faça ${c.series} séries de finalização (descanse ${seg(c.descansoSeg)} entre elas): `) : "";
   switch (tecnica) {
     case "rest_pause":
-      return `${fim}vá até perto da falha, descanse ${seg(c.pausaSeg)} e continue com a mesma carga${c.repsAlvo != null ? ` até somar ${c.repsAlvo} repetições` : ""}. Anote cada pedaço.`;
+      return `${fim}vá até perto da falha, descanse ${seg(c.pausaSeg)} e continue com a mesma carga${blocosEscolhidos(salvo) ? ` — ${c.blocos + 1} blocos no total` : ""}${c.repsAlvo != null ? ` até somar ${c.repsAlvo} repetições` : ""}. Anote cada pedaço.`;
     case "dropset":
       return `${fim}${c.reps != null ? `faça ${c.reps} repetições` : "vá até perto da falha"}, tire ${c.reducaoPct}% da carga${c.pausaSeg ? ` (${seg(c.pausaSeg)} para trocar)` : " sem descansar"} e continue até a falha. Repita ${c.blocos === 1 ? "1 vez" : `${c.blocos} vezes`}.`;
     case "myo_reps":

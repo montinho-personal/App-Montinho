@@ -39,6 +39,16 @@ describe("rest-pause e drop-set", () => {
     expect(exemploRestPause(20)).toEqual([12, 5, 2, 1]);
     expect(exemploRestPause(20).reduce((a, b) => a + b, 0)).toBe(20);
   });
+  it("rest-pause com nº de blocos escolhido (ex.: 3 blocos até somar 20)", () => {
+    const b = blocosPlanejados("rest_pause", { blocos: 2, repsAlvo: 20 });
+    expect(b).toHaveLength(3);
+    expect(b.map((x) => Number(x.meta.replace("~", ""))).reduce((a, n) => a + n, 0)).toBe(20);
+    expect(exemploRestPause(20, 3)).toEqual([12, 5, 3]);
+    expect(resumoTecnica("rest_pause", { blocos: 2 })).toBe("1× no final · 3 blocos · meta 20 reps · pausas de 15 s");
+    // Sem blocos escolhidos (prescrição antiga): continua pelo total.
+    expect(blocosPlanejados("rest_pause", { repsAlvo: 20 })).toHaveLength(4);
+    expect(camposLegados("rest_pause", { blocos: 3 }, 4)).toEqual({ tecnicaExtras: 3, tecnicaSeries: 0 });
+  });
   it("calcula as cargas dos drops com arredondamento de academia", () => {
     expect(cargasDosDrops(50, 2, 20)).toEqual([40, 32]);
     expect(cargasDosDrops(12, 2, 25)).toEqual([9, 7]);

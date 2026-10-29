@@ -16,6 +16,7 @@ import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
 import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
 import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
 import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
+import { codigoBloco, juntarBlocosAdjacentes, parceiroParaBiset, sugestaoDeBiset, type ItemJuntar } from "@/lib/treino/tecnica-aluno";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -286,6 +287,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [adaptacaoAberta, setAdaptacaoAberta] = useState<string | null>(null);
   // Status marcado nesta tela (pular / não consegui) antes do servidor confirmar.
   const [statusEx, setStatusEx] = useState<Record<string, string>>({});
+  // Ritmo do treino (do cronômetro): “atrasado” destaca o atalho do bi-set.
+  const [ritmoEstado, setRitmoEstado] = useState<string | null>(null);
   const [percepcaoEx, setPercepcaoEx] = useState<Record<string, PercepcaoExercicio>>({});
   const trava = useTravaVisitante();
   const [perguntandoEsforco, setPerguntandoEsforco] = useState<string | null>(null);
@@ -625,12 +628,46 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   }
 
   // Bi-set/tri-set: exercícios do mesmo bloco viram uma coisa só na tela.
+  // O bi-set que o aluno monta na hora (bloco_aluno) vale por cima do plano e fica lado a lado.
   function itensDoTreino(): ItemTreino[] {
     if (!sessao) return [];
-    return sessao.exercicios.map((se, i) => {
-      const e = exercicios.find((x) => x.id === se.exercicio_id) ?? exercicios[i];
-      return { id: se.id, bloco: e?.bloco ?? null, tecnica: e?.tecnica ?? null };
+    return juntarBlocosAdjacentes(
+      sessao.exercicios.map((se, i) => {
+        const e = exercicios.find((x) => x.id === se.exercicio_id) ?? exercicios[i];
+        const doAluno = blocoDoAluno(se);
+        return doAluno ? { id: se.id, bloco: doAluno, tecnica: "biset" } : { id: se.id, bloco: e?.bloco ?? null, tecnica: e?.tecnica ?? null };
+      })
+    );
+  }
+  const blocoDoAluno = (se: { prescricao?: unknown }) => ((se.prescricao as { bloco_aluno?: string | null } | null)?.bloco_aluno ?? null);
+
+  /** Exercícios que ainda podem virar bi-set: com séries a fazer e fora de bi-set/tri-set. */
+  function itensParaJuntar(): ItemJuntar[] {
+    if (!sessao) return [];
+    const grupos = gruposDoTreino(itensDoTreino());
+    const cont = contagemSeries();
+    return itensDoTreino().map((it) => {
+      const se = sessao.exercicios.find((x) => x.id === it.id);
+      const st = statusEx[it.id] ?? se?.status;
+      const emGrupo = grupos.some((g) => g.ids.length > 1 && g.ids.includes(it.id));
+      const c = cont[it.id];
+      return { id: it.id, livre: !emGrupo && st !== "pulado" && st !== "nao_consegui" && !!c && c.feitas < c.planejadas, grupo: (se?.grupo_muscular as string | null) ?? null };
     });
+  }
+
+  /** Aluno junta dois exercícios em bi-set para ganhar tempo (grava na sessão; volta ao normal com “Separar”). */
+  async function juntarEmBiset(a: string, b: string) {
+    if (!sessao) return;
+    const codigo = codigoBloco(sessao.exercicios.map((x) => blocoDoAluno(x)));
+    setSessao((cur) => (cur ? { ...cur, exercicios: cur.exercicios.map((x) => (x.id === a || x.id === b ? { ...x, prescricao: { ...((x.prescricao as Record<string, unknown> | null) ?? {}), bloco_aluno: codigo } } : x)) } : cur));
+    irParaExercicio(a);
+    for (const id of [a, b]) await fetch(`/api/sessoes/${sessao.id}/exercicios/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloco_aluno: codigo }) }).catch(() => undefined);
+  }
+  async function separarBiset(codigo: string) {
+    if (!sessao) return;
+    const ids = sessao.exercicios.filter((x) => blocoDoAluno(x) === codigo).map((x) => x.id);
+    setSessao((cur) => (cur ? { ...cur, exercicios: cur.exercicios.map((x) => (ids.includes(x.id) ? { ...x, prescricao: { ...((x.prescricao as Record<string, unknown> | null) ?? {}), bloco_aluno: null } } : x)) } : cur));
+    for (const id of ids) await fetch(`/api/sessoes/${sessao.id}/exercicios/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloco_aluno: null }) }).catch(() => undefined);
   }
   function contagemSeries(mais?: string): Record<string, { feitas: number; planejadas: number }> {
     const c: Record<string, { feitas: number; planejadas: number }> = {};
@@ -1414,6 +1451,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         exerciciosTotal={sessao.exercicios.length}
         onPausar={pausar}
         onRetomar={retomar}
+        onEstado={setRitmoEstado}
       />
 
       {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">👥 Aula presencial · {presencial.nomeAluno}. Tudo o que você marcar entra no histórico dela(e).</p> : <LembretePush compacto />}
@@ -1442,6 +1480,23 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           ) : null}
         </div>
       ) : null}
+
+      {!presencial && ritmoEstado === "atrasado" ? (() => {
+        const par = sugestaoDeBiset(itensParaJuntar());
+        if (!par) return null;
+        const nome = (id: string) => {
+          const i = sessao.exercicios.findIndex((x) => x.id === id);
+          const se = sessao.exercicios[i];
+          return (trocaAtiva(se)?.nome ?? (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome) || "Exercício";
+        };
+        return (
+          <div role="status" className="space-y-2 rounded-2xl border-2 border-[#a78bfa]/70 bg-[#a78bfa]/10 p-3">
+            <p className="text-sm font-black text-[#a78bfa]">⏱ Treino atrasado? Ganhe tempo com um bi-set</p>
+            <p className="text-xs text-fg-muted">Faça <strong className="text-fg">{nome(par[0])}</strong> e logo em seguida <strong className="text-fg">{nome(par[1])}</strong>, sem descanso no meio. Descanse só depois dos dois. As séries e as cargas continuam as mesmas.</p>
+            <button type="button" onClick={() => void juntarEmBiset(par[0], par[1])} className="touch w-full rounded-xl bg-[#a78bfa] px-4 py-2.5 text-sm font-bold text-bg">⚡ Juntar os dois em bi-set</button>
+          </div>
+        );
+      })() : null}
 
       <div className="space-y-3">
         {(() => {
@@ -1766,6 +1821,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                         + Série extra
                       </button>
+                      {!presencial && parceiroParaBiset(itensParaJuntar(), se.id) ? (
+                        <button type="button" onClick={() => void juntarEmBiset(se.id, parceiroParaBiset(itensParaJuntar(), se.id)!)} className="touch rounded-md border border-[#a78bfa]/60 px-3 py-2 text-xs font-semibold text-[#a78bfa]">
+                          ⚡ Juntar em bi-set
+                        </button>
+                      ) : null}
                       {podeTrocar ? (
                         <button type="button" onClick={() => { const abrir = trocaAberta !== se.id; setTrocaAberta(abrir ? se.id : null); if (abrir) requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} aria-expanded={trocaAberta === se.id} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
                           ⇄ Trocar exercício
@@ -1827,6 +1887,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
           const metodo = METODOS.find((m) => m.v === g.tecnica)?.l ?? "Bi-set";
           const agora = rod.concluido ? null : (g.ids.find((id) => (cont[id]?.feitas ?? 0) < (cont[id]?.planejadas ?? 0) && (cont[id]?.feitas ?? 0) < rod.atual) ?? null);
           const sequencia = g.ids.map((id) => rotulos[id]).join(" + ");
+          const doAluno = (() => { const x = porId.get(g.ids[0]); return x ? blocoDoAluno(x.se) : null; })();
           return (
             <section key={g.ids.join("-")} aria-label={`${metodo} ${sequencia}`} className="overflow-hidden rounded-2xl border-2 border-accent/70 bg-accent/[0.06]">
               <div className="space-y-1.5 bg-accent/15 px-4 py-3">
@@ -1834,6 +1895,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                   <p className="text-sm font-extrabold uppercase tracking-wide text-accent">🔗 {metodo} · {sequencia}</p>
                   {rod.total ? <span className="shrink-0 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">{rod.concluido ? "✓ concluído" : `Rodada ${rod.atual} de ${rod.total}`}</span> : null}
                 </div>
+                {doAluno ? (
+                  <p className="flex items-center justify-between gap-2 text-[11px] text-fg-subtle">
+                    <span>Você juntou estes exercícios para ganhar tempo.</span>
+                    <button type="button" onClick={() => void separarBiset(doAluno)} className="alvo shrink-0 rounded-full border border-border px-2.5 py-0.5 font-semibold text-fg-muted">Separar</button>
+                  </p>
+                ) : null}
                 <p className="text-xs text-fg-muted">Faça {g.ids.length === 2 ? "os dois" : `os ${g.ids.length}`} em sequência, <strong className="text-fg">sem descanso entre eles</strong>. Descanse só depois do último — isso é 1 rodada.</p>
                 {agora ? (
                   <button type="button" onClick={() => irParaExercicio(agora)} className="touch flex w-full items-center justify-between gap-2 rounded-lg border border-accent/50 bg-bg/60 px-3 py-2 text-left text-sm">

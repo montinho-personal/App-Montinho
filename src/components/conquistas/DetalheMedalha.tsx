@@ -11,7 +11,22 @@ import { usePathname } from "next/navigation";
 import { MedalhaIcone } from "./MedalhaIcone";
 import { CATEGORIA_ROTULO, CONTEUDO, FONTES } from "@/lib/conquistas/conteudo";
 import type { Medalha } from "@/lib/conquistas/vitrine";
-import { enviarEvento } from "@/components/chalala/evento";
+import { enviarEvento, enviarEventoComTrofeus, marcarVistas } from "@/components/chalala/evento";
+import { cardDaMedalha as cardDaConquista } from "@/lib/conquistas/compartilhavel";
+import { gerarImagemMedalha } from "@/components/chalala/cardMedalha";
+import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
+import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
+
+function baixarArquivo(f: File) {
+  const url = URL.createObjectURL(f);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = f.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
 import { BRAND } from "@/config/brand";
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -19,6 +34,28 @@ const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo"
 export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno, onFechar, rotuloEntender = "Entenda por que isso é importante", rotuloCard = "Gerar card desta medalha", className = "" }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; /** Personal: abre a comemoração (toque para abrir) como o aluno a vê. */ onVerComoAluno?: () => void; onFechar?: () => void; rotuloEntender?: string; rotuloCard?: string; className?: string }) {
   const [aberto, setAberto] = useState(false);
   const ehAluno = (usePathname() ?? "").startsWith("/aluno");
+  // Compartilhar direto, como numa rede social: um toque gera a imagem do troféu e abre o WhatsApp/Instagram.
+  const [enviando, setEnviando] = useState(false);
+  const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
+  const [trofeus, setTrofeus] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
+  async function compartilharDireto() {
+    setEnviando(true);
+    setAvisoEnvio(null);
+    let r: ResultadoCompartilhar;
+    const card = cardDaConquista({ codigo: m.codigo, titulo: m.titulo, conquistado_em: m.data ?? new Date().toISOString() }, "");
+    try {
+      r = await compartilharArquivo(navigator, await gerarImagemMedalha(card), card.legenda, baixarArquivo);
+    } catch {
+      r = "erro";
+    }
+    setEnviando(false);
+    if (r !== "enviado_ao_sistema") setAvisoEnvio(MENSAGEM_RESULTADO[r]);
+    if (r === "enviado_ao_sistema" || r === "baixado") {
+      const novas = await enviarEventoComTrofeus({ tipo: r === "baixado" ? "download" : "compartilhar_nativo", modelo: m.codigo, formato: "stories", origem: "medalha" });
+      if (novas.length) setTrofeus(novas as Array<ConquistaCelebravel & { id: string }>);
+    }
+  }
+  const compartilhaDireto = ehAluno && m.conquistada && !!onGerarCard;
   const t = CONTEUDO[m.codigo];
   const pct = m.alvo ? Math.round(((m.atual ?? 0) / m.alvo) * 100) : null;
 
@@ -78,15 +115,33 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
         </button>
       ) : null}
 
+      {compartilhaDireto ? (
+        <div className="space-y-1.5">
+          <button type="button" onClick={() => void compartilharDireto()} disabled={enviando} className="touch flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-base font-bold text-bg disabled:opacity-60">
+            {enviando ? "Preparando a imagem…" : "📲 Compartilhar"}
+          </button>
+          {avisoEnvio ? <p role="status" className="text-xs text-fg-muted">{avisoEnvio}</p> : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <button type="button" onClick={entender} aria-expanded={aberto} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">
           {aberto ? "Fechar explicação" : rotuloEntender}
         </button>
         {m.conquistada && onGerarCard ? (
-          <button type="button" onClick={onGerarCard} className="alvo text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">{rotuloCard}</button>
+          <button type="button" onClick={onGerarCard} className="alvo text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">{compartilhaDireto ? "✏️ Personalizar o card (foto, modelo)" : rotuloCard}</button>
         ) : null}
       </div>
       {m.conquistada && onGerarCard ? <ChamadaTrofeu acao="card_medalha" refTrofeu={m.codigo} /> : null}
+      {trofeus.length ? (
+        <CelebracaoMedalha
+          conquistas={trofeus}
+          onFechar={() => {
+            marcarVistas(trofeus.map((t) => t.id));
+            setTrofeus([]);
+          }}
+        />
+      ) : null}
 
       {aberto ? (
         <div className="space-y-3 border-t border-border pt-3">

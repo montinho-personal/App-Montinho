@@ -1065,7 +1065,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                 </div>
                                 {ehConfiguravel(r.tecnica) ? (
                                   <div className="px-2 pb-2">
-                                    <ConfigTecnicaPainel tecnica={r.tecnica} config={r.tecnicaConfig} validas={Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento)} cargaAlvo={r.cargaAlvo} onChange={(c) => updRow(t.key, r.key, { tecnicaConfig: c })} />
+                                    <ConfigTecnicaPainel key={r.tecnica} tecnica={r.tecnica} config={r.tecnicaConfig} validas={Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento)} cargaAlvo={r.cargaAlvo} onChange={(c) => updRow(t.key, r.key, { tecnicaConfig: c })} />
                                   </div>
                                 ) : null}
                               </div>

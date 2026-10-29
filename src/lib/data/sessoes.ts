@@ -427,18 +427,27 @@ export async function removerSerie(alunoId: string, sessionId: string, clientKey
   return (count ?? 0) > 0;
 }
 
-export async function atualizarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, patch: { status?: SessionExerciseStatus; observacao_aluno?: string | null; percepcao?: PercepcaoExercicio | null }): Promise<boolean> {
+export async function atualizarExercicioSessao(alunoId: string, sessionId: string, sessionExerciseId: string, entrada: { status?: SessionExerciseStatus; observacao_aluno?: string | null; percepcao?: PercepcaoExercicio | null; bloco_aluno?: string | null }): Promise<boolean> {
+  // Bi-set do aluno fica guardado na prescrição do dia (sem coluna nova).
+  const { bloco_aluno, ...patch } = entrada;
+  const mudaBloco = bloco_aluno !== undefined;
   if (isDemoMode()) {
     const st = demoStore();
     const s = st.sessions.find((x) => x.id === sessionId && x.aluno_id === alunoId);
     const se = st.sessionExercises.find((x) => x.id === sessionExerciseId && x.session_id === sessionId);
     if (!s || !se) return false;
     Object.assign(se, patch);
+    if (mudaBloco) se.prescricao = { ...((se.prescricao as Record<string, unknown> | null) ?? {}), bloco_aluno };
     return true;
   }
   const db = await getDb();
   const { data: s } = await db.from("training_sessions").select("id").eq("id", sessionId).eq("aluno_id", alunoId).maybeSingle();
   if (!s) return false;
+  if (mudaBloco) {
+    const { data: atual } = await db.from("session_exercises").select("prescricao").eq("id", sessionExerciseId).eq("session_id", sessionId).maybeSingle();
+    if (!atual) return false;
+    (patch as Record<string, unknown>).prescricao = { ...(((atual as { prescricao: Record<string, unknown> | null }).prescricao) ?? {}), bloco_aluno };
+  }
   let { error, count } = await db.from("session_exercises").update(patch, { count: "exact" }).eq("id", sessionExerciseId).eq("session_id", sessionId);
   // Banco sem a coluna da 0031 ainda: grava o resto (status) e ignora a percepção.
   if (error && "percepcao" in patch && /percepcao/i.test(error.message)) {

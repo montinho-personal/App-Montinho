@@ -122,13 +122,20 @@ export async function tirarExercicioLivre(alunoId: string, sessionId: string, se
   return (count ?? 0) > 0;
 }
 
-/** Muda a técnica e/ou a anotação de um exercício do treino livre. */
-export async function ajustarExercicioLivre(alunoId: string, sessionId: string, seId: string, patch: { tecnica?: Tecnica; observacao?: string | null }): Promise<boolean> {
+/** Muda a técnica (e como ela é feita), o bi-set/tri-set e/ou a anotação de um exercício do treino livre. */
+export async function ajustarExercicioLivre(alunoId: string, sessionId: string, seId: string, patch: { tecnica?: Tecnica; tecnicaConfig?: Record<string, unknown> | null; bloco?: string | null; observacao?: string | null }): Promise<boolean> {
   const s = await exigirLivreEmAndamento(alunoId, sessionId);
   const se = s.exercicios.find((e) => e.id === seId);
   if (!se) return false;
   const mudar: Partial<SessionExercise> = {};
-  if (patch.tecnica) mudar.prescricao = { ...((se.prescricao as Record<string, unknown> | null) ?? {}), tecnica: patch.tecnica };
+  if (patch.tecnica || patch.tecnicaConfig !== undefined || patch.bloco !== undefined) {
+    mudar.prescricao = {
+      ...((se.prescricao as Record<string, unknown> | null) ?? {}),
+      ...(patch.tecnica ? { tecnica: patch.tecnica } : {}),
+      ...(patch.tecnicaConfig !== undefined ? { tecnica_config: patch.tecnicaConfig } : {}),
+      ...(patch.bloco !== undefined ? { bloco: patch.bloco } : {}),
+    };
+  }
   if (patch.observacao !== undefined) mudar.observacao_aluno = patch.observacao?.trim().slice(0, 300) || null;
   if (isDemoMode()) {
     const alvo = demoStore().sessionExercises.find((e) => e.id === seId && e.session_id === sessionId);

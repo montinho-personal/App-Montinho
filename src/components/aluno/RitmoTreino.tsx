@@ -18,6 +18,8 @@ type Props = {
   exerciciosTotal: number;
   onPausar: () => void;
   onRetomar: () => void;
+  /** Avisa o treino do estado do ritmo (ex.: “atrasado” mostra o atalho do bi-set). */
+  onEstado?: (estado: string) => void;
 };
 
 const COR: Record<string, string> = {
@@ -35,7 +37,7 @@ const relogio = (seg: number) => {
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}` : `${m}:${String(s % 60).padStart(2, "0")}`;
 };
 
-export function RitmoTreino({ plano, inicioIso, offsetMs, pausas, seriesFeitas, exerciciosFeitos, exerciciosTotal, onPausar, onRetomar }: Props) {
+export function RitmoTreino({ plano, inicioIso, offsetMs, pausas, seriesFeitas, exerciciosFeitos, exerciciosTotal, onPausar, onRetomar, onEstado }: Props) {
   const [agora, setAgora] = useState<number | null>(null);
   const [aberto, setAberto] = useState(false);
 
@@ -51,6 +53,11 @@ export function RitmoTreino({ plano, inicioIso, offsetMs, pausas, seriesFeitas, 
       document.removeEventListener("visibilitychange", vis);
     };
   }, [offsetMs, pausas, seriesFeitas]);
+
+  const estadoAgora = agora !== null && plano.totalSeg ? calcularRitmo({ plano, inicioMs: new Date(inicioIso).getTime(), agoraMs: agora, pausas, seriesFeitas }).estado : null;
+  useEffect(() => {
+    if (estadoAgora) onEstado?.(estadoAgora);
+  }, [estadoAgora, onEstado]);
 
   if (agora === null || !plano.totalSeg) return null;
   const r = calcularRitmo({ plano, inicioMs: new Date(inicioIso).getTime(), agoraMs: agora, pausas, seriesFeitas });

@@ -37,7 +37,8 @@ function Numero({ rotulo, dica, campo, cfg, onChange, sufixo, vazio }: { rotulo:
 }
 
 export function ConfigTecnicaPainel({ tecnica, config, validas, cargaAlvo, onChange }: { tecnica: Tecnica; config: ConfigTecnica | null; validas: number; cargaAlvo?: string; onChange: (c: ConfigTecnica) => void }) {
-  const [aberto, setAberto] = useState(false);
+  // Técnica acabou de ser escolhida (configuração vazia): já abre com as perguntas.
+  const [aberto, setAberto] = useState(() => !!config && Object.keys(config).length === 0);
   if (!ehConfiguravel(tecnica)) return null;
   const cor = COR_TECNICA[tecnica] ?? "#d4a84b";
   const nome = METODOS.find((m) => m.v === tecnica)?.l ?? tecnica;
@@ -66,11 +67,11 @@ export function ConfigTecnicaPainel({ tecnica, config, validas, cargaAlvo, onCha
 
           {fin ? (
             <div className="space-y-1">
-              <span className="block text-[11px] font-semibold text-fg-muted">Onde entra o {nome.toLowerCase()}?</span>
+              <span className="block text-[11px] font-semibold text-fg-muted">Como vai usar o {nome.toLowerCase()}?</span>
               <div className="grid grid-cols-2 gap-1 rounded-lg border border-border p-1 text-[11px] font-semibold">
                 {(["finalizacao", "principais"] as const).map((a) => (
                   <button key={a} type="button" onClick={() => onChange({ ...cfg, aplicar: a, series: a === "principais" ? Math.min(validas || 1, ef.series) : ef.series })} className="rounded-md px-2 py-1.5" style={ef.aplicar === a ? { background: `${cor}26`, color: cor } : undefined}>
-                    {a === "finalizacao" ? "Série(s) a mais no final" : "Nas séries principais"}
+                    {a === "finalizacao" ? "🏁 Só para finalizar (série a mais no fim)" : "🔁 Nas séries principais"}
                   </button>
                 ))}
               </div>
@@ -81,7 +82,8 @@ export function ConfigTecnicaPainel({ tecnica, config, validas, cargaAlvo, onCha
             {fin ? <Numero campo="series" rotulo={ef.aplicar === "finalizacao" ? "Séries de finalização" : "Nas últimas … séries"} dica={ef.aplicar === "finalizacao" ? "Feitas depois das principais" : `De ${validas} séries`} vazio="1" cfg={cfg} onChange={onChange} /> : null}
             {tecnica === "rest_pause" ? (
               <>
-                <Numero campo="repsAlvo" rotulo="Reps alvo (total)" dica="Somando todos os pedaços" vazio="sem total" cfg={cfg} onChange={onChange} />
+                <Numero campo="blocos" rotulo="Mini-séries depois da 1ª" dica={`${ef.blocos + 1} blocos no total (2 = 3 blocos)`} vazio={ph("blocos")} cfg={cfg} onChange={onChange} />
+                <Numero campo="repsAlvo" rotulo="Reps alvo (total)" dica="Somando todos os blocos" vazio="sem total" cfg={cfg} onChange={onChange} />
                 <Numero campo="pausaSeg" rotulo="Pausa" sufixo="s" dica="10–20 s é o usual" vazio={ph("pausaSeg")} cfg={cfg} onChange={onChange} />
               </>
             ) : null}
@@ -121,7 +123,7 @@ export function ConfigTecnicaPainel({ tecnica, config, validas, cargaAlvo, onCha
           {tecnica === "rest_pause" && ef.repsAlvo != null ? (
             <p className="flex flex-wrap items-center gap-1 text-[11px] text-fg-muted">
               Exemplo:
-              {exemploRestPause(ef.repsAlvo).map((n, i) => (
+              {exemploRestPause(ef.repsAlvo, cfg.blocos != null ? ef.blocos + 1 : undefined).map((n, i) => (
                 <span key={i} className="inline-flex items-center gap-1">
                   {i ? <span className="text-fg-subtle">{ef.pausaSeg}s</span> : null}
                   <span className="rounded-full px-2 py-0.5 font-mono font-bold" style={{ background: `${cor}26`, color: cor }}>{n}</span>

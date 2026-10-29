@@ -12,14 +12,46 @@ import { Icon } from "@/components/ui/Icon";
 import { RestTimer } from "@/components/ui/RestTimer";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
-import { TECNICAS_LIVRE, lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
+import { lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
+import { EscolherTecnica, type EscolhaTecnica } from "@/components/livre/EscolherTecnica";
+import { SerieEmBlocos, type BlocoDigitado } from "@/app/(aluno)/aluno/treino/[treinoId]/SerieEmBlocos";
+import { blocosPlanejados, configEfetiva, registraEmBlocos, somaBlocos, type ConfigTecnica } from "@/lib/treino/tecnica-config";
+import { codigoBloco, infoTecnica, juntaExercicios, juntarBlocosAdjacentes, proximoDaRodada, resumoEscolha, seriesComTecnica } from "@/lib/treino/tecnica-aluno";
+import { gruposDoTreino, rotulosDosExercicios } from "@/lib/treino/blocos";
+import { COR_TECNICA } from "@/lib/volume/tecnicas";
+import type { Tecnica } from "@/lib/volume/calcular";
 import type { SerieTipo } from "@/lib/supabase/types-sessoes";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 import { avisoDaSerie, contaNoPlacar, linhaDoGrupo, somarNoPlacar, sugestaoDeAgora, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
-export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean };
-export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; tecnica: string; observacao: string; ultima: string | null; series: SerieTela[] };
+export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: BlocoDigitado[] };
+export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[] };
+
+/** Série desta linha registrada em blocos (técnica configurada). */
+const emBlocos = (e: ExercicioTela, s: SerieTela) => !!e.config && registraEmBlocos(s.tipo) && s.tipo === e.tecnica;
+
+/**
+ * Séries do exercício depois de escolher a técnica: as salvas ficam; as vazias
+ * dão lugar às da técnica. Finalização = séries normais + N da técnica no fim;
+ * “em N séries” = N séries da técnica.
+ */
+function seriesParaTecnica(e: ExercicioTela, tecnica: string, config: ConfigTecnica | null, chave: () => string): SerieTela[] {
+  const tipoTec = infoTecnica(tecnica)?.serie;
+  const n = tipoTec && registraEmBlocos(tipoTec) ? seriesComTecnica(tecnica, config) : 0;
+  const ficam = e.series.filter((s) => s.salva || ((s.carga.trim() || s.reps.trim()) && !registraEmBlocos(s.tipo)));
+  const out: SerieTela[] = ficam.map((s) => (s.salva ? s : { ...s, tipo: s.tipo === "aquecimento" ? "aquecimento" : "valida", blocos: undefined }));
+  const ult = [...out].reverse().find((s) => s.tipo === "valida");
+  if (n && tipoTec) {
+    const fin = configEfetiva(tecnica, config)?.aplicar === "finalizacao";
+    // Finalização sem nenhuma série normal ainda: começa por uma normal.
+    if (fin && !out.some((s) => s.tipo === "valida")) out.push({ key: chave(), serie: 0, tipo: "valida", carga: "", reps: "", salva: false });
+    for (let i = 0; i < n; i++) out.push({ key: chave(), serie: 0, tipo: tipoTec, carga: ult?.carga ?? "", reps: "", salva: false, blocos: [] });
+  } else if (!out.some((s) => !s.salva)) {
+    out.push({ key: chave(), serie: 0, tipo: "valida", carga: ult?.carga ?? "", reps: "", salva: false });
+  }
+  return out.map((s, i) => ({ ...s, serie: i + 1 }));
+}
 
 const novaChave = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 /** Descanso depois da série, igual ao treino normal (aquecimento descansa menos). */
@@ -44,7 +76,17 @@ async function chamar(url: string, metodo: string, corpo: unknown): Promise<{ ok
 
 export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas }: { sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
   const router = useRouter();
-  const [exs, setExs] = useState<ExercicioTela[]>(inicial);
+  // Ao abrir (ou voltar), todo exercício já tem onde anotar: as séries da técnica que faltam ou uma série vazia.
+  const [exs, setExs] = useState<ExercicioTela[]>(() =>
+    inicial.map((e) => {
+      if (e.series.some((x) => !x.salva)) return e;
+      const tipoTec = infoTecnica(e.tecnica)?.serie;
+      const feitasTec = e.series.filter((x) => x.tipo === tipoTec).length;
+      if (e.config && tipoTec && registraEmBlocos(tipoTec) && feitasTec < seriesComTecnica(e.tecnica, e.config)) return { ...e, series: seriesParaTecnica(e, e.tecnica, e.config, novaChave).slice(0, e.series.length + seriesComTecnica(e.tecnica, e.config) - feitasTec + (e.series.some((x) => x.tipo === "valida") ? 0 : 1)) };
+      const ult = e.series.at(-1);
+      return { ...e, series: [...e.series, { key: novaChave(), serie: e.series.length + 1, tipo: ult && ult.tipo !== "aquecimento" && !registraEmBlocos(ult.tipo) ? ult.tipo : "valida", carga: ult?.carga ?? "", reps: "", salva: false }] };
+    })
+  );
   const [aberto, setAberto] = useState<string | null>(inicial.at(-1)?.seId ?? null);
   const [buscando, setBuscando] = useState(inicial.length === 0);
   const [erro, setErro] = useState<string | null>(null);
@@ -54,7 +96,8 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [trabalhando, setTrabalhando] = useState<Set<string>>(() => new Set());
   const marcar = (key: string, on: boolean) => setTrabalhando((t) => { const n = new Set(t); if (on) n.add(key); else n.delete(key); return n; });
   const [ocupado, setOcupado] = useState(false);
-  const [agora, setAgora] = useState(() => Date.now());
+  // Relógio só depois de abrir no aparelho (o servidor não sabe a hora do celular).
+  const [agora, setAgora] = useState<number | null>(null);
   const [timer, setTimer] = useState<{ seg: number; key: number } | null>(null);
   const [terminando, setTerminando] = useState(false);
   const [feedback, setFeedback] = useState<(typeof FEEDBACK)[number]["id"] | null>(null);
@@ -62,6 +105,9 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [placar, setPlacar] = useState<LinhaPlacar[]>(metas?.placar ?? []);
   const [aviso, setAviso] = useState<string | null>(null);
   const [verPlacar, setVerPlacar] = useState(false);
+  // Técnica: exercício com a janela aberta e o bi-set esperando o exercício novo da busca.
+  const [tecnicaDe, setTecnicaDe] = useState<string | null>(null);
+  const [aJuntar, setAJuntar] = useState<{ ids: string[]; tecnica: Tecnica; faltam: number; bloco: string } | null>(null);
   const jaHoje = [...new Set(exs.filter((e) => e.series.some((s) => s.salva && contaNoPlacar(s.tipo))).map((e) => linhaDoGrupo(placar, e.grupo)?.grupo).filter((g): g is GrupoMuscular => !!g))];
   const sugestao = metas && placar.length ? sugestaoDeAgora(placar, { hoje: metas.hoje, recentes: metas.recentes, jaHoje }) : null;
   // Séries que já estão no placar (as salvas antes de abrir a tela já vêm na conta do servidor).
@@ -83,10 +129,14 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   }
 
   useEffect(() => {
+    const primeiro = window.setTimeout(() => setAgora(Date.now()), 0);
     const t = window.setInterval(() => setAgora(Date.now()), 1000);
-    return () => window.clearInterval(t);
+    return () => {
+      window.clearTimeout(primeiro);
+      window.clearInterval(t);
+    };
   }, []);
-  const decorrido = Math.max(0, Math.round((agora - new Date(iniciadoEm).getTime()) / 1000));
+  const decorrido = agora === null ? 0 : Math.max(0, Math.round((agora - new Date(iniciadoEm).getTime()) / 1000));
   const seriesFeitas = exs.reduce((n, e) => n + e.series.filter((s) => s.salva && s.tipo !== "aquecimento").length, 0);
 
   const mudarEx = (seId: string, f: (e: ExercicioTela) => ExercicioTela) => setExs((l) => l.map((e) => (e.seId === seId ? f(e) : e)));
@@ -108,34 +158,119 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       return setErro(String(r.json.error ?? "Não foi possível adicionar agora."));
     }
     const seId = String(r.json.id);
-    setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tecnica: "normal", observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
-    setAberto(seId);
+    setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tecnica: "normal", config: null, bloco: null, observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
     setBuscando(false);
+    // Bi-set/tri-set esperando este exercício: entra junto.
+    if (aJuntar) {
+      const ids = [...aJuntar.ids, seId];
+      await juntar(ids, aJuntar.tecnica, aJuntar.bloco);
+      if (aJuntar.faltam > 1) {
+        setAJuntar({ ...aJuntar, ids, faltam: aJuntar.faltam - 1 });
+        setBuscando(true);
+      } else {
+        setAJuntar(null);
+        setAberto(ids[0]);
+        setAviso(`⚡ ${infoTecnica(aJuntar.tecnica)?.nome} montado! Faça um exercício depois do outro, sem descanso no meio.`);
+      }
+      return;
+    }
+    setAberto(seId);
+  }
+
+  /** Junta exercícios em bi-set/tri-set (grava em cada um e deixa lado a lado na tela). */
+  async function juntar(ids: string[], tecnica: Tecnica, bloco: string) {
+    setExs((l) => juntarBlocosAdjacentes(l.map((x) => (ids.includes(x.seId) ? { ...x, tecnica, config: null, bloco, series: x.series.map((y) => (y.salva || !registraEmBlocos(y.tipo) ? y : { ...y, tipo: "valida", blocos: undefined })) } : x))));
+    for (const id of ids) {
+      const r = await chamar(`/api/livre/${sessaoId}/exercicios/${id}`, "PATCH", { tecnica, tecnica_config: null, bloco });
+      if (!r.ok) setErroEx({ seId: id, texto: String(r.json.error ?? "Não foi possível juntar agora.") });
+    }
+  }
+
+  /** Separa o bi-set/tri-set: cada exercício volta a ser normal. */
+  async function separar(bloco: string) {
+    const ids = exs.filter((x) => x.bloco === bloco).map((x) => x.seId);
+    setExs((l) => l.map((x) => (x.bloco === bloco ? { ...x, tecnica: "normal", bloco: null } : x)));
+    for (const id of ids) await chamar(`/api/livre/${sessaoId}/exercicios/${id}`, "PATCH", { tecnica: "normal", tecnica_config: null, bloco: null });
+  }
+
+  /** Aplica a técnica escolhida na janela: grava e já ajusta as séries (ou junta os exercícios). */
+  async function aplicarTecnica(e: ExercicioTela, esc: EscolhaTecnica) {
+    setTecnicaDe(null);
+    setErroEx(null);
+    // Saindo de um bi-set: o parceiro que sobrar sozinho volta a ser normal.
+    if (e.bloco && !juntaExercicios(esc.tecnica)) {
+      const resto = exs.filter((x) => x.bloco === e.bloco && x.seId !== e.seId);
+      if (resto.length === 1) await separar(e.bloco);
+    }
+    if (juntaExercicios(esc.tecnica)) {
+      const bloco = e.bloco ?? codigoBloco(exs.map((x) => x.bloco));
+      const ids = [e.seId, ...esc.parceiros];
+      await juntar(ids, esc.tecnica, bloco);
+      if (esc.novos > 0) {
+        setAJuntar({ ids, tecnica: esc.tecnica, faltam: esc.novos, bloco });
+        setBuscando(true);
+      } else setAviso(`⚡ ${infoTecnica(esc.tecnica)?.nome} montado! Faça um exercício depois do outro, sem descanso no meio.`);
+      return;
+    }
+    mudarEx(e.seId, (x) => ({ ...x, tecnica: esc.tecnica, config: esc.config, bloco: null, series: seriesParaTecnica(x, esc.tecnica, esc.config, novaChave) }));
+    const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "PATCH", { tecnica: esc.tecnica, tecnica_config: esc.config, bloco: null });
+    if (!r.ok) setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível salvar a técnica agora.") });
   }
 
   function maisSerie(e: ExercicioTela) {
     const ult = e.series.at(-1);
-    mudarEx(e.seId, (x) => ({ ...x, series: [...x.series, { key: novaChave(), serie: (ult?.serie ?? 0) + 1, tipo: ult?.tipo === "aquecimento" ? "valida" : (ult?.tipo ?? "valida"), carga: ult?.carga ?? "", reps: ult?.reps ?? "", salva: false }] }));
+    // Finalização: a série nova é normal e entra antes da(s) série(s) da técnica.
+    if (e.config && configEfetiva(e.tecnica, e.config)?.aplicar === "finalizacao" && ult && emBlocos(e, ult)) {
+      const normal = [...e.series].reverse().find((x) => x.tipo === "valida");
+      mudarEx(e.seId, (x) => {
+        const i = x.series.findIndex((y) => emBlocos(x, y) && !y.salva);
+        const nova: SerieTela = { key: novaChave(), serie: 0, tipo: "valida", carga: normal?.carga ?? "", reps: normal?.reps ?? "", salva: false };
+        const lista = i < 0 ? [...x.series, nova] : [...x.series.slice(0, i), nova, ...x.series.slice(i)];
+        return { ...x, series: lista.map((y, k) => ({ ...y, serie: k + 1 })) };
+      });
+      return;
+    }
+    const tipo = ult?.tipo === "aquecimento" ? "valida" : (ult?.tipo ?? "valida");
+    mudarEx(e.seId, (x) => ({ ...x, series: [...x.series, { key: novaChave(), serie: (ult?.serie ?? 0) + 1, tipo, carga: ult?.carga ?? "", reps: ult && emBlocos(x, ult) ? "" : (ult?.reps ?? ""), salva: false, ...(ult && emBlocos(x, ult) ? { blocos: [] } : {}) }] }));
   }
 
   async function salvarSerie(e: ExercicioTela, s: SerieTela) {
     if (trabalhando.has(s.key)) return;
     if (s.salva) return; // já salva e sem mudança: nada a fazer (não reinicia o descanso)
-    const carga = lerCarga(s.carga);
-    const reps = lerReps(s.reps);
+    // Série em blocos: reps = soma dos pedaços; carga = a do 1º (no drop-set cada pedaço guarda a sua).
+    const pedacos = emBlocos(e, s) ? (s.blocos ?? []).map((b) => ({ carga: lerCarga(b.carga), reps: lerReps(b.reps) })).filter((b) => b.carga != null || b.reps != null) : null;
+    if (pedacos && e.tecnica !== "dropset" && pedacos.length) pedacos.forEach((b, k) => (b.carga = k === 0 ? (b.carga ?? lerCarga(s.carga)) : (pedacos[0].carga ?? lerCarga(s.carga))));
+    const carga = pedacos ? (pedacos[0]?.carga ?? lerCarga(s.carga)) : lerCarga(s.carga);
+    const reps = pedacos ? (pedacos.some((b) => b.reps != null) ? somaBlocos(pedacos.map((b) => b.reps)) : null) : lerReps(s.reps);
     if (reps == null && carga == null) return setErroEx({ seId: e.seId, texto: `Série ${s.serie}: anote as repetições ou a carga antes do ✓.` });
     if (s.carga.trim() && carga == null) return setErroEx({ seId: e.seId, texto: `Série ${s.serie}: carga inválida. Use números, ex.: 42,5` });
     setErroEx(null);
     marcar(s.key, true);
-    const r = await chamar(`/api/sessoes/${sessaoId}/series`, "POST", { session_exercise_id: e.seId, client_key: `livre:${s.key}`, serie: s.serie, tipo: s.tipo, carga_kg: carga, reps });
+    const r = await chamar(`/api/sessoes/${sessaoId}/series`, "POST", { session_exercise_id: e.seId, client_key: `livre:${s.key}`, serie: s.serie, tipo: s.tipo, carga_kg: carga, reps, ...(pedacos?.length ? { blocos: pedacos } : {}) });
     marcar(s.key, false);
     if (!r.ok) return setErroEx({ seId: e.seId, texto: `Série ${s.serie} não foi salva: ${String(r.json.error ?? "tente de novo.")}` });
     contarNoPlacar(e, s, contaNoPlacar(s.tipo));
     // Mudou o número enquanto salvava? Continua “a salvar” para o próximo ✓ gravar o valor novo.
-    mudarEx(e.seId, (x) => ({ ...x, series: x.series.map((y) => (y.key === s.key && y.carga === s.carga && y.reps === s.reps && y.tipo === s.tipo ? { ...y, salva: true } : y)) }));
+    mudarEx(e.seId, (x) => ({ ...x, series: x.series.map((y) => (y.key === s.key && y.carga === s.carga && y.reps === s.reps && y.tipo === s.tipo && y.blocos === s.blocos ? { ...y, salva: true } : y)) }));
+    if (navigator.vibrate) navigator.vibrate(30);
+    // Bi-set/tri-set: vai para o próximo exercício da rodada sem descanso; no último, descansa e volta ao 1º.
+    const membros = e.bloco && s.tipo !== "aquecimento" ? exs.filter((x) => x.bloco === e.bloco).map((x) => x.seId) : [];
+    const rodada = proximoDaRodada(membros, e.seId);
+    if (rodada) {
+      const prox = exs.find((x) => x.seId === rodada.proximo)!;
+      // O próximo precisa de uma linha para anotar.
+      if (!prox.series.some((y) => !y.salva)) maisSerie(prox);
+      if (!rodada.descansa) {
+        setAviso(`➡️ Agora: ${prox.nome}, sem descanso.`);
+        setAberto(prox.seId);
+        requestAnimationFrame(() => document.getElementById(`livre-${prox.seId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        return;
+      }
+      setAviso(`✅ Rodada feita! Descanse e volte para ${prox.nome}.`);
+      setAberto(prox.seId);
+    }
     const seg = s.tipo === "aquecimento" ? DESCANSO_SEG.aquecimento : DESCANSO_SEG.valida;
     setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }));
-    if (navigator.vibrate) navigator.vibrate(30);
   }
 
   async function apagarSerie(e: ExercicioTela, s: SerieTela) {
@@ -186,6 +321,106 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
 
   const pendentes = exs.reduce((n, e) => n + e.series.filter((s) => !s.salva && (s.carga.trim() || s.reps.trim())).length, 0);
 
+  // Bi-set/tri-set: exercícios do mesmo bloco aparecem juntos, numerados 1A, 1B…
+  const grupos = gruposDoTreino(exs.map((x) => ({ id: x.seId, bloco: x.bloco, tecnica: x.tecnica })));
+  const rotulos = rotulosDosExercicios(grupos);
+  const cartao = (e: ExercicioTela, rotulo: string) => {
+          const abertoAqui = aberto === e.seId;
+          const feitas = e.series.filter((s) => s.salva && s.tipo !== "aquecimento").length;
+          const tipos = tiposDeSerie(e.tecnica);
+          return (
+            <li key={e.seId} id={`livre-${e.seId}`} className={`scroll-mt-24 rounded-xl border ${abertoAqui ? "border-accent/60" : "border-border"} bg-card`}>
+              <div className="flex items-center">
+              <button type="button" onClick={() => setAberto(abertoAqui ? null : e.seId)} aria-expanded={abertoAqui} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-2 text-left">
+                <span className="grid h-8 min-w-8 shrink-0 place-items-center rounded-lg bg-accent/15 px-1 text-sm font-bold text-accent">{rotulo}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold leading-tight">{e.nome}</span>
+                  <span className="block text-xs text-fg-subtle">{e.grupo ? GRUPO_LABEL[e.grupo] : "Exercício com o seu nome"} · {feitas} {feitas === 1 ? "série" : "séries"}{e.tecnica !== "normal" && !e.bloco ? ` · ${infoTecnica(e.tecnica)?.nome ?? e.tecnica}` : ""}</span>
+                </span>
+                <Icon name={abertoAqui ? "up" : "down"} size={18} className="shrink-0 text-fg-muted" />
+              </button>
+              <button type="button" onClick={() => void tirar(e)} aria-label={`Tirar ${e.nome} do treino`} className="alvo mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-fg-subtle hover:text-red">
+                <Icon name="trash" size={18} />
+              </button>
+              </div>
+              {erroEx?.seId === e.seId ? <p role="alert" className="mx-4 mb-3 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erroEx.texto}</p> : null}
+              {abertoAqui ? (
+                <div className="space-y-3 border-t border-border px-4 py-3">
+                  {e.ultima ? <p className="text-xs text-fg-muted">📌 {e.ultima}</p> : null}
+                  {!e.bloco ? (
+                    <button type="button" onClick={() => setTecnicaDe(e.seId)} className="alvo flex w-full items-center gap-3 rounded-lg border border-border border-l-4 bg-bg px-3 py-2 text-left" style={{ borderLeftColor: (COR_TECNICA[e.tecnica as Tecnica] ?? null) || "var(--color-border)" }}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">Técnica</span>
+                        <span className="block text-sm font-semibold">{e.tecnica === "normal" ? "Sem técnica · séries normais" : (resumoEscolha(e.tecnica, e.config) ?? infoTecnica(e.tecnica)?.nome ?? e.tecnica)}</span>
+                      </span>
+                      <span className="shrink-0 rounded-full border border-accent/60 px-3 py-1 text-xs font-bold text-accent">{e.tecnica === "normal" ? "＋ Técnica / bi-set" : "Mudar"}</span>
+                    </button>
+                  ) : null}
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem_2.25rem] items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
+                      <span>Série</span><span>Carga (kg)</span><span>Reps</span><span className="sr-only">Salvar</span><span className="sr-only">Apagar</span>
+                    </div>
+                    {e.series.map((s) => emBlocos(e, s) ? (
+                      <SerieEmBlocos
+                        key={s.key}
+                        rotulo={String(s.serie)}
+                        titulo={`${configEfetiva(e.tecnica, e.config)?.aplicar === "finalizacao" ? "Finalização · " : ""}${infoTecnica(e.tecnica)?.nome ?? ""}`}
+                        cor={COR_TECNICA[e.tecnica as Tecnica] ?? "#ba9e50"}
+                        planejados={blocosPlanejados(e.tecnica, e.config)}
+                        valores={s.blocos ?? []}
+                        cargaRef={e.series.find((x) => x.tipo === "valida" && x.carga)?.carga || null}
+                        cargaPorBloco={e.tecnica === "dropset"}
+                        livre={e.tecnica === "rest_pause"}
+                        alvoTotal={e.tecnica === "rest_pause" ? (configEfetiva(e.tecnica, e.config)?.repsAlvo ?? null) : null}
+                        concluida={s.salva}
+                        sincronizada={s.salva}
+                        onChange={(v) => mudarSerie(e.seId, s.key, { blocos: v, carga: v[0]?.carga ?? s.carga, salva: false })}
+                        onConcluir={() => void salvarSerie(e, s)}
+                        onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }))}
+                      />
+                    ) : (
+                      <div key={s.key} className="space-y-1">
+                        <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem_2.25rem] items-center gap-2">
+                          <span className="text-center font-mono text-sm text-fg-muted">{s.tipo === "aquecimento" ? "A" : s.serie}</span>
+                          <input inputMode="decimal" value={s.carga} onChange={(ev) => mudarSerie(e.seId, s.key, { carga: ev.target.value, salva: false })} placeholder="kg" aria-label={`Carga da série ${s.serie}`} className="h-11 w-full rounded-lg border border-border bg-bg px-2 text-center text-base tabular-nums" />
+                          <input inputMode="numeric" value={s.reps} onChange={(ev) => mudarSerie(e.seId, s.key, { reps: ev.target.value.replace(/\D/g, "").slice(0, 3), salva: false })} placeholder="reps" aria-label={`Repetições da série ${s.serie}`} className="h-11 w-full rounded-lg border border-border bg-bg px-2 text-center text-base tabular-nums" />
+                          <button type="button" onClick={() => void salvarSerie(e, s)} aria-busy={trabalhando.has(s.key)} aria-label={trabalhando.has(s.key) ? "Salvando série" : s.salva ? "Série salva" : "Salvar série"} className={`grid h-11 w-11 place-items-center rounded-lg border ${trabalhando.has(s.key) ? "animate-pulse border-accent bg-accent/20 text-accent" : s.salva ? "border-success bg-success/20 text-success" : "border-accent text-accent"}`}>
+                            {trabalhando.has(s.key) ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden /> : <Icon name="check" size={18} />}
+                          </button>
+                          <button type="button" disabled={trabalhando.has(s.key)} onClick={() => void apagarSerie(e, s)} aria-label={`Apagar série ${s.serie}`} className="grid h-11 w-9 place-items-center rounded-lg text-fg-subtle hover:text-red disabled:opacity-40">
+                            <Icon name="x" size={16} />
+                          </button>
+                        </div>
+                        {tipos.filter((t) => !(e.config && registraEmBlocos(t.id))).length > 1 ? (
+                          <div className="ml-10 flex flex-wrap gap-1.5">
+                            {tipos.filter((t) => !(e.config && registraEmBlocos(t.id))).map((t) => (
+                              <button key={t.id} type="button" onClick={() => { if (s.tipo !== t.id) mudarSerie(e.seId, s.key, { tipo: t.id, salva: false }); }} aria-pressed={s.tipo === t.id} className={`min-h-9 rounded-full border px-3 text-xs ${s.tipo === t.id ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-subtle"}`}>
+                                {t.rotulo}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => maisSerie(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border text-sm font-semibold text-fg-muted hover:text-fg">
+                      <Icon name="plus" size={16} /> Mais uma série
+                    </button>
+                  </div>
+
+                  <label className="block text-xs font-semibold text-fg-muted">
+                    Anotação (opcional)
+                    <textarea value={e.observacao} onChange={(ev) => mudarEx(e.seId, (x) => ({ ...x, observacao: ev.target.value.slice(0, 300) }))} onBlur={() => void ajustar(e, { observacao: e.observacao })} rows={2} placeholder="Ex.: máquina 3, banco na posição 4, senti mais o glúteo" className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm font-normal text-fg" />
+                  </label>
+                  <button type="button" onClick={() => void tirar(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-red/40 text-sm font-semibold text-red">
+                    <Icon name="trash" size={16} /> Tirar este exercício do treino
+                  </button>
+                </div>
+              ) : null}
+            </li>
+          );
+  };
+
   return (
     <div className="space-y-4 pb-24">
       <RecadosAoVivo sessaoId={sessaoId} />
@@ -228,95 +463,36 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       {erro ? <p role="alert" className="rounded-xl border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erro}</p> : null}
 
       <ol className="space-y-3">
-        {exs.map((e, i) => {
-          const abertoAqui = aberto === e.seId;
-          const feitas = e.series.filter((s) => s.salva && s.tipo !== "aquecimento").length;
-          const tipos = tiposDeSerie(e.tecnica);
+        {grupos.map((g) => {
+          const membros = g.ids.map((id) => exs.find((x) => x.seId === id)!).filter(Boolean);
+          if (membros.length < 2) return cartao(membros[0], rotulos[membros[0].seId]);
+          const cor = COR_TECNICA[(g.tecnica ?? "biset") as Tecnica] ?? "#a78bfa";
+          const nomeTec = infoTecnica(g.tecnica)?.nome ?? "Bi-set";
+          const rodada = Math.min(...membros.map((m) => m.series.filter((x) => x.salva && x.tipo !== "aquecimento").length)) + 1;
           return (
-            <li key={e.seId} className={`rounded-xl border ${abertoAqui ? "border-accent/60" : "border-border"} bg-card`}>
-              <div className="flex items-center">
-              <button type="button" onClick={() => setAberto(abertoAqui ? null : e.seId)} aria-expanded={abertoAqui} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-2 text-left">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent/15 text-sm font-bold text-accent">{i + 1}</span>
+            <li key={`g-${membros[0].bloco}`} className="space-y-2 rounded-2xl border-2 p-2" style={{ borderColor: `${cor}99`, background: `${cor}12` }}>
+              <div className="flex items-start gap-2 px-1">
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold leading-tight">{e.nome}</span>
-                  <span className="block text-xs text-fg-subtle">{e.grupo ? GRUPO_LABEL[e.grupo] : "Exercício com o seu nome"} · {feitas} {feitas === 1 ? "série" : "séries"}{e.tecnica !== "normal" ? ` · ${TECNICAS_LIVRE.find((t) => t.id === e.tecnica)?.rotulo}` : ""}</span>
+                  <span className="block text-sm font-black" style={{ color: cor }}>⚡ {nomeTec} · rodada {rodada}</span>
+                  <span className="block text-xs text-fg-muted">{membros.map((m) => rotulos[m.seId]).join(" → ")} sem descanso no meio. Descanse só depois do último.</span>
                 </span>
-                <Icon name={abertoAqui ? "up" : "down"} size={18} className="shrink-0 text-fg-muted" />
-              </button>
-              <button type="button" onClick={() => void tirar(e)} aria-label={`Tirar ${e.nome} do treino`} className="alvo mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-fg-subtle hover:text-red">
-                <Icon name="trash" size={18} />
-              </button>
+                <button type="button" onClick={() => void separar(membros[0].bloco!)} className="alvo shrink-0 rounded-full border border-border px-3 py-1 text-xs font-semibold text-fg-muted">Separar</button>
               </div>
-              {erroEx?.seId === e.seId ? <p role="alert" className="mx-4 mb-3 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erroEx.texto}</p> : null}
-              {abertoAqui ? (
-                <div className="space-y-3 border-t border-border px-4 py-3">
-                  {e.ultima ? <p className="text-xs text-fg-muted">📌 {e.ultima}</p> : null}
-                  <label className="block text-xs font-semibold text-fg-muted">
-                    Técnica
-                    <select
-                      value={e.tecnica}
-                      onChange={(ev) => {
-                        const t = ev.target.value;
-                        const validos = new Set(tiposDeSerie(t).map((x) => x.id));
-                        mudarEx(e.seId, (x) => ({ ...x, tecnica: t, series: x.series.map((s) => (s.salva || validos.has(s.tipo) ? s : { ...s, tipo: "valida" })) }));
-                        void ajustar(e, { tecnica: t });
-                      }}
-                      className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-fg"
-                    >
-                      {TECNICAS_LIVRE.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
-                    </select>
-                    {e.tecnica !== "normal" ? <span className="mt-1 block font-normal text-fg-subtle">{TECNICAS_LIVRE.find((t) => t.id === e.tecnica)?.dica}</span> : null}
-                  </label>
-
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem_2.25rem] items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
-                      <span>Série</span><span>Carga (kg)</span><span>Reps</span><span className="sr-only">Salvar</span><span className="sr-only">Apagar</span>
-                    </div>
-                    {e.series.map((s) => (
-                      <div key={s.key} className="space-y-1">
-                        <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem_2.25rem] items-center gap-2">
-                          <span className="text-center font-mono text-sm text-fg-muted">{s.tipo === "aquecimento" ? "A" : s.serie}</span>
-                          <input inputMode="decimal" value={s.carga} onChange={(ev) => mudarSerie(e.seId, s.key, { carga: ev.target.value, salva: false })} placeholder="kg" aria-label={`Carga da série ${s.serie}`} className="h-11 w-full rounded-lg border border-border bg-bg px-2 text-center text-base tabular-nums" />
-                          <input inputMode="numeric" value={s.reps} onChange={(ev) => mudarSerie(e.seId, s.key, { reps: ev.target.value.replace(/\D/g, "").slice(0, 3), salva: false })} placeholder="reps" aria-label={`Repetições da série ${s.serie}`} className="h-11 w-full rounded-lg border border-border bg-bg px-2 text-center text-base tabular-nums" />
-                          <button type="button" onClick={() => void salvarSerie(e, s)} aria-busy={trabalhando.has(s.key)} aria-label={trabalhando.has(s.key) ? "Salvando série" : s.salva ? "Série salva" : "Salvar série"} className={`grid h-11 w-11 place-items-center rounded-lg border ${trabalhando.has(s.key) ? "animate-pulse border-accent bg-accent/20 text-accent" : s.salva ? "border-success bg-success/20 text-success" : "border-accent text-accent"}`}>
-                            {trabalhando.has(s.key) ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden /> : <Icon name="check" size={18} />}
-                          </button>
-                          <button type="button" disabled={trabalhando.has(s.key)} onClick={() => void apagarSerie(e, s)} aria-label={`Apagar série ${s.serie}`} className="grid h-11 w-9 place-items-center rounded-lg text-fg-subtle hover:text-red disabled:opacity-40">
-                            <Icon name="x" size={16} />
-                          </button>
-                        </div>
-                        {tipos.length > 1 ? (
-                          <div className="ml-10 flex flex-wrap gap-1.5">
-                            {tipos.map((t) => (
-                              <button key={t.id} type="button" onClick={() => { if (s.tipo !== t.id) mudarSerie(e.seId, s.key, { tipo: t.id, salva: false }); }} aria-pressed={s.tipo === t.id} className={`min-h-9 rounded-full border px-3 text-xs ${s.tipo === t.id ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-subtle"}`}>
-                                {t.rotulo}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                    <button type="button" onClick={() => maisSerie(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border text-sm font-semibold text-fg-muted hover:text-fg">
-                      <Icon name="plus" size={16} /> Mais uma série
-                    </button>
-                  </div>
-
-                  <label className="block text-xs font-semibold text-fg-muted">
-                    Anotação (opcional)
-                    <textarea value={e.observacao} onChange={(ev) => mudarEx(e.seId, (x) => ({ ...x, observacao: ev.target.value.slice(0, 300) }))} onBlur={() => void ajustar(e, { observacao: e.observacao })} rows={2} placeholder="Ex.: máquina 3, banco na posição 4, senti mais o glúteo" className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm font-normal text-fg" />
-                  </label>
-                  <button type="button" onClick={() => void tirar(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-red/40 text-sm font-semibold text-red">
-                    <Icon name="trash" size={16} /> Tirar este exercício do treino
-                  </button>
-                </div>
-              ) : null}
+              <ol className="space-y-2">{membros.map((m) => cartao(m, rotulos[m.seId]))}</ol>
             </li>
           );
         })}
       </ol>
 
       {buscando ? (
-        <EscolherExercicio itens={itens} placar={placar.length ? placar : undefined} onEscolher={(it) => void adicionar({ biblioteca_id: it.id })} onMeuNome={(nome) => void adicionar({ nome_livre: nome })} onFechar={() => setBuscando(false)} />
+        <div className="space-y-2">
+          {aJuntar ? (
+            <p role="status" className="rounded-xl border-2 border-[#a78bfa]/70 bg-[#a78bfa]/10 px-3 py-2 text-sm font-semibold">
+              ⚡ Escolha {aJuntar.faltam === 1 ? "o exercício" : `os ${aJuntar.faltam} exercícios`} para juntar com {exs.find((x) => x.seId === aJuntar.ids[0])?.nome} no {infoTecnica(aJuntar.tecnica)?.nome.toLowerCase()}.
+            </p>
+          ) : null}
+          <EscolherExercicio itens={itens} placar={placar.length ? placar : undefined} onEscolher={(it) => void adicionar({ biblioteca_id: it.id })} onMeuNome={(nome) => void adicionar({ nome_livre: nome })} onFechar={() => { setBuscando(false); setAJuntar(null); }} />
+        </div>
       ) : (
         <button type="button" disabled={ocupado} onClick={() => setBuscando(true)} className="alvo flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-bold text-bg disabled:opacity-60">
           <Icon name="plus" size={20} /> {exs.length ? "Próximo exercício" : "Escolher o primeiro exercício"}
@@ -352,6 +528,17 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
             {seriesFeitas ? "Encerrar sem concluir" : "✖ Cancelar este treino"}
           </button>
         </div>
+      ) : null}
+
+      {tecnicaDe && exs.find((x) => x.seId === tecnicaDe) ? (
+        <EscolherTecnica
+          nome={exs.find((x) => x.seId === tecnicaDe)!.nome}
+          atual={exs.find((x) => x.seId === tecnicaDe)!.tecnica}
+          configAtual={exs.find((x) => x.seId === tecnicaDe)!.config}
+          outros={exs.filter((x) => x.seId !== tecnicaDe && !x.bloco).map((x) => ({ seId: x.seId, nome: x.nome }))}
+          onEscolher={(esc) => void aplicarTecnica(exs.find((x) => x.seId === tecnicaDe)!, esc)}
+          onFechar={() => setTecnicaDe(null)}
+        />
       ) : null}
     </div>
   );
