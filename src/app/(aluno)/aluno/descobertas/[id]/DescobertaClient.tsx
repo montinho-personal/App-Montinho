@@ -2,6 +2,7 @@
 
 // Quiz → feedback imediato → níveis 1, 2 e 3 (divulgação progressiva).
 // Errar não tira nada; responder não concede medalha.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -137,6 +138,7 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
             </Button>
           ) : null}
 
+          <ChamadaTrofeu acao="descoberta" />
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={alternarSalvo} aria-pressed={salvo}>{salvo ? "★ Salva" : "☆ Salvar"}</Button>
             <Button variant="gold" onClick={() => setCard(true)}>Compartilhar</Button>

@@ -1,5 +1,6 @@
 // Criar um desafio entre amigos (0094). ?com=<nome do ranking> já deixa a pessoa marcada;
 // ?revanche=<id> repete a regra e as pessoas de um desafio que terminou.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { detalheDesafio, pessoasParaDesafio } from "@/lib/data/desafios";
@@ -54,6 +55,7 @@ export default async function NovoDesafioPage({ searchParams }: { searchParams: 
         <h1 className="text-2xl font-black">{inicial.revanche ? "🔁 Revanche!" : desafiando ? `⚔️ Desafiar ${desafiando}` : "⚔️ Criar desafio"}</h1>
         <p className="mt-1 text-sm text-fg-muted">{desafiando ? "Escolha um desafio pronto ou monte o seu. O convite aparece para a pessoa no app." : "Escolha um pronto ou monte o seu. O app confere tudo sozinho: conta treino concluído com séries anotadas."}</p>
       </header>
+      <ChamadaTrofeu acao="desafio" />
       <NovoDesafioClient hoje={hoje} maximo={maximo} primeiroNome={(sessao.nome ?? "").split(" ")[0] || "time"} pessoas={pessoas} biblioteca={biblioteca.map((b) => ({ id: b.id, nome: b.nome }))} inicial={inicial} />
     </div>
   );

@@ -3,6 +3,7 @@
 // Registro rápido de cardio (2 toques no prescrito: “Fiz tudo” → esforço).
 // Prescrito já vem preenchido; detalhes (distância, FC…) ficam recolhidos.
 // Ao terminar, comemora os troféus novos com a mesma celebração da musculação.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { useMemo, useState } from "react";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
@@ -117,6 +118,7 @@ export function RegistrarCardio({ prescricao, sessionId, nome, onFechar, onRegis
           </h2>
           <button type="button" onClick={onFechar} className="alvo rounded-md px-2 py-1 text-fg-muted" aria-label="Fechar">✕</button>
         </div>
+        {rota === "/api/cardio" ? <ChamadaTrofeu acao="cardio" className="mb-3" /> : null}
 
         {feito ? (
           <div className="space-y-3 text-center" aria-live="polite">

@@ -1,4 +1,5 @@
 // Desafios entre amigos (0094): convites recebidos, em andamento e encerrados.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { listarMeusDesafios } from "@/lib/data/desafios";
@@ -23,6 +24,7 @@ export default async function DesafiosPage() {
         <h1 className="mt-1 text-2xl font-black">⚔️ Desafios entre amigos</h1>
         <p className="mt-1 text-sm text-fg-muted">Crie um desafio, chame quem você quiser (até quem ainda não usa o app) e acompanhe o placar. O app confere sozinho: conta treino concluído, 1 por dia.</p>
       </header>
+      <ChamadaTrofeu acao="desafio" />
       <Link href="/aluno/desafios/novo" className="alvo flex min-h-12 w-full items-center justify-center rounded-xl bg-accent px-4 text-base font-bold text-bg">
         ⚔️ Criar desafio
       </Link>

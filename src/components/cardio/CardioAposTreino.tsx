@@ -5,6 +5,7 @@
 // prescrição, convida para um cardio rápido de 10/15/20 min, sem culpa:
 // “Hoje não” some com o convite. Nunca aparece com dor. A musculação já está
 // salva: deixar o cardio para depois não muda nada.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { useEffect, useState } from "react";
 import { CardioHoje } from "./CardioHoje";
 import { CronometroCardio } from "./CronometroCardio";
@@ -44,6 +45,7 @@ export function CardioAposTreino({ sessionId, nome, dor = false }: { sessionId: 
     <section className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-4" aria-label="Convite para o cardio">
       <p className="text-[11px] font-bold uppercase tracking-wider text-accent">❤️‍🔥 Bônus de cardio</p>
       <p className="font-semibold leading-snug">{conviteDoTreino(sessionId)}</p>
+      <ChamadaTrofeu acao="cardio" />
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Quantos minutos?">
         {MINUTOS_RAPIDOS.map((m) => (
           <button key={m} type="button" onClick={() => setCronometro(m)} className={`alvo rounded-xl px-2 py-3 font-black ${m === 15 ? "bg-accent text-bg" : "border border-accent/60 text-accent"}`}>

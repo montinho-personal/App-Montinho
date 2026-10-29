@@ -1,5 +1,6 @@
 // Indique um amigo (0068/0102): link pessoal, +10 dias (visitante) e 10% de
 // desconto por amigo que fechar (visitante e aluno, somam até 30%).
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { ehVisitante } from "@/lib/auth/guards";
@@ -26,6 +27,7 @@ export default async function IndicarPage() {
         <h1 className="text-2xl font-bold">🎁 Indique um amigo</h1>
         <p className="text-sm text-fg-muted">Treinar junto é melhor. E ainda vale desconto para você.</p>
       </header>
+      <ChamadaTrofeu acao="indicar" />
       <DescontoIndicacao r={r} nome={sessao.nome} aluno={!visitante} />
       {sessao.comoPersonal ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-fg-muted">No “Meu treino” não há convite de indicação: esta é a tela que os alunos veem.</p>

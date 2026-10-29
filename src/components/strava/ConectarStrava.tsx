@@ -3,6 +3,7 @@
 // Perfil do aluno: conectar o relógio pelo Strava. Pede o consentimento
 // explícito (batimento é dado de saúde) e mostra os últimos treinos com
 // batimento. Desconectar a qualquer momento.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CardioSessao, StatusStrava } from "@/lib/data/strava";
@@ -65,6 +66,7 @@ export function ConectarStrava({ status, ultimos, aviso }: { status: StatusStrav
             <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-accent)]" />
             <span>Autorizo o app a importar do Strava os dados das minhas atividades (batimento cardíaco, duração, distância e calorias, inclusive dos cardios como corrida e bike) para o acompanhamento com o Montinho. São dados de saúde: o Montinho vê, e mais ninguém. Posso desconectar quando quiser (<a href="/privacidade" target="_blank" className="underline">privacidade</a>).</span>
           </label>
+          <ChamadaTrofeu acao="strava" />
           <a
             href={aceito ? "/api/strava/conectar?consentimento=1" : undefined}
             aria-disabled={!aceito}

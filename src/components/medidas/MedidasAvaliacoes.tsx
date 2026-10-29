@@ -3,6 +3,7 @@
 // Minhas medidas e avaliações: registrar peso, altura, bioimpedância e
 // circunferências e/ou enviar o arquivo da avaliação (PDF, foto, print).
 // Usado pelo aluno (as próprias) e pelo personal (na ficha do aluno).
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AvaliacaoArquivo, Evolucao } from "@/lib/supabase/types";
@@ -87,6 +88,7 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
 
   return (
     <div className="space-y-4">
+      {!doPersonal ? <ChamadaTrofeu acao="medidas" /> : null}
       {ok ? <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-semibold" role="status">✓ {ok}</p> : null}
       {!aberto ? (
         <Button type="button" onClick={() => setAberto(true)} className="w-full">+ Nova avaliação ou medidas</Button>

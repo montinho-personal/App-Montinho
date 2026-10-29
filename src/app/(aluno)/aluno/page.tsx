@@ -24,7 +24,7 @@ import { dataBR, tempoRelativo } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { ProgressoSemana } from "@/components/aderencia/ProgressoSemana";
-import { listarConquistas, listarReconhecimentos } from "@/lib/data/conquistas";
+import { acoesAlcance, listarConquistas, listarReconhecimentos } from "@/lib/data/conquistas";
 import { proximaMedalha, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { sessaoParaConquista } from "@/lib/conquistas/mapear";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
@@ -61,7 +61,10 @@ import { estadoDoAcesso } from "@/lib/visitante/acesso";
 import { EntradaDesafios } from "@/components/desafios/EntradaDesafios";
 import { listarMeusDesafios, minhasCutucadas, recadosDosDesafios } from "@/lib/data/desafios";
 import { hrefDaSessao } from "@/lib/treino/livre";
-import { cardioDoAluno } from "@/lib/data/cardio";
+import { cardioDoAluno, progressoCardio } from "@/lib/data/cardio";
+import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
+import { tecnicasFeitas } from "@/lib/conquistas/regras";
+import { TrofeusHojeEProximos } from "@/components/conquistas/TrofeusAoAlcance";
 import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { SemanaCardioCard } from "@/components/cardio/SemanaCardioCard";
@@ -98,6 +101,9 @@ export default async function AlunoHomePage() {
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null });
   const proximaMed = proximaMedalha(medalhas);
+  // Troféus que dá para ganhar hoje e nos próximos dias (treino, cardio, compartilhar, indicar, desafios…).
+  const [progressoCardioAluno, acoes] = await Promise.all([progressoCardio(alunoId).catch(() => null), acoesAlcance(sessao).catch(() => null)]);
+  const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje: dataLocal(new Date()), cardio: progressoCardioAluno, acoes, tecnicasFeitas: new Set(tecnicasFeitas(sessoes.map(sessaoParaConquista)).map((t) => t.familia)), treinos: plano.treinos.filter((t) => t.ativo).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
   const ganhas = medalhas.filter((m) => m.conquistada).length;
 
   const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
@@ -230,6 +236,8 @@ export default async function AlunoHomePage() {
         </Card>
         )
       )}
+
+      <TrofeusHojeEProximos itens={aoAlcance} />
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !emAndamento && !proximo && podeRegistrar("visitante", sessao.acessoFim ?? null) ? <ComeceAquiSite tela="inicio" /> : null}
       {cardio?.prescricoes.length ? (

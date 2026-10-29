@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calcularAderencia } from "@/lib/aderencia/calcular";
-import { samuraiNoTreino, trofeusNoTreino, trofeusNosProximosDias } from "./ao-alcance";
+import { chamadaDaAcao, ehDeHoje, samuraiNoTreino, trofeusNoTreino, trofeusNosProximosDias, type AcoesAlcance } from "./ao-alcance";
 import { vitrineDeMedalhas } from "./vitrine";
 import type { FamiliaTecnica, SessaoConquista } from "./regras";
 
@@ -72,7 +72,7 @@ describe("troféus nos próximos dias", () => {
     const sessoes = dias("2026-09-29", "2026-09-30", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-20");
     const c = contexto(sessoes, ganhas("primeiro_treino", "missao_cumprida", "cada_quilo_conta", "terceiro_especial", "primeira_meta_semanal"), "2026-10-21");
     const itens = trofeusNosProximosDias({ ...c, treinos: [{ letra: "A", exercicios: [{ nome: "Supino", tecnica: "rest_pause" }] }, { letra: "B", exercicios: [{ nome: "Remada", tecnica: "rest_pause" }] }] });
-    expect(codigos(itens)).toEqual(["treinos_10", "primeira_tecnica", "relatorio_mensal", "strava_conectado", "compartilhou_primeiro"]);
+    expect(codigos(itens)).toEqual(["treinos_10", "primeira_tecnica", "relatorio_mensal", "strava_conectado", "compartilhou_primeiro", "ponto_de_partida"]);
     expect(itens[0]).toMatchObject({ quando: "No próximo treino" });
     expect(itens[1].oQueFazer).toBe("Faça Rest-pause no Treino A.");
   });
@@ -124,5 +124,45 @@ describe("troféus de cardio perto", () => {
     const c = contexto(dias("2026-10-19"), COMECO, hoje);
     const itens = trofeusNosProximosDias({ ...c, treinos: [], cardio: { feitos: 0, temPrescricao: false, prescricaoLonga: false } });
     expect(itens.some((i) => i.codigo.startsWith("cardio_"))).toBe(false);
+  });
+});
+
+describe("troféus por ação (compartilhar, indicar, desafios, dia em dobro)", () => {
+  const base: AcoesAlcance = { semanasDiario: 0, diarioEstaSemana: false, trofeusCompartilhados: [], jaCompartilhou: false, podeIndicar: false, musculacoesHoje: 0, cardiosHoje: 0, cardiosFeitos: 0 };
+  const hoje = "2026-10-21";
+
+  it("treinou hoje sem cardio: Combo Completo ainda hoje; indicar e desafio aparecem", () => {
+    const c = contexto(dias("2026-10-21"), COMECO, hoje);
+    const itens = trofeusNosProximosDias({ ...c, treinos: [], acoes: { ...base, musculacoesHoje: 1, podeIndicar: true, jaCompartilhou: true } });
+    const combo = itens.find((i) => i.codigo === "combo_completo");
+    expect(combo?.quando).toBe("Hoje");
+    expect(ehDeHoje(combo?.quando)).toBe(true);
+    expect(codigos(itens)).toEqual(expect.arrayContaining(["trouxe_amigo", "inspiracao_galera", "criador_desafios", "dose_dupla"]));
+    expect(ehDeHoje(itens.find((i) => i.codigo === "criador_desafios")?.quando)).toBe(false);
+  });
+
+  it("Vitrine de Troféus só quando já tem troféus suficientes para compartilhar", () => {
+    const c = contexto([], COMECO, hoje);
+    const quatro = { ...base, trofeusCompartilhados: ["primeiro_treino", "missao_cumprida", "cada_quilo_conta", "terceiro_especial"] };
+    expect(codigos(trofeusNosProximosDias({ ...c, treinos: [], acoes: quatro }))).toContain("vitrine_de_trofeus");
+    const nenhum = contexto([], ganhas("primeiro_treino"), hoje);
+    expect(codigos(trofeusNosProximosDias({ ...nenhum, treinos: [], acoes: base }))).not.toContain("vitrine_de_trofeus");
+  });
+
+  it("chamada no card: 1º compartilhamento ganha agora; depois conta para o Diário e a Vitrine", () => {
+    const abertas = new Map<never, string>([["compartilhou_primeiro", "Espalhando o Chalalá"], ["diario_de_bordo", "Diário de Bordo"], ["vitrine_de_trofeus", "Vitrine de Troféus"]] as never);
+    expect(chamadaDaAcao("card_treino", abertas, base)).toMatchObject({ codigo: "compartilhou_primeiro", agora: true });
+    const semPrimeiro = new Map([...abertas].filter(([k]) => k !== "compartilhou_primeiro"));
+    expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 3 })).toMatchObject({ codigo: "diario_de_bordo", agora: true });
+    expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 1 })).toMatchObject({ codigo: "diario_de_bordo", agora: false });
+    expect(chamadaDaAcao("card_medalha", semPrimeiro, { ...base, trofeusCompartilhados: ["a", "b", "c", "d"] }, "treinos_10")).toMatchObject({ codigo: "vitrine_de_trofeus", agora: true });
+    // Troféu já compartilhado não conta de novo.
+    expect(chamadaDaAcao("card_medalha", semPrimeiro, { ...base, trofeusCompartilhados: ["treinos_10"] }, "treinos_10")).toBeNull();
+  });
+
+  it("chamada do cardio: treinou hoje → Combo Completo; nada aberto → nada", () => {
+    const abertas = new Map([["combo_completo", "Combo Completo"]] as never) as Map<never, string>;
+    expect(chamadaDaAcao("cardio", abertas, { ...base, musculacoesHoje: 1 })).toMatchObject({ codigo: "combo_completo", agora: true });
+    expect(chamadaDaAcao("cardio", new Map(), { ...base, musculacoesHoje: 1 })).toBeNull();
   });
 });

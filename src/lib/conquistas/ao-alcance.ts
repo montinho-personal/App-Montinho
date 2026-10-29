@@ -24,6 +24,34 @@ export type ItemAlcance = {
 };
 
 type Aderencia = Pick<ResultadoAderencia, "sequencia" | "semanaAtual">;
+
+/**
+ * Ações fora do treino que também dão troféu (pedido do Montinho, 28/10/2026:
+ * “todos… desde treinos, até conhecimento, compartilhamento, indicação”).
+ */
+export type AcoesAlcance = {
+  /** Semanas diferentes com o card do fim do treino enviado (Diário de Bordo). */
+  semanasDiario: number;
+  /** O card do fim do treino desta semana já foi enviado. */
+  diarioEstaSemana: boolean;
+  /** Troféus diferentes já compartilhados pelo card da medalha (Vitrine de Troféus). */
+  trofeusCompartilhados: string[];
+  /** Já enviou algum card (alguém pode abrir o link dele). */
+  jaCompartilhou: boolean;
+  /** O convite AMIGO-… está liberado para a pessoa. */
+  podeIndicar: boolean;
+  /** Treinos de musculação que contam hoje (concluído, ou extra/livre com séries). */
+  musculacoesHoje: number;
+  /** Cardios de 10 min ou mais hoje. */
+  cardiosHoje: number;
+  /** Cardios válidos até hoje (marcos de quantidade). */
+  cardiosFeitos: number;
+};
+
+/** Itens que dá para ganhar ainda hoje (o resto é “nos próximos dias”). */
+export function ehDeHoje(quando?: string): boolean {
+  return !!quando && /^(Agora|Hoje|No próximo treino|No próximo cardio)$/.test(quando);
+}
 type ExercicioTecnica = { nome: string; tecnica?: string | null };
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -159,7 +187,7 @@ export const DIAS_ALCANCE = 7;
  * faltam poucos treinos (cabem no ritmo da meta semanal), os da meta desta
  * semana, as técnicas novas que já estão na ficha e as ações de um toque.
  */
-export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Aderencia; tecnicasFeitas: ReadonlySet<FamiliaTecnica>; hoje: string; treinos: Array<{ letra: string; exercicios: ExercicioTecnica[] }>; /** Montinho Cardio: marcos de quantidade e a semana de cardio. */ cardio?: ProgressoCardio | null }): ItemAlcance[] {
+export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Aderencia; tecnicasFeitas: ReadonlySet<FamiliaTecnica>; hoje: string; treinos: Array<{ letra: string; exercicios: ExercicioTecnica[] }>; /** Montinho Cardio: marcos de quantidade e a semana de cardio. */ cardio?: ProgressoCardio | null; /** Compartilhar, indicar, desafios e o dia em dobro. */ acoes?: AcoesAlcance | null }): ItemAlcance[] {
   const { aberta, falta } = porCodigo(e.medalhas);
   const out: ItemAlcance[] = [];
   const meta = e.aderencia.semanaAtual?.meta ?? null;
@@ -240,9 +268,107 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
   const strava = aberta("strava_conectado");
   if (strava) out.push(item(strava, "No Perfil, conecte seu relógio pelo Strava.", "Agora"));
   const compartilhou = aberta("compartilhou_primeiro");
-  if (compartilhou) out.push(item(compartilhou, "Compartilhe o card do fim do treino ou de uma medalha.", "Agora"));
+  if (compartilhou) out.push(item(compartilhou, "Compartilhe o card do fim do treino, de uma medalha ou de uma descoberta do Conhecimento.", "Agora"));
+  const partida = aberta("ponto_de_partida");
+  if (partida) out.push(item(partida, "Em Evolução → “Minhas medidas e avaliações”, registre suas medidas ou envie uma avaliação.", "Agora"));
 
+  const a = e.acoes;
+  if (a) out.push(...trofeusDasAcoes(e.medalhas, a));
   return out;
+}
+
+/** Compartilhamento, indicação, desafios e o dia em dobro. */
+function trofeusDasAcoes(medalhas: Medalha[], a: AcoesAlcance): ItemAlcance[] {
+  const { aberta } = porCodigo(medalhas);
+  const out: ItemAlcance[] = [];
+  const diario = aberta("diario_de_bordo");
+  if (diario && !a.diarioEstaSemana && a.semanasDiario === 3) out.push(item(diario, "Compartilhe o card do fim do treino nesta semana: é a 4ª semana diferente.", "No próximo treino"));
+  const vitrine = aberta("vitrine_de_trofeus");
+  if (vitrine) {
+    const faltam = 5 - a.trofeusCompartilhados.length;
+    const jaShared = new Set(a.trofeusCompartilhados);
+    const podeCompartilhar = medalhas.filter((m) => m.conquistada && !jaShared.has(m.codigo)).length;
+    if (faltam > 0 && podeCompartilhar >= faltam) out.push(item(vitrine, `Compartilhe ${plural(faltam, "troféu que você já ganhou", "troféus diferentes que você já ganhou")} (no troféu, “Compartilhar conquista”). Você está em ${a.trofeusCompartilhados.length} de 5.`, "Agora"));
+  }
+  const inspiracao = aberta("inspiracao_galera");
+  if (inspiracao && a.jaCompartilhou) out.push(item(inspiracao, "Mande um card seu no WhatsApp ou nos Stories: quando alguém abrir o link, o troféu sai.", "Agora"));
+  const amigo = aberta("trouxe_amigo");
+  if (amigo && a.podeIndicar) out.push(item(amigo, "Mande seu convite AMIGO-… (Perfil → Indicar amigos): quando o amigo se cadastrar, o troféu sai.", "Agora"));
+  const criador = aberta("criador_desafios");
+  if (criador) out.push(item(criador, "Em Ranking → Desafios, crie um desafio e convide alguém. O troféu sai no fim do desafio.", "Ao fim do desafio"));
+
+  // Dia em dobro (só o que ainda dá para fechar hoje, ou o combo no próximo dia de treino).
+  const combo = aberta("combo_completo");
+  if (combo) {
+    if (a.musculacoesHoje > 0 && a.cardiosHoje === 0) out.push(item(combo, "Você já treinou hoje: faça 10 minutos ou mais de cardio e fecha o combo.", "Hoje"));
+    else if (a.cardiosHoje > 0 && a.musculacoesHoje === 0) out.push(item(combo, "Você já fez cardio hoje: conclua um treino de musculação e fecha o combo.", "Hoje"));
+    else if (a.musculacoesHoje === 0) out.push(item(combo, "No mesmo dia, conclua um treino de musculação e faça 10 minutos ou mais de cardio.", "No próximo treino"));
+  }
+  const dois = aberta("dois_folegos");
+  if (dois && a.cardiosHoje === 1) out.push(item(dois, "Faça mais um cardio de 10 minutos ou mais hoje (ex.: um de manhã e outro à noite).", "Hoje"));
+  const dupla = aberta("dose_dupla");
+  if (dupla && a.musculacoesHoje === 1) out.push(item(dupla, "Com a recuperação em dia, um 2º treino hoje (extra ou livre) dá a Dose Dupla.", "Hoje"));
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Chamada no lugar da ação (pedido do Montinho, 28/10/2026): ao abrir a tela
+// de compartilhar, indicar, criar desafio… “se fizer isso agora, ganha o troféu”.
+// ---------------------------------------------------------------------------
+export type AcaoTrofeu = "card_treino" | "card_medalha" | "descoberta" | "indicar" | "desafio" | "strava" | "relatorio" | "medidas" | "cardio";
+export type ChamadaTrofeu = { codigo: CodigoConquista; titulo: string; texto: string; /** true = ganha com esta ação; false = conta para o troféu. */ agora: boolean };
+
+/** `abertas`: troféus ainda não ganhos (código → nome). `ref`: o troféu do card da medalha. */
+export function chamadaDaAcao(acao: AcaoTrofeu, abertas: ReadonlyMap<CodigoConquista, string>, a: AcoesAlcance, ref?: string | null): ChamadaTrofeu | null {
+  const ganha = (codigo: CodigoConquista, texto: string): ChamadaTrofeu | null => (abertas.has(codigo) ? { codigo, titulo: abertas.get(codigo)!, texto, agora: true } : null);
+  const conta = (codigo: CodigoConquista, texto: string): ChamadaTrofeu | null => (abertas.has(codigo) ? { codigo, titulo: abertas.get(codigo)!, texto, agora: false } : null);
+  const inspiracao = () => conta("inspiracao_galera", "Quando alguém abrir o link do seu card, você ganha o troféu");
+  switch (acao) {
+    case "card_treino": {
+      const n = a.semanasDiario;
+      return (
+        ganha("compartilhou_primeiro", "Compartilhe ou baixe este card e ganhe o troféu") ??
+        (!a.diarioEstaSemana && n === 3 ? ganha("diario_de_bordo", "4ª semana compartilhando o card do treino: compartilhe agora e ganhe o troféu") : null) ??
+        (!a.diarioEstaSemana ? conta("diario_de_bordo", `Compartilhar este card conta a semana ${n + 1} de 4 para o troféu`) : null) ??
+        inspiracao()
+      );
+    }
+    case "card_medalha": {
+      const n = a.trofeusCompartilhados.length;
+      const novo = !!ref && !a.trofeusCompartilhados.includes(ref);
+      return (
+        ganha("compartilhou_primeiro", "Compartilhe ou baixe este card e ganhe o troféu") ??
+        (novo && n + 1 >= 5 ? ganha("vitrine_de_trofeus", "5º troféu diferente compartilhado: compartilhe agora e ganhe o troféu") : null) ??
+        (novo ? conta("vitrine_de_trofeus", `Compartilhar este troféu conta ${n + 1} de 5 para o troféu`) : null) ??
+        inspiracao()
+      );
+    }
+    case "descoberta":
+      return ganha("compartilhou_primeiro", "Compartilhe esta descoberta e ganhe o troféu");
+    case "indicar":
+      return conta("trouxe_amigo", "Quando um amigo se cadastrar pelo seu link, você ganha o troféu");
+    case "desafio":
+      return conta("criador_desafios", "Crie o desafio e convide alguém: no fim dele, você ganha o troféu");
+    case "strava":
+      return ganha("strava_conectado", "Conecte o relógio e ganhe o troféu");
+    case "relatorio":
+      return ganha("relatorio_mensal", "Abra sua evolução completa e ganhe o troféu");
+    case "medidas":
+      return ganha("ponto_de_partida", "Registre suas medidas ou envie uma avaliação e ganhe o troféu");
+    case "cardio": {
+      if (a.musculacoesHoje > 0 && a.cardiosHoje === 0) {
+        const c = ganha("combo_completo", "Você já treinou hoje: 10 minutos ou mais de cardio e você ganha o troféu");
+        if (c) return c;
+      }
+      if (a.cardiosHoje === 1) {
+        const c = ganha("dois_folegos", "Mais um cardio de 10 minutos ou mais hoje e você ganha o troféu");
+        if (c) return c;
+      }
+      const proximo = MARCOS_CARDIO_ALCANCE.find((n) => n > a.cardiosFeitos);
+      if (proximo && proximo === a.cardiosFeitos + 1 && a.cardiosHoje === 0) return ganha(`cardio_${proximo}` as CodigoConquista, "Faça um cardio de 10 minutos ou mais hoje e ganhe o troféu");
+      return null;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -250,7 +376,7 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
 // ---------------------------------------------------------------------------
 
 /** Ordem do lembrete: o que depende de treinar/cardio primeiro; “Agora” (um toque) por último. */
-const PESO_QUANDO = (q?: string) => (!q ? 3 : /próximo/i.test(q) ? 0 : /^Em \d/.test(q) ? 1 : /domingo/i.test(q) ? 2 : /Agora/i.test(q) ? 9 : 4);
+const PESO_QUANDO = (q?: string) => (!q ? 3 : /próximo/i.test(q) ? 0 : /^Em \d/.test(q) ? 1 : /domingo/i.test(q) ? 2 : /^(Agora|Hoje)$/i.test(q) ? 9 : 4);
 
 export type LembreteTrofeu = { codigo: CodigoConquista; titulo: string; corpo: string; url: string };
 

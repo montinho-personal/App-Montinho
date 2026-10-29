@@ -6,7 +6,7 @@ import { incentivoIndicacao } from "@/lib/data/indicacao";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { progressoCardio } from "@/lib/data/cardio";
-import { listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
+import { acoesAlcance, listarReconhecimentos, resumoMensalDoAluno } from "@/lib/data/conquistas";
 import { ConquistasClient } from "./ConquistasClient";
 import { medalhasEmDestaque, proximasMedalhas, vitrineDeMedalhas } from "@/lib/conquistas/vitrine";
 import { mensagemDaJornada } from "@/lib/conquistas/conteudo";
@@ -36,7 +36,7 @@ export default async function ConquistasPage() {
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje, cardio });
   // Troféus que dá para ganhar nos próximos dias, com o que fazer em cada um.
-  const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })), cardio });
+  const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })), cardio, acoes: await acoesAlcance(sessao).catch(() => null) });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
   // Mensagem escrita pelo personal ligada a uma medalha (a mais recente).

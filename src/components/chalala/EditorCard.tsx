@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { configPadrao, FORMATOS, FRASES, metricasDisponiveis, modelosDisponiveis, nomeArquivo, ROTULO_METRICA, ROTULO_MODELO, AJUSTE_FOTO_PADRAO, type ConfigCard, type DadosCard, type Formato, type Fundo, type ModeloId, type Variacao } from "@/lib/chalala/card";
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import { carregarSvg, desenhar, paraBlob, prepararFoto, type Ativos } from "./desenhar";
 import { enviarEvento } from "./evento";
@@ -349,6 +350,9 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
 
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto max-w-5xl space-y-2">
+          {registrarEventos ? (
+            <ChamadaTrofeu acao={refEvento?.startsWith("medalha:") || origem !== "conclusao" ? "card_medalha" : "card_treino"} refTrofeu={refEvento?.startsWith("medalha:") ? refEvento.slice(8) : null} />
+          ) : null}
           {aviso ? (
             <p role="status" className={`text-xs ${aviso.tipo === "erro" ? "text-danger" : "text-fg-muted"}`}>
               {aviso.texto}

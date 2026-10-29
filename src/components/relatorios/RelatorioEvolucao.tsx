@@ -1,5 +1,6 @@
 // Relatório de evolução em duas camadas (resumo → análise detalhada).
 // Server Component: recebe os dados já autorizados pela página que o chama.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Heatmap, HeatmapLegend } from "@/components/ui/Heatmap";
@@ -175,6 +176,7 @@ export function RelatorioEvolucao({ modo, dias, basePath, sessoes, programa, tre
               {modo === "aluno" && invisivel.length > 2 ? <p className="text-[11px] text-fg-subtle">+{invisivel.length - 2} na análise completa.</p> : null}
             </section>
           ) : null}
+          {modo === "aluno" ? <ChamadaTrofeu acao="relatorio" /> : null}
           <a href="#analise" className="inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline min-h-6 py-0.5">
             {modo === "aluno" ? "Ver minha evolução completa ↓" : "Ver análise completa ↓"}
           </a>

@@ -3,6 +3,7 @@
 // Detalhe educativo de uma medalha (divulgação progressiva): primeiro a
 // mensagem curta, estado e progresso; o conteúdo completo só abre se o aluno
 // tocar em “Entenda por que isso é importante”.
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { LENDARIAS } from "@/lib/conquistas/regras";
 import { useState } from "react";
 import Link from "next/link";
@@ -85,6 +86,7 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
           <button type="button" onClick={onGerarCard} className="alvo text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">{rotuloCard}</button>
         ) : null}
       </div>
+      {m.conquistada && onGerarCard ? <ChamadaTrofeu acao="card_medalha" refTrofeu={m.codigo} /> : null}
 
       {aberto ? (
         <div className="space-y-3 border-t border-border pt-3">

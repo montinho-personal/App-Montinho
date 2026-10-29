@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { ConteudoConhecimento } from "@/lib/desbloqueia/tipos";
 import { CARD_DESCOBERTA, layoutDescoberta } from "@/lib/desbloqueia/card";
+import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import { carregarSvg, familiaFonte, medidorCanvas, paraBlob } from "@/components/chalala/desenhar";
 import { enviarEvento } from "@/components/chalala/evento";
@@ -95,6 +96,7 @@ export function CardDescoberta({ conteudo, onFechar }: { conteudo: ConteudoConhe
         </div>
         <canvas ref={ref} className="mx-auto block h-auto w-full max-w-[300px] rounded-xl border border-border" aria-label={`Prévia: ${conteudo.pergunta} — ${conteudo.veredito}`} />
         <p className="text-xs text-fg-muted">O card mostra só a pergunta, a resposta e uma frase curta — nenhum dado seu.</p>
+        <ChamadaTrofeu acao="descoberta" />
         <Button variant="gold" className="w-full" onClick={compartilhar} loading={ocupado}>Compartilhar</Button>
         {aviso ? <p role="status" className="text-sm text-fg-muted">{aviso}</p> : null}
       </div>

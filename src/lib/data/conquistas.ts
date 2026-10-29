@@ -8,7 +8,10 @@
 import { primeiraAvaliacao } from "@/lib/data/medidas";
 import { entradaCardio } from "@/lib/data/cardio";
 import { statusStrava } from "@/lib/data/strava";
-import { marcosCompartilhar, type EventoCompartilhar, type MarcosCompartilhar } from "@/lib/conquistas/compartilhar";
+import { marcosCompartilhar, progressoCompartilhar, type EventoCompartilhar, type MarcosCompartilhar } from "@/lib/conquistas/compartilhar";
+import { chamadaDaAcao, type AcaoTrofeu, type AcoesAlcance, type ChamadaTrofeu } from "@/lib/conquistas/ao-alcance";
+import { contaCarimbo } from "@/lib/conquistas/carimbos";
+import { LIMITES_CARDIO, proximoMarco } from "@/lib/cardio/regras";
 import { marcosDosDesafios } from "@/lib/data/desafios";
 import { codigoDoLink } from "@/lib/chalala/link";
 import { relatorioDaConclusao, type RelatorioConclusao } from "@/lib/relatorios/conclusao";
@@ -378,16 +381,58 @@ export async function ativarOlharDeAguia(alunoId: string): Promise<{ jaTinha: bo
 // Troféus de compartilhamento (0088): eventos de compartilhar do aluno + visitas
 // ao link dele (pelo código opaco) + 1ª indicação de amigo.
 // ---------------------------------------------------------------------------
-async function marcosDoAluno(alunoId: string): Promise<MarcosCompartilhar> {
+async function eventosCompartilharDoAluno(alunoId: string): Promise<{ eventos: EventoCompartilhar[]; primeiroAmigoEm: string | null }> {
   if (isDemoMode()) {
     const codigo = `c:${codigoDoLink(alunoId)}`;
     const eventos = demo().eventos.filter((e) => e.aluno_id === alunoId || (e.tipo === "visita_link" && e.ref === codigo)).map((e) => ({ tipo: e.tipo, origem: e.origem, modelo: e.modelo, ref: e.ref ?? null, created_at: e.created_at }));
-    return marcosCompartilhar(eventos, null);
+    return { eventos, primeiroAmigoEm: null };
   }
   const db = await getDb();
   const [{ data: ev }, { data: ind }] = await Promise.all([
     db.rpc("meus_eventos_compartilhar"),
     db.from("indicacoes").select("created_at").eq("indicador_aluno_id", alunoId).order("created_at").limit(1),
   ]);
-  return marcosCompartilhar((ev ?? []) as EventoCompartilhar[], ((ind ?? []) as Array<{ created_at: string }>)[0]?.created_at ?? null);
+  return { eventos: (ev ?? []) as EventoCompartilhar[], primeiroAmigoEm: ((ind ?? []) as Array<{ created_at: string }>)[0]?.created_at ?? null };
+}
+
+async function marcosDoAluno(alunoId: string): Promise<MarcosCompartilhar> {
+  const { eventos, primeiroAmigoEm } = await eventosCompartilharDoAluno(alunoId);
+  return marcosCompartilhar(eventos, primeiroAmigoEm);
+}
+
+// ---------------------------------------------------------------------------
+// Troféus por ação (pedido do Montinho, 28/10/2026): compartilhar, indicar,
+// desafios e o dia em dobro, para a lista do Início e a chamada na hora da ação.
+// ---------------------------------------------------------------------------
+export async function acoesAlcance(s: { alunoId: string; modalidade?: string; comoPersonal?: boolean; acessoFim?: string | null }): Promise<AcoesAlcance> {
+  const hoje = dataLocal(new Date());
+  const [{ eventos }, indicacao, sessoesHoje, cardios] = await Promise.all([
+    eventosCompartilharDoAluno(s.alunoId).catch(() => ({ eventos: [] as EventoCompartilhar[], primeiroAmigoEm: null })),
+    import("@/lib/data/indicacao").then((m) => m.incentivoIndicacao(s)).catch(() => null),
+    listSessoes(s.alunoId, { desde: `${hoje}T00:00:00-03:00`, limite: 20, status: "todas" }).catch(() => []),
+    import("@/lib/data/cardio").then((m) => m.cardiosFeitos(s.alunoId)).catch(() => []),
+  ]);
+  const p = progressoCompartilhar(eventos);
+  const semanaHoje = inicioDaSemana(hoje);
+  const diarioEstaSemana = eventos.some((e) => (e.tipo === "compartilhar_nativo" || e.tipo === "download") && e.origem === "conclusao" && inicioDaSemana(dataLocal(e.created_at)) === semanaHoje);
+  const trofeus = [...new Set(eventos.filter((e) => e.tipo === "compartilhar_nativo" || e.tipo === "download").map((e) => (e.ref?.startsWith("medalha:") ? e.ref.slice(8) : e.origem === "medalha" ? e.modelo : null)).filter((c): c is string => !!c))];
+  const validos = cardios.filter((f) => f.status !== "nao_realizado" && f.duracaoMin >= LIMITES_CARDIO.minutosMin);
+  return {
+    semanasDiario: p.semanasDiario,
+    diarioEstaSemana,
+    trofeusCompartilhados: trofeus,
+    jaCompartilhou: eventos.some((e) => e.tipo === "compartilhar_nativo" || e.tipo === "download"),
+    podeIndicar: !!indicacao,
+    musculacoesHoje: sessoesHoje.filter((x) => dataLocal(x.iniciado_em) === hoje && contaCarimbo(x)).length,
+    cardiosHoje: validos.filter((f) => f.data === hoje).length,
+    cardiosFeitos: proximoMarco(cardios).feitos,
+  };
+}
+
+/** A chamada “faça isso e ganhe o troféu” de uma ação (null = nada a ganhar). */
+export async function chamadaParaAcao(s: { alunoId: string; modalidade?: string; comoPersonal?: boolean; acessoFim?: string | null }, acao: AcaoTrofeu, ref?: string | null): Promise<ChamadaTrofeu | null> {
+  const [ganhas, acoes] = await Promise.all([listarConquistas(s.alunoId), acoesAlcance(s)]);
+  const ja = new Set(ganhas.map((c) => c.codigo));
+  const abertas = new Map((Object.keys(CATALOGO) as CodigoConquista[]).filter((c) => !ja.has(c)).map((c) => [c, nomeDaConquista(c)]));
+  return chamadaDaAcao(acao, abertas, acoes, ref);
 }
