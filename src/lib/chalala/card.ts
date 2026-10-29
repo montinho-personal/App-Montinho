@@ -99,7 +99,7 @@ export type ConfigCard = {
   foto: AjusteFoto;
 };
 
-export const AJUSTE_FOTO_PADRAO: AjusteFoto = { x: 0, y: 0, zoom: 1, escurecer: 0.45 };
+export const AJUSTE_FOTO_PADRAO: AjusteFoto = { x: 0, y: 0, zoom: 1, escurecer: 0 };
 
 /** Modelos que os dados SUSTENTAM (nada de “meta concluída” antes da hora). */
 export function modelosDisponiveis(d: DadosCard): ModeloId[] {
@@ -173,7 +173,7 @@ export function configPadrao(modelo: ModeloId, d: DadosCard, nome: string): Conf
 export type Peso = 400 | 600 | 700 | 800;
 export type OpTexto = { t: "texto"; linhas: string[]; x: number; y: number; tamanho: number; peso: Peso; cor: string; alinhar: "center"; alturaLinha: number; sombra: boolean; maxLargura: number };
 export type Op =
-  | { t: "fundo"; tipo: Fundo; cor: string; gradiente: [string, string] | null; escurecer: number }
+  | { t: "fundo"; tipo: Fundo; cor: string; gradiente: [string, string] | null; escurecer: number; /** Foto: onde começa o degradê de baixo (fração da altura). */ faixaBase?: number }
   | { t: "logo"; x: number; y: number; w: number; h: number; variante: "claro" | "escuro" }
   | { t: "linha"; x: number; y: number; w: number; cor: string }
   | { t: "barra"; x: number; y: number; w: number; h: number; progresso: number; cor: string; trilho: string }
@@ -362,11 +362,14 @@ export function layoutCard(cfg: ConfigCard, d: DadosCard, medir: Medir): Resulta
   // Stories: zonas seguras (topo/rodapé do Instagram) de ~11% da altura.
   const topo = cfg.formato === "stories" ? Math.round(h * 0.1) : m;
   const base = cfg.formato === "stories" ? h - Math.round(h * 0.1) : h - m;
-  const ops: Op[] = [{ t: "fundo", tipo: cfg.fundo, cor: p.fundo, gradiente: cfg.fundo === "gradiente" ? p.gradiente : null, escurecer: cfg.fundo === "foto" ? Math.max(0, Math.min(0.85, cfg.foto.escurecer)) : 0 }];
+  // Foto (29/10/2026, pedido do Montinho: “muito escuro, pegando o rosto todo”):
+  // a pessoa aparece no meio livre; logo menor no alto e os textos na faixa de baixo.
+  const comFoto = cfg.fundo === "foto";
+  const ops: Op[] = [{ t: "fundo", tipo: cfg.fundo, cor: p.fundo, gradiente: cfg.fundo === "gradiente" ? p.gradiente : null, escurecer: comFoto ? Math.max(0, Math.min(0.85, cfg.foto.escurecer)) : 0 }];
 
-  const escalaFormato = cfg.formato === "stories" ? 1 : cfg.formato === "feed" ? 0.86 : 0.74;
-  // Logo oficial completo, bem visível em tudo que é compartilhado.
-  const logoW = Math.round(w * (cfg.formato === "quadrado" ? 0.26 : cfg.formato === "feed" ? 0.3 : 0.37));
+  const escalaFormato = (cfg.formato === "stories" ? 1 : cfg.formato === "feed" ? 0.86 : 0.74) * (comFoto ? 0.62 : 1);
+  // Logo oficial completo, bem visível em tudo que é compartilhado (com foto, menor, para não cobrir a pessoa).
+  const logoW = Math.round(w * (cfg.formato === "quadrado" ? 0.26 : cfg.formato === "feed" ? 0.3 : 0.37) * (comFoto ? 0.72 : 1));
   const logoH = Math.round(logoW / LOGO_RATIO);
   ops.push({ t: "logo", x: Math.round((w - logoW) / 2), y: topo, w: logoW, h: logoH, variante: sobreposta ? "claro" : p.logo });
 
@@ -378,18 +381,22 @@ export function layoutCard(cfg: ConfigCard, d: DadosCard, medir: Medir): Resulta
   const altAss = ass1.tamanho * 1.3 + (ass2 ? ass2.tamanho * 1.3 : 0);
   const yAss = base - altAss;
 
-  const regiaoTopo = topo + logoH + Math.round(h * 0.05);
-  const regiaoBase = yAss - Math.round(h * 0.03);
+  // Com foto, os textos ficam só na faixa de baixo (até ~40% da altura), encostados na assinatura.
+  const regiaoTopo = comFoto ? Math.round(h * (cfg.formato === "stories" ? 0.56 : 0.5)) : topo + logoH + Math.round(h * 0.05);
+  const regiaoBase = yAss - Math.round(h * (comFoto ? 0.02 : 0.03));
   const blocos = blocosDoModelo(cfg, d, p);
 
   let escala = escalaFormato;
   let montado: { ops: Op[]; altura: number } = { ops: [], altura: 0 };
   for (let i = 0; i < 12; i++) {
     montado = montarBlocos(blocos, escala, w, m, larg, medir, sobreposta);
-    if (montado.altura <= regiaoBase - regiaoTopo || escala <= 0.45) break;
+    if (montado.altura <= regiaoBase - regiaoTopo || escala <= (comFoto ? 0.32 : 0.45)) break;
     escala *= 0.9;
   }
-  const y0 = Math.round(regiaoTopo + Math.max(0, (regiaoBase - regiaoTopo - montado.altura) / 2));
+  const y0 = comFoto
+    ? Math.round(regiaoBase - montado.altura)
+    : Math.round(regiaoTopo + Math.max(0, (regiaoBase - regiaoTopo - montado.altura) / 2));
+  if (comFoto) (ops[0] as Extract<Op, { t: "fundo" }>).faixaBase = Math.max(0.3, Math.min(0.7, (y0 - h * 0.08) / h));
   for (const op of montado.ops) ops.push(deslocar(op, y0));
 
   let y = yAss;

@@ -103,16 +103,24 @@ function desenharOp(ctx: CanvasRenderingContext2D, op: Op, l: ResultadoLayout, c
       if (op.tipo === "foto" && a.foto) {
         const e = enquadrarFoto({ w: a.fotoW, h: a.fotoH }, { w: l.w, h: l.h }, cfg.foto);
         ctx.drawImage(a.foto, e.sx, e.sy, e.sw, e.sh, 0, 0, l.w, l.h);
-        ctx.fillStyle = `rgba(0,0,0,${op.escurecer})`;
-        ctx.fillRect(0, 0, l.w, l.h);
-        // Reforço de contraste no topo (logo) e na base (assinatura).
-        const g = ctx.createLinearGradient(0, 0, 0, l.h);
-        g.addColorStop(0, "rgba(0,0,0,0.35)");
-        g.addColorStop(0.25, "rgba(0,0,0,0)");
-        g.addColorStop(0.75, "rgba(0,0,0,0)");
-        g.addColorStop(1, "rgba(0,0,0,0.45)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, l.w, l.h);
+        if (op.escurecer > 0) {
+          ctx.fillStyle = `rgba(0,0,0,${op.escurecer})`;
+          ctx.fillRect(0, 0, l.w, l.h);
+        }
+        // Como nos apps de treino (Strava, Nike): a foto fica clara e o meio livre;
+        // só o topo (logo) e a faixa de baixo (textos) ganham um degradê para ler.
+        const topo = ctx.createLinearGradient(0, 0, 0, l.h * 0.2);
+        topo.addColorStop(0, "rgba(0,0,0,0.55)");
+        topo.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = topo;
+        ctx.fillRect(0, 0, l.w, l.h * 0.2);
+        const ini = op.faixaBase ?? 0.55;
+        const base = ctx.createLinearGradient(0, l.h * ini, 0, l.h);
+        base.addColorStop(0, "rgba(0,0,0,0)");
+        base.addColorStop(0.35, "rgba(0,0,0,0.55)");
+        base.addColorStop(1, "rgba(0,0,0,0.88)");
+        ctx.fillStyle = base;
+        ctx.fillRect(0, l.h * ini, l.w, l.h * (1 - ini));
         break;
       }
       if (op.gradiente) {

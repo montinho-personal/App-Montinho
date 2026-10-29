@@ -16,7 +16,7 @@ import { lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
 import { EscolherTecnica, type EscolhaTecnica } from "@/components/livre/EscolherTecnica";
 import { SerieEmBlocos, type BlocoDigitado } from "@/app/(aluno)/aluno/treino/[treinoId]/SerieEmBlocos";
 import { blocosPlanejados, configEfetiva, registraEmBlocos, somaBlocos, type ConfigTecnica } from "@/lib/treino/tecnica-config";
-import { codigoBloco, infoTecnica, juntaExercicios, juntarBlocosAdjacentes, proximoDaRodada, resumoEscolha, seriesComTecnica } from "@/lib/treino/tecnica-aluno";
+import { codigoBloco, configDasRespostas, infoTecnica, respostasPadrao, juntaExercicios, juntarBlocosAdjacentes, proximoDaRodada, resumoEscolha, seriesComTecnica } from "@/lib/treino/tecnica-aluno";
 import { gruposDoTreino, rotulosDosExercicios } from "@/lib/treino/blocos";
 import { COR_TECNICA } from "@/lib/volume/tecnicas";
 import type { Tecnica } from "@/lib/volume/calcular";
@@ -25,11 +25,26 @@ import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 import { avisoDaSerie, contaNoPlacar, linhaDoGrupo, somarNoPlacar, sugestaoDeAgora, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
-export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: BlocoDigitado[] };
+export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: BlocoDigitado[]; /** Técnica só desta série (ex.: pirâmide e, na última, um drop-set). */ tec?: { tecnica: string; config: ConfigTecnica | null } };
 export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[] };
 
-/** Série desta linha registrada em blocos (técnica configurada). */
-const emBlocos = (e: ExercicioTela, s: SerieTela) => !!e.config && registraEmBlocos(s.tipo) && s.tipo === e.tecnica;
+/** Técnicas que dá para pôr numa série só (“⚡ Série com técnica”). */
+const TECNICAS_DA_SERIE = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"] as const;
+const configDaSerie = (t: string): ConfigTecnica | null => configDasRespostas(t, { ...respostasPadrao(t), onde: "finalizar", series: 1 });
+
+/**
+ * Técnica da série registrada em blocos: a do exercício (configurada) ou a
+ * escolhida só para esta série. Série salva de técnica diferente da do
+ * exercício (ao reabrir) volta com a configuração padrão da técnica.
+ */
+function tecDaSerie(e: ExercicioTela, s: SerieTela): { tecnica: string; config: ConfigTecnica | null } | null {
+  if (s.tec) return s.tec;
+  if (!registraEmBlocos(s.tipo)) return null;
+  if (s.tipo === e.tecnica) return e.config ? { tecnica: e.tecnica, config: e.config } : null;
+  return { tecnica: s.tipo, config: configDaSerie(s.tipo) };
+}
+/** Série desta linha registrada em blocos. */
+const emBlocos = (e: ExercicioTela, s: SerieTela) => !!tecDaSerie(e, s);
 
 /**
  * Séries do exercício depois de escolher a técnica: as salvas ficam; as vazias
@@ -106,6 +121,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [aviso, setAviso] = useState<string | null>(null);
   const [verPlacar, setVerPlacar] = useState(false);
   // Técnica: exercício com a janela aberta e o bi-set esperando o exercício novo da busca.
+  const [escolhendoSerie, setEscolhendoSerie] = useState<string | null>(null);
   const [tecnicaDe, setTecnicaDe] = useState<string | null>(null);
   const [aJuntar, setAJuntar] = useState<{ ids: string[]; tecnica: Tecnica; faltam: number; bloco: string } | null>(null);
   const jaHoje = [...new Set(exs.filter((e) => e.series.some((s) => s.salva && contaNoPlacar(s.tipo))).map((e) => linhaDoGrupo(placar, e.grupo)?.grupo).filter((g): g is GrupoMuscular => !!g))];
@@ -230,8 +246,18 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       });
       return;
     }
-    const tipo = ult?.tipo === "aquecimento" ? "valida" : (ult?.tipo ?? "valida");
-    mudarEx(e.seId, (x) => ({ ...x, series: [...x.series, { key: novaChave(), serie: (ult?.serie ?? 0) + 1, tipo, carga: ult?.carga ?? "", reps: ult && emBlocos(x, ult) ? "" : (ult?.reps ?? ""), salva: false, ...(ult && emBlocos(x, ult) ? { blocos: [] } : {}) }] }));
+    // Depois de uma série com técnica só dela, a próxima volta a ser normal.
+    const daSerie = !!ult && emBlocos(e, ult) && !(e.config && ult.tipo === e.tecnica);
+    const tipo = ult?.tipo === "aquecimento" || daSerie ? "valida" : (ult?.tipo ?? "valida");
+    const normal = [...e.series].reverse().find((x) => x.tipo === "valida");
+    mudarEx(e.seId, (x) => ({ ...x, series: [...x.series, { key: novaChave(), serie: (ult?.serie ?? 0) + 1, tipo, carga: (daSerie ? normal?.carga : ult?.carga) ?? "", reps: daSerie ? (normal?.reps ?? "") : ult && emBlocos(x, ult) ? "" : (ult?.reps ?? ""), salva: false, ...(ult && emBlocos(x, ult) && !daSerie ? { blocos: [] } : {}) }] }));
+  }
+
+  /** “⚡ Série com técnica”: uma série só com a técnica escolhida (o resto do exercício fica como está). */
+  function serieComTecnica(e: ExercicioTela, tecnica: string) {
+    const ref = [...e.series].reverse().find((x) => x.tipo === "valida" && x.carga.trim());
+    mudarEx(e.seId, (x) => ({ ...x, series: [...x.series, { key: novaChave(), serie: x.series.length + 1, tipo: tecnica as SerieTipo, carga: ref?.carga ?? "", reps: "", salva: false, blocos: [], tec: { tecnica, config: configDaSerie(tecnica) } }].map((y, k) => ({ ...y, serie: k + 1 })) }));
+    setEscolhendoSerie(null);
   }
 
   async function salvarSerie(e: ExercicioTela, s: SerieTela) {
@@ -239,7 +265,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     if (s.salva) return; // já salva e sem mudança: nada a fazer (não reinicia o descanso)
     // Série em blocos: reps = soma dos pedaços; carga = a do 1º (no drop-set cada pedaço guarda a sua).
     const pedacos = emBlocos(e, s) ? (s.blocos ?? []).map((b) => ({ carga: lerCarga(b.carga), reps: lerReps(b.reps) })).filter((b) => b.carga != null || b.reps != null) : null;
-    if (pedacos && e.tecnica !== "dropset" && pedacos.length) pedacos.forEach((b, k) => (b.carga = k === 0 ? (b.carga ?? lerCarga(s.carga)) : (pedacos[0].carga ?? lerCarga(s.carga))));
+    if (pedacos && tecDaSerie(e, s)?.tecnica !== "dropset" && pedacos.length) pedacos.forEach((b, k) => (b.carga = k === 0 ? (b.carga ?? lerCarga(s.carga)) : (pedacos[0].carga ?? lerCarga(s.carga))));
     const carga = pedacos ? (pedacos[0]?.carga ?? lerCarga(s.carga)) : lerCarga(s.carga);
     const reps = pedacos ? (pedacos.some((b) => b.reps != null) ? somaBlocos(pedacos.map((b) => b.reps)) : null) : lerReps(s.reps);
     if (reps == null && carga == null) return setErroEx({ seId: e.seId, texto: `Série ${s.serie}: anote as repetições ou a carga antes do ✓.` });
@@ -361,18 +387,18 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                     <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem_2.25rem] items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                       <span>Série</span><span>Carga (kg)</span><span>Reps</span><span className="sr-only">Salvar</span><span className="sr-only">Apagar</span>
                     </div>
-                    {e.series.map((s) => emBlocos(e, s) ? (
+                    {e.series.map((s) => { const t = tecDaSerie(e, s); return t ? (
                       <SerieEmBlocos
                         key={s.key}
                         rotulo={String(s.serie)}
-                        titulo={`${configEfetiva(e.tecnica, e.config)?.aplicar === "finalizacao" ? "Finalização · " : ""}${infoTecnica(e.tecnica)?.nome ?? ""}`}
-                        cor={COR_TECNICA[e.tecnica as Tecnica] ?? "#ba9e50"}
-                        planejados={blocosPlanejados(e.tecnica, e.config)}
+                        titulo={`${s.tec || s.tipo !== e.tecnica ? "⚡ Só nesta série · " : configEfetiva(t.tecnica, t.config)?.aplicar === "finalizacao" ? "Finalização · " : ""}${infoTecnica(t.tecnica)?.nome ?? ""}`}
+                        cor={COR_TECNICA[t.tecnica as Tecnica] ?? "#ba9e50"}
+                        planejados={blocosPlanejados(t.tecnica, t.config)}
                         valores={s.blocos ?? []}
                         cargaRef={e.series.find((x) => x.tipo === "valida" && x.carga)?.carga || null}
-                        cargaPorBloco={e.tecnica === "dropset"}
-                        livre={e.tecnica === "rest_pause"}
-                        alvoTotal={e.tecnica === "rest_pause" ? (configEfetiva(e.tecnica, e.config)?.repsAlvo ?? null) : null}
+                        cargaPorBloco={t.tecnica === "dropset"}
+                        livre={t.tecnica === "rest_pause"}
+                        alvoTotal={t.tecnica === "rest_pause" ? (configEfetiva(t.tecnica, t.config)?.repsAlvo ?? null) : null}
                         concluida={s.salva}
                         sincronizada={s.salva}
                         onChange={(v) => mudarSerie(e.seId, s.key, { blocos: v, carga: v[0]?.carga ?? s.carga, salva: false })}
@@ -402,10 +428,28 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                           </div>
                         ) : null}
                       </div>
-                    ))}
-                    <button type="button" onClick={() => maisSerie(e)} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border text-sm font-semibold text-fg-muted hover:text-fg">
-                      <Icon name="plus" size={16} /> Mais uma série
-                    </button>
+                    ); })}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => { maisSerie(e); setEscolhendoSerie(null); }} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border text-sm font-semibold text-fg-muted hover:text-fg">
+                        <Icon name="plus" size={16} /> Série normal
+                      </button>
+                      <button type="button" aria-expanded={escolhendoSerie === e.seId} onClick={() => setEscolhendoSerie(escolhendoSerie === e.seId ? null : e.seId)} className={`alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed text-sm font-semibold ${escolhendoSerie === e.seId ? "border-accent text-accent" : "border-border text-fg-muted hover:text-fg"}`}>
+                        ⚡ Série com técnica
+                      </button>
+                    </div>
+                    {escolhendoSerie === e.seId ? (
+                      <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/5 p-3">
+                        <p className="text-xs text-fg-muted">Só esta série terá a técnica. O resto do exercício continua como está{e.tecnica !== "normal" ? ` (${infoTecnica(e.tecnica)?.nome ?? e.tecnica})` : ""}.</p>
+                        <div className="grid gap-1.5">
+                          {TECNICAS_DA_SERIE.map((t) => (
+                            <button key={t} type="button" onClick={() => serieComTecnica(e, t)} className="flex min-h-11 w-full flex-col items-start rounded-lg border border-border border-l-4 bg-bg px-3 py-2 text-left" style={{ borderLeftColor: COR_TECNICA[t as Tecnica] ?? "#ba9e50" }}>
+                              <span className="text-sm font-bold">{infoTecnica(t)?.nome}</span>
+                              <span className="text-[11px] text-fg-muted">{infoTecnica(t)?.oQueE}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   <label className="block text-xs font-semibold text-fg-muted">
