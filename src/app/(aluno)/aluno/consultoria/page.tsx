@@ -100,20 +100,32 @@ export default async function ConsultoriaPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-2xl font-extrabold leading-tight">Gente de verdade</h2>
-        <div className="grid gap-2">
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-accent">Resultados</p>
+        <h2 className="text-2xl font-extrabold leading-tight">Transformações que falam por si</h2>
+        <p className="text-sm leading-relaxed text-fg-muted">Histórias reais de pessoas que já tinham começado outras vezes — e desta vez conseguiram continuar.</p>
+        <div className="grid gap-4">
           {CONSULTORIA.resultados.map((r) => (
-            <div key={r.nome} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-              <span className="font-bold">{r.nome}</span>
-              <span className="text-right text-sm text-accent">{r.texto}</span>
-            </div>
+            <article key={r.nome} className={`overflow-hidden rounded-2xl border bg-card ${r.destaque ? "border-accent/60" : "border-border"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={r.foto} alt={`Antes e depois de ${r.nome}`} loading="lazy" className="block w-full bg-bg object-cover" />
+              <div className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-extrabold leading-tight">{r.nome}</h3>
+                    <p className="text-xs text-fg-subtle">{r.idade} anos · {r.modalidade}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-2xl font-black leading-none text-accent">{r.kg}</p>
+                    {r.tempo ? <p className="mt-1 text-[11px] text-fg-muted">{r.tempo}</p> : null}
+                  </div>
+                </div>
+                <p className="text-sm leading-relaxed text-fg-muted">{r.historia}</p>
+                <blockquote className="border-l-2 border-accent pl-3 text-sm font-semibold italic leading-relaxed">“{r.fala}”</blockquote>
+              </div>
+            </article>
           ))}
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/50 bg-card px-4 py-3">
-            <span className="font-bold">O próprio Montinho</span>
-            <span className="text-right text-sm text-accent">−40 kg em 12 meses</span>
-          </div>
         </div>
-        <p className="text-xs text-fg-subtle">{CONSULTORIA.avisoResultados}</p>
+        <p className="text-xs leading-relaxed text-fg-subtle">{CONSULTORIA.avisoResultados}</p>
       </section>
 
       <section className="space-y-3">
