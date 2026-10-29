@@ -86,21 +86,6 @@ export function PerfilRankingSheet({ refPessoa, nome, posicao, interagir, onFech
               </section>
             ) : null}
 
-            {desafios ? (
-              <section aria-labelledby="desafios-perfil">
-                <h3 id="desafios-perfil" className="text-xs font-bold uppercase tracking-wider text-fg-muted">⚔️ Desafios</h3>
-                <ul className="mt-2 grid grid-cols-3 gap-2">
-                  {desafios.numeros.map((n) => (
-                    <li key={n.rotulo} className="rounded-xl border border-border bg-surface px-2 py-2 text-center">
-                      <p className="text-xl font-black leading-none">{n.valor}</p>
-                      <p className="mt-1 text-[10px] leading-tight text-fg-muted"><span aria-hidden>{n.emoji}</span> {n.rotulo}</p>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-2 text-xs text-fg-muted">{desafios.frase}</p>
-              </section>
-            ) : null}
-
             <section aria-labelledby="desempate-perfil">
               <h3 id="desempate-perfil" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Fatores de desempate (nesta ordem)</h3>
               <ol className="mt-2 divide-y divide-border rounded-xl border border-border bg-surface">
@@ -134,6 +119,29 @@ export function PerfilRankingSheet({ refPessoa, nome, posicao, interagir, onFech
                 <p className="mt-2 text-sm text-fg-muted">Ainda sem troféus.</p>
               )}
             </section>
+
+            {desafios ? (
+              <section aria-labelledby="desafios-perfil">
+                <h3 id="desafios-perfil" className="text-xs font-bold uppercase tracking-wider text-fg-muted">⚔️ Desafios</h3>
+                <ul className="mt-2 grid grid-cols-3 gap-2">
+                  {desafios.numeros.map((n) => (
+                    <li key={n.rotulo} className="rounded-xl border border-border bg-surface px-2 py-2 text-center">
+                      <p className="text-xl font-black leading-none">{n.valor}</p>
+                      <p className="mt-1 text-[10px] leading-tight text-fg-muted"><span aria-hidden>{n.emoji}</span> {n.rotulo}</p>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-fg-muted">{desafios.frase}</p>
+                {/* Sempre fechar com uma ação: desafiar (ou criar o seu). */}
+                {perfil.eu ? (
+                  <Link href="/aluno/desafios/novo" className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-black text-bg">⚔️ Criar um desafio e chamar a galera</Link>
+                ) : interagir ? (
+                  <Link href={`/aluno/desafios/novo?com=${encodeURIComponent(nome)}`} className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-black text-bg">⚔️ Desafiar {primeiro} agora</Link>
+                ) : (
+                  <Link href="/treinador/desafios" className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-accent/60 px-4 py-3 font-bold text-accent">⚔️ Ver os desafios da galera</Link>
+                )}
+              </section>
+            ) : null}
           </div>
         )}
       </div>
