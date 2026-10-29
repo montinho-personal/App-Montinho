@@ -5,7 +5,7 @@
 // transparente e compartilhamento nativo quando o navegador permite.
 
 import { useEffect, useRef, useState } from "react";
-import { configPadrao, FORMATOS, FRASES, metricasDisponiveis, modelosDisponiveis, nomeArquivo, ROTULO_METRICA, ROTULO_MODELO, AJUSTE_FOTO_PADRAO, type ConfigCard, type DadosCard, type Formato, type Fundo, type ModeloId, type Variacao } from "@/lib/chalala/card";
+import { configPadrao, MAX_TITULO, TITULOS_TREINO, tituloDoTreino, FORMATOS, FRASES, metricasDisponiveis, modelosDisponiveis, nomeArquivo, ROTULO_METRICA, ROTULO_MODELO, AJUSTE_FOTO_PADRAO, type ConfigCard, type DadosCard, type Formato, type Fundo, type ModeloId, type Variacao } from "@/lib/chalala/card";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { CelebracaoMedalha, type ConquistaCelebravel } from "./CelebracaoMedalha";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
@@ -37,7 +37,26 @@ function Chip({ ativo, onClick, children, disabled }: { ativo: boolean; onClick:
 export default function EditorCard({ dados, modeloInicial, nome, origem, registrarEventos = true, refEvento = null, onFechar }: { dados: DadosCard; modeloInicial: ModeloId; nome: string; origem: Origem; registrarEventos?: boolean; /** Ex.: "medalha:treinos_10" — qual troféu foi compartilhado (Vitrine de Troféus). */ refEvento?: string | null; onFechar: () => void }) {
   const modelos = modelosDisponiveis(dados);
   const inicial = modelos.includes(modeloInicial) ? modeloInicial : modelos[0];
-  const [cfg, setCfg] = useState<ConfigCard>(() => configPadrao(inicial, dados, nome));
+  // Título escolhido da última vez (fica no aparelho) já vem marcado.
+  const [cfg, setCfg] = useState<ConfigCard>(() => {
+    let titulo: string | null = null;
+    try {
+      titulo = localStorage.getItem("montinho-titulo-card");
+    } catch {
+      // sem armazenamento: usa o padrão
+    }
+    return { ...configPadrao(inicial, dados, nome), titulo };
+  });
+  const [tituloProprio, setTituloProprio] = useState(() => (cfg.titulo && !TITULOS_TREINO.includes(cfg.titulo) ? cfg.titulo : ""));
+  const escolherTitulo = (t: string | null) => {
+    mudar({ titulo: t });
+    try {
+      if (t) localStorage.setItem("montinho-titulo-card", t);
+      else localStorage.removeItem("montinho-titulo-card");
+    } catch {
+      // sem armazenamento: vale só agora
+    }
+  };
   const [historico, setHistorico] = useState<ConfigCard[]>([]);
   const [ativos, setAtivos] = useState<Ativos>({ logoClaro: null, logoEscuro: null, foto: null, fotoW: 0, fotoH: 0 });
   const [alt, setAlt] = useState("");
@@ -296,6 +315,35 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
                 </div>
               )}
             </div>
+
+            {cfg.modelo === "A" ? (
+              <fieldset className="space-y-1.5">
+                <legend className="font-semibold">Título do card</legend>
+                <div className="flex flex-wrap gap-1.5">
+                  {TITULOS_TREINO.map((t) => {
+                    const on = tituloDoTreino(cfg.titulo) === t;
+                    return (
+                      <button key={t} type="button" aria-pressed={on} onClick={() => { setTituloProprio(""); escolherTitulo(t === TITULOS_TREINO[0] ? null : t); }} className={`min-h-9 rounded-full border px-3 text-xs font-bold ${on ? "border-accent bg-accent text-bg" : "border-border text-fg-muted"}`}>
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="block space-y-1">
+                  <span className="text-xs text-fg-muted">✏️ Ou escreva o seu (até {MAX_TITULO} letras)</span>
+                  <input
+                    value={tituloProprio}
+                    maxLength={MAX_TITULO}
+                    onChange={(e) => {
+                      setTituloProprio(e.target.value);
+                      escolherTitulo(e.target.value.trim() ? e.target.value : null);
+                    }}
+                    placeholder="Ex.: PERNA DESTRUÍDA!"
+                    className="h-10 w-full rounded-md border border-border bg-bg px-2 uppercase"
+                  />
+                </label>
+              </fieldset>
+            ) : null}
 
             {cfg.modelo !== "reconhecimento" ? (
               <label className="block space-y-1">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ajustarTexto, configPadrao, destaqueRecorde, enquadrarFoto, evolucaoParaCard, FORMATOS, layoutCard, metricasDisponiveis, modelosDisponiveis, nomeArquivo, type DadosCard, type Op, type OpTexto, type Medir } from "./card";
+import { tituloDoTreino, ajustarTexto, configPadrao, destaqueRecorde, enquadrarFoto, evolucaoParaCard, FORMATOS, layoutCard, metricasDisponiveis, modelosDisponiveis, nomeArquivo, type DadosCard, type Op, type OpTexto, type Medir } from "./card";
 
 // Medição aproximada (largura média de glifo ~0,6 × tamanho; negrito um pouco maior).
 const medir: Medir = (t, tam, peso) => [...t].length * tam * (peso >= 700 ? 0.62 : 0.55);
@@ -138,5 +138,14 @@ describe("evolução de um treino para o outro no card", () => {
     const d = { nomeTreino: "Treino A", series: 10, evolucaoTreino: ["+12% de carga total vs o último treino A"] };
     expect(metricasDisponiveis("A", d)).toContain("evolucao");
     expect(configPadrao("A", d, "").metricas.evolucao).toBe(true);
+  });
+});
+
+describe("título do card do treino", () => {
+  it("padrão TREINO PAGO!; escolhido vira maiúsculas e cabe em 22 letras", () => {
+    expect(tituloDoTreino(null)).toBe("TREINO PAGO!");
+    expect(tituloDoTreino("tá pago!")).toBe("TÁ PAGO!");
+    expect(tituloDoTreino("   ")).toBe("TREINO PAGO!");
+    expect(tituloDoTreino("x".repeat(40))).toHaveLength(22);
   });
 });

@@ -37,6 +37,12 @@ export const FRASES: Record<ModeloId, string[]> = {
   reconhecimento: ["Seu shape merece um chalalá."],
 };
 
+/** Título grande do card do fim do treino (pedido do Montinho, 29/10/2026): a pessoa escolhe ou escreve o dela. */
+export const TITULOS_TREINO = ["TREINO PAGO!", "TÁ PAGO!", "MISSÃO CUMPRIDA!", "HOJE TEVE!", "MAIS UM PAGO!", "FOI PESADO!", "CHALALÁ!", "SEM DESCULPA!"];
+export const MAX_TITULO = 22;
+/** Título do card do treino: o escolhido (até 22 letras, em maiúsculas) ou “TREINO PAGO!”. */
+export const tituloDoTreino = (t?: string | null) => (t ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_TITULO).toUpperCase() || TITULOS_TREINO[0];
+
 export const ASSINATURA = { linha: "Montinho Personal Trainer · @montinho_personal", slogan: "Seu shape merece um chalalá." };
 
 export type MetricaChave = "duracao" | "exercicios" | "series" | "treino" | "treinos" | "aderencia" | "tempoTotal" | "metas" | "evolucao" | "conquista";
@@ -84,6 +90,8 @@ export type ConfigCard = {
   fundo: Fundo;
   variacao: Variacao;
   frase: string;
+  /** Título grande do card do treino (modelo A). Vazio = “TREINO PAGO!”. */
+  titulo?: string | null;
   nome: string;
   mostrarNome: boolean;
   mostrarData: boolean;
@@ -260,7 +268,7 @@ function blocosDoModelo(cfg: ConfigCard, d: DadosCard, p: Paleta): Bloco[] {
   switch (cfg.modelo) {
     case "A": {
       kicker("CHALALÁ!");
-      titulo("TREINO PAGO!");
+      titulo(tituloDoTreino(cfg.titulo));
       const itens: Array<{ valor: string; rotulo: string }> = [];
       if (on("duracao") && d.duracaoMin) itens.push({ valor: formatarMin(d.duracaoMin), rotulo: "de treino" });
       if (on("exercicios") && d.exercicios) itens.push({ valor: String(d.exercicios), rotulo: d.exercicios === 1 ? "exercício" : "exercícios" });
