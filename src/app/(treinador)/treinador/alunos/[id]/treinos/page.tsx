@@ -11,6 +11,8 @@ import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular
 import { volumeRealizadoPorGrupo } from "@/lib/volume/calcular";
 import { lerAlternativasOcultas } from "@/lib/data/alternativas-ocultas";
 import { MontadorClient } from "./MontadorClient";
+import { CopiarProtocolo } from "./CopiarProtocolo";
+import { indiceBusca } from "@/lib/data/busca";
 import Link from "next/link";
 import { ehLivreMetas } from "@/lib/data/livre-metas";
 import { porquesDosExercicios } from "@/lib/data/desbloqueia";
@@ -37,6 +39,8 @@ export default async function MontadorPage({ params }: PageProps) {
     listarFavoritos(sessao.userId),
     lerTemposTreinador(sessao.userId),
   ]);
+  // Para quem dá para copiar este protocolo: os outros alunos (sem arquivados e sem visitantes).
+  const outros = (await indiceBusca().catch(() => [])).filter((a) => a.id !== id && a.status !== "arquivado" && a.modalidade !== "visitante").map((a) => ({ id: a.id, nome: a.nome, temTreino: a.treinos.length > 0 })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   const [uso, estrategia, porques, alternativasOcultas] = await Promise.all([usoDosExercicios(biblioteca), estrategiaVigente(id), porquesDosExercicios(plano.treinos.flatMap((t) => t.exercicios.map((e) => e.id))), lerAlternativasOcultas(id)]);
   const focoEstrategia = estrategia ? Object.fromEntries(diasDaEstrategia(estrategia.dados).map((d) => [d.letra, focoDoDia(d)])) : {};
   if (!aluno) notFound();
@@ -56,6 +60,7 @@ export default async function MontadorPage({ params }: PageProps) {
         </span>
         <span aria-hidden className="text-accent">→</span>
       </Link>
+      <CopiarProtocolo alunoId={id} alunoNome={aluno.profile?.nome ?? "Aluno"} opcoes={outros} treinos={plano.treinos.filter((t) => t.ativo).length} />
     </div>
     <MontadorClient
       temposTreinador={temposTreinador}
