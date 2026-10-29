@@ -71,6 +71,8 @@ import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
+import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
+import { destaqueFeriado } from "@/lib/conquistas/feriados";
 import { mobilidadeIndicada } from "@/lib/data/mobilidade-indicada";
 import { resumoRevisao } from "@/lib/desbloqueia/revisao";
 import { estadoDoDia, fraseDoDia } from "@/lib/inicio/dia";
@@ -173,6 +175,12 @@ export default async function AlunoHomePage() {
           {saudacao}, <span className="text-accent">{primeiroNome}</span>
         </h1>
       </header>
+
+      {/* Feriado: em destaque desde a véspera (troféus com o nome do feriado). */}
+      {(() => {
+        const fer = destaqueFeriado(hojeSP);
+        return fer ? <FeriadoDestaque d={fer} conquistas={conquistas} /> : null;
+      })()}
 
       <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
 

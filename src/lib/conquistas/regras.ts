@@ -22,6 +22,7 @@ import { normalizarNome } from "@/lib/grupos";
 import { classificarSessao, dataLocal, somarDias, type ResultadoAderencia, type SessaoAderencia } from "@/lib/aderencia/calcular";
 import { trofeusDoCardio, LIMITES_CARDIO, type CodigoCardio, type EntradaCardio } from "@/lib/cardio/regras";
 import { trofeusDoDiaDuplo, type CodigoDiaDuplo } from "./dia-duplo";
+import { trofeusDeFeriado, type CodigoFeriado } from "./feriados";
 import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-seguido";
 import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
@@ -105,6 +106,7 @@ export type CodigoConquista =
   | CodigoCardio
   // Dia em dobro: 2 cardios, musculação + cardio, 2 musculações no mesmo dia (src/lib/conquistas/dia-duplo.ts)
   | CodigoDiaDuplo
+  | CodigoFeriado
   // Combo em sequência: dias seguidos com musculação e cardio (src/lib/conquistas/combo-seguido.ts)
   | CodigoCombo
   // Volume total: séries válidas acumuladas (src/lib/conquistas/volume-series.ts)
@@ -178,6 +180,8 @@ export const CODIGOS_COMPARTILHAR: CodigoConquista[] = ["compartilhou_primeiro",
 export { CODIGOS_CARDIO } from "@/lib/cardio/regras";
 /** Dia em dobro (0107): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_DIA_DUPLO } from "./dia-duplo";
+/** Feriados (0121): gravados à parte; repetem a cada feriado, com o nome dele no título. */
+export { CODIGOS_FERIADO } from "./feriados";
 /** Combo em sequência (0111): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_COMBO } from "./combo-seguido";
 /** Volume total (0111): gravados à parte, como as outras famílias novas. */
@@ -284,6 +288,9 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   cardio_dobro: { titulo: "Dobro de Fôlego", criterio: "Somar o dobro dos minutos de cardio prescritos numa semana.", repete: false },
   dois_folegos: { titulo: "Dois Fôlegos", criterio: `Fazer 2 cardios no mesmo dia, cada um com ${LIMITES_CARDIO.minutosMin} minutos ou mais.`, repete: false },
   combo_completo: { titulo: "Combo Completo", criterio: `Fazer musculação e cardio (${LIMITES_CARDIO.minutosMin} minutos ou mais) no mesmo dia.`, repete: false },
+  feriado_musculacao: { titulo: "Feriado Pago", criterio: "Treinar musculação num feriado (Ano Novo, Carnaval, Finados, Natal…). O troféu leva o nome do feriado e se repete a cada feriado.", repete: true },
+  feriado_cardio: { titulo: "Feriado de Fôlego", criterio: `Fazer cardio (${LIMITES_CARDIO.minutosMin} minutos ou mais) num feriado. O troféu leva o nome do feriado e se repete a cada feriado.`, repete: true },
+  feriado_combo: { titulo: "Feriado Completo", criterio: "Fazer musculação E cardio no mesmo feriado: troféu a mais, com o nome do feriado.", repete: true },
   dose_dupla: { titulo: "Dose Dupla", criterio: "Concluir 2 treinos de musculação no mesmo dia (treino extra e treino livre com séries também contam).", repete: false },
   combo_3: { titulo: "Combo 3 Dias", criterio: `3 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
   combo_5: { titulo: "Combo 5 Dias", criterio: `5 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
@@ -568,6 +575,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (da?.nato) out.push(nova("desafiante_nato", "1", da.nato, null, `${LIMITES_DESAFIO.desafiosParaNato} desafios entre amigos até o fim.`));
   if (e.cardio) for (const t of trofeusDoCardio(e.cardio, hoje)) out.push(nova(t.codigo, t.referencia, t.data, null, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDoDiaDuplo(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDeFeriado(e.sessoes, e.cardio?.feitos ?? [])) out.push({ ...nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, undefined, t.evidencia), titulo: t.titulo });
   for (const t of trofeusDoComboSeguido(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeSeries(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeTempo(e.sessoes)) out.push(nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, t.codigo === "retomada_30" ? { diasAfastado: Number(t.evidencia.diasAfastado) } : undefined, t.evidencia));

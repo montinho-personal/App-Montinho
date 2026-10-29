@@ -6,6 +6,7 @@
 // Nada aqui grava; a gravação continua em data/conquistas.
 // ============================================================================
 
+import { proximoFeriado } from "./feriados";
 import { totalDeSeries } from "./volume-series";
 import { mesesComTreino } from "./acompanhamento";
 import { JANELAS_CARDIO } from "./cardio-horario";
@@ -138,6 +139,10 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "mobilidade_completa", selo: "🧘" },
   { codigo: "mobilidade_7_superiores", selo: "7💪" },
   { codigo: "mobilidade_7_inferiores", selo: "7🦵" },
+  // Feriados (o troféu ganho leva o nome do feriado)
+  { codigo: "feriado_musculacao", selo: "🎉💪" },
+  { codigo: "feriado_cardio", selo: "🎉❤️" },
+  { codigo: "feriado_combo", selo: "🎉+1" },
   // Dia em dobro
   { codigo: "dois_folegos", selo: "2❤️‍🔥" },
   { codigo: "combo_completo", selo: "💪❤️" },
@@ -413,6 +418,14 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         const n = c === "series_500" ? 500 : 1000;
         const feitas = totalDeSeries(e.sessoes);
         return { atual: Math.min(feitas, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitas), "série válida", "séries válidas")} — você já fez ${feitas.toLocaleString("pt-BR")}.`, disponivel: true };
+      }
+      case "feriado_musculacao":
+      case "feriado_cardio":
+      case "feriado_combo": {
+        const p = proximoFeriado(e.hoje);
+        const quando = p ? `${p.feriado.emoji} Próximo: ${p.feriado.nome}, ${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)}. ` : "";
+        const o = c === "feriado_musculacao" ? "conclua um treino de musculação" : c === "feriado_cardio" ? "faça 10 minutos ou mais de cardio" : "faça musculação e cardio";
+        return { atual: null, alvo: null, falta: `${quando}No feriado, ${o}: o troféu leva o nome dele.`, disponivel: true };
       }
       case "dose_dupla":
         return { atual: null, alvo: null, falta: "Conclua 2 treinos de musculação no mesmo dia (o extra e o treino livre com séries também contam). Só com a recuperação em dia.", disponivel: true };

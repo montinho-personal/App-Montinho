@@ -11,6 +11,7 @@ import { configurarVapid, enviarAosAparelhos } from "@/lib/push/enviar";
 import { entregarWebhook } from "@/lib/crm/entregar";
 import { TTL_CARDIO_SEG, mensagemCardio, type DadosCardio } from "@/lib/push/cardio";
 import { TTL_MOBILIDADE_SEG, mensagemMobilidade, type DadosMobilidade } from "@/lib/push/mobilidade";
+import { TTL_FERIADO_SEG, mensagemFeriado, type DadosFeriado } from "@/lib/push/feriado";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,25 @@ export async function POST(req: Request) {
       mobilidade.falhas += r.falha;
     }
   }
+  // 2a'') Aviso do feriado (0121): no dia, 8h–11h59, com os troféus do feriado em jogo.
+  const feriado = { enviados: 0, falhas: 0 };
+  const { data: devFer, error: e7 } = await db.rpc("feriado_notificacoes_devidas", { p_chave: chave });
+  if (!e7) {
+    const porEnvio = new Map<string, { dados: DadosFeriado; aparelhos: Array<{ endpoint: string; p256dh: string; auth: string }> }>();
+    for (const r of (devFer ?? []) as Array<{ envio_id: string; dados: DadosFeriado; endpoint: string; p256dh: string; auth: string }>) {
+      const x = porEnvio.get(r.envio_id) ?? { dados: r.dados ?? {}, aparelhos: [] };
+      x.aparelhos.push({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth });
+      porEnvio.set(r.envio_id, x);
+    }
+    for (const [id, env] of porEnvio) {
+      const msg = mensagemFeriado(id, env.dados);
+      const r = await enviarAosAparelhos(env.aparelhos, msg, { ttl: TTL_FERIADO_SEG, topic: topicoDoEnvio(id) });
+      await desativar(r.expirados);
+      await db.rpc("chalala_notificacao_resultado", { p_chave: chave, p_id: id, p_titulo: msg.titulo, p_corpo: msg.corpo, p_url: msg.url, p_ok: r.ok, p_falha: r.falha });
+      feriado.enviados += r.ok;
+      feriado.falhas += r.falha;
+    }
+  }
   // 2b) Desafios entre alunos (0095): convite, cutucada e “termina amanhã” — 1 por pessoa a cada 24 h.
   const desafios = { enviados: 0, falhas: 0 };
   const { data: devDesafio, error: e4 } = await db.rpc("desafio_notificacoes_devidas", { p_chave: chave });
@@ -121,5 +141,5 @@ export async function POST(req: Request) {
       else crm.falhas++;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, crm: e3 ? "indisponivel" : crm });
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, crm: e3 ? "indisponivel" : crm });
 }

@@ -2307,3 +2307,21 @@ begin
   if v <> array['superiores','inferiores'] then raise exception 'T72c: geral (%)', v; end if;
 end $$;
 \echo 'T72 OK: mobilidade indicada pela anamnese'
+
+-- T73 — 0121: troféus de feriado aceitos (repetem por referência) e calendário legível
+do $$
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, descricao)
+  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'feriado_musculacao', 'finados:2026', now(), 'Finados Pago', 't'),
+         ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'feriado_musculacao', 'natal:2026', now(), 'Natal Pago', 't'),
+         ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'feriado_combo', 'finados:2026', now(), 'Finados Completo', 't');
+  if (select nome from feriados where data = '2026-11-02') <> 'Finados' then raise exception 'T73: calendário'; end if;
+  if not exists (select 1 from pg_proc where proname = 'feriado_notificacoes_devidas') then raise exception 'T73: função do aviso'; end if;
+end $$;
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+do $$ begin
+  if (select count(*) from feriados where data between '2026-11-01' and '2026-12-31') < 4 then raise exception 'T73: aluno não lê o calendário'; end if;
+end $$;
+reset role;
+\echo 'T73 OK: troféus de feriado + calendário'

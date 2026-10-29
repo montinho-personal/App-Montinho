@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade" | "feriados";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -30,6 +30,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   desafios: "Desafios",
   cardio: "Cardio & Resistência",
   mobilidade: "Mobilidade & Alongamento",
+  feriados: "Feriados",
 };
 
 /** Ícone de cada categoria (abas do topo da tela Conquistas). */
@@ -48,6 +49,7 @@ export const CATEGORIA_EMOJI: Record<Categoria, string> = {
   desafios: "⚔️",
   cardio: "❤️‍🔥",
   mobilidade: "🧘",
+  feriados: "🎉",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -971,6 +973,39 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Conte ao Montinho como está a recuperação: com esse volume acumulado, ajustar a carga faz a diferença.",
     fontes: ["habitos2024"],
   },
+  feriado_musculacao: {
+    categoria: "feriados",
+    resumo: "Musculação num feriado: o troféu leva o nome do feriado.",
+    mensagem: "Feriado Pago! Enquanto muita gente parou, você treinou.",
+    comoConquistar: "Conclua um treino de musculação num feriado nacional (Ano Novo, Carnaval, Sexta-feira Santa, Tiradentes, Dia do Trabalho, Corpus Christi, Independência, Aparecida, Finados, Proclamação da República, Consciência Negra ou Natal). Horário de Brasília. Treino extra e treino livre com séries também contam.",
+    significado: "Você manteve o treino num dia em que a rotina costuma sair do lugar.",
+    importancia: "Feriado tira a rotina do lugar, e é na rotina que mora a constância. Encaixar o treino num dia diferente mostra que o hábito já é seu.",
+    explicacao: "Cada feriado vale um troféu com o nome dele (ex.: “Finados Pago”, “Natal Pago”). Carnaval vale na segunda ou na terça. Se fizer cardio no mesmo feriado, ganha também o de Fôlego e o Completo.",
+    proximoPasso: "Faça também um cardio no mesmo feriado: vale o troféu de Fôlego e o Completo.",
+    fontes: ["habitos2024"],
+  },
+  feriado_cardio: {
+    categoria: "feriados",
+    resumo: "Cardio num feriado: o troféu leva o nome do feriado.",
+    mensagem: "Feriado de Fôlego! Cardio feito no feriado.",
+    comoConquistar: "Faça um cardio de 10 minutos ou mais num feriado nacional (registro no app, treino extra de cardio ou Strava). Horário de Brasília.",
+    significado: "Você fez o coração trabalhar num dia de folga.",
+    importancia: "As recomendações de saúde pedem atividade aeróbica distribuída na semana; um feriado é uma boa chance de somar minutos.",
+    explicacao: "Cada feriado vale um troféu com o nome dele (ex.: “Finados de Fôlego”). Carnaval vale na segunda ou na terça. Junto com a musculação no mesmo feriado, ganha também o Completo.",
+    proximoPasso: "Faça também a musculação no mesmo feriado: vale o troféu Pago e o Completo.",
+    fontes: ["oms2020"],
+  },
+  feriado_combo: {
+    categoria: "feriados",
+    resumo: "Musculação e cardio no mesmo feriado: troféu a mais.",
+    mensagem: "Feriado Completo! Musculação e cardio no mesmo feriado.",
+    comoConquistar: "No mesmo feriado, conclua um treino de musculação e um cardio de 10 minutos ou mais. É o troféu a mais, além dos dois separados.",
+    significado: "Feriado aproveitado por inteiro: força e fôlego.",
+    importancia: "Juntar musculação e cardio no mesmo dia cobre as duas recomendações de atividade física de uma vez.",
+    explicacao: "Cada feriado vale um troféu com o nome dele (ex.: “Finados Completo”). No Carnaval, pode ser um na segunda e o outro na terça.",
+    proximoPasso: "Compartilhe o card: feriado completo merece ser visto.",
+    fontes: ["oms2020"],
+  },
   dose_dupla: {
     categoria: "alem",
     resumo: "2 treinos de musculação no mesmo dia.",
@@ -1319,7 +1354,9 @@ export const CONTEUDO: Record<CodigoConquista, ConteudoConquista> = Object.fromE
 ) as Record<CodigoConquista, ConteudoConquista>;
 
 /** Nome atual da conquista (conquistas antigas guardam o título da época; mostramos sempre o atual). */
-export const nomeDaConquista = (codigo: string, tituloGravado?: string | null) => CONTEUDO[codigo as CodigoConquista]?.nome ?? tituloGravado ?? "Conquista";
+/** Nome exibido. Troféus de feriado usam o título gravado (leva o nome do feriado: “Finados Pago”). */
+export const nomeDaConquista = (codigo: string, tituloGravado?: string | null) =>
+  (codigo.startsWith("feriado_") && tituloGravado ? tituloGravado : null) ?? CONTEUDO[codigo as CodigoConquista]?.nome ?? tituloGravado ?? "Conquista";
 
 /**
  * Frase da jornada pelas semanas com meta cumprida (Fase 7). Descreve o que
