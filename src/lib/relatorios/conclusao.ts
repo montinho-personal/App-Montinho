@@ -47,11 +47,15 @@ const validas = (e: ExLike) => e.series.filter((s) => s.tipo === "valida" && (s.
 // Força estimada (Epley) só vale de 1 a 12 repetições — igual ao relatório.
 const epley = (c: number, r: number) => (r >= 1 && r <= 12 ? c * (1 + r / 30) : null);
 
+// Volume conta tudo menos aquecimento (drop-set, rest-pause…), igual à Evolução e aos gráficos
+// (auditoria 29/10/2026: o card do fim e a aba Treinos mostravam kg diferentes no mesmo treino).
+const doVolume = (e: ExLike) => e.series.filter((s) => s.tipo !== "aquecimento" && (s.reps ?? 0) > 0);
+
 function volume(s: SessaoRelatorio): { kg: number; reps: number } {
   let kg = 0;
   let reps = 0;
   for (const e of s.exercicios)
-    for (const x of validas(e)) {
+    for (const x of doVolume(e)) {
       reps += x.reps ?? 0;
       kg += (x.carga_kg ?? 0) * (x.reps ?? 0);
     }

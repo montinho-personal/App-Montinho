@@ -282,11 +282,13 @@ export function situacaoDesafio(d: { inicio: string; fim: string; cancelado: boo
 export function resumoDesafio(d: DesafioBase): string {
   const t = TIPOS_DESAFIO[d.tipo];
   const br = (x: string) => x.split("-").reverse().slice(0, 2).join("/");
+  // Unidade certa conforme o que conta (auditoria 29/10/2026: “treinos” mesmo quando era só cardio).
+  const un = TIPOS_COM_ATIVIDADES.includes(d.tipo) && d.atividades === "cardio" ? "cardios" : TIPOS_COM_ATIVIDADES.includes(d.tipo) && d.atividades === "ambos" ? "atividades" : "treinos";
   const extra =
-    d.tipo === "meta_fixa" ? ` · meta de ${d.meta} treinos`
+    d.tipo === "meta_fixa" ? ` · meta de ${d.meta} ${un}`
     : d.tipo === "semanas" ? ` · ${d.meta}× por semana`
-    : d.tipo === "corrida" ? ` · até ${d.meta} treinos`
-    : d.tipo === "dupla" ? ` · ${d.meta} treinos somados`
+    : d.tipo === "corrida" ? ` · até ${d.meta} ${un}`
+    : d.tipo === "dupla" ? ` · ${d.meta} ${un} somados`
     : d.tipo === "musculo" ? ` · ${FOCOS[d.foco ?? "pernas"].rotulo}`
     : d.tipo === "treino_desafio" ? ` · ${plural((d.exercicios ?? []).length, "exercício", "exercícios")}`
     : "";

@@ -89,8 +89,10 @@ export function rotuloCiclo(semanas: number): string {
  * Ciclos alcançados e o próximo. Conta semanas do calendário desde o início
  * do acompanhamento; semana em pausa combinada não é semana de acompanhamento.
  */
-export function ciclos(semanas: Pick<Semana, "inicio" | "pausada">[], passo = 26): Array<{ semanas: number; data: string | null; alcancado: boolean }> {
-  const ativas = semanas.filter((w) => !w.pausada);
+export function ciclos(semanas: Array<Pick<Semana, "inicio" | "pausada"> & { atual?: boolean }>, passo = 26): Array<{ semanas: number; data: string | null; alcancado: boolean }> {
+  // A semana atual (ainda não terminou) não completa ciclo: senão o marco acendia dias antes,
+  // com a data de um domingo que ainda vai chegar (auditoria 29/10/2026).
+  const ativas = semanas.filter((w) => !w.pausada && !w.atual);
   const out: Array<{ semanas: number; data: string | null; alcancado: boolean }> = [];
   for (let n = passo; n <= ativas.length; n += passo) out.push({ semanas: n, data: somarDias(ativas[n - 1].inicio, 6), alcancado: true });
   const prox = (Math.floor(ativas.length / passo) + 1) * passo;

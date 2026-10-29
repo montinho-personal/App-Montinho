@@ -20,6 +20,7 @@ import { AnuncioDescoberta } from "@/components/desbloqueia/AnuncioDescoberta";
 import { CategoriasTrofeus } from "@/components/conquistas/CategoriasTrofeus";
 import { CartaoCarimbos } from "@/components/conquistas/CartaoCarimbos";
 import { contarCarimbos } from "@/lib/conquistas/carimbos";
+import { carimbosDe } from "@/lib/data/ranking";
 import { TrofeusAoAlcance } from "@/components/conquistas/TrofeusAoAlcance";
 import { PainelConquistas } from "@/components/conquistas/PainelConquistas";
 import { trofeusNosProximosDias } from "@/lib/conquistas/ao-alcance";
@@ -39,6 +40,8 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
   const [{ mensal, conquistas, sessoes, aderencia }, reconhecimentos, plano, cardio] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), getPlanoAtivo(aluno.id).catch(() => null), progressoCardio(aluno.id).catch(() => null)]);
   const extras = await progressoExtras(aluno.id).catch(() => null);
   const hoje = dataLocal(new Date());
+  // Carimbos pela mesma conta do Início e do Ranking (banco, sem o limite de 400 treinos; auditoria 29/10/2026).
+  const totalCarimbos = await carimbosDe([sessao.alunoId]).then((r) => r[sessao.alunoId] ?? contarCarimbos(sessoes)).catch(() => contarCarimbos(sessoes));
   const album = await albumParaAluno(aluno, conquistas);
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje, cardio, extras });
@@ -86,7 +89,7 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
         r={{
           trofeus: medalhas.filter((m) => m.conquistada).length,
           totalTrofeus: medalhas.length,
-          carimbos: contarCarimbos(sessoes),
+          carimbos: totalCarimbos,
           semanasSeguidas: aderencia.sequencia.atual,
           recordes: conquistas.filter((c) => c.codigo === "recorde").reduce((n, c) => n + Math.max(1, c.dados?.recordes?.length ?? 0), 0),
           cardios: cardio ? cardio.feitos : null,
@@ -96,7 +99,7 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
         }}
       />
       <div id="ao-alcance" className="scroll-mt-24"><TrofeusAoAlcance itens={aoAlcance} /></div>
-      <div id="carimbos" className="scroll-mt-24"><CartaoCarimbos total={contarCarimbos(sessoes)} /></div>
+      <div id="carimbos" className="scroll-mt-24"><CartaoCarimbos total={totalCarimbos} /></div>
       {incentivo ? <IncentivoIndicacao momento="conquistas" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <section className="space-y-2" aria-labelledby="categorias-titulo">
         <div className="flex items-baseline justify-between gap-2">

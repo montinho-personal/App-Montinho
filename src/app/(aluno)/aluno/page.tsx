@@ -101,7 +101,7 @@ export default async function AlunoHomePage() {
     getAluno(alunoId),
     getPlanoAtivo(alunoId),
     getSessaoEmAndamento(alunoId),
-    listSessoes(alunoId, { limite: 120 }),
+    listSessoes(alunoId, { limite: 400 }), // mesmo alcance das Conquistas (auditoria 29/10/2026)
     listIntervencoes(alunoId, 3),
     contextoPulsoAluno(alunoId, "inicio").catch(() => null),
     listDieta(alunoId),

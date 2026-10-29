@@ -64,7 +64,8 @@ export function delta(atual: number, anterior: number, emPct = false): { texto: 
   const d = atual - anterior;
   if (d === 0) return { texto: "igual", tom: "igual" };
   // Muito acima do período anterior: “3× mais” lê melhor que “+2417%”.
-  if (emPct && atual >= anterior * 3) return { texto: `▲ ${Math.round(atual / anterior)}× mais`, tom: "alta" };
+  // 1 casa decimal: 350 contra 100 = “3,5× mais” (antes arredondava para 4×).
+  if (emPct && atual >= anterior * 3) return { texto: `▲ ${(Math.floor((atual / anterior) * 10) / 10).toLocaleString("pt-BR")}× mais`, tom: "alta" };
   const texto = emPct ? `${Math.round((d / anterior) * 100)}%` : fmt(Math.abs(d));
   return { texto: `${d > 0 ? "▲ +" : "▼ −"}${emPct ? texto.replace("-", "") : texto}`, tom: d > 0 ? "alta" : "baixa" };
 }

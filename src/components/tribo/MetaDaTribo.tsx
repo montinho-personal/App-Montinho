@@ -67,7 +67,7 @@ export function MetaDaTribo({ cardio, treinos }: { cardio: TrilhaMeta; treinos: 
               <strong>{un(trilha, t.p.total)}</strong> <span className="text-fg-muted">de {un(trilha, t.p.marco.marco)}</span>
             </p>
             <p className="text-sm font-semibold">Faltam {un(trilha, t.p.faltam)}</p>
-            {t.previsao ? <p className="text-xs text-fg-muted">⏱️ No ritmo desta semana, a tribo chega lá em ~{t.previsao} {t.previsao === 1 ? "dia" : "dias"}.</p> : null}
+            {t.previsao ? <p className="text-xs text-fg-muted">⏱️ No ritmo dos últimos 7 dias, a tribo chega lá em ~{t.previsao} {t.previsao === 1 ? "dia" : "dias"}.</p> : null}
           </div>
         </div>
       ) : (
