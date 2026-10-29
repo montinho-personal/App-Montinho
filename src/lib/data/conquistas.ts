@@ -58,7 +58,7 @@ export type ConquistaRow = {
 
 export type Reconhecimento = { id: string; aluno_id: string; conquista_id: string | null; mensagem: string; autor_id: string | null; created_at: string };
 
-export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada", "chalala_workout_started", "chalala_progression_shown", "chalala_reps_evolution_shown", "chalala_record_unlocked", "chalala_advanced_technique_shown", "chalala_workout_completed", "chalala_push_permission_granted", "chalala_push_permission_revoked", "chalala_vai_que_ta_facil"] as const;
+export const TIPOS_EVENTO = ["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "visita_link", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada", "chalala_workout_started", "chalala_progression_shown", "chalala_reps_evolution_shown", "chalala_record_unlocked", "chalala_advanced_technique_shown", "chalala_workout_completed", "chalala_push_permission_granted", "chalala_push_permission_revoked", "chalala_vai_que_ta_facil", "missao_vista", "missao_clicada"] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 export type EventoChalala = { aluno_id: string | null; tipo: TipoEvento; modelo: string | null; formato: string | null; origem: string | null; created_at: string; ref?: string | null };
 
@@ -177,6 +177,8 @@ export async function registrarRelatorioVisto(alunoId: string): Promise<void> {
 // Tela de conclusão
 // ---------------------------------------------------------------------------
 export type ResumoChalala = {
+  /** Próxima missão (só na resposta de api/sessoes/[id]/chalala). */
+  proximaMissao?: { titulo: string; texto: string } | null;
   sessaoId: string;
   status: SessaoCompleta["status"];
   modo: "normal" | "reduzido" | "extra";

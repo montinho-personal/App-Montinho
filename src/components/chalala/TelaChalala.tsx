@@ -198,6 +198,18 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
         </CardBody>
       </Card>
 
+      {/* Próxima missão (Fase 1): só informação, sem botão — não compete com o compartilhar. */}
+      {r?.proximaMissao && !presencial ? (
+        <div className="flex items-start gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">
+          <span aria-hidden className="text-2xl">🎯</span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Próxima missão</p>
+            <p className="font-bold leading-tight">{r.proximaMissao.titulo}</p>
+            <p className="text-sm text-fg-muted">{r.proximaMissao.texto}</p>
+          </div>
+        </div>
+      ) : null}
+
       {r?.relatorio ? <RelatorioTreino r={r.relatorio} letra={r.letra} /> : null}
 
       {r?.destaques?.length ? (

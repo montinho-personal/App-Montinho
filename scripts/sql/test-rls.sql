@@ -2353,3 +2353,19 @@ insert into cardio_registros (aluno_id, modalidade, status, duracao_min, origem,
 select test_logout();
 update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 \echo 'T74 OK: visitante vencido não grava cardio nem mobilidade'
+
+-- T75 — 0123: eventos da Missão de Hoje (o aluno grava os próprios; tipo desconhecido continua barrado)
+select test_login('22222222-2222-2222-2222-222222222222');
+insert into eventos_chalala (aluno_id, tipo, modelo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'missao_vista', 'primeiro', 'inicio');
+insert into eventos_chalala (aluno_id, tipo, modelo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'missao_clicada', 'primeiro', 'inicio');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into eventos_chalala (aluno_id, tipo) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'missao_inventada'); exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T75: tipo desconhecido aceito'; end if;
+  ok := false;
+  begin insert into eventos_chalala (aluno_id, tipo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'missao_vista'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'T75: aluno gravou evento de outro'; end if;
+end $$;
+select test_logout();
+\echo 'T75 OK: eventos da Missão de Hoje'

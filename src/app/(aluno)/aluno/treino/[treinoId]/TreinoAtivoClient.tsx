@@ -11,6 +11,8 @@
 // ============================================================================
 
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
+import { MicroVitoriaFaixa } from "@/components/treinos/MicroVitoria";
+import { microVitoria, TEXTO_MICRO, type MicroVitoria } from "@/lib/treino/micro-vitoria";
 import { linkExecucao, textoExecucao } from "@/lib/treino/execucao-whatsapp";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
 import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
@@ -288,6 +290,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [adaptacaoAberta, setAdaptacaoAberta] = useState<string | null>(null);
   // Status marcado nesta tela (pular / não consegui) antes do servidor confirmar.
   const [statusEx, setStatusEx] = useState<Record<string, string>>({});
+  // Microvitórias (Fase 1): 1º exercício e metade, no máximo 2 por treino.
+  const [micro, setMicro] = useState<string | null>(null);
+  const microVistas = useRef(new Set<MicroVitoria>());
+  const limparMicro = useCallback(() => setMicro(null), []);
   // Ritmo do treino (do cronômetro): “atrasado” destaca o atalho do bi-set.
   const [ritmoEstado, setRitmoEstado] = useState<string | null>(null);
   const [percepcaoEx, setPercepcaoEx] = useState<Record<string, PercepcaoExercicio>>({});
@@ -997,6 +1003,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   function finalizarExercicio(seId: string, percepcao: PercepcaoExercicio | null) {
     if (!sessao) return;
     marcarExercicio(seId, "concluido", percepcao);
+    if (!presencial) {
+      const feitos = sessao.exercicios.filter((se) => se.id === seId || (statusEx[se.id] ?? se.status) === "concluido").length;
+      const mv = microVitoria(feitos, sessao.exercicios.length, microVistas.current, checkinPre === "desconforto");
+      if (mv) {
+        microVistas.current.add(mv);
+        setMicro(TEXTO_MICRO[mv]);
+      }
+    }
     setPerguntandoEsforco(null);
     abrirProximo(seId);
   }
@@ -1420,6 +1434,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   return (
     <div className={`space-y-4 ${timer ? "pb-24" : ""}`}>
       {sessao && sessao.status === "em_andamento" && !presencial ? <RecadosAoVivo sessaoId={sessao.id} /> : null}
+      {micro ? <MicroVitoriaFaixa texto={micro} onSumir={limparMicro} /> : null}
       <div className="flex items-center justify-between gap-3">
         <Link href={voltarHref} className="text-fg-muted text-sm hover:text-fg inline-flex items-center gap-1">
           ← {presencial ? presencial.nomeAluno : "Treinos"}
@@ -1470,6 +1485,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
 
       {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">👥 Aula presencial · {presencial.nomeAluno}. Tudo o que você marcar entra no histórico dela(e).</p> : <LembretePush compacto />}
 
+      {/* Primeiro treino no app (Fase 1): uma dica curta, só até a 1ª série marcada. */}
+      {confianca?.concluidas === 0 && !presencial && totalFeito === 0 ? (
+        <p className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-2.5 text-sm">
+          🌱 <strong>Seu primeiro treino!</strong> Em cada série, anote o peso e as repetições e toque no ✓. Errou? Dá para corrigir depois.
+        </p>
+      ) : null}
       {inicioChalala && !presencial && totalFeito === 0 ? (
         <div role="status" className="flex items-start gap-2 rounded-xl border border-accent/50 bg-accent/10 px-3 py-2.5">
           <p className="flex-1 text-sm font-bold text-accent">{inicioChalala}</p>

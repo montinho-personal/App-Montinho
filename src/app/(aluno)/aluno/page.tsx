@@ -72,6 +72,9 @@ import { DiaConcluido } from "@/components/inicio/DiaConcluido";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
 import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
+import { MissaoDeHoje } from "@/components/inicio/MissaoDeHoje";
+import { missaoDeHoje } from "@/lib/inicio/missao";
+import { ehDeHoje } from "@/lib/conquistas/ao-alcance";
 import { destaqueFeriado } from "@/lib/conquistas/feriados";
 import { mobilidadeIndicada } from "@/lib/data/mobilidade-indicada";
 import { resumoRevisao } from "@/lib/desbloqueia/revisao";
@@ -159,6 +162,26 @@ export default async function AlunoHomePage() {
   const tribo = await telaDaTribo(alunoId).catch(() => null);
   const recadoTribo = tribo?.dados ? mensagensDaTribo(tribo.dados, hojeSP).find((m) => m.includes("hoje")) ?? null : null;
 
+  // Missão de Hoje (Fase 1): só reorganiza o que o Início já sabe; nunca inventa prescrição.
+  const doisDias = somarDias(hojeSP, -2);
+  const missao = proximo
+    ? missaoDeHoje({
+        proximo: { letra: proximo.letra, nome: proximo.nome, exercicios: proximo.exercicios.length, minutos: duracaoEstimada ?? null },
+        primeiroTreino: !sessoes.some(contaCarimbo),
+        diasSemTreino: semana.diasSemUltimoTreino,
+        retomada: semana.retomada,
+        pausada: !!aderencia.semanaAtual?.pausada,
+        meta: aderencia.semanaAtual?.meta ?? null,
+        pontos: aderencia.semanaAtual?.pontos ?? 0,
+        desconforto: pulsoInicio?.checkinPreHoje === "desconforto" || sessoes.some((s) => s.feedback_percepcao === "dor" && dataLocal(s.iniciado_em) >= doisDias),
+        linhas: [
+          (() => { const t = aoAlcance.find((i) => ehDeHoje(i.quando)); return t ? `🏆 Ainda hoje: ${t.titulo}. ${t.oQueFazer}` : null; })(),
+          aderencia.semanaAtual?.meta ? `🎯 Meta da semana: ${Math.min(aderencia.semanaAtual.pontos, aderencia.semanaAtual.meta).toLocaleString("pt-BR")} de ${aderencia.semanaAtual.meta} treinos` : null,
+          emAlta[0] ? `📈 ${emAlta[0].nome}: ${emAlta[0].primeira.toLocaleString("pt-BR")} → ${emAlta[0].ultima.toLocaleString("pt-BR")} kg` : null,
+          recadoTribo ? `🤝 ${recadoTribo}` : null,
+        ],
+      })
+    : null;
   return (
     <div className="space-y-5">
       {/* Troféu que saiu fora de uma tela de comemoração (Strava, semana, ativado pelo personal…) e
@@ -220,35 +243,17 @@ export default async function AlunoHomePage() {
         </Card>
       ) : livreMetas ? (
         <LivreMetasCard p={livreMetas} />
-      ) : proximo ? (
-        <Card className="border-accent/40 bg-grain-strong">
-          <CardBody className="space-y-3">
-            <p className="text-[11px] uppercase tracking-wider text-accent font-bold">{semana.retomada ? "Seu treino continua aqui" : "Seu próximo treino"}</p>
-            {plano.programa?.nome && plano.programa.nome !== "Programa atual" ? <p className="text-xs text-fg-muted">Protocolo: <span className="font-semibold text-fg">{plano.programa.nome}</span></p> : null}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center shrink-0" aria-hidden>
-                <span className="text-2xl font-black text-bg">{proximo.letra}</span>
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold leading-tight">{proximo.nome}</h2>
-                <p className="text-sm text-fg-muted mt-0.5">
-                  {proximo.exercicios.length} {proximo.exercicios.length === 1 ? "exercício" : "exercícios"}
-                  {duracaoEstimada ? ` · ~${duracaoEstimada} min` : ""}
-                </p>
-              </div>
-            </div>
-            {semana.retomada ? <p className="text-sm text-fg-muted">Faz {semana.diasSemUltimoTreino} dias desde o último registro. Vamos retomar no seu ritmo?</p> : null}
-            <Link href={`/aluno/treino/${proximo.id}`} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-base font-bold text-bg hover:bg-accent-hover">
-              <Icon name="play" /> Começar treino
-            </Link>
-            {treinos.length > 1 ? (
-              <Link href="/aluno/treinar" className="block py-1 text-center text-sm text-fg-muted hover:text-fg">
-                Prefere outro treino hoje? Ver todos
-              </Link>
-            ) : null}
-            {podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null) ? <FacaOQueQuiser p={placarSemana} compacto /> : null}
-          </CardBody>
-        </Card>
+      ) : proximo && missao ? (
+        <MissaoDeHoje
+          missao={missao}
+          href={`/aluno/treino/${proximo.id}`}
+          letra={proximo.letra}
+          detalhe={`${proximo.exercicios.length} ${proximo.exercicios.length === 1 ? "exercício" : "exercícios"}${duracaoEstimada ? ` · ~${duracaoEstimada} min` : ""}`}
+          protocolo={plano.programa?.nome && plano.programa.nome !== "Programa atual" ? plano.programa.nome : null}
+          verTodos={treinos.length > 1}
+        >
+          {missao.cta && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null) ? <FacaOQueQuiser p={placarSemana} compacto /> : null}
+        </MissaoDeHoje>
       ) : (
         FEATURES.modoVisitante && ehVisitante(sessao) ? (
           // Visitante: quem monta o treino é ele mesmo.
