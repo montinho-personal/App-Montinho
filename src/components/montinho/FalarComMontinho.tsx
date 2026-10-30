@@ -5,13 +5,14 @@
 import { eventoGa } from "@/components/analytics/ga";
 import { CONTATO, linkContato, type OrigemContato } from "@/lib/montinho/apresentacao";
 
-export function FalarComMontinho({ origem, whatsapp, visitante, texto, compacto = false }: { origem: OrigemContato; whatsapp: string; visitante: boolean; texto?: string; /** Botão menor (barra fixa embaixo). */ compacto?: boolean }) {
+export function FalarComMontinho({ origem, whatsapp, visitante, texto, compacto = false, onClick }: { origem: OrigemContato; whatsapp: string; visitante: boolean; texto?: string; /** Botão menor (barra fixa embaixo). */ compacto?: boolean; onClick?: () => void }) {
   return (
     <a
       href={linkContato(origem, whatsapp)}
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {
+        onClick?.();
         eventoGa("montinho_whatsapp_click", { tela: origem });
         if (visitante) void fetch("/api/visitante/cta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cta: origem, tipo: "clicado", tela: origem }), keepalive: true }).catch(() => undefined);
       }}

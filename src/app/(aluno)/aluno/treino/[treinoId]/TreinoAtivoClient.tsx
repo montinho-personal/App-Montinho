@@ -60,6 +60,7 @@ import type { ContextoPulsoAluno } from "@/lib/data/pulso";
 import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalala";
 import { CardioDoTreino } from "@/components/strava/CardioDoTreino";
 import { CardioAposTreino } from "@/components/cardio/CardioAposTreino";
+import { OfertaPlano } from "@/components/ofertas/OfertaPlano";
 import { IncentivoIndicacao } from "@/components/indicacao/IncentivoIndicacao";
 import { OPCOES_TEMPO_MIN, encurtarDescanso, ganhoDescansoReduzido, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
@@ -1238,6 +1239,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
               <span aria-hidden className="text-fg-subtle">→</span>
             </Link>
           ) : null}
+          {/* Oferta dos planos (Consultoria/Pacote Flexível): no pico do treino pago, com o limite e as pausas de src/lib/ofertas/regras.ts. */}
+          {concluida.status === "concluida" && feedback !== "dor" && !presencial && !pedirAvaliacao && !campanha?.oferta && BRAND.contact.whatsapp ? <OfertaPlano tela="fim_treino" whatsapp={BRAND.contact.whatsapp} semDor={checkinPre !== "desconforto"} /> : null}
       </TelaChalala>
     );
   }

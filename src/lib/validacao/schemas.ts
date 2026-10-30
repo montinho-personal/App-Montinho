@@ -537,7 +537,20 @@ export const cadastroVisitanteSchema = z.object({
   whatsapp: whatsappCampo,
   senha: z.string().min(8, "A senha precisa de pelo menos 8 caracteres").max(72),
   aceite_privacidade: z.literal(true, { message: "É preciso aceitar a política de privacidade" }),
+  /** 0130: cidade e se consegue ir a Alphaville (aulas presenciais). Opcionais para telas antigas. */
+  cidade: z.string().trim().max(80).optional(),
+  perto_alphaville: z.enum(["sim", "nao", "nao_sei"]).optional(),
 });
+
+/** 0130: o personal liga/desliga uma oferta e escreve a vantagem (opcional). */
+export const ofertaConfigSchema = z.object({
+  id: z.enum(["pacote_alunos", "consultoria_visitantes", "pacote_visitantes"]),
+  ativo: z.boolean(),
+  promo: z.string().trim().max(120).nullable().optional(),
+});
+
+/** 0130: pode fazer aula presencial (Pacote Flexível). */
+export const presencialSchema = z.object({ pode_presencial: z.boolean() });
 
 export const conviteSchema = z
   .object({

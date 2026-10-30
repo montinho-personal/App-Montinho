@@ -2425,3 +2425,29 @@ insert into eventos_chalala (aluno_id, tipo, origem) values ('aaaaaaaa-aaaa-aaaa
 insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'semanas_completas_5', '1', '5 Semanas Completas', now()) on conflict do nothing;
 insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'semana_perfeita', '1', 'Semana Perfeita', now()) on conflict do nothing;
 \echo 'T80 OK: Semanas Completas e Semana Perfeita'
+
+-- T81 — 0130: ofertas dos planos: aluno lê, só o personal muda; cidade e pode_presencial no cadastro
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int;
+begin
+  select count(*) into n from ofertas_config;
+  if n <> 3 then raise exception 'T81a: aluno não lê as ofertas (%)', n; end if;
+  update ofertas_config set ativo = false where id = 'pacote_alunos';
+  select count(*) into n from ofertas_config where ativo = false;
+  if n <> 0 then raise exception 'T81b: aluno desligou oferta'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  update ofertas_config set ativo = false, promo = '1 aula a mais' where id = 'pacote_alunos';
+  select count(*) into n from ofertas_config where id = 'pacote_alunos' and ativo = false;
+  if n <> 1 then raise exception 'T81c: personal não desligou a oferta'; end if;
+  update ofertas_config set ativo = true, promo = null where id = 'pacote_alunos';
+  update alunos set pode_presencial = false, cidade = 'Curitiba' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  update alunos set pode_presencial = true, cidade = null where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+end $$;
+select test_logout();
+\echo 'T81 OK: ofertas dos planos'

@@ -50,6 +50,7 @@ import { perfilVisitante } from "@/lib/data/visitantes";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { DesafioDoVisitante } from "@/components/visitante/DesafioDoVisitante";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
+import { OfertaPlano } from "@/components/ofertas/OfertaPlano";
 import { PedirWhatsapp } from "@/components/visitante/PedirWhatsapp";
 import { ComeceAquiSite } from "@/components/visitante/ComeceAquiSite";
 import { ConhecaOMontinho } from "@/components/montinho/ConhecaOMontinho";
@@ -319,6 +320,8 @@ export default async function AlunoHomePage() {
       {FEATURES.modoVisitante && !ehVisitante(sessao) && !sessao.comoPersonal && !indicacao?.pct ? <IncentivoIndicacao momento="inicio" aluno fecharam={indicacao?.fecharam ?? 0} /> : null}
       {/* No máximo um convite por tela: com campanha em destaque, sai o convite comum. */}
       {FEATURES.modoVisitante && ehVisitante(sessao) && !campanha?.oferta && !mostrarConvite ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
+      {/* Oferta dos planos (Consultoria/Pacote Flexível), com limite e pausas; a oferta do fim do acesso do visitante tem a vez. */}
+      {!sessao.comoPersonal && !campanha?.oferta && BRAND.contact.whatsapp ? <OfertaPlano tela="inicio" whatsapp={BRAND.contact.whatsapp} /> : null}
 
       {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
       <Link href="/aluno/vitorias" className="block">

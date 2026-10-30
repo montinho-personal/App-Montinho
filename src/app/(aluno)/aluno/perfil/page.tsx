@@ -75,6 +75,10 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
               <span className="font-bold">📖 Minha história</span>
               <span className="text-[11px] text-fg-muted">Do “gordinho da turma” a −40 kg</span>
             </Link>
+            <Link href="/aluno/planos" className="touch col-span-full flex flex-col justify-center rounded-xl border border-accent/60 bg-bg px-3 py-2.5">
+              <span className="text-sm font-bold">✨ Ver todos os planos</span>
+              <span className="text-[11px] text-fg-muted">Compare Consultoria, Pacote Flexível e Presencial</span>
+            </Link>
             <Link href="/aluno/consultoria" className="touch flex flex-col justify-center rounded-xl border border-border bg-bg px-3 py-2.5">
               <span className="font-bold">💎 Como funciona</span>
               <span className="text-[11px] text-fg-muted">A consultoria, passo a passo</span>
@@ -179,6 +183,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
 
       {!visitante ? (
         <Grupo titulo="Sobre o Montinho">
+          <ItemLink icone="✨" titulo="Planos do Montinho" sub="Compare e fale comigo no WhatsApp" href="/aluno/planos" />
           <ItemLink icone="📖" titulo="Minha história" sub="Do “gordinho da turma” a −40 kg" href="/aluno/historia" />
           <ItemLink icone="💎" titulo="A consultoria" sub="Como funciona o acompanhamento" href="/aluno/consultoria" />
           <ItemLink icone="🏋️" titulo="Personal presencial" sub="Eu do seu lado em cada série" href="/aluno/presencial" />

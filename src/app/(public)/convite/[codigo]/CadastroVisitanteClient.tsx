@@ -13,6 +13,8 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [perto, setPerto] = useState<"sim" | "nao" | "nao_sei" | "">("");
   const [senha, setSenha] = useState("");
   const [aceite, setAceite] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -24,6 +26,7 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
     if (nome.trim().length < 2) return setErro("Digite seu nome.");
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErro("Digite um e-mail válido.");
     if (!whatsappBR(whatsapp)) return setErro(MSG_WHATSAPP);
+    if (cidade.trim().length < 2) return setErro("Digite a sua cidade.");
     if (senha.length < 8) return setErro("A senha precisa de pelo menos 8 caracteres.");
     if (!aceite) return setErro("Para continuar, aceite a política de privacidade.");
     setEnviando(true);
@@ -31,7 +34,7 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
       const r = await fetch("/api/public/convite/cadastro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), whatsapp: whatsapp.trim(), senha, aceite_privacidade: true }),
+        body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), whatsapp: whatsapp.trim(), cidade: cidade.trim(), ...(perto ? { perto_alphaville: perto } : {}), senha, aceite_privacidade: true }),
       });
       const j = (await r.json().catch(() => ({}))) as { error?: string; entrarPeloEmail?: boolean };
       if (!r.ok) throw new Error(j.error ?? "Não foi possível criar a conta agora.");
@@ -68,6 +71,20 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
         <Input id="whatsapp" type="tel" inputMode="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 98765-4321" autoComplete="tel" required />
         <FieldHint>Para o Montinho falar com você sobre o seu acesso e os desafios.</FieldHint>
       </div>
+      <div>
+        <Label htmlFor="cidade">Sua cidade</Label>
+        <Input id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex.: Barueri, São Paulo, Curitiba" autoComplete="address-level2" required />
+      </div>
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-medium">Você conseguiria ir a Alphaville (Barueri/SP) para uma aula presencial?</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {([["sim", "Sim"], ["nao", "Não"], ["nao_sei", "Não sei"]] as const).map(([v, r]) => (
+            <button key={v} type="button" onClick={() => setPerto(v)} aria-pressed={perto === v} className={`touch rounded-lg border px-3 py-2 text-sm font-semibold ${perto === v ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+              {r}
+            </button>
+          ))}
+        </div>
+      </fieldset>
       <div>
         <Label htmlFor="senha">Crie uma senha</Label>
         <InputSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Pelo menos 8 caracteres" autoComplete="new-password" required />

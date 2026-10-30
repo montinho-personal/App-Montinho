@@ -35,6 +35,10 @@ export type Aluno = {
   modalidade?: "consultoria" | "visitante";
   /** 0076: aparece (para os outros alunos) no ranking de troféus. */
   ranking_visivel?: boolean;
+  /** 0130: cidade (o visitante informa no cadastro). */
+  cidade?: string | null;
+  /** 0130: pode fazer aula presencial em Alphaville (Pacote Flexível); o personal marca. */
+  pode_presencial?: boolean;
   created_at: string;
   updated_at: string;
 };
