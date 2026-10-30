@@ -30,6 +30,15 @@ export async function buscarMobilidade(alunoId: string, id: string): Promise<Ses
   return (data as SessaoMobilidadeRow | null) ?? null;
 }
 
+/** “Treinando agora” do personal: mobilidades em andamento começadas desde `desde` (RLS: o personal lê todas). */
+export async function mobilidadesAbertas(desde: string): Promise<SessaoMobilidadeRow[]> {
+  if (isDemoMode()) return demo().filter((s) => s.status === "em_andamento" && s.iniciado_em >= desde);
+  const db = await getDb();
+  const { data, error } = await db.from("mobilidade_sessoes").select("*").eq("status", "em_andamento").gte("iniciado_em", desde).order("iniciado_em", { ascending: false }).limit(60);
+  if (error) return [];
+  return (data ?? []) as SessaoMobilidadeRow[];
+}
+
 /** “Começar”: a hora é a do servidor (gatilho do banco). */
 export async function iniciarMobilidade(alunoId: string, protocolo: SlugMobilidade, notaAntes: number | null): Promise<SessaoMobilidadeRow> {
   if (isDemoMode()) {

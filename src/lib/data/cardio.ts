@@ -21,7 +21,7 @@ import type { TrainingSession } from "@/lib/supabase/types-sessoes";
 import type { ProgressoCardio } from "@/lib/conquistas/vitrine";
 import { diasCombo, sequenciaComboAtual } from "@/lib/conquistas/combo-seguido";
 
-type Demo = { prescricoes: CardioPrescricao[]; registros: CardioRegistro[]; inicios?: Array<{ id: string; aluno_id: string; iniciado_em: string }>; semeado: boolean };
+type Demo = { prescricoes: CardioPrescricao[]; registros: CardioRegistro[]; inicios?: Array<{ id: string; aluno_id: string; iniciado_em: string; modalidade?: string | null }>; semeado: boolean };
 function demo(): Demo {
   const g = globalThis as unknown as { __montinhoCardio?: Demo };
   g.__montinhoCardio ??= { prescricoes: [], registros: [], semeado: false };
@@ -211,7 +211,7 @@ export async function registrarCardio(alunoId: string, e: EntradaRegistro, orige
 export async function iniciarCardio(alunoId: string, modalidade: ModalidadeCardio | null): Promise<{ id: string; iniciado_em: string } | null> {
   if (isDemoMode()) {
     const d = demo();
-    const i = { id: crypto.randomUUID(), aluno_id: alunoId, iniciado_em: new Date().toISOString() };
+    const i = { id: crypto.randomUUID(), aluno_id: alunoId, iniciado_em: new Date().toISOString(), modalidade };
     (d.inicios ??= []).push(i);
     return { id: i.id, iniciado_em: i.iniciado_em };
   }
@@ -219,6 +219,25 @@ export async function iniciarCardio(alunoId: string, modalidade: ModalidadeCardi
   const { data, error } = await db.from("cardio_inicios").insert({ aluno_id: alunoId, modalidade }).select("id, iniciado_em").single();
   if (error) return null;
   return data as { id: string; iniciado_em: string };
+}
+
+/**
+ * “Treinando agora” do personal: cardios começados no cronômetro desde `desde`
+ * e ainda sem registro (o cronômetro grava sozinho ao terminar). Leitura pela RLS
+ * (o personal lê `cardio_inicios`); sem a 0113, lista vazia.
+ */
+export async function cardiosAbertos(desde: string): Promise<Array<{ id: string; aluno_id: string; iniciado_em: string; modalidade: string | null }>> {
+  if (isDemoMode()) {
+    const d = demo();
+    return (d.inicios ?? []).filter((i) => i.iniciado_em >= desde && !d.registros.some((r) => r.inicio_id === i.id)).map((i) => ({ ...i, modalidade: i.modalidade ?? null }));
+  }
+  const db = await getDb();
+  const { data, error } = await db.from("cardio_inicios").select("id, aluno_id, iniciado_em, modalidade").gte("iniciado_em", desde).order("iniciado_em", { ascending: false }).limit(60);
+  if (error || !data?.length) return [];
+  const ids = data.map((i) => i.id as string);
+  const { data: regs } = await db.from("cardio_registros").select("inicio_id").in("inicio_id", ids);
+  const feitos = new Set(((regs ?? []) as Array<{ inicio_id: string | null }>).map((r) => r.inicio_id));
+  return (data as Array<{ id: string; aluno_id: string; iniciado_em: string; modalidade: string | null }>).filter((i) => !feitos.has(i.id));
 }
 
 export type CorrecaoRegistro = Partial<Pick<EntradaRegistro, "status" | "duracao_min" | "intensidade" | "esforco" | "distancia_km" | "velocidade_kmh" | "inclinacao_pct" | "fc_media" | "fc_max" | "observacoes" | "modalidade">> & { remover?: boolean };

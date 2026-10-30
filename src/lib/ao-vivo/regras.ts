@@ -43,3 +43,22 @@ export function haQuanto(iso: string, agoraMs: number): string {
 export function limparRecado(t: string): string {
   return t.replace(/\s+/g, " ").trim().slice(0, LIMITES_RECADO.maxCaracteres);
 }
+
+/**
+ * Cardio e mobilidade ao vivo (pedido do Montinho, 30/10/2026): começados no app
+ * (“▶ Começar” do cronômetro de cardio ou da mobilidade) e ainda não terminados.
+ * Depois de 90 minutos sem terminar, somem (esquecidos abertos).
+ */
+export type TipoOutraAtividade = "cardio" | "mobilidade";
+export type OutraAtividadeAoVivo = { id: string; tipo: TipoOutraAtividade; alunoId: string; nome: string; visitante: boolean; atividade: string; iniciadoEm: string };
+
+export function outrasAtividadesAoVivo(
+  itens: Array<Omit<OutraAtividadeAoVivo, "nome" | "visitante">>,
+  pessoas: Record<string, { nome: string; visitante: boolean }>,
+  agoraMs: number,
+): OutraAtividadeAoVivo[] {
+  return itens
+    .filter((i) => minutosDesde(i.iniciadoEm, agoraMs) < MINUTOS_AO_VIVO.esquecido && Date.parse(i.iniciadoEm) <= agoraMs + 60_000)
+    .map((i) => ({ ...i, nome: pessoas[i.alunoId]?.nome ?? "Aluno", visitante: pessoas[i.alunoId]?.visitante ?? false }))
+    .sort((a, b) => (a.iniciadoEm < b.iniciadoEm ? 1 : -1));
+}

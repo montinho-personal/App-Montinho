@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
 import { haQuanto, LIMITES_RECADO, RECADO_ACOMPANHANDO, RECADOS_PRONTOS } from "@/lib/ao-vivo/regras";
 import type { TreinandoAgora } from "@/lib/data/ao-vivo";
+import type { OutraAtividadeAoVivo } from "@/lib/ao-vivo/regras";
 
 const ATUALIZAR_MS = 15_000;
 
@@ -14,8 +15,9 @@ async function mandarRecado(sessaoId: string, texto: string): Promise<{ ok: bool
   return { ok: !!r?.ok, notificados: d?.notificados ?? 0, error: d?.error };
 }
 
-export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgora[]; agoraInicial: string }) {
+export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial: TreinandoAgora[]; outrasInicial: OutraAtividadeAoVivo[]; agoraInicial: string }) {
   const [lista, setLista] = useState(inicial);
+  const [outras, setOutras] = useState(outrasInicial);
   const [agora, setAgora] = useState(() => Date.parse(agoraInicial));
   const [aberto, setAberto] = useState<string | null>(null);
   const [avisando, setAvisando] = useState<string | null>(null);
@@ -34,9 +36,10 @@ export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgor
   }
 
   async function atualizar() {
-    const r = await fetch("/api/ao-vivo", { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { agora: string; lista: TreinandoAgora[] } | null;
+    const r = await fetch("/api/ao-vivo", { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { agora: string; lista: TreinandoAgora[]; outras?: OutraAtividadeAoVivo[] } | null;
     if (!r) return;
     setLista(r.lista);
+    setOutras(r.outras ?? []);
     setAgora(Date.parse(r.agora));
   }
   useEffect(() => {
@@ -46,12 +49,34 @@ export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgor
     return () => window.clearInterval(t);
   }, []);
 
+  const blocoOutras = outras.length ? (
+    <section aria-label="Cardio e mobilidade agora" className="space-y-2">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-fg-muted">❤️‍🔥 Cardio e 🧘 mobilidade agora</h2>
+      <ul className="grid gap-2 md:grid-cols-2" aria-live="polite">
+        {outras.map((o) => (
+          <li key={o.id} className={`flex items-center gap-3 rounded-2xl border bg-card p-3 ${o.tipo === "cardio" ? "border-danger/40" : "border-accent/40"}`}>
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full motion-safe:animate-pulse ${o.tipo === "cardio" ? "bg-danger" : "bg-accent"}`} aria-hidden />
+            <span className="min-w-0 flex-1">
+              <Link href={`/treinador/alunos/${o.alunoId}`} className="block truncate font-bold hover:underline">{o.nome}{o.visitante ? <span className="ml-1 text-xs font-normal text-fg-muted">· visitante</span> : null}</Link>
+              <span className="block truncate text-sm text-fg-muted">{o.atividade} · começou {haQuanto(o.iniciadoEm, agora)}</span>
+            </span>
+            <span className="shrink-0 rounded-full bg-fg/10 px-2 py-1 text-[11px] font-bold">{o.tipo === "cardio" ? "No cardio" : "Na mobilidade"}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] text-fg-subtle">Aparece quem tocou em “▶ Começar” no cronômetro do cardio ou na mobilidade. Cardio só anotado depois, sem o cronômetro, não aparece aqui.</p>
+    </section>
+  ) : null;
+
   if (!lista.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">
-        <p className="text-3xl" aria-hidden>😴</p>
-        <p className="mt-2 font-semibold text-fg">Ninguém treinando agora.</p>
-        <p>Quando alguém começar o treino, aparece aqui em até 15 segundos.</p>
+      <div className="space-y-4">
+        {blocoOutras}
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">
+          <p className="text-3xl" aria-hidden>😴</p>
+          <p className="mt-2 font-semibold text-fg">{outras.length ? "Ninguém na musculação agora." : "Ninguém treinando agora."}</p>
+          <p>Quando alguém começar o treino, o cardio ou a mobilidade, aparece aqui em até 15 segundos.</p>
+        </div>
       </div>
     );
   }
@@ -119,6 +144,7 @@ export function AoVivoClient({ inicial, agoraInicial }: { inicial: TreinandoAgor
         );
       })}
     </ul>
+    {blocoOutras}
     </div>
   );
 }

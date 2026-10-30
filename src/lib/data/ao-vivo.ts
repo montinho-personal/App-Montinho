@@ -8,7 +8,10 @@ import { getDb } from "@/lib/supabase/rls";
 import { criarIntervencao } from "@/lib/data/acompanhamento";
 import { inscricoesPushDoAluno } from "@/lib/data/conquistas";
 import { configurarVapid, enviarAosAparelhos } from "@/lib/push/enviar";
-import { estadoAoVivo, MINUTOS_AO_VIVO, RECADO_ACOMPANHANDO, type EstadoAoVivo } from "@/lib/ao-vivo/regras";
+import { estadoAoVivo, MINUTOS_AO_VIVO, outrasAtividadesAoVivo, RECADO_ACOMPANHANDO, type EstadoAoVivo, type OutraAtividadeAoVivo } from "@/lib/ao-vivo/regras";
+import { cardiosAbertos } from "@/lib/data/cardio";
+import { mobilidadesAbertas } from "@/lib/data/mobilidade";
+import { infoModalidade } from "@/lib/cardio/modalidades";
 import type { Intervencao, SessionExercise, SessionSet, TrainingSession } from "@/lib/supabase/types-sessoes";
 
 export type TreinandoAgora = {
@@ -88,6 +91,21 @@ export async function treinandoAgora(agoraMs = Date.now()): Promise<TreinandoAgo
     });
   }
   return out.sort((a, b) => (a.estado === b.estado ? (a.ultimaAtividade < b.ultimaAtividade ? 1 : -1) : a.estado === "treinando" ? -1 : 1));
+}
+
+/** Quem está fazendo cardio (cronômetro) ou mobilidade agora, começado no app e ainda aberto. */
+export async function outrasAtividadesAgora(agoraMs = Date.now()): Promise<OutraAtividadeAoVivo[]> {
+  const desde = new Date(agoraMs - MINUTOS_AO_VIVO.esquecido * 60_000).toISOString();
+  const [cardios, mobs, alunos] = await Promise.all([cardiosAbertos(desde).catch(() => []), mobilidadesAbertas(desde).catch(() => []), listAlunos({ incluirVisitantes: true }).catch(() => [])]);
+  const pessoas = Object.fromEntries(alunos.map((a) => [a.id, { nome: a.profile?.nome ?? "Aluno", visitante: a.modalidade === "visitante" }]));
+  const itens = [
+    ...cardios.map((c) => {
+      const m = c.modalidade ? infoModalidade(c.modalidade) : null;
+      return { id: `cardio:${c.id}`, tipo: "cardio" as const, alunoId: c.aluno_id, atividade: m ? `${m.emoji} ${m.nome}` : "❤️‍🔥 Cardio", iniciadoEm: c.iniciado_em };
+    }),
+    ...mobs.map((s) => ({ id: `mob:${s.id}`, tipo: "mobilidade" as const, alunoId: s.aluno_id, atividade: s.protocolo === "superiores" ? "🧘 Mobilidade de Superiores" : "🧘 Mobilidade de Inferiores", iniciadoEm: s.iniciado_em })),
+  ];
+  return outrasAtividadesAoVivo(itens, pessoas, agoraMs);
 }
 
 /** Sessão em andamento (para o personal mandar o recado): de quem é. */
