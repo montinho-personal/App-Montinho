@@ -129,7 +129,7 @@ export default async function AlunoHomePage() {
 
   const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
-  const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
+  const treinos = plano.treinos.filter((t) => t.ativo && (t.exercicios.length > 0 || (FEATURES.multimodalidade && (t.blocos?.length ?? 0) > 0)));
   const letras = treinos.map((t) => t.letra);
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, letras);
   const proximo = treinos.find((t) => t.letra === semana.proximaLetra) ?? treinos[0] ?? null;

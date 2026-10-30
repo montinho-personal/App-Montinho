@@ -117,6 +117,18 @@ export const resultadoBlocoSchema = z.object({
   completo: z.boolean().nullable().optional(),
 });
 
+/** WOD do dia (0134). */
+export const wodIniciarSchema = z.object({ wod_id: z.string().min(1).max(64), client_key: z.string().min(8).max(80) });
+export const wodSalvarSchema = z.object({
+  id: z.string().min(1).max(64).nullable().optional(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  titulo: texto(80).min(2, "Dê um nome ao WOD"),
+  modalidade: z.enum(["cross", "hyrox", "funcional", "hibrido"]).default("cross"),
+  blocos: z.array(blocoTreinoSchema).min(1, "Monte pelo menos um bloco").max(12),
+  observacoes: textoOpcional(500),
+  publicado: z.boolean().default(true),
+});
+
 export const treinoInputSchema = z.object({
   /** 0133: sem o campo = musculação (como sempre). */
   modalidade: z.enum(MODALIDADES_TREINO_IDS).optional(),

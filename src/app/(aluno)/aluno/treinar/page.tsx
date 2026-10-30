@@ -20,6 +20,7 @@ import { ehVisitante } from "@/lib/auth/guards";
 import { podeRegistrar } from "@/lib/visitante/acesso";
 import { contextoExtraGerado } from "@/lib/data/extra-gerado";
 import { hrefDaSessao } from "@/lib/treino/livre";
+import { wodDoDia } from "@/lib/data/wod-dia";
 
 export const metadata = { title: "Treinar" };
 
@@ -28,7 +29,7 @@ export default async function TreinarPage() {
   const [mobInd, conqMob] = await Promise.all([mobilidadeIndicada(sessao.alunoId).catch(() => null), listarConquistas(sessao.alunoId).catch(() => [])]);
   const [plano, emAndamento, sessoes, extra] = await Promise.all([getPlanoAtivo(sessao.alunoId), getSessaoEmAndamento(sessao.alunoId), listSessoes(sessao.alunoId, { limite: 60 }), contextoExtraGerado(sessao.alunoId).catch(() => null)]);
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
-  const treinos = plano.treinos.filter((t) => t.ativo && t.exercicios.length > 0);
+  const treinos = plano.treinos.filter((t) => t.ativo && (t.exercicios.length > 0 || (FEATURES.multimodalidade && (t.blocos?.length ?? 0) > 0)));
   const semana = estadoSemana(sessoes, plano.programa?.frequencia, treinos.map((t) => t.letra));
   // Modo Visitante: quem monta os próprios treinos vê o atalho do montador.
   const visitante = FEATURES.modoVisitante && ehVisitante(sessao);
@@ -37,6 +38,7 @@ export default async function TreinarPage() {
   const livreMetas = placar?.origem === "livre_metas" ? placar : null;
   // Treino livre para quem não está a fim de nenhum dos treinos (acesso em dia).
   const mostrarLivre = !emAndamento && !livreMetas && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null);
+  const wodHoje = FEATURES.multimodalidade ? await wodDoDia().catch(() => null) : null;
   const ultimaPorLetra = new Map<string, string>();
   for (const s of sessoes) if (s.letra && !ultimaPorLetra.has(s.letra)) ultimaPorLetra.set(s.letra, s.finalizado_em ?? s.iniciado_em);
 
@@ -47,6 +49,18 @@ export default async function TreinarPage() {
         {plano.programa?.nome && plano.programa.nome !== "Programa atual" ? <p className="text-sm font-semibold text-accent">{plano.programa.nome}</p> : null}
         <p className="text-sm text-fg-muted mt-1">A semana é flexível: escolha o treino de hoje. O sugerido vem primeiro.</p>
       </header>
+
+      {wodHoje ? (
+        <Link href="/aluno/wod" className="flex items-center gap-3 rounded-2xl border-2 border-accent/60 bg-accent/10 p-4 hover:bg-accent/15">
+          <span className="text-3xl" aria-hidden>🔥</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-bold uppercase tracking-wider text-accent">WOD do dia</span>
+            <span className="block truncate text-lg font-black">{wodHoje.titulo}</span>
+            <span className="block text-xs text-fg-muted">Faça, anote RX ou Scaled e veja o ranking de hoje</span>
+          </span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
 
       {emAndamento ? (
         <div className="space-y-1">

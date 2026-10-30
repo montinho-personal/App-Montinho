@@ -2567,3 +2567,47 @@ begin
 end $$;
 select test_logout();
 \echo 'T84 OK: multimodalidade (blocos, benchmarks, marcas)'
+
+-- T85 — 0134: WOD do dia + ranking do dia
+insert into wods_do_dia (id, data, titulo, blocos) values ('85858585-0000-0000-0000-000000000001', current_date, 'WOD Teste', '[]'::jsonb);
+insert into training_sessions (id, aluno_id, client_key, modalidade, modo, snapshot) values
+  ('99999999-0000-0000-0000-0000000085a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't85-a', 'cross', 'extra', '{"wod_dia_id":"85858585-0000-0000-0000-000000000001"}'),
+  ('99999999-0000-0000-0000-0000000085b1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 't85-b', 'cross', 'extra', '{"wod_dia_id":"85858585-0000-0000-0000-000000000001"}');
+insert into sessao_blocos (session_id, aluno_id, bloco_id, tipo, formato, condicao, tempo_seg, client_key) values
+  ('99999999-0000-0000-0000-0000000085a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'b3', 'metcon', 'for_time', 'rx', 400, 't85-bla'),
+  ('99999999-0000-0000-0000-0000000085b1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'b3', 'metcon', 'for_time', 'rx', 380, 't85-blb');
+update alunos set ranking_visivel = false where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from wods_do_dia where id = '85858585-0000-0000-0000-000000000001';
+  if n <> 1 then raise exception 'T85a: aluno deveria ler o WOD do dia publicado'; end if;
+  begin insert into wods_do_dia (data, titulo) values (current_date + 1, 'Pirata');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T85b: aluno publicou WOD do dia'; end if;
+  select count(*) into n from public.ranking_wod_dia('85858585-0000-0000-0000-000000000001');
+  if n <> 1 then raise exception 'T85c: aluno A deveria ver só o próprio resultado (B escondeu do ranking), viu %', n; end if;
+end $$;
+select test_logout();
+update alunos set ranking_visivel = true where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; nome_b text;
+begin
+  select count(*) into n from public.ranking_wod_dia('85858585-0000-0000-0000-000000000001');
+  if n <> 2 then raise exception 'T85d: com B no ranking, A deveria ver 2, viu %', n; end if;
+  select nome into nome_b from public.ranking_wod_dia('85858585-0000-0000-0000-000000000001') where not eu;
+  if nome_b !~ ' [A-ZÀ-Ý]\.$' then raise exception 'T85e: aluno viu o sobrenome inteiro de outra pessoa (%)', nome_b; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  update wods_do_dia set publicado = false where id = '85858585-0000-0000-0000-000000000001';
+  select count(*) into n from public.ranking_wod_dia('85858585-0000-0000-0000-000000000001');
+  if n <> 2 then raise exception 'T85f: personal deveria ver os 2 resultados'; end if;
+end $$;
+select test_logout();
+\echo 'T85 OK: WOD do dia + ranking do dia'
