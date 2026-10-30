@@ -63,6 +63,10 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "acompanhamento_3_meses", selo: "3 m" },
   { codigo: "acompanhamento_6_meses", selo: "6 m" },
   { codigo: "acompanhamento_1_ano", selo: "1 ano" },
+  { codigo: "monitoramento_4", selo: "📏4" },
+  { codigo: "monitoramento_8", selo: "📏8" },
+  { codigo: "monitoramento_12", selo: "📏12" },
+  { codigo: "monitoramento_26", selo: "📏26" },
   { codigo: "constancia_verdade", selo: "8/12" },
   { codigo: "treinos_50", selo: "50" },
   { codigo: "recomeco_consistente", selo: "Volta" },
@@ -159,7 +163,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -184,7 +188,7 @@ export type ProgressoCardio = {
 };
 
 /** Progresso dos troféus de compartilhar e do “Mito ou verdade?” (quando a tela tem esses dados). */
-export type ProgressoExtras = { cardsCompartilhados?: number; trofeusCompartilhados?: number; quizCertas?: number; quizTotal?: number; /** Mobilidade: dias seguidos agora de cada protocolo. */ mobilidade?: { superiores: number; inferiores: number } };
+export type ProgressoExtras = { cardsCompartilhados?: number; trofeusCompartilhados?: number; quizCertas?: number; quizTotal?: number; /** Mobilidade: dias seguidos agora de cada protocolo. */ mobilidade?: { superiores: number; inferiores: number }; /** Monitoramento: semanas seguidas com medidas e se a semana atual já tem. */ monitoramento?: { seguidas: number; estaSemana: boolean } };
 
 export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null; extras?: ProgressoExtras | null }): Medalha[] {
   const ganhas = new Map<string, string>();
@@ -280,6 +284,16 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: `Em Treinar → 🧘 Mobilidade, comece a de ${c === "mobilidade_superiores" ? "Superiores" : "Inferiores"} no app e conclua (cerca de 22 minutos).`, disponivel: true };
       case "mobilidade_completa":
         return { atual: null, alvo: null, falta: "Conclua no app os dois protocolos de mobilidade: superiores e inferiores.", disponivel: true };
+      case "monitoramento_4":
+      case "monitoramento_8":
+      case "monitoramento_12":
+      case "monitoramento_26": {
+        const n = Number(c.slice(14));
+        const m = e.extras?.monitoramento;
+        if (!m) return { atual: null, alvo: n, falta: `Registre medidas ou uma avaliação uma vez por semana, ${n} semanas seguidas.`, disponivel: true };
+        const atual = Math.min(m.seguidas, n);
+        return { atual, alvo: n, falta: `Medidas ou avaliação uma vez por semana, ${n} semanas seguidas — você está em ${plural(atual, "semana", "semanas")}.${m.estaSemana ? " Esta semana já valeu!" : " Falta registrar esta semana."}`, disponivel: true };
+      }
       case "mobilidade_7_superiores":
       case "mobilidade_7_inferiores": {
         const seq = e.extras?.mobilidade?.[c === "mobilidade_7_superiores" ? "superiores" : "inferiores"] ?? 0;

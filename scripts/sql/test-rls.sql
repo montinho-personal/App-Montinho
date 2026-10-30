@@ -2403,3 +2403,16 @@ begin
 end $$;
 select test_logout();
 \echo 'T77 OK: medidas extras da avaliação'
+
+-- T78 — 0127: troféus de Monitoramento aceitos (como superusuário: gravação só pelo servidor, 0124)
+do $$
+declare ok boolean := false;
+begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'monitoramento_4', '1', 'Radar Ligado', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'monitoramento_26', '1', 'Cientista de Si Mesmo', now()) on conflict do nothing;
+  begin
+    insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'monitoramento_5', '1', 'x', now());
+  exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T78: código fora da lista aceito'; end if;
+end $$;
+\echo 'T78 OK: troféus de Monitoramento'

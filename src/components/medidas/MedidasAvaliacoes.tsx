@@ -94,7 +94,7 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
       setArquivo(null);
       setAberto(false);
       setOk(temMedida && arquivo ? "Medidas e arquivo salvos." : temMedida ? "Medidas salvas." : "Arquivo salvo.");
-      const unicas = ganhas.filter((n, i) => ganhas.findIndex((x) => x.codigo === n.codigo) === i && n.codigo === "ponto_de_partida");
+      const unicas = ganhas.filter((n, i) => ganhas.findIndex((x) => x.codigo === n.codigo) === i && (n.codigo === "ponto_de_partida" || n.codigo.startsWith("monitoramento_")));
       if (unicas.length && !doPersonal) setNovas(unicas);
       router.refresh();
     } catch (er) {

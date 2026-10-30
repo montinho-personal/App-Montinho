@@ -26,6 +26,12 @@ export async function listarAvaliacoes(alunoId: string): Promise<{ medidas: Evol
   return { medidas, arquivos: (data ?? []) as AvaliacaoArquivo[] };
 }
 
+/** Quando cada medida/arquivo de avaliação entrou no app (troféus de Monitoramento). */
+export async function registrosDeAvaliacao(alunoId: string): Promise<string[]> {
+  const { medidas, arquivos } = await listarAvaliacoes(alunoId).catch(() => ({ medidas: [] as Evolucao[], arquivos: [] as AvaliacaoArquivo[] }));
+  return [...medidas.map((m) => m.created_at), ...arquivos.map((a) => a.created_at)].filter(Boolean);
+}
+
 /** Grava as medidas (só os campos preenchidos). Altura também vai para o cadastro do aluno. */
 export async function salvarMedidas(alunoId: string, quem: "aluno" | "personal", m: NovasMedidas): Promise<Evolucao> {
   const valores = Object.fromEntries(CAMPOS_MEDIDA.map((c) => [c.chave, m[c.chave] ?? null]));

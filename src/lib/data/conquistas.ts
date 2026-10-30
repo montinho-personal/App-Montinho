@@ -5,7 +5,7 @@
 // reconhecimentos. Inserção idempotente (aluno, código, referência).
 // ============================================================================
 
-import { primeiraAvaliacao } from "@/lib/data/medidas";
+import { primeiraAvaliacao, registrosDeAvaliacao } from "@/lib/data/medidas";
 import { entradaCardio } from "@/lib/data/cardio";
 import { statusStrava } from "@/lib/data/strava";
 import { contagemCompartilhar, marcosCompartilhar, progressoCompartilhar, type EventoCompartilhar } from "@/lib/conquistas/compartilhar";
@@ -28,7 +28,7 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { tecnicasFeitas, type FamiliaTecnica } from "@/lib/conquistas/regras";
 import type { Medalha, ProgressoExtras } from "@/lib/conquistas/vitrine";
-import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
@@ -96,10 +96,11 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
   const [completas, aderencia, existentes, resumo, desafios, avaliacao, strava, compartilhar, desafiosAmigos, cardio] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => []), primeiraAvaliacao(aluno.id).catch(() => null), statusStrava(aluno.id).catch(() => null), eventosCompartilharDoAluno(aluno.id).catch(() => null), marcosDosDesafios(aluno.id).catch(() => null), entradaCardio(aluno.id).catch(() => null)]);
   const quiz = await respostasDoQuiz(aluno.id);
   const mobilidade = await import("@/lib/data/mobilidade").then((m) => m.listarMobilidade(aluno.id)).catch(() => []);
+  const registrosAvaliacao = await registrosDeAvaliacao(aluno.id).catch(() => []);
   const sessoes = completas.map(paraConquista);
   if (cardio) cardio.semanasPausadas = aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null, compartilhar: compartilhar ? marcosCompartilhar(compartilhar.eventos, compartilhar.primeiroAmigoEm) : null, eventosCompartilhar: compartilhar?.eventos ?? null, quiz, desafiosAmigos, cardio, mobilidade });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null, compartilhar: compartilhar ? marcosCompartilhar(compartilhar.eventos, compartilhar.primeiroAmigoEm) : null, eventosCompartilhar: compartilhar?.eventos ?? null, quiz, desafiosAmigos, cardio, mobilidade, registrosAvaliacao });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
@@ -129,8 +130,10 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const novas29 = linhas.filter((l) => CODIGOS_29OUT.includes(l.codigo));
     const novasMobilidade = linhas.filter((l) => (CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo));
     const novasCombo = linhas.filter((l) => (CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) || (CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo));
-    const antigas = linhas.filter((l) => !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo) && !(CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo) && !CODIGOS_29OUT.includes(l.codigo) && !(CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
+    const novasMonitoramento = linhas.filter((l) => (CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo));
+    const antigas = linhas.filter((l) => !(CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo) && !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo) && !(CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo) && !CODIGOS_29OUT.includes(l.codigo) && !(CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
     if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasMonitoramento.length) await db.from("conquistas_aluno").upsert(novasMonitoramento, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasAlem.length) await db.from("conquistas_aluno").upsert(novasAlem, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasTecnica.length) await db.from("conquistas_aluno").upsert(novasTecnica, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasFase.length) await db.from("conquistas_aluno").upsert(novasFase, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
@@ -458,7 +461,9 @@ export async function progressoExtras(alunoId: string): Promise<ProgressoExtras>
   const mob = await import("@/lib/data/mobilidade").then((m) => m.listarMobilidade(alunoId)).catch(() => []);
   const { sequenciaAtual } = await import("@/lib/mobilidade/regras");
   const hoje = dataLocal(new Date());
-  return { cardsCompartilhados: c?.cards, trofeusCompartilhados: c?.trofeus, quizCertas: certasDoQuiz(quiz).length, quizTotal: conteudos.filter((x) => x.status === "publicado").length, mobilidade: { superiores: sequenciaAtual(mob, "superiores", hoje), inferiores: sequenciaAtual(mob, "inferiores", hoje) } };
+  const { progressoMonitoramento } = await import("@/lib/conquistas/monitoramento");
+  const monit = progressoMonitoramento(await registrosDeAvaliacao(alunoId).catch(() => []), hoje);
+  return { monitoramento: { seguidas: monit.seguidas, estaSemana: monit.estaSemana }, cardsCompartilhados: c?.cards, trofeusCompartilhados: c?.trofeus, quizCertas: certasDoQuiz(quiz).length, quizTotal: conteudos.filter((x) => x.status === "publicado").length, mobilidade: { superiores: sequenciaAtual(mob, "superiores", hoje), inferiores: sequenciaAtual(mob, "inferiores", hoje) } };
 }
 
 /**
@@ -491,6 +496,8 @@ export async function acoesAlcance(s: { alunoId: string; modalidade?: string; co
     listSessoes(s.alunoId, { desde: `${hoje}T00:00:00-03:00`, limite: 20, status: "todas" }).catch(() => []),
     import("@/lib/data/cardio").then((m) => m.cardiosFeitos(s.alunoId)).catch(() => []),
   ]);
+  const { progressoMonitoramento } = await import("@/lib/conquistas/monitoramento");
+  const monit = progressoMonitoramento(await registrosDeAvaliacao(s.alunoId).catch(() => []), hoje);
   const p = progressoCompartilhar(eventos);
   const semanaHoje = inicioDaSemana(hoje);
   const diarioEstaSemana = eventos.some((e) => (e.tipo === "compartilhar_nativo" || e.tipo === "download") && e.origem === "conclusao" && inicioDaSemana(dataLocal(e.created_at)) === semanaHoje);
@@ -505,6 +512,7 @@ export async function acoesAlcance(s: { alunoId: string; modalidade?: string; co
     musculacoesHoje: sessoesHoje.filter((x) => dataLocal(x.iniciado_em) === hoje && contaCarimbo(x)).length,
     cardiosHoje: validos.filter((f) => f.data === hoje).length,
     cardiosFeitos: proximoMarco(cardios).feitos,
+    monitoramento: { seguidas: monit.seguidas, estaSemana: monit.estaSemana },
     comboHoje: sessoesHoje.some((x) => dataLocal(x.iniciado_em) === hoje && contaCarimbo(x)) && diasDeCardioCombo(cardios).has(hoje),
   };
 }

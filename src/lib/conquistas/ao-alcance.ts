@@ -48,6 +48,8 @@ export type AcoesAlcance = {
   cardiosFeitos: number;
   /** Hoje já tem musculação + 20 min de cardio (o dia do Combo em sequência fechou). */
   comboHoje?: boolean;
+  /** Monitoramento: semanas seguidas com medidas e se a semana atual já tem registro. */
+  monitoramento?: { seguidas: number; estaSemana: boolean };
 };
 
 /** Itens que dá para ganhar ainda hoje (o resto é “nos próximos dias”). */
@@ -321,6 +323,13 @@ function trofeusDasAcoes(medalhas: Medalha[], a: AcoesAlcance): ItemAlcance[] {
     const f = series.alvo - (series.atual ?? 0);
     if (f > 0 && f <= 60) out.push(item(series, `Faltam ${f} ${f === 1 ? "série válida" : "séries válidas"} (aquecimento não conta).`, f <= 20 ? "No próximo treino" : "Nos próximos treinos"));
   }
+  // Monitoramento: medidas desta semana fecham ou contam para a sequência.
+  const m = a.monitoramento;
+  const monit = (["monitoramento_4", "monitoramento_8", "monitoramento_12", "monitoramento_26"] as CodigoConquista[]).map((c) => aberta(c)).find((x) => !!x);
+  if (m && monit?.alvo && !m.estaSemana && m.seguidas > 0) {
+    const n = m.seguidas + 1;
+    out.push(item(monit, n >= monit.alvo ? `Registre suas medidas (ou uma avaliação) nesta semana: é a ${n}ª semana seguida.` : `Registre suas medidas nesta semana: conta a semana ${n} de ${monit.alvo} seguidas.`, "Até domingo"));
+  }
   const dupla = aberta("dose_dupla");
   if (dupla && a.musculacoesHoje === 1) out.push(item(dupla, "Com a recuperação em dia, um 2º treino hoje (extra ou livre) dá a Dose Dupla.", "Hoje"));
   return out;
@@ -370,8 +379,15 @@ export function chamadaDaAcao(acao: AcaoTrofeu, abertas: ReadonlyMap<CodigoConqu
       return ganha("strava_conectado", "Conecte o relógio e ganhe o troféu");
     case "relatorio":
       return ganha("relatorio_mensal", "Abra sua evolução completa e ganhe o troféu");
-    case "medidas":
-      return ganha("ponto_de_partida", "Registre suas medidas ou envie uma avaliação e ganhe o troféu");
+    case "medidas": {
+      const p = ganha("ponto_de_partida", "Registre suas medidas ou envie uma avaliação e ganhe o troféu");
+      const m = a.monitoramento;
+      if (p || !m || m.estaSemana) return p;
+      const alvo = ([4, 8, 12, 26] as const).find((n) => n > m.seguidas && abertas.has(`monitoramento_${n}` as CodigoConquista));
+      if (!alvo) return null;
+      const codigo = `monitoramento_${alvo}` as CodigoConquista;
+      return m.seguidas + 1 >= alvo ? ganha(codigo, `${alvo}ª semana seguida medindo: registre agora e ganhe o troféu`) : conta(codigo, `Registrar esta semana conta ${m.seguidas + 1} de ${alvo} semanas seguidas para o troféu`);
+    }
     case "cardio": {
       if (a.musculacoesHoje > 0 && a.cardiosHoje === 0) {
         const c = ganha("combo_completo", "Você já treinou hoje: 10 minutos ou mais de cardio e você ganha o troféu");

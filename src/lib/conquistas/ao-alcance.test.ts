@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calcularAderencia } from "@/lib/aderencia/calcular";
 import { chamadaDaAcao, ehDeHoje, samuraiNoTreino, trofeusNoTreino, trofeusNosProximosDias, type AcoesAlcance } from "./ao-alcance";
 import { vitrineDeMedalhas } from "./vitrine";
-import type { FamiliaTecnica, SessaoConquista } from "./regras";
+import type { CodigoConquista, FamiliaTecnica, SessaoConquista } from "./regras";
 
 let n = 0;
 const s = (dia: string, o: Partial<SessaoConquista> = {}): SessaoConquista => ({ id: `a${++n}`, iniciado_em: `${dia}T13:00:00Z`, status: "concluida", series_planejadas: 10, series_concluidas: 10, ...o });
@@ -176,5 +176,15 @@ describe("troféus por ação (compartilhar, indicar, desafios, dia em dobro)", 
     expect(um?.quando).toBe("Hoje");
     const dois = trofeusNosProximosDias({ medalhas, aderencia, hoje: hojeC, tecnicasFeitas: new Set(), treinos: [], acoes: { ...base, comboHoje: true } }).find((i) => i.codigo === "combo_3");
     expect(dois?.quando).toBe("Amanhã");
+  });
+});
+
+describe("monitoramento na chamada das medidas", () => {
+  const base: AcoesAlcance = { semanasDiario: 0, diarioEstaSemana: false, trofeusCompartilhados: [], jaCompartilhou: false, podeIndicar: false, musculacoesHoje: 0, cardiosHoje: 0, cardiosFeitos: 0 };
+  const abertas = new Map([["monitoramento_4", "Radar Ligado"], ["monitoramento_8", "Bússola Calibrada"]]) as ReadonlyMap<CodigoConquista, string>;
+  it("3 semanas seguidas e esta semana ainda sem registro: registrar agora ganha", () => {
+    expect(chamadaDaAcao("medidas", abertas, { ...base, monitoramento: { seguidas: 3, estaSemana: false } })).toMatchObject({ codigo: "monitoramento_4", agora: true });
+    expect(chamadaDaAcao("medidas", abertas, { ...base, monitoramento: { seguidas: 1, estaSemana: false } })).toMatchObject({ codigo: "monitoramento_4", agora: false });
+    expect(chamadaDaAcao("medidas", abertas, { ...base, monitoramento: { seguidas: 3, estaSemana: true } })).toBeNull();
   });
 });
