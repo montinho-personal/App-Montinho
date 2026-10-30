@@ -5,7 +5,7 @@ import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
 export const GRUPOS = [
   "peito", "costas", "ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior", "trapezio",
   "biceps", "triceps", "antebraco", "quadriceps", "posteriores", "gluteo", "adutores", "abdutores",
-  "panturrilha", "abdomen", "core", "lombar", "cardio", "full_body", "pernas", "nao_classificado", "outro",
+  "panturrilha", "abdomen", "abdomen_supra", "abdomen_infra", "core", "lombar", "cardio", "full_body", "pernas", "nao_classificado", "outro",
 ] as const;
 
 export const TECNICAS = ["normal", "superset", "biset", "dropset", "rest_pause", "cluster", "piramide", "isometria", "unilateral", "myo_reps", "piramide_decrescente", "triset", "combinado", "pre_exaustao", "tres_sete", "super_slow", "negativo"] as const;

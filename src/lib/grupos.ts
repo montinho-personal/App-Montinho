@@ -55,6 +55,8 @@ export const GRUPO_LABEL: Record<GrupoMuscular, string> = {
   abdutores: "Abdutores",
   panturrilha: "Panturrilhas",
   abdomen: "Abdômen",
+  abdomen_supra: "Abdômen supra",
+  abdomen_infra: "Abdômen infra",
   core: "Core",
   lombar: "Lombar",
   cardio: "Cardio",
@@ -82,6 +84,8 @@ export const GRUPO_COR: Record<GrupoMuscular, string> = {
   abdutores: "#7cc48f",
   panturrilha: "#8da2b8",
   abdomen: "#9ccc3a",
+  abdomen_supra: "#8cbd2c",
+  abdomen_infra: "#7aa823",
   core: "#9ccc3a",
   lombar: "#c9a66b",
   cardio: "#6b7280",
@@ -110,6 +114,8 @@ export const GRUPOS_ORDEM: GrupoMuscular[] = [
   "abdutores",
   "panturrilha",
   "abdomen",
+  "abdomen_supra",
+  "abdomen_infra",
   "core",
   "lombar",
   "pernas",
@@ -173,6 +179,25 @@ export const GRUPOS_SEM_VOLUME: GrupoMuscular[] = ["cardio", "outro"];
 
 /** Grupos "de ombro" que se somam no subtotal Ombros (visão detalhada opcional). */
 export const SUBGRUPOS_OMBRO: GrupoMuscular[] = ["ombro_anterior", "ombro_lateral", "ombro_posterior"];
+
+/**
+ * Partes do abdômen (pedido do Montinho, 30/10/2026: “a mesma divisão do
+ * ombro”). Não são escolhidas no exercício: saem do NOME (supra × infra) e
+ * aparecem na Tabela de Volume embaixo de “Abdômen (total)”. Remador,
+ * canivete, oblíquos, roda e afins contam só no total.
+ */
+export const PARTES_ABDOMEN: GrupoMuscular[] = ["abdomen_supra", "abdomen_infra"];
+
+/** Supra ou infra pelo nome do exercício (null = abdômen geral). */
+export function parteDoAbdomen(nome: string | null | undefined): GrupoMuscular | null {
+  const n = normalizarNome(nome ?? "");
+  if (/\binfra\b|elevacao de (pernas|joelhos)|pernas estendidas|abdominal invertido|reverse crunch|leg raise|knee raise/.test(n)) return "abdomen_infra";
+  if (/\bsupra\b|crunch|abdominal (na )?(polia|maquina)/.test(n)) return "abdomen_supra";
+  return null;
+}
+
+/** Grupos que podem ter meta de volume (os do exercício + as partes do abdômen). */
+export const GRUPOS_META: GrupoMuscular[] = GRUPOS_SELECIONAVEIS.flatMap((g) => (g === "abdomen" ? ["abdomen", ...PARTES_ABDOMEN] : [g]));
 
 /** Grupo legado → sinaliza revisão. */
 export function isGrupoLegado(g: GrupoMuscular | null | undefined): boolean {

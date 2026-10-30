@@ -10,7 +10,7 @@ import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 
 import { useEffect, useMemo, useState } from "react";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
-import { GRUPO_COR, GRUPO_LABEL, GRUPOS_SELECIONAVEIS } from "@/lib/grupos";
+import { GRUPO_COR, GRUPO_LABEL, GRUPOS_META } from "@/lib/grupos";
 import { STATUS_META_LABEL, type LinhaVolume, type MetaVolume, type ResultadoVolume } from "@/lib/volume/calcular";
 import { REGRAS_TECNICAS, TECNICA_CURTA, type RegraTecnicas } from "@/lib/volume/tecnicas";
 import type { Tecnica } from "@/lib/volume/calcular";
@@ -244,8 +244,11 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                 const prioritario = prioridades.includes(l.grupo);
                 const real = realizado?.[l.grupo];
                 // Ombros = total; as partes (anterior/lateral/posterior) aparecem como “↳” (pedido do Montinho, 29/10/2026).
-                const parteOmbro = l.grupo.startsWith("ombro_") && resultado.linhas.some((x) => x.somaDasPartes);
-                const rotulo = l.somaDasPartes ? "Ombros (total)" : parteOmbro ? `↳ ${l.label.replace("Ombro a", "A").replace("Ombro l", "L").replace("Ombro p", "P")}` : l.label;
+                // Abdômen = total; supra e infra (pelo nome do exercício) aparecem como “↳” (pedido do Montinho, 30/10/2026).
+                const parteAbdomen = !!l.parteDe;
+                const parteOmbro = (l.grupo.startsWith("ombro_") && resultado.linhas.some((x) => x.somaDasPartes)) || parteAbdomen;
+                const abdomenTotal = l.grupo === "abdomen" && resultado.linhas.some((x) => x.parteDe === "abdomen");
+                const rotulo = l.somaDasPartes ? "Ombros (total)" : abdomenTotal ? "Abdômen (total)" : parteAbdomen ? `↳ ${l.label.replace("Abdômen s", "S").replace("Abdômen i", "I")}` : parteOmbro ? `↳ ${l.label.replace("Ombro a", "A").replace("Ombro l", "L").replace("Ombro p", "P")}` : l.label;
                 return (
                   <tr key={l.grupo} className="border-t border-border">
                     <td className={`px-1 py-1.5 ${parteOmbro ? "pl-4" : ""}`}>
@@ -255,6 +258,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                         {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
                       </button>
                       {l.somaDasPartes ? <span className="block text-[10px] text-fg-subtle leading-snug">anterior + lateral + posterior</span> : null}
+                      {abdomenTotal ? <span className="block text-[10px] text-fg-subtle leading-snug">todos os abdominais (supra e infra pelo nome)</span> : null}
                       {Object.keys(l.tecnicas).length ? (
                         <span className="block text-[10px] text-accent leading-snug">
                           {(Object.entries(l.tecnicas) as Array<[Tecnica, number]>)
@@ -324,7 +328,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
             }}
           >
             <option value="">+ grupo com meta…</option>
-            {GRUPOS_SELECIONAVEIS.filter((g) => !metas[g] && g !== "cardio" && g !== "nao_classificado").map((g) => (
+            {GRUPOS_META.filter((g) => !metas[g] && g !== "cardio" && g !== "nao_classificado").map((g) => (
               <option key={g} value={g}>
                 {GRUPO_LABEL[g]}
               </option>

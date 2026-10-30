@@ -20,6 +20,8 @@ import {
   GRUPOS_SEM_VOLUME,
   GRUPOS_SUPERIORES,
   SUBGRUPOS_OMBRO,
+  PARTES_ABDOMEN,
+  parteDoAbdomen,
   type Confianca,
 } from "@/lib/grupos";
 import { bonusTecnica, EXTRAS_PADRAO, fatorRir, REGRAS_TECNICAS, temExtras, type RegraTecnicas } from "./tecnicas";
@@ -129,6 +131,8 @@ export type LinhaVolume = {
   superior: boolean;
   /** “Ombros” = total de anterior + lateral + posterior (+ os de ombro geral), com os deltoides separados. Fica fora das somas de inferiores/superiores para não contar duas vezes. */
   somaDasPartes?: boolean;
+  /** Parte de outro grupo (Abdômen supra/infra): já está somada no total do grupo e fica fora das somas. */
+  parteDe?: GrupoMuscular;
 };
 
 export type ResultadoVolume = {
@@ -238,6 +242,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
         inferior: GRUPOS_INFERIORES.includes(g),
         superior: GRUPOS_SUPERIORES.includes(g),
       };
+      if (PARTES_ABDOMEN.includes(g)) l.parteDe = "abdomen";
       porGrupo.set(g, l);
     }
     return l;
@@ -300,6 +305,17 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
       linha.deTecnicas += tec.bonus * fator * vezes;
       if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) linha.tecnicas[ex.tecnica] = (linha.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes;
       if (vezes > 0) tocados.add(g);
+      // Abdômen supra/infra (pedido do Montinho, 30/10/2026): a linha “Abdômen” é o total;
+      // a parte (pelo nome do exercício) aparece embaixo, sem somar de novo.
+      const parte = g === "abdomen" ? parteDoAbdomen(ex.nome) : null;
+      if (parte) {
+        const lp = getLinha(parte);
+        lp.porDia[dia.letra] = (lp.porDia[dia.letra] ?? 0) + validas;
+        lp.total += semana;
+        lp.deTecnicas += tec.bonus * fator * vezes;
+        if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) lp.tecnicas[ex.tecnica] = (lp.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes;
+        if (vezes > 0) tocados.add(parte);
+      }
       if (!agruparOmbros && doOmbro(g)) {
         totalOmbros.porDia[dia.letra] = (totalOmbros.porDia[dia.letra] ?? 0) + validas;
         totalOmbros.total += semana;
@@ -395,7 +411,7 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
   );
 
   const soma = (pred: (l: LinhaVolume) => boolean) =>
-    Math.round(linhas.filter((l) => !l.somaDasPartes && pred(l)).reduce((n, l) => n + l.total, 0) * 100) / 100;
+    Math.round(linhas.filter((l) => !l.somaDasPartes && !l.parteDe && pred(l)).reduce((n, l) => n + l.total, 0) * 100) / 100;
 
   return {
     letras,

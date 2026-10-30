@@ -357,3 +357,21 @@ describe("volume ponderado com pesos da biblioteca", () => {
     expect(r.linhas.find((x) => x.grupo === "ombros")!.somaDasPartes).toBeUndefined();
   });
 });
+
+describe("abdômen supra e infra (pela divisão do ombro)", () => {
+  it("Abdômen é o total; supra e infra embaixo, sem somar de novo", () => {
+    const r = calcularVolumeSemanal(
+      [{ letra: "A", exercicios: [
+        { id: String(Math.random()), nome: "Abdominal infra no banco declinado", grupo: "abdomen", series: 4 },
+        { id: String(Math.random()), nome: "Abdominal supra na polia em pé", grupo: "abdomen", series: 3 },
+        { id: String(Math.random()), nome: "Abdominal remador", grupo: "abdomen", series: 2 },
+        { id: String(Math.random()), nome: "Supino reto com barra", grupo: "peito", series: 4 },
+      ] }],
+      { frequencia: { A: 2 } },
+    );
+    const t = (g: string) => r.linhas.find((l) => l.grupo === g)?.total;
+    expect([t("abdomen"), t("abdomen_supra"), t("abdomen_infra")]).toEqual([18, 6, 8]);
+    expect(r.linhas.find((l) => l.grupo === "abdomen_infra")?.parteDe).toBe("abdomen");
+    expect(r.subtotais.total).toBe(26);
+  });
+});

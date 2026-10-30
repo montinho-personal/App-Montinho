@@ -22,7 +22,7 @@ export const FILTROS_VISITANTE: FiltroMusculo[] = [
   { valor: "gluteo", rotulo: "Glúteos", grupos: ["gluteo", "abdutores"] },
   { valor: "adutores", rotulo: "Adutores", grupos: ["adutores"] },
   { valor: "panturrilha", rotulo: "Panturrilha", grupos: ["panturrilha"] },
-  { valor: "abdomen", rotulo: "Abdômen", grupos: ["abdomen"] },
+  { valor: "abdomen", rotulo: "Abdômen", grupos: ["abdomen", "abdomen_supra", "abdomen_infra"] },
   { valor: "core", rotulo: "Core", grupos: ["core"] },
   { valor: "lombar", rotulo: "Lombar", grupos: ["lombar"] },
   { valor: "outros", rotulo: "Outros", grupos: ["cardio", "full_body", "nao_classificado", "outro"] },

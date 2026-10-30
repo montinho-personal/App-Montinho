@@ -5,7 +5,7 @@ export type GrupoMuscular =
   | "peito" | "costas" | "ombros" | "ombro_anterior" | "ombro_lateral" | "ombro_posterior"
   | "trapezio" | "biceps" | "triceps" | "antebraco"
   | "quadriceps" | "posteriores" | "gluteo" | "adutores" | "abdutores" | "panturrilha"
-  | "abdomen" | "core" | "lombar"
+  | "abdomen" | "abdomen_supra" | "abdomen_infra" | "core" | "lombar"
   | "cardio" | "full_body" | "pernas" | "nao_classificado" | "outro";
 
 export type Equipamento =
