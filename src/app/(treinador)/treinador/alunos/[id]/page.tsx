@@ -4,6 +4,7 @@ import { listarCardio, listarCardiosStrava } from "@/lib/data/strava";
 import { CardiosStrava } from "@/components/strava/CardiosStrava";
 import { textoCardio } from "@/lib/strava/combinar";
 import Link from "next/link";
+import { FEATURES } from "@/lib/env";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { AlunoStatusPill } from "@/components/ui/StatusPill";
@@ -173,6 +174,12 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               </Link>
               {/* Montar/revisar o treino: duas portas, musculação e cardio. */}
               <AbasTreinoCardio alunoId={id} resumoCardio={resumoDoCardio(cardioAluno)} />
+              {FEATURES.multimodalidade ? (
+                <Link href={`/treinador/alunos/${id}/recordes`} className="touch flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                  <span className="min-w-0"><span className="block font-bold">🏅 Recordes e benchmarks</span><span className="block truncate text-xs text-fg-muted">1RM, 3RM, 5RM, WODs de referência e primeiros movimentos</span></span>
+                  <span aria-hidden className="text-accent">→</span>
+                </Link>
+              ) : null}
               {/* Treinos feitos: o que o aluno fez e anotou, treino a treino. */}
               {(() => {
                 const feitos = treinosFeitos(sessoes);

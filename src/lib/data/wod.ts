@@ -9,7 +9,7 @@
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
-import { pedeResultado, type ResultadoBloco } from "@/lib/modalidades/resultado";
+import { corridaDaSessao, pedeResultado, type ResultadoBloco } from "@/lib/modalidades/resultado";
 import type { BlocoTreino } from "@/lib/modalidades/tipos";
 
 export type LinhaBloco = ResultadoBloco & { id: string; session_id: string; aluno_id: string; ordem: number; created_at: string; updated_at: string };
@@ -123,4 +123,31 @@ export async function resultadosAnteriores(alunoId: string, opts: { benchmark?: 
   const db = await getDb();
   const { data } = await db.from("sessao_blocos").select(COLUNAS).eq("aluno_id", alunoId).lt("created_at", opts.antesDe).contains("segmentos", [{ benchmark: opts.benchmark }]).order("created_at", { ascending: false }).limit(20);
   return ((data ?? []) as Array<Record<string, unknown>>).map(deLinha);
+}
+
+/**
+ * Corrida do HYROX → 1 cardio ligado à sessão (`client_key` hyrox:<sessão>):
+ * gravar de novo corrige o mesmo registro, nunca cria outro. Falhar aqui não
+ * atrapalha o resultado do bloco (o cardio é um bônus da contagem).
+ */
+export async function sincronizarCorridaHyrox(alunoId: string, sessionId: string): Promise<void> {
+  const corrida = corridaDaSessao(await blocosDaSessao(alunoId, sessionId));
+  if (!corrida) return;
+  // Import tardio: cardio.ts já depende de sessões, que dependem deste arquivo.
+  const { registrarCardio, corrigirCardio } = await import("./cardio");
+  const reg = await registrarCardio(alunoId, { client_key: `hyrox:${sessionId}`, modalidade: "corrida", status: "concluido", duracao_min: corrida.minutos, distancia_km: corrida.km, session_id: sessionId, observacoes: "Corrida do HYROX" }, "app");
+  if (reg.duracao_min !== corrida.minutos || (reg.distancia_km ?? null) !== corrida.km) await corrigirCardio(alunoId, reg.id, { duracao_min: corrida.minutos, distancia_km: corrida.km });
+}
+
+/** Resultados do aluno que foram benchmark (Fran, Grace…), com a data de Brasília. */
+export async function resultadosDeBenchmark(alunoId: string): Promise<Array<LinhaBloco & { data: string; benchmark: string }>> {
+  const { dataLocal } = await import("@/lib/aderencia/calcular");
+  const linhas = isDemoMode()
+    ? demo().linhas.filter((l) => l.aluno_id === alunoId && l.benchmark)
+    : await (async () => {
+        const db = await getDb();
+        const { data } = await db.from("sessao_blocos").select(COLUNAS).eq("aluno_id", alunoId).eq("tipo", "metcon").not("segmentos", "is", null).order("created_at").limit(500);
+        return ((data ?? []) as Array<Record<string, unknown>>).map(deLinha).filter((l) => l.benchmark);
+      })();
+  return linhas.map((l) => ({ ...l, benchmark: l.benchmark!, data: dataLocal(l.created_at) }));
 }

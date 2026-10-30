@@ -117,6 +117,18 @@ export const resultadoBlocoSchema = z.object({
   completo: z.boolean().nullable().optional(),
 });
 
+/** Marca pessoal anotada (0133, `marcas_pessoais`). */
+export const marcaSchema = z.object({
+  biblioteca_id: z.string().max(64).nullable().optional(),
+  nome: texto(120).min(1, "Diga o movimento"),
+  tipo: z.enum(["1rm", "2rm", "3rm", "5rm", "10rm", "max_reps", "tempo", "distancia", "calorias", "primeiro"]),
+  valor: z.coerce.number().min(0).max(100000).nullable().optional(),
+  unidade: z.enum(["kg", "reps", "seg", "m", "cal"]).nullable().optional(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  condicao: z.enum(["rx", "scaled", "adaptado"]).nullable().optional(),
+  observacoes: textoOpcional(300),
+});
+
 /** WOD do dia (0134). */
 export const wodIniciarSchema = z.object({ wod_id: z.string().min(1).max(64), client_key: z.string().min(8).max(80) });
 export const wodSalvarSchema = z.object({

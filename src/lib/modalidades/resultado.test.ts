@@ -39,3 +39,16 @@ describe("comparação justa", () => {
     expect(k.scaled).toHaveLength(1);
   });
 });
+
+describe("corrida do HYROX como cardio", () => {
+  it("soma só as corridas; estações ficam de fora", async () => {
+    const { corridaDaSessao } = await import("./resultado");
+    const c = corridaDaSessao([
+      { tipo: "corrida", tempo_seg: 300, distancia_m: 1000 },
+      { tipo: "estacao", tempo_seg: 240, distancia_m: 50 },
+      { tipo: "corrida", tempo_seg: 330, distancia_m: 1000 },
+    ]);
+    expect(c).toEqual({ minutos: 11, km: 2 });
+    expect(corridaDaSessao([{ tipo: "corrida", tempo_seg: 40, distancia_m: 200 }])).toBeNull();
+  });
+});

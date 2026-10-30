@@ -101,7 +101,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
       ) : null}
 
       <GraficosEvolucao treinos={totaisPorTreino(sessoes)} exercicios={exerciciosGrafico} pontos={pontosGrafico} peso={pesoGrafico} relatorioHref={`/relatorio/${sessao.alunoId}`} />
-      <AtalhosEvolucao />
+      <AtalhosEvolucao recordes={FEATURES.multimodalidade} />
       <ChamadaTrofeu acao="relatorio" />
 
       {visitante ? <MesContraMes c={compararMeses(sessoes)} semanaFraca={semanaFraca} /> : null}

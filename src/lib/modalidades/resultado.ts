@@ -170,3 +170,16 @@ export function rankingDoWod<T extends ResultadoBloco>(resultados: T[]): Record<
       .sort((a, b) => (pontuacao(b) ?? 0) - (pontuacao(a) ?? 0));
   return { rx: por("rx"), scaled: por("scaled") };
 }
+
+/**
+ * Corrida do HYROX como cardio (decisão 4 da auditoria): soma SÓ os trechos de
+ * corrida da sessão e vira 1 cardio ligado a ela (nunca as estações, nunca duas
+ * vezes). Menos de 1 minuto não gera nada.
+ */
+export function corridaDaSessao(resultados: Array<Pick<ResultadoBloco, "tipo" | "tempo_seg" | "distancia_m">>): { minutos: number; km: number | null } | null {
+  const corridas = resultados.filter((r) => r.tipo === "corrida" && (r.tempo_seg ?? 0) > 0);
+  const seg = corridas.reduce((t, r) => t + (r.tempo_seg ?? 0), 0);
+  if (seg < 60) return null;
+  const metros = corridas.reduce((t, r) => t + (r.distancia_m ?? 0), 0);
+  return { minutos: Math.max(1, Math.round(seg / 60)), km: metros > 0 ? Math.round(metros / 10) / 100 : null };
+}

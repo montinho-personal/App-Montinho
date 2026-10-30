@@ -60,8 +60,9 @@ export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior }: {
 }
 
 /** Atalhos da Evolução: tudo a um toque. */
-export function AtalhosEvolucao() {
+export function AtalhosEvolucao({ recordes = false }: { recordes?: boolean } = {}) {
   const itens = [
+    ...(recordes ? [{ href: "/aluno/recordes", emoji: "🏅", titulo: "Meus recordes", texto: "1RM, benchmarks, marcas" }] : []),
     { href: "/aluno/conquistas", emoji: "🏆", titulo: "Conquistas", texto: "Troféus e carimbos" },
     { href: "/aluno/vitorias", emoji: "🌟", titulo: "Vitórias da semana", texto: "O que melhorou" },
     { href: "/aluno/cardio", emoji: "❤️‍🔥", titulo: "Cardio", texto: "Semana e histórico" },
