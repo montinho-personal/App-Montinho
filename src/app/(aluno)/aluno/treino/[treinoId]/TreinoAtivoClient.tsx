@@ -10,6 +10,8 @@
 //  • "Não consegui" → pedido de adaptação. Finalização com resumo real.
 // ============================================================================
 
+import { BlocosWod } from "@/components/wod/BlocosWod";
+import type { BlocoTreino } from "@/lib/modalidades/tipos";
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { MicroVitoriaFaixa } from "@/components/treinos/MicroVitoria";
 import { microVitoria, TEXTO_MICRO, type MicroVitoria } from "@/lib/treino/micro-vitoria";
@@ -100,7 +102,7 @@ export type Presencial = { alunoId: string; nomeAluno: string; voltarHref: strin
 type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoes: string[]; descricao: string | null; /** Equipamentos da biblioteca (padrão de carga e lembrete do aparelho). */ equipamento?: string[]; /** Trocado hoje pelo aluno. */ trocado?: boolean };
 
 type Props = {
-  treino: { id: string; letra: string; nome: string; observacoes: string | null; tempos: Partial<ParametrosTempo> };
+  treino: { id: string; letra: string; nome: string; observacoes: string | null; tempos: Partial<ParametrosTempo>; /** 0133: blocos do WOD/HYROX/circuito (multimodalidade ligada). */ blocos?: BlocoTreino[] };
   exercicios: ExercicioView[];
   /** Horário do servidor na renderização (corrige relógio do aparelho). */
   agoraServidor: number;
@@ -1120,6 +1122,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const totalFeito = seriesContadas.filter((s) => s.tipo === "valida" && s.concluida).length;
   // Plano de tempo congelado no início da sessão (snapshot); sem snapshot, usa o treino atual.
   // (o React Compiler memoriza estes cálculos)
+  const blocosSessao = (sessao?.snapshot as { blocos?: BlocoTreino[] } | null | undefined)?.blocos ?? [];
   const snapshotSessao = sessao?.snapshot as { treino?: { tempos?: Partial<ParametrosTempo> }; exercicios?: ExercicioPrescrito[] } | null | undefined;
   const temposSessao: Partial<ParametrosTempo> = snapshotSessao?.treino?.tempos ?? treino.tempos ?? {};
   const plano = estimarPrescricao(snapshotSessao?.exercicios ?? exercicios, temposSessao);
@@ -1412,6 +1415,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
             )}
           </CardBody>
         </Card>
+        {treino.blocos?.length ? <BlocosWod sessaoId="" blocos={treino.blocos} ativo={false} /> : null}
         <ol className="space-y-2" aria-label="Exercícios deste treino">
           {exercicios.map((e, i) => (
             <li key={e.id} className={`flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 ${adiadosIds.has(e.id) ? "border-dashed bg-transparent" : ""}`}>
@@ -1494,6 +1498,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       />
 
       {presencial ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">👥 Aula presencial · {presencial.nomeAluno}. Tudo o que você marcar entra no histórico dela(e).</p> : <LembretePush compacto />}
+
+      {blocosSessao.length ? <BlocosWod sessaoId={sessao.id} blocos={blocosSessao} ativo={sessao.status === "em_andamento"} onSalvo={(feitas) => setSessao((cur) => (cur ? { ...cur, series_concluidas: feitas } : cur))} /> : null}
 
       {/* Primeiro treino no app (Fase 1): uma dica curta, só até a 1ª série marcada. */}
       {confianca?.concluidas === 0 && !presencial && totalFeito === 0 ? (

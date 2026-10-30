@@ -20,6 +20,8 @@ import { deficitRecente, REGRAS_SERIE_EXTRA, type Deficit, type SessaoPassada } 
 import { estimarPrescricao } from "@/lib/tempo/prescricao";
 import { trocasParaExercicios } from "./trocas";
 import { completarGrupos } from "./biblioteca";
+import { blocosComResultado, blocosFeitosNaSessao } from "./wod";
+import { ehMusculacao } from "@/lib/modalidades/tipos";
 import type { ParametrosTempo } from "@/lib/tempo/estimar";
 
 export type SessaoCompleta = TrainingSession & {
@@ -279,7 +281,9 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     }
   }
 
-  const planejadas = doDia.reduce((n, e) => n + Math.max(0, e.series - (e.series_aquecimento ?? 0)), 0);
+  // Multimodalidade (0133): WOD/HYROX/circuito — cada bloco com resultado conta como 1 “série” prevista.
+  const blocos = !ehMusculacao(treino.modalidade) && !input.extraId ? (treino.blocos ?? []) : [];
+  const planejadas = doDia.reduce((n, e) => n + Math.max(0, e.series - (e.series_aquecimento ?? 0)), 0) + blocosComResultado(blocos);
   // Fase do protocolo no dia (medalhas de fase); falha ao ler não impede o treino.
   const fase = (await getPlanoAtivo(alunoId).catch(() => null))?.programa?.fase ?? null;
   const sessao: TrainingSession = {
@@ -297,6 +301,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     snapshot: {
       treino: { id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos },
       ...(fase ? { fase } : {}),
+      ...(blocos.length ? { modalidade: treino.modalidade, blocos } : {}),
       exercicios: doDia,
       // Versão realizada ≠ treino original: guarda o que ficou para outro dia.
       ...(reducao ? { reducao: { tempo_disponivel_min: reducao.tempoDisponivelMin, status: reducao.status, adiados: reducao.adiados, series_originais: reducao.seriesOriginais, original_seg: reducao.originalSeg, descanso_reduzido: reducao.descansoReduzido, cortes: reducao.cortes } } : {}),
@@ -314,6 +319,7 @@ export async function iniciarSessao(alunoId: string, input: IniciarSessaoInput):
     feedback_percepcao: null,
     feedback_comentario: null,
     origem: input.origem ?? "app",
+    ...(blocos.length ? { modalidade: treino.modalidade } : {}),
     created_at: agora,
     updated_at: agora,
   };
@@ -408,7 +414,7 @@ export async function registrarSerie(alunoId: string, sessionId: string, input: 
       st.sessionSets.push(set);
     }
     if (se.status === "pendente") se.status = "concluido";
-    s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length;
+    s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length + (await blocosFeitosNaSessao(sessionId));
     s.updated_at = agora;
     return set;
   }
@@ -427,7 +433,7 @@ export async function registrarSerie(alunoId: string, sessionId: string, input: 
   if (error) throw new Error(`Falha ao registrar série: ${error.message}`);
   if (se.status === "pendente") await db.from("session_exercises").update({ status: "concluido" }).eq("id", se.id);
   const { count } = await db.from("session_sets").select("id", { count: "exact", head: true }).eq("session_id", sessionId).neq("tipo", "aquecimento");
-  await db.from("training_sessions").update({ series_concluidas: count ?? 0 }).eq("id", sessionId);
+  await db.from("training_sessions").update({ series_concluidas: (count ?? 0) + (await blocosFeitosNaSessao(sessionId)) }).eq("id", sessionId);
   return data as SessionSet;
 }
 
@@ -439,7 +445,7 @@ export async function removerSerie(alunoId: string, sessionId: string, clientKey
     const idx = st.sessionSets.findIndex((x) => x.session_id === sessionId && x.client_key === clientKey);
     if (idx < 0) return false;
     st.sessionSets.splice(idx, 1);
-    s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length;
+    s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length + (await blocosFeitosNaSessao(sessionId));
     return true;
   }
   const db = await getDb();
@@ -589,7 +595,7 @@ export async function finalizarSessao(alunoId: string, sessionId: string, input:
       s.finalizado_em = agora;
       s.pausado_seg = input.pausado_seg ?? s.pausado_seg ?? 0;
       s.duracao_seg = input.duracao_seg ?? Math.max(0, Math.round((Date.now() - new Date(s.iniciado_em).getTime()) / 1000) - (s.pausado_seg ?? 0));
-      s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length;
+      s.series_concluidas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length + (await blocosFeitosNaSessao(sessionId));
     }
     if (input.feedback_percepcao !== undefined) s.feedback_percepcao = input.feedback_percepcao;
     if (input.feedback_comentario !== undefined) s.feedback_comentario = input.feedback_comentario;
@@ -610,7 +616,7 @@ export async function finalizarSessao(alunoId: string, sessionId: string, input:
     const pausado = input.pausado_seg ?? 0;
     patch.pausado_seg = pausado;
     patch.duracao_seg = input.duracao_seg ?? Math.max(0, Math.round((Date.now() - new Date(s.iniciado_em).getTime()) / 1000) - pausado);
-    patch.series_concluidas = count ?? 0;
+    patch.series_concluidas = (count ?? 0) + (await blocosFeitosNaSessao(sessionId));
   }
   if (input.feedback_percepcao !== undefined) patch.feedback_percepcao = input.feedback_percepcao;
   if (input.feedback_comentario !== undefined) patch.feedback_comentario = input.feedback_comentario;

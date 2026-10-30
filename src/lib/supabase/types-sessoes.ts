@@ -158,6 +158,8 @@ export type TrainingSession = {
   lembrete_enviado_em?: string | null;
   /** 0020: extra liberado de origem (modo = "extra"). */
   extra_id?: string | null;
+  /** 0133: 'musculacao' (padrão) | 'cross' | 'hyrox' | 'funcional' | 'hibrido'. */
+  modalidade?: import("@/lib/modalidades/tipos").ModalidadeTreino;
   created_at: string;
   updated_at: string;
 };

@@ -1,6 +1,7 @@
 // Carrega tudo o que a tela de treino precisa para UM aluno. Usado pelo app do
 // aluno (identidade da sessão) e pelo modo aula presencial do personal
 // (aluno validado por requireTreinadorPage + vínculo do treino).
+import { FEATURES } from "@/lib/env";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlanoAtivo, getTreinoComExercicios } from "@/lib/data/programas";
@@ -122,7 +123,7 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
 
   return (
     <TreinoAtivoClient
-      treino={{ id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: ((treino.tempos_efetivos ?? treino.tempos ?? {}) as Partial<ParametrosTempo>) }}
+      treino={{ id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: ((treino.tempos_efetivos ?? treino.tempos ?? {}) as Partial<ParametrosTempo>), ...(FEATURES.multimodalidade && treino.modalidade && treino.modalidade !== "musculacao" ? { blocos: treino.blocos ?? [] } : {}) }}
       agoraServidor={agoraServidorMs()}
       exercicios={exercicios}
       ultimas={ultimas}

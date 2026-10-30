@@ -765,7 +765,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     } finally {
       setSaving(false);
     }
-  }, [estado, frequencia, volume, motivo, alunoId, resolver, correcoesMap, biblioteca, toast, router, duracoes, chaveRascunho]);
+  }, [estado, frequencia, volume, motivo, alunoId, resolver, correcoesMap, biblioteca, toast, router, duracoes, chaveRascunho, multimodalidade]);
 
   async function finalizarDia(t: TreinoVM) {
     if (!t.id) return;

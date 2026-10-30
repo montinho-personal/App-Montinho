@@ -93,6 +93,30 @@ export const blocoTreinoSchema = z.object({
   benchmark: z.string().max(60).regex(/^[a-z0-9-]*$/).nullable().optional(),
 });
 
+/** Resultado de um bloco do WOD/HYROX/circuito (0133, `sessao_blocos`). */
+export const resultadoBlocoSchema = z.object({
+  bloco_id: z.string().trim().min(1).max(40).regex(/^[\w-]+$/),
+  ordem: z.coerce.number().int().min(0).max(50).default(0),
+  client_key: z.string().min(4).max(80),
+  tipo: z.enum(TIPOS_BLOCO_IDS),
+  formato: z.enum(FORMATOS_IDS).nullable().optional(),
+  condicao: z.enum(["rx", "scaled", "adaptado"]).nullable().optional(),
+  concluido: z.boolean().default(true),
+  tempo_seg: numBloco(36000),
+  time_cap_seg: numBloco(36000),
+  rounds: numBloco(1000),
+  reps: numBloco(100000),
+  carga_kg: z.coerce.number().min(0).max(1000).nullable().optional(),
+  distancia_m: numBloco(200000),
+  calorias: numBloco(10000),
+  intervalos: z.array(z.coerce.number().int().min(0).max(1000)).max(200).nullable().optional(),
+  modificacoes: textoOpcional(500),
+  esforco: z.coerce.number().int().min(0).max(10).nullable().optional(),
+  benchmark: z.string().max(60).regex(/^[a-z0-9-]*$/).nullable().optional(),
+  benchmark_versao: z.coerce.number().int().min(1).max(100).nullable().optional(),
+  completo: z.boolean().nullable().optional(),
+});
+
 export const treinoInputSchema = z.object({
   /** 0133: sem o campo = musculação (como sempre). */
   modalidade: z.enum(MODALIDADES_TREINO_IDS).optional(),
