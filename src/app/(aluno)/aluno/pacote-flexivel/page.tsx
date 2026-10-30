@@ -49,7 +49,7 @@ export default async function PacoteFlexivelPage() {
         <ul className="space-y-2">
           {P.consultoria.itens.map((v) => <li key={v} className="flex gap-2 text-sm leading-relaxed"><span aria-hidden className="text-accent">✓</span>{v}</li>)}
         </ul>
-        <p className="rounded-xl border border-accent/50 bg-bg/60 px-3 py-2 text-center text-sm font-bold">Consultoria online <span className="text-accent">+</span> 10 aulas presenciais</p>
+        <p className="rounded-xl border border-accent/50 bg-bg/60 px-3 py-2 text-center text-sm font-bold">5 meses de consultoria online <span className="text-accent">+</span> 10 aulas presenciais</p>
       </section>
 
       <section className="space-y-3">

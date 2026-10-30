@@ -142,11 +142,11 @@ export const PRESENCIAL = {
 export const PACOTE_FLEXIVEL = {
   chamada: "Pacote Flexível · 10 aulas",
   titulo: "10 aulas comigo. Você decide quando.",
-  intro: "Você leva a consultoria online completa + 10 aulas presenciais comigo para usar no ritmo da sua vida — sem horário fixo, sem perder aula porque a semana virou de cabeça para baixo.",
+  intro: "Você leva 5 meses de consultoria online completa + 10 aulas presenciais comigo para usar no ritmo da sua vida — sem horário fixo, sem perder aula porque a semana virou de cabeça para baixo.",
   // Toda a consultoria online vem junto (decisão do Montinho, 29/10/2026).
   consultoria: {
-    titulo: "A consultoria online inteira vem junto",
-    texto: "O Pacote Flexível não é só aula avulsa: você tem todo o acompanhamento da consultoria online, todos os dias. As aulas presenciais entram por cima, quando você puder.",
+    titulo: "5 meses de consultoria online inteira junto",
+    texto: "O Pacote Flexível não é só aula avulsa: são 5 meses de acompanhamento da consultoria online, todos os dias. As aulas presenciais entram por cima, quando você puder.",
     itens: [
       "Treino montado para você no app, com vídeo de cada exercício",
       "Eu acompanho os seus treinos e ajusto quando a carga trava ou a rotina muda",
@@ -176,7 +176,7 @@ export const PACOTE_FLEXIVEL = {
     { icone: "🔥", titulo: "Uma semana inteira junto", texto: "Concentre as aulas para dar um gás forte de uma vez." },
     { icone: "🎓", titulo: "No começo, para aprender", texto: "Junte as aulas no início do protocolo para dominar a execução de cada exercício." },
     { icone: "🚀", titulo: "No fim, para puxar mais", texto: "Junte as aulas no final do protocolo para intensificar e fechar com tudo." },
-    { icone: "🎯", titulo: "Do jeito que você quiser", texto: "Não tem regra: você usa as aulas como fizer mais sentido para a sua rotina. O único combinado é usar as 10 aulas em até 3 meses." },
+    { icone: "🎯", titulo: "Do jeito que você quiser", texto: "Não tem regra: você usa as aulas como fizer mais sentido para a sua rotina. O único combinado é usar as 10 aulas em até 5 meses." },
   ],
   /** Chamadas no meio do texto (pedido do Montinho, 30/10/2026: “dá vontade de comprar e não tem o botão”). */
   chamadas: {
@@ -184,9 +184,9 @@ export const PACOTE_FLEXIVEL = {
     paraQuem: { texto: "Se identificou? Me chama que eu te explico tudo.", botao: "💬 Falar com o Montinho" },
     jeitos: { texto: "Já sabe como vai usar? Bora montar o seu jeito.", botao: "💬 Quero o Pacote Flexível" },
   },
-  barra: { texto: "Consultoria + 10 aulas", detalhe: "Dá para parcelar", botao: "💬 Quero" },
+  barra: { texto: "5 meses de consultoria + 10 aulas", detalhe: "Dá para parcelar", botao: "💬 Quero" },
   vantagens: [
-    "Consultoria online completa, com o treino no app e eu acompanhando",
+    "5 meses de consultoria online completa, com o treino no app e eu acompanhando",
     "Sem horário fixo: você usa as aulas quando puder",
     "Eu corrijo a sua execução ao vivo e ajusto as cargas",
     "Entre as aulas, o seu treino continua no app, com vídeo e carga da última vez",
@@ -195,7 +195,7 @@ export const PACOTE_FLEXIVEL = {
   atencao: [
     "Não tem um horário fixo reservado: a gente marca cada aula conforme a agenda",
     "Depende da agenda do Montinho: quanto antes você pedir, mais fácil encaixar",
-    "As 10 aulas valem por 3 meses",
+    "As 10 aulas valem por 5 meses (o mesmo tempo da consultoria)",
   ],
   fecho: "Fale comigo no WhatsApp: eu explico como funciona, os valores e o parcelamento.",
 };
@@ -228,5 +228,5 @@ export const COMPARTILHAR: Record<OrigemContato, { url: string; titulo: string; 
   historia: { url: "https://www.montinhopersonal.com.br/minha-historia", titulo: "A história do Montinho", texto: "Olha essa história: do “gordinho da turma” a −40 kg em 12 meses. Vale a leitura!" },
   consultoria: { url: "https://www.montinhopersonal.com.br/consultoria", titulo: "Consultoria Montinho", texto: "Conheça a consultoria do Montinho: treino feito para a sua rotina e acompanhamento de verdade." },
   presencial: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Personal presencial com o Montinho", texto: "Personal presencial em Alphaville com o Montinho: ele do seu lado em cada série." },
-  pacote: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Pacote Flexível do Montinho", texto: "Consultoria online + 10 aulas com o Montinho para usar quando você puder, sem horário fixo. Olha que legal:" },
+  pacote: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Pacote Flexível do Montinho", texto: "5 meses de consultoria online + 10 aulas com o Montinho para usar quando você puder, sem horário fixo. Olha que legal:" },
 };
