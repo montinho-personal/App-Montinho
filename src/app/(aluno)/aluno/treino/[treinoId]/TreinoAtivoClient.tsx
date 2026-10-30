@@ -228,6 +228,8 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
   const [aviso, setAviso] = useState<Descoberta | null>(null);
+  // A evolução também fica escrita no cartão do exercício (o aviso de cima some sozinho).
+  const [evolucaoEx, setEvolucaoEx] = useState<Record<string, Descoberta>>({});
   // Ecossistema Chalalá no treino (lib/chalala/treino): frase do aviso, recado de
   // início, incentivo de progressão e técnica avançada. No máx. 2 por treino.
   const [chalalaAviso, setChalalaAviso] = useState<string | null>(null);
@@ -780,7 +782,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!silencioso && irPara) irParaExercicio(irPara);
     if (!silencioso && navigator.vibrate) navigator.vibrate(30);
     if (!silencioso) {
-      const avisou = avisarEvolucao(ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
+      const avisou = avisarEvolucao(seId, ex, { serie: s.serie, tipo: s.tipo, carga: payload.carga_kg, reps: payload.reps });
       // Próxima série é a da técnica avançada prescrita? Recado ANTES dela (nunca junto de outro aviso).
       if (!avisou && !avisarTecnica(seId, idx, ex)) avisarVaiQueTaFacil(seId, idx, ex);
       // Descanso: só depois de algumas séries e se nada foi sugerido nesta sessão.
@@ -949,7 +951,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   }
 
   /** Evolução Inteligente: no máximo 1 aviso por exercício e 3 por sessão (limites do personal). */
-  function avisarEvolucao(ex: ExercicioView, serie: SerieReg): boolean {
+  function avisarEvolucao(seId: string, ex: ExercicioView, serie: SerieReg): boolean {
     if (!sessao || !prefsEvo.durante || configEvolucao?.avisos_ativos === false) return false;
     const permitidas = configEvolucao?.metricas ?? ["recorde", "mais_carga", "mais_reps", "acima_media"];
     const ds = avaliarSerie({ ...identidade(ex), serie, dor: sessao.checkin_pre === "desconforto" }, historico[ex.id] ?? []).filter((d) => permitidas.includes(METRICA[d.tipo] as never));
@@ -969,6 +971,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       /* ignora */
     }
     setAviso(d);
+    setEvolucaoEx((cur) => ({ ...cur, [seId]: d }));
     const c = chalalaDaDescoberta(d.tipo);
     if (c && podeIntervir(lerChalala(), c.tipo, ex.nome)) {
       registrarChalala({ tipo: c.tipo, exercicio: ex.nome });
@@ -1825,6 +1828,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         );
                       })}
                     </div>
+                    {evolucaoEx[se.id] ? (
+                      <p role="status" className="rounded-md border border-success/50 bg-success/10 px-3 py-2 text-sm leading-snug">
+                        <span className="font-black text-success">{evolucaoEx[se.id].tipo.startsWith("recorde") ? "🏅 Nova marca pessoal!" : "📈 Você evoluiu!"}</span> {evolucaoEx[se.id].mensagem}
+                      </p>
+                    ) : null}
                     {convite ? (
                       extrasFeitas >= convite.sugeridas ? (
                         <p role="status" className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs font-semibold text-success">

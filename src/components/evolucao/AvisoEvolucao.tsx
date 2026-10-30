@@ -8,11 +8,11 @@ export function AvisoEvolucao({ d, chalala, animar = true, onFechar, sugestao }:
   const [porQue, setPorQue] = useState(false);
   useEffect(() => {
     if (porQue) return; // lendo a explicação: não some
-    const t = setTimeout(onFechar, 8000);
+    const t = setTimeout(onFechar, 12000);
     return () => clearTimeout(t);
   }, [porQue, onFechar]);
   return (
-    <div role="status" aria-live="polite" className={`fixed inset-x-3 top-3 z-40 mx-auto max-w-md rounded-xl border border-accent/60 bg-card/95 p-3 shadow-2xl backdrop-blur ${animar ? "motion-safe:animate-[jornadaSobe_220ms_ease-out]" : ""}`}>
+    <div role="status" aria-live="polite" className={`fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-50 mx-auto max-w-md rounded-xl border border-accent/60 bg-card/95 p-3 shadow-2xl backdrop-blur ${animar ? "motion-safe:animate-[jornadaSobe_220ms_ease-out]" : ""}`}>
       <div className="flex items-start gap-2">
         <span className="mt-0.5 text-lg leading-none" aria-hidden>{d.tipo.startsWith("recorde") ? "🏅" : "📈"}</span>
         <div className="min-w-0 flex-1">
