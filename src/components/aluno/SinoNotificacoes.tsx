@@ -12,8 +12,32 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import { detectarPush } from "./LembretePush";
 import { contarNovas, ehNova, haQuanto, juntarVistos, textoContador, type ItemCentral } from "@/lib/notificacoes/central";
+import type { RecadoPersonagem } from "@/lib/notificacoes/personagens";
+import { Personagem } from "@/components/jornada-chalala/Personagens";
+import { personagemPorId } from "@/lib/jornada-chalala/universo";
 
 const CHAVE = "montinho-notif-vistas";
+/** Recado do personagem: pedido ao servidor no máximo 1× por dia por aparelho. */
+const CHAVE_PERSONAGEM = "montinho-personagem";
+const CHAVE_RESPOSTAS = "montinho-personagem-resp";
+const diaDeHoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+
+async function recadoDoDia(): Promise<RecadoPersonagem | null> {
+  const dia = diaDeHoje();
+  try {
+    const g = JSON.parse(localStorage.getItem(CHAVE_PERSONAGEM) ?? "null") as { dia: string; recado: RecadoPersonagem | null } | null;
+    if (g?.dia === dia) return g.recado;
+  } catch {}
+  const r = await fetch("/api/notificacoes/personagem", { cache: "no-store" }).catch(() => null);
+  if (!r?.ok) return null;
+  const { recado } = (await r.json()) as { recado: RecadoPersonagem | null };
+  try {
+    localStorage.setItem(CHAVE_PERSONAGEM, JSON.stringify({ dia, recado }));
+  } catch {}
+  return recado;
+}
+
+const itemDoRecado = (r: RecadoPersonagem, agora: string): ItemCentral => ({ id: r.id, tipo: "recado", emoji: "", titulo: r.titulo, texto: r.fala, href: r.botao.href, quando: agora, personagem: r });
 const MIN_ENTRE_BUSCAS = 60_000;
 
 function lerVistos(): Set<string> | null {
@@ -60,7 +84,9 @@ export function SinoNotificacoes() {
       const j = (await r.json()) as { itens: ItemCentral[]; agora: string };
       const estadoPush = await detectarPush().catch(() => "sem_suporte" as const);
       const precisaAtivar = estadoPush === "desligado" || estadoPush === "bloqueado" || estadoPush === "iphone_instalar";
-      setItens(precisaAtivar ? [ITEM_ATIVAR(j.agora), ...j.itens] : j.itens);
+      const recado = await recadoDoDia().catch(() => null);
+      const lista = recado ? [itemDoRecado(recado, j.agora), ...j.itens] : j.itens;
+      setItens(precisaAtivar ? [ITEM_ATIVAR(j.agora), ...lista] : lista);
       setAgora(j.agora);
       setVistos(lerVistos());
     } catch {}
@@ -182,6 +208,7 @@ function Secao({ titulo, itens, novas, agora, onIr, destaque = false }: { titulo
       <ul className="space-y-0.5">
         {itens.map((i) => {
           const nova = novas.has(i.id);
+          if (i.personagem) return <CartaoPersonagem key={i.id} r={i.personagem} nova={nova} onIr={onIr} />;
           return (
             <li key={i.id}>
               <Link href={i.href} onClick={onIr} className={`flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-surface ${destaque ? "bg-accent/10" : nova ? "bg-surface/70" : ""}`}>
@@ -200,5 +227,56 @@ function Secao({ titulo, itens, novas, agora, onIr, destaque = false }: { titulo
         })}
       </ul>
     </section>
+  );
+}
+
+/** Recado do personagem: desenho, fala, botão e duas respostas rápidas (o personagem responde de volta). */
+function CartaoPersonagem({ r, nova, onIr }: { r: RecadoPersonagem; nova: boolean; onIr: () => void }) {
+  const [escolha, setEscolha] = useState<number | null>(() => {
+    try {
+      const v = (JSON.parse(localStorage.getItem(CHAVE_RESPOSTAS) ?? "{}") as Record<string, number>)[r.id];
+      return typeof v === "number" ? v : null;
+    } catch {
+      return null;
+    }
+  });
+  function responder(k: number) {
+    setEscolha(k);
+    try {
+      const m = JSON.parse(localStorage.getItem(CHAVE_RESPOSTAS) ?? "{}") as Record<string, number>;
+      const ids = Object.keys(m).slice(-30);
+      localStorage.setItem(CHAVE_RESPOSTAS, JSON.stringify({ ...Object.fromEntries(ids.map((x) => [x, m[x]])), [r.id]: k }));
+    } catch {}
+  }
+  const p = personagemPorId(r.personagem);
+  return (
+    <li className={`my-1 rounded-2xl border p-3 ${nova ? "border-accent/60 bg-accent/10" : "border-border bg-surface/60"}`}>
+      <div className="flex items-start gap-3">
+        <span className="shrink-0" aria-hidden><Personagem id={r.personagem} tamanho={52} /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-accent">{p.nome} · {p.papel}</p>
+          <p className="text-sm font-bold leading-snug text-fg">{r.titulo}</p>
+          <p className="mt-1 text-sm leading-snug text-fg-muted">“{r.fala}”</p>
+        </div>
+        {nova ? <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-red" aria-label="nova" /> : null}
+      </div>
+      {escolha === null ? (
+        <div className="mt-2 flex gap-2">
+          {r.respostas.map((x, k) => (
+            <button key={x.rotulo} type="button" onClick={() => responder(k)} className="alvo flex-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:border-accent">
+              {x.rotulo}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-2 space-y-1.5">
+          <p className="ml-auto w-fit rounded-2xl rounded-br-sm bg-accent/20 px-3 py-1.5 text-xs font-semibold">{r.respostas[escolha].rotulo}</p>
+          <p className="w-fit max-w-[90%] rounded-2xl rounded-bl-sm bg-bg px-3 py-1.5 text-xs leading-snug"><span className="font-bold text-accent">{p.nome}:</span> {r.respostas[escolha].resposta}</p>
+        </div>
+      )}
+      <Link href={r.botao.href} onClick={onIr} className="touch mt-2 flex w-full items-center justify-center rounded-xl bg-accent px-3 py-2 text-sm font-bold text-bg">
+        {r.botao.rotulo}
+      </Link>
+    </li>
   );
 }

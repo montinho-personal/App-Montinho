@@ -7,6 +7,8 @@
 // “Lido” fica no aparelho (lista de ids vistos): nada é gravado no banco.
 // ============================================================================
 
+import type { RecadoPersonagem } from "./personagens";
+
 export type TipoItem = "acao" | "recado" | "social" | "trofeu" | "lembrete" | "aviso";
 
 export type ItemCentral = {
@@ -18,6 +20,8 @@ export type ItemCentral = {
   href: string;
   /** ISO: quando aconteceu (ou o dia do lembrete). */
   quando: string;
+  /** Recado de personagem (Colombo, Oogway, Fênix, Montinho): vira cartão com respostas rápidas. */
+  personagem?: RecadoPersonagem;
 };
 
 /** Itens mais velhos que isso saem da lista. */
