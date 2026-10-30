@@ -2495,3 +2495,75 @@ begin
 end $$;
 select test_logout();
 \echo 'T83 OK: áudios dos recados'
+
+-- T84 — 0133: multimodalidade — resultado do bloco, benchmarks e marcas pessoais
+insert into training_sessions (id, aluno_id, client_key, modalidade) values
+  ('99999999-0000-0000-0000-0000000084a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't84-a', 'cross'),
+  ('99999999-0000-0000-0000-0000000084b1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 't84-b', 'cross');
+insert into sessao_blocos (session_id, aluno_id, bloco_id, tipo, formato, condicao, rounds, client_key)
+values ('99999999-0000-0000-0000-0000000084b1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'metcon', 'metcon', 'amrap', 'rx', 7, 't84-blb');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean;
+begin
+  insert into sessao_blocos (session_id, aluno_id, bloco_id, tipo, formato, condicao, tempo_seg, client_key)
+  values ('99999999-0000-0000-0000-0000000084a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'metcon', 'metcon', 'for_time', 'scaled', 420, 't84-bla');
+  select count(*) into n from sessao_blocos;
+  if n <> 1 then raise exception 'T84a: aluno A deveria ver só o próprio bloco, viu %', n; end if;
+  ok := false;
+  begin insert into sessao_blocos (session_id, aluno_id, bloco_id, tipo, client_key)
+    values ('99999999-0000-0000-0000-0000000084b1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'x', 'metcon', 't84-ataque');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T84b: aluno gravou bloco na sessão de outro'; end if;
+  ok := false;
+  begin insert into sessao_blocos (session_id, aluno_id, bloco_id, tipo, client_key)
+    values ('99999999-0000-0000-0000-0000000084a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'metcon', 'metcon', 't84-dup');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T84c: o mesmo bloco foi gravado duas vezes'; end if;
+  select count(*) into n from benchmarks where slug in ('fran', 'grace', 'cindy', 'helen', 'murph');
+  if n <> 5 then raise exception 'T84d: aluno deveria ler os 5 benchmarks, leu %', n; end if;
+  ok := false;
+  begin insert into benchmarks (slug, nome, formato) values ('meu-wod', 'Meu WOD', 'amrap');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T84e: aluno criou benchmark'; end if;
+  insert into marcas_pessoais (aluno_id, nome, tipo, valor, unidade, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Back Squat', '1rm', 80, 'kg', current_date);
+  ok := false;
+  begin insert into marcas_pessoais (aluno_id, nome, tipo, data) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Muscle-Up', 'primeiro', current_date);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T84f: aluno registrou “primeiro movimento técnico” (só o personal)'; end if;
+  ok := false;
+  begin insert into marcas_pessoais (aluno_id, nome, tipo, data) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Clean', '1rm', current_date);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T84g: aluno gravou marca de outro'; end if;
+end $$;
+select test_logout();
+-- visitante vencido não grava resultado
+create temp table t84_acesso as select * from acessos_visitante where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update alunos set modalidade = 'visitante' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+insert into acessos_visitante (aluno_id, tipo, fim) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dias', now() - interval '1 day')
+on conflict (aluno_id) do update set fim = excluded.fim;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin insert into sessao_blocos (session_id, aluno_id, bloco_id, tipo, client_key)
+    values ('99999999-0000-0000-0000-0000000084a1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'forca', 'forca', 't84-venc');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T84h: visitante vencido gravou resultado de bloco'; end if;
+end $$;
+select test_logout();
+delete from acessos_visitante where aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+insert into acessos_visitante select * from t84_acesso;
+update alunos set modalidade = 'consultoria' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  select count(*) into n from sessao_blocos where client_key like 't84-%';
+  if n <> 2 then raise exception 'T84i: personal deveria ver os 2 blocos, viu %', n; end if;
+  insert into marcas_pessoais (aluno_id, nome, tipo, data, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Muscle-Up', 'primeiro', current_date, 'personal');
+  select count(*) into n from treinos where modalidade <> 'musculacao';
+  if n <> 0 then raise exception 'T84j: treinos antigos deveriam continuar como musculação'; end if;
+end $$;
+select test_logout();
+\echo 'T84 OK: multimodalidade (blocos, benchmarks, marcas)'

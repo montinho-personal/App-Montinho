@@ -6,6 +6,8 @@
 // novos são inseridos, removidos recebem `removido_em` (histórico preservado).
 // ============================================================================
 
+import { normalizarBlocos } from "@/lib/modalidades/blocos";
+import { ehMusculacao, type BlocoTreino, type ModalidadeTreino } from "@/lib/modalidades/tipos";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
@@ -159,6 +161,9 @@ export type TreinoInput = {
   tempo_alvo_min?: number | null;
   tempos?: Record<string, number | boolean>;
   tempos_efetivos?: Record<string, number | boolean>;
+  /** 0133 (só com a multimodalidade ligada). */
+  modalidade?: ModalidadeTreino;
+  blocos?: BlocoTreino[];
   exercicios: ExercicioInput[];
 };
 
@@ -201,6 +206,7 @@ function montarSnapshot(programa: Programa, treinos: TreinoComExercicios[]): Sna
     nome: t.nome,
     observacoes: t.observacoes,
     ativo: t.ativo,
+    ...(t.modalidade && !ehMusculacao(t.modalidade) ? { modalidade: t.modalidade, blocos: t.blocos ?? [] } : {}),
     exercicios: t.exercicios.map((e) => ({
       id: e.id,
       ordem: e.ordem,
@@ -266,6 +272,12 @@ function resumoDiff(anterior: SnapshotPrograma | null, atual: SnapshotPrograma):
   return partes.length ? partes.join(" · ") : "Ajustes sem mudança de estrutura.";
 }
 
+/** 0133: só manda modalidade/blocos quando o montador mandou (multimodalidade ligada); musculação = sem blocos. */
+function camposModalidade(t: { modalidade?: ModalidadeTreino; blocos?: BlocoTreino[] }): { modalidade?: ModalidadeTreino; blocos?: BlocoTreino[] } {
+  if (!t.modalidade) return {};
+  return { modalidade: t.modalidade, blocos: ehMusculacao(t.modalidade) ? [] : normalizarBlocos((t.blocos ?? []) as BlocoTreino[]) };
+}
+
 export async function salvarPlano(alunoId: string, autorId: string, input: SalvarPlanoInput): Promise<SalvarPlanoResultado> {
   const agora = new Date().toISOString();
 
@@ -282,10 +294,10 @@ export async function salvarPlano(alunoId: string, autorId: string, input: Salva
     input.treinos.forEach((t, ordem) => {
       let treino = t.id ? s.treinos.find((x) => x.id === t.id && x.aluno_id === alunoId) : undefined;
       if (!treino) {
-        treino = { id: uid(), aluno_id: alunoId, letra: t.letra as Treino["letra"], nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, created_at: agora, updated_at: agora, versao: 1, programa_id: programa!.id };
+        treino = { id: uid(), aluno_id: alunoId, letra: t.letra as Treino["letra"], nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, created_at: agora, updated_at: agora, versao: 1, programa_id: programa!.id, ...camposModalidade(t) };
         s.treinos.push(treino);
       } else {
-        Object.assign(treino, { nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, letra: t.letra, versao: (treino.versao ?? 1) + 1, programa_id: programa!.id, updated_at: agora });
+        Object.assign(treino, { nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, letra: t.letra, versao: (treino.versao ?? 1) + 1, programa_id: programa!.id, updated_at: agora, ...camposModalidade(t) });
       }
       const existentes = s.exercicios.filter((e) => e.treino_id === treino!.id && !e.removido_em);
       const mantidos = new Set<string>();
@@ -358,7 +370,7 @@ export async function salvarPlano(alunoId: string, autorId: string, input: Salva
   const resultado: TreinoComExercicios[] = [];
   for (let ordem = 0; ordem < input.treinos.length; ordem++) {
     const t = input.treinos[ordem];
-    const payload = { aluno_id: alunoId, letra: t.letra, nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, programa_id: programa.id, duracao_estimada_min: t.duracao_estimada_min ?? null, tempo_alvo_min: t.tempo_alvo_min ?? null, tempos: t.tempos ?? {}, ...(t.tempos_efetivos ? { tempos_efetivos: t.tempos_efetivos } : {}) };
+    const payload = { aluno_id: alunoId, letra: t.letra, nome: t.nome, observacoes: t.observacoes, ordem, ativo: t.ativo, programa_id: programa.id, duracao_estimada_min: t.duracao_estimada_min ?? null, tempo_alvo_min: t.tempo_alvo_min ?? null, tempos: t.tempos ?? {}, ...(t.tempos_efetivos ? { tempos_efetivos: t.tempos_efetivos } : {}), ...camposModalidade(t) };
     let treino: Treino & { versao?: number };
     if (t.id) {
       const { data: existente } = await db.from("treinos").select("versao").eq("id", t.id).eq("aluno_id", alunoId).maybeSingle();

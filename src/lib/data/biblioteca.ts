@@ -3,6 +3,7 @@
 // catálogo em memória). Nunca usa a service role.
 // ============================================================================
 
+import { MOVIMENTOS_DEMO } from "@/lib/modalidades/movimentos-demo";
 import { isDemoMode } from "@/lib/env";
 import { getDb } from "@/lib/supabase/rls";
 import { normalizarNome } from "@/lib/grupos";
@@ -29,7 +30,7 @@ function demo(): DemoBiblioteca {
         const item = itemDoCatalogo(e);
         const v = VIDEOS_DEMO[e.slug];
         return v ? { ...item, midia: { provider: "youtube", id: v, verificada: true } } : item;
-      }),
+      }).concat(MOVIMENTOS_DEMO.filter((m) => !CATALOGO.some((c) => c.slug === m.slug))),
       favoritos: new Map(),
       equivalencias: CATALOGO.flatMap((e) =>
         e.substituicoes.map((s) => ({ exercicioId: `cat-${e.slug}`, alternativaId: `cat-${s}`, origem: "catalogo" as const, status: "sugerida" as const, nota: null }))

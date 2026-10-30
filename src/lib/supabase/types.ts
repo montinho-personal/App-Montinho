@@ -61,6 +61,10 @@ export type Treino = {
   tempos_efetivos?: Record<string, unknown> | null;
   /** 'personal' (padrão) ou 'proprio' (montado pelo visitante, 0052). */
   autoria?: "personal" | "proprio";
+  /** 0133: 'musculacao' (padrão) | 'cross' | 'hyrox' | 'funcional' | 'hibrido'. */
+  modalidade?: import("@/lib/modalidades/tipos").ModalidadeTreino;
+  /** 0133: blocos do WOD/HYROX/circuito (vazio na musculação). */
+  blocos?: import("@/lib/modalidades/tipos").BlocoTreino[] | null;
   created_at: string;
   updated_at: string;
 };

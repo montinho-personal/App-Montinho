@@ -38,6 +38,8 @@ export const FEATURES = {
   secundarioPadrao: process.env.NEXT_PUBLIC_VOLUME_SECUNDARIO_PADRAO === "true",
   /** Modo Visitante (cadastro por convite, acesso com prazo). Sem a flag, as rotas respondem 404. */
   modoVisitante: process.env.NEXT_PUBLIC_MODO_VISITANTE === "true",
+  /** Montinho Multimodalidade (0133: Cross Training, HYROX, funcional, híbrido). Desligado = o app igual a antes. */
+  multimodalidade: process.env.NEXT_PUBLIC_MULTIMODALIDADE === "true",
 } as const;
 
 /** Nome do cookie que guarda a identidade escolhida no modo demo. */

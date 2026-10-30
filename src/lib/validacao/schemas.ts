@@ -61,7 +61,42 @@ export const exercicioInputSchema = z.object({
   conta_volume: z.boolean().default(true),
 });
 
+/** Montinho Multimodalidade (0133): blocos do treino de Cross Training/HYROX/funcional/híbrido. */
+export const MODALIDADES_TREINO_IDS = ["musculacao", "cross", "hyrox", "funcional", "hibrido"] as const;
+export const FORMATOS_IDS = ["amrap", "emom", "intervalo", "for_time", "rounds_for_time", "chipper", "tabata", "death_by", "ladder", "livre", "hyrox", "circuito"] as const;
+export const TIPOS_BLOCO_IDS = ["aquecimento", "tecnica", "forca", "metcon", "volta_calma", "corrida", "estacao", "circuito"] as const;
+const numBloco = (max: number) => z.coerce.number().int().min(0).max(max).nullable().optional();
+export const movimentoBlocoSchema = z.object({
+  biblioteca_id: z.string().max(64).nullable().optional(),
+  nome: texto(120).min(1),
+  reps: textoOpcional(40),
+  carga: textoOpcional(40),
+  distancia_m: numBloco(100000),
+  calorias: numBloco(5000),
+  tempo_seg: numBloco(7200),
+  scaled: textoOpcional(120),
+});
+export const blocoTreinoSchema = z.object({
+  id: z.string().trim().min(1).max(40).regex(/^[\w-]+$/),
+  tipo: z.enum(TIPOS_BLOCO_IDS),
+  titulo: textoOpcional(80),
+  formato: z.enum(FORMATOS_IDS).nullable().optional(),
+  minutos: numBloco(240),
+  intervalo_seg: numBloco(1800),
+  rounds: numBloco(200),
+  time_cap_seg: numBloco(36000),
+  trabalho_seg: numBloco(3600),
+  descanso_seg: numBloco(3600),
+  esquema: textoOpcional(60),
+  movimentos: z.array(movimentoBlocoSchema).max(20).default([]),
+  texto: textoOpcional(1500),
+  benchmark: z.string().max(60).regex(/^[a-z0-9-]*$/).nullable().optional(),
+});
+
 export const treinoInputSchema = z.object({
+  /** 0133: sem o campo = musculação (como sempre). */
+  modalidade: z.enum(MODALIDADES_TREINO_IDS).optional(),
+  blocos: z.array(blocoTreinoSchema).max(12).optional(),
   id: z.string().max(64).nullable().optional(),
   letra: z.enum(LETRAS),
   nome: texto(80).min(1),
@@ -238,7 +273,7 @@ export const exercicioBibliotecaSchema = z.object({
   nivel_minimo: z.enum(["iniciante", "intermediario", "avancado"]).nullable().optional().default(null),
   instrucoes: z.array(texto(240).min(1)).max(8).default([]),
   erros_comuns: z.array(texto(240).min(1)).max(8).default([]),
-  campos_registro: z.array(z.enum(["carga", "repeticoes", "tempo", "distancia", "assistencia"])).min(1).max(5).default(["carga", "repeticoes"]),
+  campos_registro: z.array(z.enum(["carga", "repeticoes", "tempo", "distancia", "assistencia", "calorias"])).min(1).max(5).default(["carga", "repeticoes"]),
   estresse_articular: z.array(z.enum(["joelho", "ombro", "lombar", "cotovelo_punho", "quadril"])).max(5).default([]),
   conta_volume: z.boolean().default(true),
   video_provider: z.enum(["youtube", "cloudflare_stream", "mux", "direct_url"]).nullable().optional().default(null),

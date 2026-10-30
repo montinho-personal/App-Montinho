@@ -92,7 +92,7 @@ export const ARTICULACAO_LABEL: Record<Articulacao, string> = {
 
 export type TipoMovimento = "multiarticular" | "monoarticular";
 
-export type CampoRegistro = "carga" | "repeticoes" | "tempo" | "distancia" | "assistencia";
+export type CampoRegistro = "carga" | "repeticoes" | "tempo" | "distancia" | "assistencia" | "calorias";
 
 export const CAMPO_REGISTRO_LABEL: Record<CampoRegistro, string> = {
   carga: "Carga (kg)",
@@ -100,6 +100,7 @@ export const CAMPO_REGISTRO_LABEL: Record<CampoRegistro, string> = {
   tempo: "Tempo (s)",
   distancia: "Distância (m)",
   assistencia: "Assistência (kg)",
+  calorias: "Calorias",
 };
 
 /** Regiões com estresse articular relevante (casam com as regiões de src/lib/restricoes.ts). */

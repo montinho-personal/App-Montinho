@@ -51,6 +51,9 @@ import { LETRAS_TREINO } from "@/lib/supabase/types-sessoes";
 import type { Treino } from "@/lib/supabase/types";
 import { VerExercicio } from "@/components/ui/VerExercicio";
 import { prontidaoDoProtocolo } from "@/lib/montador/prontidao";
+import { EditorBlocos } from "@/components/montador/EditorBlocos";
+import { blocosIniciais } from "@/lib/modalidades/blocos";
+import { ehMusculacao, LISTA_MODALIDADES, MODALIDADES_TREINO, type BlocoTreino, type ModalidadeTreino } from "@/lib/modalidades/tipos";
 
 // ----------------------------------------------------------------------------
 // Tipos de view
@@ -87,7 +90,7 @@ type Row = {
   grupoOrigemSalvo: ExercicioPrescrito["grupo_origem"];
 };
 
-type TreinoVM = { key: string; id: string | null; letra: TreinoLetra; nome: string; ativo: boolean; observacoes: string; rows: Row[]; tempos: Partial<ParametrosTempo>; tempoAlvo: string };
+type TreinoVM = { key: string; id: string | null; letra: TreinoLetra; nome: string; ativo: boolean; observacoes: string; rows: Row[]; tempos: Partial<ParametrosTempo>; tempoAlvo: string; /** 0133: rascunho antigo não tem (= musculação). */ modalidade?: ModalidadeTreino; blocos?: BlocoTreino[] };
 
 type ProgramaVM = {
   nome: string;
@@ -112,6 +115,8 @@ type Estado = { programa: ProgramaVM; treinos: TreinoVM[] };
 type BibliotecaItem = { id: string; nome: string; grupo_muscular: GrupoMuscular; grupos_secundarios: GrupoMuscular[]; sinonimos: string[]; equipamento: string[] };
 
 type Props = {
+  /** 0133: Montinho Multimodalidade ligado (tipo do treino + blocos). */
+  multimodalidade?: boolean;
   /** Foco de cada dia segundo a estratégia importada (séries/semana por músculo). */
   focoEstrategia?: Record<string, string>;
   /** Padrões de tempo do treinador (nível acima do treino). */
@@ -248,13 +253,13 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {} }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false }: Props) {
   const router = useRouter();
   const toast = useToast();
 
   const [estado, setEstado] = useState<Estado>(() => {
     const treinos = treinosIniciais.length
-      ? treinosIniciais.map((t) => ({ key: novaKey(), id: t.id, letra: t.letra as TreinoLetra, nome: t.nome, ativo: t.ativo, observacoes: t.observacoes ?? "", rows: t.exercicios.length ? t.exercicios.map(rowDeExercicio) : [emptyRow()], tempos: (t.tempos ?? {}) as Partial<ParametrosTempo>, tempoAlvo: t.tempo_alvo_min != null ? String(t.tempo_alvo_min) : "" }))
+      ? treinosIniciais.map((t) => ({ key: novaKey(), id: t.id, letra: t.letra as TreinoLetra, nome: t.nome, ativo: t.ativo, observacoes: t.observacoes ?? "", rows: t.exercicios.length ? t.exercicios.map(rowDeExercicio) : [emptyRow()], tempos: (t.tempos ?? {}) as Partial<ParametrosTempo>, tempoAlvo: t.tempo_alvo_min != null ? String(t.tempo_alvo_min) : "", modalidade: t.modalidade ?? "musculacao", blocos: t.blocos ?? [] }))
       : [emptyTreino("A"), emptyTreino("B"), emptyTreino("C")];
     return { programa: programaInicial(programa, treinos.map((t) => t.letra)), treinos };
   });
@@ -597,6 +602,17 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       if (!src) return e;
       return { ...e, treinos: e.treinos.map((t) => (t.key === destinoKey ? { ...t, observacoes: src.observacoes, rows: src.rows.map(cloneRow) } : t)) };
     });
+  /** 0133: trocar o tipo do treino. Musculação → outro: monta os blocos iniciais (as linhas de força ficam). */
+  const trocarModalidade = (tk: string, m: ModalidadeTreino) =>
+    commit((e) => ({
+      ...e,
+      treinos: e.treinos.map((x) => {
+        if (x.key !== tk) return x;
+        const blocos = ehMusculacao(m) ? [] : x.blocos?.length ? x.blocos : blocosIniciais(m, (slug) => itensBiblioteca.find((i) => i.slug === slug)?.id ?? null);
+        const nome = /^Treino [A-H]$/.test(x.nome) && !ehMusculacao(m) ? `${MODALIDADES_TREINO[m].nome} ${x.letra}` : x.nome;
+        return { ...x, modalidade: m, blocos, nome, rows: ehMusculacao(m) || x.rows.some((r) => r.nome.trim()) ? x.rows : [] };
+      }),
+    }));
   const removerDia = (tk: string) =>
     commit((e) => {
       const t = e.treinos.find((x) => x.key === tk);
@@ -648,6 +664,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       tempos_efetivos: duracoes[t.key]?.efetivos as Record<string, number | boolean> | undefined,
       tempo_alvo_min: Number(t.tempoAlvo) >= 5 ? Number(t.tempoAlvo) : null,
       duracao_estimada_min: duracoes[t.key]?.resultado.series ? Math.max(5, Math.min(300, Math.round(duracoes[t.key].resultado.totalSeg / 60))) : null,
+      ...(multimodalidade ? { modalidade: t.modalidade ?? "musculacao", blocos: t.blocos ?? [] } : {}),
       exercicios: t.rows
         .filter((r) => r.nome.trim())
         .map((r) => {
@@ -1097,6 +1114,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-h-7 min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />
                   <span className={`text-[11px] font-mono shrink-0 ${t.ativo && !(frequencia[t.letra] ?? 0) ? "text-warning" : "text-fg-subtle"}`} title={t.ativo && !(frequencia[t.letra] ?? 0) ? "Este treino não está na semana/ciclo: não entra no volume semanal" : undefined}>{totalT} séries válidas · ×{frequencia[t.letra] ?? 0}/sem{t.ativo && !(frequencia[t.letra] ?? 0) ? " (fora da semana)" : ""}</span>
                   <label className="inline-flex items-center gap-1 text-[11px] text-fg-muted"><input type="checkbox" checked={t.ativo} onChange={(e) => updTreino(t.key, { ativo: e.target.checked })} /> ativo</label>
+                  {multimodalidade ? (
+                    <select aria-label={`Tipo do treino ${t.letra}`} value={t.modalidade ?? "musculacao"} onChange={(e) => trocarModalidade(t.key, e.target.value as ModalidadeTreino)} className="h-8 rounded-md border border-accent/50 bg-bg px-1.5 text-[11px] font-semibold text-accent">
+                      {LISTA_MODALIDADES.map((m) => <option key={m} value={m}>{MODALIDADES_TREINO[m].emoji} {MODALIDADES_TREINO[m].nome}</option>)}
+                    </select>
+                  ) : null}
                   <select aria-label={`Copiar outro treino para ${t.letra}`} value="" onChange={(e) => e.target.value && copiarDe(t.key, e.target.value)} className="h-8 rounded-md border border-border bg-bg px-1.5 text-[11px] text-fg-muted">
                     <option value="">copiar de…</option>
                     {estado.treinos.filter((x) => x.key !== t.key).map((x) => <option key={x.key} value={x.key}>{x.letra} · {x.nome}</option>)}
@@ -1112,6 +1134,12 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   {t.id ? <button type="button" onClick={() => void finalizarDia(t)} className="h-8 rounded-md border border-border px-2 text-[11px] text-fg-muted hover:text-fg" title="Sai dos treinos ativos (histórico preservado)">Finalizar</button> : null}
                   <button type="button" onClick={() => removerDia(t.key)} className="h-8 rounded-md border border-red/30 px-2 text-[11px] text-red" title={t.id ? "Desativar (histórico preservado)" : "Remover dia"} aria-label={`Remover treino ${t.letra}`}><Icon name="trash" size={14} /></button>
                 </div>
+                {multimodalidade && !ehMusculacao(t.modalidade) ? (
+                  <>
+                    <EditorBlocos modalidade={t.modalidade!} blocos={t.blocos ?? []} onChange={(blocos) => updTreino(t.key, { blocos })} itens={itensBiblioteca} favoritos={favoritosSet} uso={usoMap} />
+                    <p className="border-b border-border bg-bg/40 px-3 py-1.5 text-xs font-bold">🏋️ Força: séries × repetições × carga {(t.blocos ?? []).some((b) => b.tipo === "forca") ? "" : "(opcional)"}</p>
+                  </>
+                ) : null}
                 {duracoes[t.key] ? (
                   <PainelTempo
                     resultado={duracoes[t.key].resultado}

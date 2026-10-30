@@ -115,6 +115,9 @@ export type SnapshotTreino = {
   nome: string;
   observacoes: string | null;
   ativo: boolean;
+  /** 0133: só fora da musculação. */
+  modalidade?: import("@/lib/modalidades/tipos").ModalidadeTreino;
+  blocos?: import("@/lib/modalidades/tipos").BlocoTreino[];
   exercicios: SnapshotExercicio[];
 };
 

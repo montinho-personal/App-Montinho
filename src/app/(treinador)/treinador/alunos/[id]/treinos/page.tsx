@@ -11,6 +11,7 @@ import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular
 import { volumeRealizadoPorGrupo } from "@/lib/volume/calcular";
 import { lerAlternativasOcultas } from "@/lib/data/alternativas-ocultas";
 import { MontadorClient } from "./MontadorClient";
+import { FEATURES } from "@/lib/env";
 import { CopiarProtocolo } from "./CopiarProtocolo";
 import { indiceBusca } from "@/lib/data/busca";
 import Link from "next/link";
@@ -80,6 +81,7 @@ export default async function MontadorPage({ params }: PageProps) {
       <CopiarProtocolo alunoId={id} alunoNome={aluno.profile?.nome ?? "Aluno"} opcoes={outros} treinos={plano.treinos.filter((t) => t.ativo).length} />
     </div>
     <MontadorClient
+      multimodalidade={FEATURES.multimodalidade}
       temposTreinador={temposTreinador}
       alunoId={id}
       alunoNome={aluno.profile?.nome ?? "Aluno"}
