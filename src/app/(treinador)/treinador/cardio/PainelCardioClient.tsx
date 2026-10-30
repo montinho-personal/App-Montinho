@@ -21,7 +21,7 @@ function modeloDe(l: LinhaPainelCardio): ModeloId {
   if (t.has("retomou")) return "cardio_retorno";
   if (t.has("queda")) return "cardio_queda";
   if (t.has("adesao_baixa") || t.has("ignorado")) return "cardio_falta";
-  if (t.has("evolucao") || t.has("meta_cumprida")) return "cardio_meta";
+  if (t.has("evolucao") || t.has("meta_cumprida") || t.has("subir_meta")) return "cardio_meta";
   return "cardio_falta";
 }
 

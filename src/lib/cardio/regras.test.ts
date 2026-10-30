@@ -180,6 +180,15 @@ describe("sinais para o personal", () => {
     const s = semanasDeCardio({ prescricoes: [presc()], feitos, hoje: "2026-10-27" });
     expect(sinaisDoCardio(s, feitos, "2026-10-27").map((x) => x.tipo)).toContain("evolucao");
   });
+  it("150%+ dos minutos em 3 das últimas 4 semanas = avaliar subir a meta (só para o personal)", () => {
+    const tres = [...semana("2026-09-29", 3, 50), ...semana("2026-10-06", 3, 30), ...semana("2026-10-13", 3, 50), ...semana("2026-10-20", 3, 50)];
+    const s = semanasDeCardio({ prescricoes: [presc()], feitos: tres, hoje: "2026-10-27" });
+    const sub = sinaisDoCardio(s, tres, "2026-10-27").find((x) => x.tipo === "subir_meta");
+    expect(sub?.texto).toContain("3 das últimas 4 semanas");
+    const duas = [...semana("2026-09-29", 3, 50), ...semana("2026-10-06", 3, 30), ...semana("2026-10-13", 3, 30), ...semana("2026-10-20", 3, 50)];
+    const s2 = semanasDeCardio({ prescricoes: [presc()], feitos: duas, hoje: "2026-10-27" });
+    expect(sinaisDoCardio(s2, duas, "2026-10-27").map((x) => x.tipo)).not.toContain("subir_meta");
+  });
 });
 
 describe("pendentes de hoje e modalidades", () => {

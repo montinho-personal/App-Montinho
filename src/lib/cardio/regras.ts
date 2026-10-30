@@ -308,8 +308,11 @@ export function proximoMarco(feitos: CardioFeito[]): { feitos: number; proximo: 
 // ----------------------------------------------------------------------------
 // Sinais para o personal (ferramenta de acompanhamento, não diagnóstico).
 // ----------------------------------------------------------------------------
+/** Aviso ao personal para subir a meta: 150%+ dos minutos em 3 das últimas 4 semanas fechadas. */
+export const LIMITES_SUBIR_META = { pct: 1.5, vezes: 3, semanas: 4 } as const;
+
 export type NivelSinal = "atencao" | "acompanhar" | "reconhecer";
-export type SinalCardio = { tipo: "adesao_baixa" | "queda" | "esforco_alto" | "ignorado" | "retomou" | "evolucao" | "meta_cumprida"; nivel: NivelSinal; texto: string; data: string };
+export type SinalCardio = { tipo: "adesao_baixa" | "queda" | "esforco_alto" | "ignorado" | "retomou" | "evolucao" | "meta_cumprida" | "subir_meta"; nivel: NivelSinal; texto: string; data: string };
 
 export function sinaisDoCardio(semanas: SemanaCardio[], feitos: CardioFeito[], hoje: string): SinalCardio[] {
   const out: SinalCardio[] = [];
@@ -342,6 +345,14 @@ export function sinaisDoCardio(semanas: SemanaCardio[], feitos: CardioFeito[], h
       out.push({ tipo: "retomou", nivel: "reconhecer", texto: `Voltou ao cardio depois de ${gap} dias.`, data: dias[i].data });
       break;
     }
+  }
+  // Só para o personal (decisão do Montinho, 30/10/2026): passou de 150% dos
+  // minutos prescritos em 3 das últimas 4 semanas fechadas → avaliar subir a meta.
+  const comMinutos = semanas.filter((s) => !s.atual && s.alvoMin > 0 && s.status !== "pausada").slice(-LIMITES_SUBIR_META.semanas);
+  const acima = comMinutos.filter((s) => s.minutos >= s.alvoMin * LIMITES_SUBIR_META.pct);
+  if (comMinutos.length === LIMITES_SUBIR_META.semanas && acima.length >= LIMITES_SUBIR_META.vezes) {
+    const media = Math.round(comMinutos.reduce((t, s) => t + s.minutos, 0) / comMinutos.length);
+    out.push({ tipo: "subir_meta", nivel: "acompanhar", texto: `Passou de 150% da meta em ${acima.length} das últimas 4 semanas (média de ${media} min/semana para uma meta de ${comMinutos.at(-1)!.alvoMin} min). Avalie subir a meta do cardio.`, data: comMinutos.at(-1)!.inicio });
   }
   const quatro = fechadas.slice(-4);
   if (quatro.length === 4 && quatro.every((s) => s.status === "cumprida"))
