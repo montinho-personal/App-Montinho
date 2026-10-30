@@ -6,6 +6,6 @@ import { recadoPersonagemDoAluno } from "@/lib/data/recado-personagem";
 export async function GET() {
   const { sessao, error } = await requireAlunoApi();
   if (error) return error;
-  const recado = await recadoPersonagemDoAluno(sessao.alunoId).catch(() => null);
+  const recado = await recadoPersonagemDoAluno(sessao.alunoId, { semOferta: !!sessao.comoPersonal }).catch(() => null);
   return NextResponse.json({ recado, agora: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 }

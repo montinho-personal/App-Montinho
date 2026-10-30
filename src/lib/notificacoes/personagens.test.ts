@@ -35,3 +35,14 @@ describe("recados dos personagens no sino", () => {
     expect(o?.respostas).toHaveLength(2);
   });
 });
+
+describe("Montinho com a oferta dos planos", () => {
+  it("só quando ninguém mais tem recado; 1 por semana", () => {
+    const r = recadoDoPersonagem({ ...base, oferta: { titulo: "Carga travada no Supino?", fala: "Numa aula eu ajusto." } });
+    expect(r?.personagem).toBe("montinho");
+    expect(r?.id).toBe("personagem:montinho:oferta:2026-10-27");
+    expect(r?.botao.href).toBe("/aluno/planos");
+    expect(recadoDoPersonagem({ ...base, semanaPassadaCumprida: true, oferta: { titulo: "x", fala: "y" } })?.personagem).toBe("oogway");
+    expect(recadoDoPersonagem({ ...base, dorRecente: true, oferta: { titulo: "x", fala: "y" } })).toBeNull();
+  });
+});

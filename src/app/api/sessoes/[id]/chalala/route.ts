@@ -2,6 +2,7 @@
 // Recalcula e grava conquistas de forma idempotente (reabrir não duplica).
 import { NextResponse, after } from "next/server";
 import { agendarLembreteTrofeu } from "@/lib/data/lembrete-trofeu";
+import { agendarOfertaCelular } from "@/lib/data/oferta-celular";
 import { requireAlunoDoTreinoApi } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
 import { resumoChalala } from "@/lib/data/conquistas";
@@ -33,5 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
   // Depois de responder: lembrete no celular do próximo troféu que está perto (0104).
   if (r.status === "concluida") after(() => agendarLembreteTrofeu(aluno).catch(() => undefined));
+  // Oferta dos planos no celular (0131): só no app do próprio aluno (não na aula presencial).
+  if (r.status === "concluida" && !sessao.presencial) after(() => agendarOfertaCelular(aluno.id).catch(() => undefined));
   return NextResponse.json({ ...r, descoberta, proximaMissao: proxima });
 }

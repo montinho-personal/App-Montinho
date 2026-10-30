@@ -7,6 +7,7 @@
 //  • Fênix (recomeço): 5+ dias sem treinar, depois de já ter treinado.
 //  • Colombo (explorador): troféu perto (o mais perto da lista “ao alcance”).
 //  • Mestre Oogway (constância): semana passada cumprida — 1 vez por semana.
+//  • Montinho (planos): sem outro recado, a oferta do momento — 1 por semana.
 // Só aparece no sino do app (sem aviso no celular). Nada é gravado no banco.
 // ============================================================================
 import type { PersonagemChalala } from "@/lib/jornada-chalala/universo";
@@ -51,6 +52,8 @@ export type EntradaPersonagens = {
   /** Semana passada (fechada) cumprida? E quantas seguidas até ela. */
   semanaPassadaCumprida: boolean;
   semanasSeguidas: number;
+  /** Oferta dos planos (Consultoria/Pacote Flexível): por último, 1 recado por semana. */
+  oferta?: { titulo: string; fala: string } | null;
   /** O troféu mais perto (lembreteDoAlcance): nome, o que fazer e para onde ir. */
   alcance: { titulo: string; corpo: string; url: string } | null;
 };
@@ -124,6 +127,21 @@ export function recadoDoPersonagem(e: EntradaPersonagens): RecadoPersonagem | nu
       respostas: [
         { rotulo: "🙏 Sábio", resposta: "A sabedoria você já tem. Agora é só repetir esta semana." },
         { rotulo: "Vou manter! 💪", resposta: "Manter é o mais difícil, e você está fazendo. Sigo de olho daqui." },
+      ],
+    };
+  }
+
+  // Montinho com a oferta dos planos: só quando nenhum outro tem recado, 1 por semana.
+  if (e.oferta) {
+    return {
+      id: `personagem:montinho:oferta:${e.inicioSemana}`,
+      personagem: "montinho",
+      titulo: e.oferta.titulo,
+      fala: e.oferta.fala,
+      botao: { rotulo: "Ver os planos ✨", href: "/aluno/planos" },
+      respostas: [
+        { rotulo: "Quero saber mais 💬", resposta: "Bora! Em Planos tem o botão do meu WhatsApp: me chama que eu explico tudo, sem compromisso." },
+        { rotulo: "Agora não", resposta: "Tranquilo! Quando quiser, os planos ficam no seu Perfil. Bora treinar!" },
       ],
     };
   }

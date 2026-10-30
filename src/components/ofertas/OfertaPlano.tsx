@@ -40,11 +40,11 @@ export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" 
         const ctx = j?.contexto;
         if (!vivo || !ctx) return;
         const historico = ler();
-        const oferta = escolherOferta({ ofertas: ctx.ofertas, publico: ctx.publico, agora: Date.now(), historico, dor: ctx.dor, diaDoAno: diaDoAno() });
+        const oferta = escolherOferta({ ofertas: ctx.ofertas, publico: ctx.publico, agora: Date.now(), historico, dor: ctx.dor, diaDoAno: diaDoAno(), preferida: ctx.motivo?.oferta ?? null });
         if (!oferta) return;
         gravar({ ...historico, ultimaVista: Date.now() });
         setEstado({ ctx, oferta });
-        eventoGa("oferta_plano", { oferta: oferta.id, tela, acao: "vista" });
+        eventoGa("oferta_plano", { oferta: oferta.id, tela, acao: "vista", motivo: ctx.motivo?.oferta === oferta.id ? ctx.motivo.chave : "padrao" });
         if (ctx.publico === "visitante") void fetch("/api/visitante/cta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cta: oferta.id, tipo: "exibido", tela }), keepalive: true }).catch(() => undefined);
       })
       .catch(() => undefined);
@@ -55,7 +55,9 @@ export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" 
 
   if (!estado || fechado) return null;
   const { ctx, oferta } = estado;
-  const t = textoDaOferta(oferta, { publico: ctx.publico, nome: ctx.nome, treinos: ctx.treinos });
+  const padrao = textoDaOferta(oferta, { publico: ctx.publico, nome: ctx.nome, treinos: ctx.treinos });
+  // Com um motivo do momento (carga parada, renovação, pouco tempo, dias do visitante), o texto fala disso.
+  const t = ctx.motivo?.oferta === oferta.id ? { ...padrao, titulo: ctx.motivo.titulo, texto: ctx.motivo.texto } : padrao;
   const visitante = ctx.publico === "visitante";
 
   function marcar(campo: "dispensada" | "clicada") {

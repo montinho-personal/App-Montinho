@@ -39,3 +39,27 @@ describe("ofertas dos planos", () => {
     expect(textoDaOferta({ id: "pacote", config: "pacote_alunos", promo: null }, { publico: "aluno", nome: "Bia", treinos: 0 }).texto).toContain("10 aulas");
   });
 });
+
+import { cargaParada, motivoDaOferta } from "./regras";
+
+describe("gatilhos das ofertas", () => {
+  const base = { nome: "Ana Souza", diasDeAcesso: null, diasAteRenovar: null, cargaParada: null, poucoTempo: false };
+  it("aluno: renovação > carga parada > pouco tempo; sem Pacote, nada", () => {
+    expect(motivoDaOferta({ ...base, publico: "aluno", disponiveis: ["pacote"], diasAteRenovar: 20, cargaParada: "Supino" })?.chave).toBe("renovacao");
+    expect(motivoDaOferta({ ...base, publico: "aluno", disponiveis: ["pacote"], cargaParada: "Supino" })?.titulo).toBe("Carga travada no Supino?");
+    expect(motivoDaOferta({ ...base, publico: "aluno", disponiveis: ["pacote"], poucoTempo: true })?.chave).toBe("pouco_tempo");
+    expect(motivoDaOferta({ ...base, publico: "aluno", disponiveis: [], cargaParada: "Supino" })).toBeNull();
+  });
+  it("visitante: dias do acesso e pouco tempo", () => {
+    expect(motivoDaOferta({ ...base, publico: "visitante", disponiveis: ["consultoria", "pacote"], diasDeAcesso: 1 })).toBeNull();
+    expect(motivoDaOferta({ ...base, publico: "visitante", disponiveis: ["consultoria", "pacote"], diasDeAcesso: 8 })?.chave).toBe("dia7");
+    expect(motivoDaOferta({ ...base, publico: "visitante", disponiveis: ["consultoria"], diasDeAcesso: 25 })?.chave).toBe("dia14");
+    expect(motivoDaOferta({ ...base, publico: "visitante", disponiveis: ["consultoria", "pacote"], diasDeAcesso: 25 })?.oferta).toBe("pacote");
+    expect(motivoDaOferta({ ...base, publico: "visitante", disponiveis: ["consultoria", "pacote"], diasDeAcesso: 2, poucoTempo: true })?.chave).toBe("pouco_tempo");
+  });
+  it("carga parada: 3 vezes sem subir em 14+ dias", () => {
+    expect(cargaParada([{ nome: "Supino", execucoes: [{ dia: "2026-10-28", maior: 40 }, { dia: "2026-10-20", maior: 40 }, { dia: "2026-10-10", maior: 40 }] }])).toBe("Supino");
+    expect(cargaParada([{ nome: "Supino", execucoes: [{ dia: "2026-10-28", maior: 42 }, { dia: "2026-10-20", maior: 40 }, { dia: "2026-10-10", maior: 40 }] }])).toBeNull();
+    expect(cargaParada([{ nome: "Supino", execucoes: [{ dia: "2026-10-28", maior: 40 }, { dia: "2026-10-25", maior: 40 }, { dia: "2026-10-20", maior: 40 }] }])).toBeNull();
+  });
+});

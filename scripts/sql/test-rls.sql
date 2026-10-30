@@ -2451,3 +2451,24 @@ begin
 end $$;
 select test_logout();
 \echo 'T81 OK: ofertas dos planos'
+
+-- T82 — 0131: oferta no celular — só o próprio aluno agenda, 1 por janela
+select test_login('22222222-2222-2222-2222-222222222222');
+select public.agendar_oferta('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pacote', 'Carga travada?', 'Numa aula eu ajusto.');
+select public.agendar_oferta('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pacote', 'De novo', 'De novo');
+select test_logout();
+do $$
+declare n int;
+begin
+  select count(*) into n from notificacoes_envios where dedupe like 'oferta:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:%';
+  if n <> 1 then raise exception 'T82a: esperado 1 aviso de oferta, veio %', n; end if;
+end $$;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false;
+begin
+  begin perform public.agendar_oferta('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'qualquer', 'x', 'y'); exception when others then ok := true; end;
+  if not ok then raise exception 'T82b: oferta inválida aceita'; end if;
+end $$;
+select test_logout();
+\echo 'T82 OK: oferta no celular'

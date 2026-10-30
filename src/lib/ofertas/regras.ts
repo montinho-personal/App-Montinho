@@ -48,7 +48,7 @@ const D = 24 * H;
  * pausas de “agora não” e do clique, e alterna entre as ofertas pelo dia.
  * `jaNestaTela` = a mesma oferta já está sendo mostrada (não conta de novo).
  */
-export function escolherOferta(e: { ofertas: Oferta[]; publico: Publico; agora: number; historico: HistoricoOferta; dor: boolean; diaDoAno: number }): Oferta | null {
+export function escolherOferta(e: { ofertas: Oferta[]; publico: Publico; agora: number; historico: HistoricoOferta; dor: boolean; diaDoAno: number; /** Oferta do motivo do momento (vence a alternância se estiver livre). */ preferida?: OfertaId | null }): Oferta | null {
   if (e.dor || !e.ofertas.length) return null;
   const h = e.historico;
   if (h.ultimaVista && e.agora - h.ultimaVista < LIMITES_OFERTA.intervaloHoras[e.publico] * H) return null;
@@ -58,7 +58,7 @@ export function escolherOferta(e: { ofertas: Oferta[]; publico: Publico; agora: 
     return !(d && e.agora - d < LIMITES_OFERTA.dispensaDias[e.publico] * D) && !(c && e.agora - c < LIMITES_OFERTA.cliqueDias * D);
   });
   if (!livres.length) return null;
-  return livres[e.diaDoAno % livres.length];
+  return livres.find((o) => o.id === e.preferida) ?? livres[e.diaDoAno % livres.length];
 }
 
 /** Texto do cartão, com os números da própria pessoa quando houver. */
@@ -77,4 +77,64 @@ export function textoDaOferta(o: Oferta, e: { publico: Publico; nome: string; tr
     texto: e.publico === "aluno" ? "No Pacote Flexível você continua com a consultoria e ganha 10 aulas presenciais para usar quando der, sem horário fixo. Uma aula afina a técnica e destrava a carga." : "Consultoria online + 10 aulas presenciais em Alphaville, para usar quando der, sem horário fixo. Dá para parcelar.",
     botao: "💬 Quero o Pacote Flexível",
   };
+}
+
+// ---------------------------------------------------------------------------
+// Gatilhos (Fase 2): o “porquê agora” da oferta, com os dados da pessoa.
+// ---------------------------------------------------------------------------
+export type Motivo = { oferta: OfertaId; chave: string; titulo: string; texto: string };
+
+export type EntradaMotivo = {
+  publico: Publico;
+  nome: string;
+  /** Visitante: dias desde o início do acesso (0 = hoje). */
+  diasDeAcesso: number | null;
+  /** Aluno: dias até o fim do acesso/plano (renovação). */
+  diasAteRenovar: number | null;
+  /** Exercício com a carga parada (3+ treinos em 14+ dias sem subir), se houver. */
+  cargaParada: string | null;
+  /** Contou no Pulso, nos últimos 14 dias, que falta tempo ou a rotina está corrida. */
+  poucoTempo: boolean;
+  /** Ofertas que valem para a pessoa (ofertasPara). */
+  disponiveis: OfertaId[];
+};
+
+/** O motivo mais forte para oferecer agora (ou null = texto padrão). */
+export function motivoDaOferta(e: EntradaMotivo): Motivo | null {
+  const nome = e.nome.split(" ")[0] || "Ei";
+  const tem = (id: OfertaId) => e.disponiveis.includes(id);
+  if (e.publico === "aluno") {
+    if (!tem("pacote")) return null;
+    if (e.diasAteRenovar !== null && e.diasAteRenovar >= 0 && e.diasAteRenovar <= 30)
+      return { oferta: "pacote", chave: "renovacao", titulo: `${nome}, sua renovação está chegando`, texto: "Que tal renovar já somando 10 aulas comigo? No Pacote Flexível você segue com a consultoria e usa as aulas quando der." };
+    if (e.cargaParada)
+      return { oferta: "pacote", chave: "carga_parada", titulo: `Carga travada no ${e.cargaParada}?`, texto: "Às vezes é técnica, às vezes é cabeça. Numa aula comigo eu ajusto ao vivo e você descobre que tinha mais. Pacote Flexível: 10 aulas para usar quando der." };
+    if (e.poucoTempo)
+      return { oferta: "pacote", chave: "pouco_tempo", titulo: "Rotina corrida? As aulas esperam você", texto: "No Pacote Flexível não tem horário fixo: semana tranquila, aula; semana corrida, o treino segue no app." };
+    return null;
+  }
+  if (e.poucoTempo && tem("pacote"))
+    return { oferta: "pacote", chave: "pouco_tempo", titulo: "Sem tempo fixo? Tem jeito", texto: "5 meses de consultoria + 10 aulas presenciais para usar quando der, sem horário fixo. Eu monto o treino e você encaixa na sua semana." };
+  const d = e.diasDeAcesso;
+  if (d === null) return null;
+  if (d >= 21 && tem("pacote")) return { oferta: "pacote", chave: "dia21", titulo: `${nome}, que tal umas aulas comigo?`, texto: "Consultoria online + 10 aulas presenciais em Alphaville, sem horário fixo. Uma aula afina a técnica e o treino sozinho rende mais." };
+  if (d >= 14 && tem("consultoria")) return { oferta: "consultoria", chave: "dia14", titulo: "Metade do caminho: sozinho ou com o Montinho?", texto: "Até aqui o treino foi seu. Na consultoria eu monto, acompanho cada semana e ajusto quando trava. A diferença aparece rápido." };
+  if (d >= 7 && tem("consultoria")) return { oferta: "consultoria", chave: "dia7", titulo: "Uma semana de app. Imagina com acompanhamento", texto: "Meus alunos têm treino montado para eles e eu do lado ajustando. Veja os resultados na página da consultoria." };
+  if (d >= 3 && tem("consultoria")) return { oferta: "consultoria", chave: "dia3", titulo: `${nome}, prazer: eu sou o Montinho`, texto: "Mais de 20 anos de musculação, −40 kg na minha própria história e mais de 100 alunos acompanhados. Quer treinar comigo de verdade?" };
+  return null;
+}
+
+/**
+ * Exercício com a carga parada: nas 3 últimas vezes (a 1ª e a última com 14+
+ * dias entre elas) a maior carga não subiu. Recebe execuções do mais novo para
+ * o mais antigo, por exercício. Devolve o nome do primeiro que travou.
+ */
+export function cargaParada(porExercicio: Array<{ nome: string; execucoes: Array<{ dia: string; maior: number }> }>): string | null {
+  for (const ex of porExercicio) {
+    const ult = ex.execucoes.filter((x) => x.maior > 0).slice(0, 3);
+    if (ult.length < 3) continue;
+    const dias = (Date.parse(`${ult[0].dia}T12:00:00Z`) - Date.parse(`${ult[2].dia}T12:00:00Z`)) / 86_400_000;
+    if (dias >= 14 && ult[0].maior <= ult[2].maior && ult[1].maior <= ult[2].maior) return ex.nome;
+  }
+  return null;
 }
