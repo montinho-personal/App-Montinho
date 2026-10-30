@@ -18,6 +18,7 @@ const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", da
 
 const ABAS = [
   { id: "todas", rotulo: "Todas" },
+  { id: "recentes", rotulo: "🕒 Últimos conquistados" },
   { id: "temas", rotulo: "Por tema" },
   { id: "desafiadores", rotulo: "Mais desafiadores" },
 ] as const;
@@ -77,6 +78,19 @@ export default async function TodasConquistasPage({ searchParams }: { searchPara
             </section>
           );
         })
+      ) : aba === "recentes" ? (
+        (() => {
+          // Últimos troféus conquistados: só os ganhos, do mais novo para o mais antigo.
+          const recentes = medalhas.filter((x) => x.conquistada && x.data).sort((a, b) => (a.data! < b.data! ? 1 : a.data! > b.data! ? -1 : 0));
+          return recentes.length ? (
+            <section className="space-y-2" aria-label="Últimos troféus conquistados">
+              <p className="text-sm text-fg-muted">Do mais novo para o mais antigo. Toque em um troféu para ver os detalhes e compartilhar.</p>
+              <VitrineMedalhas medalhas={recentes} nome={nome} reconhecimentos={porCodigo} />
+            </section>
+          ) : (
+            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Nenhum troféu ainda. O primeiro sai no próximo treino! <Link href="/aluno/treinar" className="font-semibold text-accent">Treinar agora →</Link></p>
+          );
+        })()
       ) : aba === "desafiadores" ? (
         <section className="space-y-3">
           <div className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-3 text-sm">

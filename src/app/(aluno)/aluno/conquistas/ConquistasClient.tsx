@@ -108,6 +108,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
         <Link href="/aluno/conquistas/todas" className="alvo inline-block text-sm font-semibold text-accent underline-offset-2 hover:underline">Todas as minhas conquistas ({total} {total === 1 ? "medalha" : "medalhas"} + recordes e retomadas) →</Link>
         <div className="flex flex-wrap gap-1.5 pt-1">
           <Link href="/aluno/conquistas/todas?aba=temas" className="alvo rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Por tema</Link>
+          <Link href="/aluno/conquistas/todas?aba=recentes" className="alvo rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">🕒 Últimos conquistados</Link>
           <Link href="/aluno/conquistas/todas?aba=desafiadores" className="alvo rounded-full border border-[#f59e0b]/50 px-3 py-1.5 text-xs font-semibold text-[#f5c451]">🔥 Mais desafiadores</Link>
           <Link href="/aluno/ranking" className="alvo rounded-full border border-accent/50 px-3 py-1.5 text-xs font-semibold text-accent">🏆 Ranking</Link>
         </div>

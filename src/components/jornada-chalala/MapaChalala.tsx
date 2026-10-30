@@ -20,8 +20,11 @@ import { Personagem, PersonagemBotao } from "./Personagens";
 
 const TOPO = 150;
 const PASSO = 128;
-/** Altura de cada etiqueta 🎁 de parada. */
-const LINHA_PARADA = 24;
+/** Altura de cada etiqueta 🎁 de parada (etiqueta de 26 px + 4 de espaço). */
+const LINHA_PARADA = 30;
+/** Mais do que isso no mesmo ponto vira UMA etiqueta “🎁 N troféus aqui” que abre a lista (não empilha no mapa). */
+const MAX_PARADAS_ABERTAS = 3;
+const linhasDe = (n: number) => (n > MAX_PARADAS_ABERTAS ? 1 : n);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 const xDoNo = (i: number) => (i % 2 === 0 ? 118 : 242);
 
@@ -107,11 +110,11 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirParad
         const semAcesas = !cap.nos.some((n) => (indice.get(n.id) ?? 0) < jornada.posicao);
         // Ninguém aceso ainda neste capítulo: o “Você está aqui” vai antes do 1º nó, com espaço próprio.
         const espacoAqui = aquiNoCap && semAcesas ? 96 : 0;
-        let y = TOPO + 60 + inicio.length * LINHA_PARADA + (inicio.length ? 20 : 0) + espacoAqui;
+        let y = TOPO + 60 + linhasDe(inicio.length) * LINHA_PARADA + (inicio.length ? 20 : 0) + espacoAqui;
         const pts = cap.nos.map((n, i) => {
           const itens = paradaDe.get(n.id) ?? [];
           const p = { n, x: xDoNo(i), y, itens };
-          y += PASSO + (itens.length ? itens.length * LINHA_PARADA + 24 : 0) + (indice.get(n.id) === jornada.posicao - 1 ? 46 : 0);
+          y += PASSO + (itens.length ? linhasDe(itens.length) * LINHA_PARADA + 24 : 0) + (indice.get(n.id) === jornada.posicao - 1 ? 46 : 0);
           return p;
         });
         const altura = Math.max(y + 10, TOPO + 140);
@@ -120,7 +123,7 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirParad
         const todasAcesas = pts.length > 0 && acesasAqui.length === pts.length && cap.numero < jornada.capituloAtual;
         const ultimaAcesa = acesasAqui.at(-1);
         // “Você está aqui” logo depois da última medalha acesa da estrada (ou no começo do capítulo atual).
-        const yAqui = ultimaAcesa ? ultimaAcesa.y + 46 + ultimaAcesa.itens.length * LINHA_PARADA + (ultimaAcesa.itens.length ? 24 : 0) : TOPO + 50 + inicio.length * LINHA_PARADA + (inicio.length ? 20 : 0);
+        const yAqui = ultimaAcesa ? ultimaAcesa.y + 46 + linhasDe(ultimaAcesa.itens.length) * LINHA_PARADA + (ultimaAcesa.itens.length ? 24 : 0) : TOPO + 50 + linhasDe(inicio.length) * LINHA_PARADA + (inicio.length ? 20 : 0);
         const yOuro = todasAcesas ? altura : aquiNoCap ? yAqui : ultimaAcesa ? ultimaAcesa.y : 0;
         const aceso = cap.numero <= jornada.capituloAtual;
         return (
@@ -160,6 +163,30 @@ export function MapaChalala({ jornada, movimento, revelar, onAbrir, onAbrirParad
 /** Etiquetas 🎁 das medalhas paralelas, ao lado do ponto da estrada em que foram ganhas. */
 function Paradas({ itens, x, y, lado, onAbrir }: { itens: ItemParada[]; x: number; y: number; lado: "dir" | "esq" | "centro"; onAbrir: (i: ItemParada) => void }) {
   const pos = lado === "centro" ? { left: "50%", transform: "translateX(-50%)" } : lado === "dir" ? { left: `${(x / 360) * 100}%`, transform: "translateX(-20%)" } : { right: `${100 - (x / 360) * 100}%`, transform: "translateX(20%)" };
+  const [lista, setLista] = useState(false);
+  if (itens.length > MAX_PARADAS_ABERTAS) {
+    const total = itens.reduce((n, it) => n + Math.max(1, it.total), 0);
+    return (
+      <div className={`absolute ${lista ? "z-30" : "z-[5]"}`} style={{ top: y, ...pos }}>
+        <button type="button" onClick={() => setLista((v) => !v)} aria-expanded={lista} className="flex items-center gap-1 rounded-full border border-accent/70 bg-[#2a2416]/95 px-3 py-0.5 text-[11px] font-bold leading-5 text-[#f0dfa8] shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+          <span aria-hidden>🎁</span> {total} troféus neste trecho <span aria-hidden>{lista ? "▴" : "▾"}</span>
+        </button>
+        {lista ? (
+          <ul className="mt-1 max-h-72 w-60 space-y-1 overflow-y-auto rounded-2xl border border-[#7c6a3a] bg-[#1b1810]/97 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.6)]" aria-label="Troféus ganhos neste trecho">
+            {itens.map((it) => (
+              <li key={`${it.codigo}-${it.data}`}>
+                <button type="button" onClick={() => onAbrir(it)} className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[12px] font-semibold text-[#e8d8a8] hover:bg-white/5">
+                  <span aria-hidden>🎁</span>
+                  <span className="min-w-0 flex-1">{it.titulo}{it.total > 1 ? ` ×${it.total}` : ""}</span>
+                  <span className="shrink-0 text-[10px] font-normal text-fg-subtle">{fmt.format(new Date(it.data))}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    );
+  }
   return (
     <ul className="absolute z-[5] flex flex-col gap-1" style={{ top: y, ...pos }} aria-label="Paradas: medalhas paralelas ganhas neste ponto">
       {itens.map((it) => (
