@@ -804,7 +804,17 @@ export const entrarDesafioSchema = z.object({ codigo: z.string().trim().regex(/^
 // “Treinando agora”: recado do personal no meio do treino.
 export const recadoAoVivoSchema = z.object({
   sessao_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
-  texto: z.string().trim().min(1, "Escreva o recado").max(200),
+  texto: z.string().trim().max(200).optional().default(""),
+  /** 0132: caminho do áudio no armazenamento (<aluno>/<sessão>/<arquivo>), devolvido pelo link de envio. */
+  audio: z.string().trim().max(200).regex(/^[\w-]+\/[\w-]+\/[\w-]+\.(webm|m4a|mp3|ogg|aac|wav)$/).optional(),
+  /** Só na demonstração: o áudio vai junto, como data URL (nada é gravado em arquivo). */
+  audio_demo: z.string().max(1_500_000).regex(/^data:audio\//).optional(),
+});
+
+/** 0132: pedir o link para enviar o áudio do recado. */
+export const audioRecadoSchema = z.object({
+  sessao_id: z.string().trim().min(1).max(64).regex(/^[\w-]+$/),
+  tipo: z.string().trim().max(60).regex(/^audio\/[\w.+-]+(;.*)?$/),
 });
 
 // Montinho Pulso: respostas do cardápio (src/lib/pulso/perguntas.ts).

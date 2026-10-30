@@ -2,7 +2,8 @@
 // chega como notificação no celular dele.
 import { NextResponse } from "next/server";
 import { requireTreinadorApi } from "@/lib/auth/session";
-import { enviarRecadoAoVivo } from "@/lib/data/ao-vivo";
+import { enviarRecadoAoVivo, enviarRecadoDemoComAudio, TEXTO_AUDIO } from "@/lib/data/ao-vivo";
+import { isDemoMode } from "@/lib/env";
 import { limparRecado } from "@/lib/ao-vivo/regras";
 import { lerJson, recadoAoVivoSchema } from "@/lib/validacao/schemas";
 
@@ -11,10 +12,11 @@ export async function POST(request: Request) {
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, recadoAoVivoSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
-  const texto = limparRecado(data.texto);
+  const temAudio = !!data.audio || (isDemoMode() && !!data.audio_demo);
+  const texto = limparRecado(data.texto ?? "") || (temAudio ? TEXTO_AUDIO : "");
   if (!texto) return NextResponse.json({ error: "Escreva o recado" }, { status: 400 });
   try {
-    const r = await enviarRecadoAoVivo(sessao.userId, data.sessao_id, texto);
+    const r = isDemoMode() && data.audio_demo ? await enviarRecadoDemoComAudio(sessao.userId, data.sessao_id, texto, data.audio_demo) : await enviarRecadoAoVivo(sessao.userId, data.sessao_id, texto, data.audio ?? null);
     if (!r) return NextResponse.json({ error: "Esse treino já terminou." }, { status: 409 });
     return NextResponse.json({ ok: true, ...r }, { status: 201 });
   } catch {

@@ -2472,3 +2472,26 @@ begin
 end $$;
 select test_logout();
 \echo 'T82 OK: oferta no celular'
+
+-- T83 — 0132: áudios dos recados — o aluno só ouve os próprios; só o personal grava
+insert into storage.objects (bucket_id, name) values ('recados-audio', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/s1/a.webm'), ('recados-audio', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/s2/b.webm');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare n int; ok boolean := false;
+begin
+  select count(*) into n from storage.objects where bucket_id = 'recados-audio';
+  if n <> 1 then raise exception 'T83a: aluno A deveria ouvir só o próprio áudio, viu %', n; end if;
+  begin insert into storage.objects (bucket_id, name) values ('recados-audio', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/s1/x.webm');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'T83b: aluno gravou áudio de recado'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  select count(*) into n from storage.objects where bucket_id = 'recados-audio';
+  if n < 2 then raise exception 'T83c: personal não vê os áudios'; end if;
+end $$;
+select test_logout();
+\echo 'T83 OK: áudios dos recados'

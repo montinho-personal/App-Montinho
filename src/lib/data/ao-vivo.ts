@@ -27,10 +27,15 @@ export type TreinandoAgora = {
   estado: EstadoAoVivo;
   series: { feitas: number; planejadas: number };
   exercicioAtual: string | null;
-  recados: Array<{ id: string; texto: string; em: string }>;
+  recados: Array<{ id: string; texto: string; em: string; audio?: boolean }>;
 };
 
-export type RecadoAoVivo = { id: string; texto: string; em: string; autor: string };
+export type RecadoAoVivo = { id: string; texto: string; em: string; autor: string; /** Áudio do Montinho (0132): link de 1 h para ouvir; null = áudio que não dá para tocar aqui (demo). */ audioUrl?: string | null; audio?: boolean };
+
+/** Áudio do recado (0132): bucket privado recados-audio, <aluno>/<sessão>/<arquivo>. */
+export const BUCKET_AUDIO = "recados-audio";
+const EXT_AUDIO: Record<string, string> = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/aac": "aac", "audio/x-m4a": "m4a", "audio/wav": "wav" };
+export const TEXTO_AUDIO = "🎙️ Áudio do Montinho";
 
 type Linhas = { sessoes: TrainingSession[]; exercicios: SessionExercise[]; sets: SessionSet[]; recados: Intervencao[] };
 
@@ -87,7 +92,7 @@ export async function treinandoAgora(agoraMs = Date.now()): Promise<TreinandoAgo
       estado,
       series: { feitas: sets.length, planejadas: s.series_planejadas ?? 0 },
       exercicioAtual: atual?.nome ?? null,
-      recados: l.recados.filter((r) => r.referencia?.sessao_id === s.id).sort((x, y) => (x.created_at < y.created_at ? -1 : 1)).map((r) => ({ id: r.id, texto: r.descricao, em: r.created_at })),
+      recados: l.recados.filter((r) => r.referencia?.sessao_id === s.id).sort((x, y) => (x.created_at < y.created_at ? -1 : 1)).map((r) => ({ id: r.id, texto: r.descricao, em: r.created_at, audio: !!(r.referencia?.audio || r.referencia?.audio_demo) })),
     });
   }
   return out.sort((a, b) => (a.estado === b.estado ? (a.ultimaAtividade < b.ultimaAtividade ? 1 : -1) : a.estado === "treinando" ? -1 : 1));
@@ -117,14 +122,16 @@ async function sessaoAberta(sessaoId: string): Promise<TrainingSession | null> {
 }
 
 /** Personal manda o recado: grava (aparece na tela do treino) e avisa o celular do aluno. */
-export async function enviarRecadoAoVivo(autorId: string, sessaoId: string, texto: string): Promise<{ id: string; notificados: number } | null> {
+export async function enviarRecadoAoVivo(autorId: string, sessaoId: string, texto: string, audio?: string | null): Promise<{ id: string; notificados: number } | null> {
   const s = await sessaoAberta(sessaoId);
   if (!s || Date.now() - Date.parse(s.iniciado_em) > 6 * 3_600_000) return null;
-  const r = await criarIntervencao(s.aluno_id, autorId, { tipo: "mensagem", titulo: "Recado no treino", descricao: texto, referencia: { sessao_id: s.id, ao_vivo: true }, visivel_aluno: true });
+  // O áudio precisa estar na pasta deste aluno e deste treino (o caminho vem do link de envio).
+  if (audio && !audio.startsWith(`${s.aluno_id}/${s.id}/`)) throw new Error("Áudio de outro treino");
+  const r = await criarIntervencao(s.aluno_id, autorId, { tipo: "mensagem", titulo: audio ? "Áudio no treino" : "Recado no treino", descricao: texto, referencia: { sessao_id: s.id, ao_vivo: true, ...(audio ? { audio } : {}) }, visivel_aluno: true });
   let notificados = 0;
   if (!isDemoMode() && configurarVapid()) {
     const aparelhos = await inscricoesPushDoAluno(s.aluno_id).catch(() => []);
-    const res = await enviarAosAparelhos(aparelhos, { titulo: texto === RECADO_ACOMPANHANDO ? "👀 O Montinho está acompanhando seu treino" : "💬 Recado do Montinho", corpo: texto, url: "/aluno", tag: `recado-${r.id}` }, { ttl: MINUTOS_AO_VIVO.esquecido * 60 });
+    const res = await enviarAosAparelhos(aparelhos, { titulo: audio ? "🎙️ O Montinho mandou um áudio" : texto === RECADO_ACOMPANHANDO ? "👀 O Montinho está acompanhando seu treino" : "💬 Recado do Montinho", corpo: audio ? "Abra o treino para ouvir." : texto, url: "/aluno", tag: `recado-${r.id}` }, { ttl: MINUTOS_AO_VIVO.esquecido * 60 });
     notificados = res.ok;
   }
   return { id: r.id, notificados };
@@ -136,9 +143,38 @@ export async function recadosDaSessao(alunoId: string, sessaoId: string): Promis
     return demoStore()
       .intervencoes.filter((i) => i.aluno_id === alunoId && i.tipo === "mensagem" && i.visivel_aluno && i.referencia?.sessao_id === sessaoId)
       .sort((a, b) => (a.created_at < b.created_at ? -1 : 1))
-      .map((i) => ({ id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho" }));
+      .map((i) => ({ id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho", audio: !!i.referencia?.audio, audioUrl: typeof i.referencia?.audio_demo === "string" ? (i.referencia.audio_demo as string) : null }));
   }
   const db = await getDb();
-  const { data } = await db.from("intervencoes").select("id, descricao, created_at").eq("aluno_id", alunoId).eq("tipo", "mensagem").eq("visivel_aluno", true).eq("referencia->>sessao_id", sessaoId).order("created_at").limit(30);
-  return ((data ?? []) as Array<{ id: string; descricao: string; created_at: string }>).map((i) => ({ id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho" }));
+  const { data } = await db.from("intervencoes").select("id, descricao, created_at, referencia").eq("aluno_id", alunoId).eq("tipo", "mensagem").eq("visivel_aluno", true).eq("referencia->>sessao_id", sessaoId).order("created_at").limit(30);
+  const linhas = (data ?? []) as Array<{ id: string; descricao: string; created_at: string; referencia: { audio?: string } | null }>;
+  return Promise.all(
+    linhas.map(async (i) => {
+      const caminho = i.referencia?.audio;
+      if (!caminho) return { id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho" };
+      const { data: url } = await db.storage.from(BUCKET_AUDIO).createSignedUrl(caminho, 3600);
+      return { id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho", audio: true, audioUrl: url?.signedUrl ?? null };
+    })
+  );
+}
+
+/** Link para o personal enviar o áudio direto ao armazenamento (0132). Demo: sem envio (o áudio vai junto do recado). */
+export async function linkEnvioAudio(sessaoId: string, tipo: string): Promise<{ caminho: string; token: string } | { demo: true } | null> {
+  const s = await sessaoAberta(sessaoId);
+  if (!s) return null;
+  if (isDemoMode()) return { demo: true };
+  const ext = EXT_AUDIO[tipo.split(";")[0]] ?? "webm";
+  const caminho = `${s.aluno_id}/${s.id}/${crypto.randomUUID()}.${ext}`;
+  const db = await getDb();
+  const { data, error } = await db.storage.from(BUCKET_AUDIO).createSignedUploadUrl(caminho);
+  if (error || !data) throw new Error(/not found|bucket/i.test(error?.message ?? "") ? "O áudio está sendo ativado no banco (0132)." : (error?.message ?? "Não foi possível preparar o envio do áudio."));
+  return { caminho, token: data.token };
+}
+
+/** Só na demonstração: o áudio fica na memória junto do recado (data URL), para dar para testar o fluxo. */
+export async function enviarRecadoDemoComAudio(autorId: string, sessaoId: string, texto: string, dataUrl: string): Promise<{ id: string; notificados: number } | null> {
+  const s = await sessaoAberta(sessaoId);
+  if (!s) return null;
+  const r = await criarIntervencao(s.aluno_id, autorId, { tipo: "mensagem", titulo: "Áudio no treino", descricao: texto, referencia: { sessao_id: s.id, ao_vivo: true, audio: "demo", audio_demo: dataUrl }, visivel_aluno: true });
+  return { id: r.id, notificados: 0 };
 }

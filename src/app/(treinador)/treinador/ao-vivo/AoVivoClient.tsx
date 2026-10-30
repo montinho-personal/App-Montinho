@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
+import { GravarAudio } from "@/components/ao-vivo/GravarAudio";
 import { haQuanto, LIMITES_RECADO, RECADO_ACOMPANHANDO, RECADOS_PRONTOS } from "@/lib/ao-vivo/regras";
 import type { TreinandoAgora } from "@/lib/data/ao-vivo";
 import type { OutraAtividadeAoVivo } from "@/lib/ao-vivo/regras";
@@ -123,7 +124,7 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
             </div>
             {t.recados.length ? (
               <ul className="space-y-1 rounded-lg bg-bg/60 p-2 text-xs text-fg-muted">
-                {t.recados.slice(-3).map((r) => <li key={r.id}>💬 “{r.texto}” · {haQuanto(r.em, agora)}</li>)}
+                {t.recados.slice(-3).map((r) => <li key={r.id}>{r.audio ? "🎙️ Áudio" : `💬 “${r.texto}”`} · {haQuanto(r.em, agora)}</li>)}
               </ul>
             ) : null}
             {t.presencial ? null : t.recados.some((r) => r.texto === RECADO_ACOMPANHANDO) ? (
@@ -164,7 +165,8 @@ function Recado({ sessaoId, nome, onFechar, onEnviado }: { sessaoId: string; nom
   }
   return (
     <div className="space-y-2 rounded-xl border border-accent/40 bg-accent/5 p-3">
-      <p className="text-xs font-semibold text-fg-muted">Toque num recado pronto ou escreva o seu:</p>
+      <GravarAudio sessaoId={sessaoId} nome={nome} onErro={(m) => toast.error(m)} onEnviado={(n) => { toast.success(n ? `Áudio enviado! Chegou no celular de ${nome}.` : `Áudio enviado! Aparece na tela do treino de ${nome}.`); onEnviado(); }} />
+      <p className="text-xs font-semibold text-fg-muted">Ou toque num recado pronto ou escreva o seu:</p>
       <div className="flex flex-wrap gap-1.5">
         {RECADOS_PRONTOS.map((p) => (
           <button key={p} type="button" disabled={enviando} onClick={() => void enviar(p)} className="alvo rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:border-accent disabled:opacity-50">
