@@ -10,16 +10,18 @@ import { DESEMPATE, PODIO, podioDaPosicao, type LinhaRanking } from "@/lib/ranki
 
 const ALTURA: Record<number, string> = { 1: "h-28", 2: "h-20", 3: "h-14" };
 
-function Degrau({ posicao, linhas }: { posicao: 1 | 2 | 3; linhas: LinhaRanking[] }) {
+function Degrau({ posicao, linhas, onAbrir }: { posicao: 1 | 2 | 3; linhas: LinhaRanking[]; onAbrir: (l: LinhaRanking) => void }) {
   const p = PODIO[podioDaPosicao(posicao)!];
   const doLugar = linhas.filter((l) => l.posicao === posicao);
   const principal = doLugar.find((l) => l.eu) ?? doLugar[0];
+  // Tocar no pódio abre o mesmo perfil da lista (troféus e desempate).
+  const abrir = principal?.ref ? () => onAbrir(principal) : undefined;
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+    <button type="button" onClick={abrir} disabled={!abrir} aria-label={principal ? `Ver perfil de ${principal.eu ? "você" : principal.nome}: troféus e desempate` : `${posicao}º lugar vazio`} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1 rounded-t-lg enabled:cursor-pointer enabled:active:scale-[0.98]">
       {principal ? (
         <>
           <span className={`text-3xl ${posicao === 1 ? "motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]" : ""}`} aria-hidden>{p.emoji}</span>
-          <span className={`max-w-full truncate text-center text-sm font-bold ${principal.eu ? "text-accent" : ""}`}>{principal.eu ? "Você" : principal.nome}</span>
+          <span className={`max-w-full truncate text-center text-sm font-bold underline-offset-4 ${abrir ? "underline decoration-dotted" : ""} ${principal.eu ? "text-accent" : ""}`}>{principal.eu ? "Você" : principal.nome}</span>
           {doLugar.length > 1 ? <span className="text-[10px] text-fg-subtle">+{doLugar.length - 1} empatado{doLugar.length > 2 ? "s" : ""}</span> : null}
           <span className="font-mono text-xs text-fg-muted">{principal.trofeus} 🏆</span>
         </>
@@ -27,7 +29,7 @@ function Degrau({ posicao, linhas }: { posicao: 1 | 2 | 3; linhas: LinhaRanking[
       <div className={`w-full rounded-t-lg ${ALTURA[posicao]} flex items-start justify-center pt-1 text-lg font-black text-bg`} style={{ background: `linear-gradient(180deg, ${p.cor}, ${p.cor}99)` }}>
         {posicao}º
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -37,9 +39,9 @@ export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false 
   return (
     <div className="space-y-4">
       <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 pt-4" aria-label="Pódio">
-        <Degrau posicao={2} linhas={linhas} />
-        <Degrau posicao={1} linhas={linhas} />
-        <Degrau posicao={3} linhas={linhas} />
+        <Degrau posicao={2} linhas={linhas} onAbrir={setAberto} />
+        <Degrau posicao={1} linhas={linhas} onAbrir={setAberto} />
+        <Degrau posicao={3} linhas={linhas} onAbrir={setAberto} />
       </div>
       <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface" aria-label="Classificação">
         {linhas.map((l, i) => {
