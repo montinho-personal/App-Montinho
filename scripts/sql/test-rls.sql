@@ -2420,3 +2420,8 @@ end $$;
 -- T79 — 0128: evento “Ver 👀” do Montinho no Ranking aceito
 insert into eventos_chalala (aluno_id, tipo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'montinho_ranking_aberto', 'ranking');
 \echo 'T79 OK: evento do Montinho no Ranking'
+
+-- T80 — 0129: Semanas Completas e Semana Perfeita aceitas
+insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'semanas_completas_5', '1', '5 Semanas Completas', now()) on conflict do nothing;
+insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'semana_perfeita', '1', 'Semana Perfeita', now()) on conflict do nothing;
+\echo 'T80 OK: Semanas Completas e Semana Perfeita'

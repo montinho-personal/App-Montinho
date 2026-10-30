@@ -26,6 +26,7 @@ import { trofeusDeFeriado, type CodigoFeriado } from "./feriados";
 import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-seguido";
 import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { trofeusDeMonitoramento, type CodigoMonitoramento } from "./monitoramento";
+import { trofeusDeSemanasCompletas, type CodigoSemanasCompletas } from "./semanas-completas";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
@@ -124,6 +125,8 @@ export type CodigoConquista =
   | CodigoMobilidade
   // Monitoramento: avaliação/medidas semanas seguidas (0127, monitoramento.ts)
   | CodigoMonitoramento
+  // Semanas completas no total + Semana Perfeita (0129, semanas-completas.ts)
+  | CodigoSemanasCompletas
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -191,6 +194,8 @@ export { CODIGOS_COMBO } from "./combo-seguido";
 export { CODIGOS_SERIES } from "./volume-series";
 /** Monitoramento (0127): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_MONITORAMENTO } from "./monitoramento";
+/** Semanas completas + Semana Perfeita (0129): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_SEMANAS_COMPLETAS } from "./semanas-completas";
 /** Troféus de 29/10/2026 (0113): gravados à parte, como as outras famílias novas. */
 export const CODIGOS_29OUT: CodigoConquista[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_1_ano", "retomada_30", "quiz_1", "quiz_10", "quiz_30", "quiz_50", "semana_compartilhada", "cards_10", "cards_20", "cards_30", "trofeus_compartilhados_10", "trofeus_compartilhados_20", "trofeus_compartilhados_30", "trofeus_compartilhados_50", "cardio_madrugada", "cardio_4h", "cardio_meia_noite", "cardio_10km", "cardio_escada_1h"];
 /** Mobilidade e alongamento (0116): gravados à parte, como as outras famílias novas. */
@@ -336,6 +341,13 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   monitoramento_4: { titulo: "Radar Ligado", criterio: "Registrar medidas ou uma avaliação em 4 semanas seguidas (segunda a domingo; vale quando o registro entra no app).", repete: false },
   monitoramento_8: { titulo: "Bússola Calibrada", criterio: "Registrar medidas ou uma avaliação em 8 semanas seguidas (segunda a domingo; vale quando o registro entra no app).", repete: false },
   monitoramento_12: { titulo: "Olho no Alvo", criterio: "Registrar medidas ou uma avaliação em 12 semanas seguidas (segunda a domingo; vale quando o registro entra no app).", repete: false },
+  semanas_completas_5: { titulo: "5 Semanas Completas", criterio: "Cumprir 100% da meta de treinos em 5 semanas (no total, não precisam ser seguidas).", repete: false },
+  semanas_completas_10: { titulo: "10 Semanas Completas", criterio: "Cumprir 100% da meta de treinos em 10 semanas (no total, não precisam ser seguidas).", repete: false },
+  semanas_completas_25: { titulo: "25 Semanas Completas", criterio: "Cumprir 100% da meta de treinos em 25 semanas (no total, não precisam ser seguidas).", repete: false },
+  semanas_completas_50: { titulo: "50 Semanas Completas", criterio: "Cumprir 100% da meta de treinos em 50 semanas (no total, não precisam ser seguidas).", repete: false },
+  semana_perfeita: { titulo: "Semana Perfeita", criterio: "Cumprir a meta da semana com TODAS as séries de TODOS os treinos feitas (nenhum treino pela metade).", repete: false },
+  semana_perfeita_5: { titulo: "5 Semanas Perfeitas", criterio: "5 semanas (no total) com a meta cumprida e todas as séries de todos os treinos feitas.", repete: false },
+  semana_perfeita_10: { titulo: "10 Semanas Perfeitas", criterio: "10 semanas (no total) com a meta cumprida e todas as séries de todos os treinos feitas.", repete: false },
   monitoramento_26: { titulo: "Cientista de Si Mesmo", criterio: "Registrar medidas ou uma avaliação em 26 semanas seguidas (seis meses; vale quando o registro entra no app).", repete: false },
 };
 
@@ -593,6 +605,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (e.quiz) for (const t of trofeusDoQuiz(e.quiz)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.cardio) for (const t of trofeusCardioHorario(e.cardio.feitos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.mobilidade) for (const t of trofeusDaMobilidade(e.mobilidade)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDeSemanasCompletas(e.aderencia.semanas, e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   if (e.registrosAvaliacao?.length) {
     const pausadas = e.aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio);
     for (const t of trofeusDeMonitoramento(e.registrosAvaliacao, hoje, pausadas)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));

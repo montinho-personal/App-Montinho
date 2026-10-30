@@ -9,6 +9,7 @@
 import { proximoFeriado } from "./feriados";
 import { totalDeSeries } from "./volume-series";
 import { mesesComTreino } from "./acompanhamento";
+import { progressoSemanasCompletas } from "./semanas-completas";
 import { JANELAS_CARDIO } from "./cardio-horario";
 import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
@@ -52,6 +53,13 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "treinos_10", selo: "10" },
   { codigo: "primeiro_mes", selo: "1 mês" },
   { codigo: "constancia_vida_real", selo: "3/4" },
+  { codigo: "semana_perfeita", selo: "100%" },
+  { codigo: "semanas_completas_5", selo: "5 ✓" },
+  { codigo: "semanas_completas_10", selo: "10 ✓" },
+  { codigo: "semanas_completas_25", selo: "25 ✓" },
+  { codigo: "semanas_completas_50", selo: "50 ✓" },
+  { codigo: "semana_perfeita_5", selo: "5×100" },
+  { codigo: "semana_perfeita_10", selo: "10×100" },
   { codigo: "semanas_consistentes_4", selo: "4 sem" },
   { codigo: "semanas_consistentes_5", selo: "5 sem" },
   { codigo: "semanas_consistentes_6", selo: "6 sem" },
@@ -163,7 +171,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -200,6 +208,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   const meta = e.aderencia.semanaAtual?.meta ?? null;
   // Mesma conta da regra: semanas com meta, sem pausa e com ao menos um treino.
   const mesesTreinados = mesesComTreino(e.sessoes);
+  // Semanas completas no total e Semanas Perfeitas (mesma regra dos troféus).
+  const progSemanas = progressoSemanasCompletas(e.aderencia.semanas, e.sessoes);
   const participando = e.aderencia.semanas.filter((w) => w.meta && !w.pausada && w.concluidas + w.parciais > 0).length;
 
   // Além do necessário: treinos curtos concluídos, extras e séries além das prescritas.
@@ -231,6 +241,21 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "treinos_10": return treinos(10);
       case "treinos_25": return treinos(25);
       case "treinos_50": return treinos(50);
+      case "semanas_completas_5":
+      case "semanas_completas_10":
+      case "semanas_completas_25":
+      case "semanas_completas_50": {
+        const n = Number(c.split("_").at(-1));
+        const a = Math.min(progSemanas.completas, n);
+        return { atual: a, alvo: n, falta: `Cumpra 100% da meta em ${n} semanas (não precisam ser seguidas) — você está em ${plural(a, "semana", "semanas")}.`, disponivel: true };
+      }
+      case "semana_perfeita":
+      case "semana_perfeita_5":
+      case "semana_perfeita_10": {
+        const n = c === "semana_perfeita" ? 1 : Number(c.split("_").at(-1));
+        const a = Math.min(progSemanas.perfeitas, n);
+        return { atual: a, alvo: n, falta: n === 1 ? "Faça todos os treinos da meta da semana com todas as séries de cada um." : `Semanas com a meta cumprida e todas as séries feitas: você está em ${a} de ${n}.`, disponivel: true };
+      }
       case "semanas_consistentes_4": return semanas(4);
       case "semanas_consistentes_5": return semanas(5);
       case "semanas_consistentes_6": return semanas(6);
