@@ -11,6 +11,7 @@ import { avatarDoUsuario } from "@/lib/data/perfil";
 import { AvisoAcessoVisitante } from "@/components/visitante/AvisoAcessoVisitante";
 import { RegistrarAcesso } from "@/components/aluno/RegistrarAcesso";
 import { PedirNotificacoes } from "@/components/aluno/PedirNotificacoes";
+import { SinoNotificacoes } from "@/components/aluno/SinoNotificacoes";
 import { proximoFeriado } from "@/lib/conquistas/feriados";
 import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
 import { ConviteFimCard, TravaVisitanteProvider } from "@/components/visitante/TravaVisitante";
@@ -55,13 +56,14 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
           <Link href="/aluno" aria-label="Ir para o início" className="rounded-md">
             <BrandLockup priority />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             {ig ? (
-              <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram do ${BRAND.name} (@${ig})`} className="grid h-11 w-11 place-items-center rounded-full border border-border text-fg-muted transition-colors hover:border-white/40 hover:text-fg">
-                <Icon name="instagram" size={20} />
+              <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram do ${BRAND.name} (@${ig})`} className="grid h-10 w-10 place-items-center rounded-full border border-border text-fg-muted transition-colors hover:border-white/40 hover:text-fg max-[369px]:hidden">
+                <Icon name="instagram" size={19} />
               </a>
             ) : null}
-            <Link href="/aluno/perfil" aria-label="Meu perfil" className="grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 bg-[linear-gradient(180deg,#3a3a3a,#1c1c1c)] text-sm font-bold text-fg">
+            {fechado ? null : <SinoNotificacoes />}
+            <Link href="/aluno/perfil" aria-label="Meu perfil" className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-white/25 bg-[linear-gradient(180deg,#3a3a3a,#1c1c1c)] text-sm font-bold text-fg">
               {foto ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={foto} alt="" className="h-full w-full object-cover" />

@@ -320,3 +320,13 @@
 @keyframes recado-entra { from { opacity: 0; transform: translateY(-24px) scale(.97); } to { opacity: 1; transform: none; } }
 .recado-entra { animation: recado-entra .35s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .recado-entra { animation: none; } }
+
+/* 🔔 sininho com notificação nova: balança 2× ao aparecer. */
+@keyframes sino {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); }
+  60% { transform: rotate(-5deg); }
+  75% { transform: rotate(2deg); }
+}
