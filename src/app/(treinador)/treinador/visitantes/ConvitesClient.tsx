@@ -33,6 +33,7 @@ export function ConvitesClient({ convites, sugestao, base, desafios }: { convite
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [msgCopiada, setMsgCopiada] = useState<string | null>(null);
 
   async function criar(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +63,12 @@ export function ConvitesClient({ convites, sugestao, base, desafios }: { convite
   async function alternar(c: ConviteVisao) {
     await fetch(`/api/treinador/convites/${c.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ativo: !c.ativo }) }).catch(() => null);
     router.refresh();
+  }
+
+  async function copiarMensagem(c: ConviteVisao) {
+    await navigator.clipboard?.writeText(mensagem(c)).catch(() => undefined);
+    setMsgCopiada(c.id);
+    setTimeout(() => setMsgCopiada(null), 2000);
   }
 
   async function copiar(c: ConviteVisao) {
@@ -131,7 +138,7 @@ export function ConvitesClient({ convites, sugestao, base, desafios }: { convite
         {convites.length ? (
           <ul className="mt-6 divide-y divide-border">
             {convites.map((c) => (
-              <li key={c.id} className="py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <li key={c.id} className="py-3 flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className={`font-mono font-semibold ${c.ativo ? "" : "text-fg-subtle line-through"}`}>{c.codigo}</p>
                   <p className="text-xs text-fg-muted">
@@ -154,6 +161,15 @@ export function ConvitesClient({ convites, sugestao, base, desafios }: { convite
                     {c.ativo ? "Pausar" : "Reativar"}
                   </button>
                 </div>
+                <details className="w-full rounded-lg border border-border bg-bg/40 md:basis-full">
+                  <summary className="alvo cursor-pointer px-3 py-2 text-sm font-semibold">👀 Ver a mensagem do WhatsApp</summary>
+                  <p className="whitespace-pre-line px-3 pb-2 text-sm text-fg-muted">{mensagem(c)}</p>
+                  <div className="px-3 pb-3">
+                    <button type="button" onClick={() => void copiarMensagem(c)} className="alvo min-h-11 rounded-lg border border-accent/60 px-3 text-sm font-semibold text-accent">
+                      {msgCopiada === c.id ? "Mensagem copiada!" : "📋 Copiar mensagem"}
+                    </button>
+                  </div>
+                </details>
               </li>
             ))}
           </ul>

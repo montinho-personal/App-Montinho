@@ -12,10 +12,11 @@ describe("mensagem do convite", () => {
 
   it("traz a oferta, o treino próprio, a evolução, o ranking e o link", () => {
     const m = mensagemDoConvite("30 dias grátis", "https://app/convite/X", "Montinho");
-    expect(m).toContain("Liberei pra você 30 dias grátis no app do Montinho");
-    expect(m).toContain("cadastrar o treino que você já faz");
+    expect(m).toContain("Estou te convidando para conhecer o app do Montinho");
+    expect(m).toContain("*30 dias grátis*");
     expect(m).toContain("Jornada do Chalalá");
-    expect(m).toContain("ranking de troféus");
+    expect(m).toContain("Adicionar à Tela de Início");
+    expect(m).toContain("Instalar app");
     expect(m).toContain("https://app/convite/X");
   });
 });
