@@ -36,4 +36,17 @@ describe("cardio e mobilidade ao vivo", () => {
     );
     expect(r.map((x) => [x.id, x.nome])).toEqual([["m1", "Bia"], ["c1", "Ana"]]);
   });
+  it("tocou em Começar duas vezes: uma linha por pessoa em cada tipo", () => {
+    const agora = Date.parse("2026-10-30T12:00:00Z");
+    const r = outrasAtividadesAoVivo(
+      [
+        { id: "c1", tipo: "cardio", alunoId: "a", atividade: "🏃 Esteira", iniciadoEm: "2026-10-30T11:40:00Z" },
+        { id: "c2", tipo: "cardio", alunoId: "a", atividade: "🚴 Bike", iniciadoEm: "2026-10-30T11:50:00Z" },
+        { id: "m1", tipo: "mobilidade", alunoId: "a", atividade: "🧘 Mobilidade de Inferiores", iniciadoEm: "2026-10-30T11:45:00Z" },
+      ],
+      { a: { nome: "Ana", visitante: false } },
+      agora,
+    );
+    expect(r.map((x) => x.id)).toEqual(["c2", "m1"]);
+  });
 });

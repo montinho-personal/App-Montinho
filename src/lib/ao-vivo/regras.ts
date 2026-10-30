@@ -60,5 +60,7 @@ export function outrasAtividadesAoVivo(
   return itens
     .filter((i) => minutosDesde(i.iniciadoEm, agoraMs) < MINUTOS_AO_VIVO.esquecido && Date.parse(i.iniciadoEm) <= agoraMs + 60_000)
     .map((i) => ({ ...i, nome: pessoas[i.alunoId]?.nome ?? "Aluno", visitante: pessoas[i.alunoId]?.visitante ?? false }))
-    .sort((a, b) => (a.iniciadoEm < b.iniciadoEm ? 1 : -1));
+    .sort((a, b) => (a.iniciadoEm < b.iniciadoEm ? 1 : -1))
+    // Tocou em “Começar” duas vezes: fica só o mais recente de cada pessoa em cada tipo.
+    .filter((i, idx, todos) => todos.findIndex((x) => x.alunoId === i.alunoId && x.tipo === i.tipo) === idx);
 }

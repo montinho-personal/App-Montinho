@@ -52,13 +52,13 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
   const blocoOutras = outras.length ? (
     <section aria-label="Cardio e mobilidade agora" className="space-y-2">
       <h2 className="text-sm font-bold uppercase tracking-wider text-fg-muted">❤️‍🔥 Cardio e 🧘 mobilidade agora</h2>
-      <ul className="grid gap-2 md:grid-cols-2" aria-live="polite">
+      <ul className="grid grid-cols-1 gap-2 md:grid-cols-2" aria-live="polite">
         {outras.map((o) => (
-          <li key={o.id} className={`flex items-center gap-3 rounded-2xl border bg-card p-3 ${o.tipo === "cardio" ? "border-danger/40" : "border-accent/40"}`}>
+          <li key={o.id} className={`flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 ${o.tipo === "cardio" ? "border-danger/40" : "border-accent/40"}`}>
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full motion-safe:animate-pulse ${o.tipo === "cardio" ? "bg-danger" : "bg-accent"}`} aria-hidden />
             <span className="min-w-0 flex-1">
               <Link href={`/treinador/alunos/${o.alunoId}`} className="block truncate font-bold hover:underline">{o.nome}{o.visitante ? <span className="ml-1 text-xs font-normal text-fg-muted">· visitante</span> : null}</Link>
-              <span className="block truncate text-sm text-fg-muted">{o.atividade} · começou {haQuanto(o.iniciadoEm, agora)}</span>
+              <span className="block text-sm text-fg-muted">{o.atividade} · começou {haQuanto(o.iniciadoEm, agora)}</span>
             </span>
             <span className="shrink-0 rounded-full bg-fg/10 px-2 py-1 text-[11px] font-bold">{o.tipo === "cardio" ? "No cardio" : "Na mobilidade"}</span>
           </li>
