@@ -1,6 +1,7 @@
 // Ranking de troféus visto pelo personal: nomes completos e quem é visitante.
 import { requireTreinadorPage } from "@/lib/auth/session";
-import { atualizarTrofeus, getRanking, salvarDesempate } from "@/lib/data/ranking";
+import { atualizarTrofeus, cliquesMontinhoNoRanking, getRanking, salvarDesempate } from "@/lib/data/ranking";
+import { CliquesMontinhoRanking } from "@/components/ranking/CliquesMontinhoRanking";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { listAlunos } from "@/lib/db";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
@@ -17,9 +18,11 @@ export default async function RankingTreinadorPage() {
   if (alunos.length) await salvarDesempate(await aderenciaDeTodos(alunos)).catch(() => undefined);
   // O “Meu treino” do personal fica fora do ranking (pedido do Montinho, 28/10/2026).
   const linhas = semMinhaLinha(await getRanking(null).catch(() => []));
+  const cliques = await cliquesMontinhoNoRanking(90).catch(() => null);
   return (
     <div className="max-w-2xl space-y-5">
       <NarrativaRanking />
+      {cliques ? <CliquesMontinhoRanking r={cliques} dias={90} /> : null}
       <RankingTrofeus linhas={linhas} nomeCompleto />
       <p className="text-[11px] text-fg-subtle">Aqui você vê o nome completo de todos. Os alunos veem só o primeiro nome e a inicial, e quem desligou “Aparecer no ranking” não aparece para eles.</p>
     </div>

@@ -9,7 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { gerarImagemMedalha } from "@/components/chalala/cardMedalha";
-import { enviarEventoComTrofeus } from "@/components/chalala/evento";
+import { enviarEvento, enviarEventoComTrofeus } from "@/components/chalala/evento";
 import { eventoGa } from "@/components/analytics/ga";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
@@ -55,6 +55,7 @@ export function MontinhoNoRanking({ dados, meusTrofeus, minhaPosicao, nome, visi
         onClick={() => {
           setAberto(true);
           eventoGa("montinho_ranking_aberto", {});
+          enviarEvento({ tipo: "montinho_ranking_aberto", origem: "ranking" });
         }}
         className="flex w-full items-center gap-3 rounded-2xl border border-accent/60 bg-[linear-gradient(160deg,#2a2415_0%,#171717_80%)] p-4 text-left"
       >

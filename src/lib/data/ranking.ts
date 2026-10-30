@@ -163,3 +163,14 @@ export async function montinhoNoRanking(): Promise<MontinhoNoRanking | null> {
   if (error || !data) return null;
   return data as MontinhoNoRanking;
 }
+
+/** Quem tocou em “Ver 👀” do Montinho no Ranking (últimos `dias`), com nome — só o personal. */
+export async function cliquesMontinhoNoRanking(dias = 90): Promise<import("@/lib/ranking/montinho-cliques").ResumoCliquesMontinho> {
+  const { quemViuOMontinho, REF_CARD_MONTINHO } = await import("@/lib/ranking/montinho-cliques");
+  const { listarEventos } = await import("@/lib/data/conquistas");
+  const { listAlunos } = await import("@/lib/db");
+  const desde = new Date(Date.now() - dias * 86_400_000).toISOString();
+  const [eventos, alunos] = await Promise.all([listarEventos(desde).catch(() => []), listAlunos({ incluirVisitantes: true }).catch(() => [])]);
+  const pessoas = Object.fromEntries(alunos.map((a) => [a.id, { nome: a.profile?.nome ?? "Aluno", visitante: a.modalidade === "visitante" }]));
+  return quemViuOMontinho(eventos.filter((e) => e.tipo === "montinho_ranking_aberto" || e.ref === REF_CARD_MONTINHO), pessoas);
+}

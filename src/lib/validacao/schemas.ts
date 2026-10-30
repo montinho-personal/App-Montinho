@@ -339,11 +339,11 @@ export const chamadaTrofeuSchema = z.object({
 
 export const eventoChalalaSchema = z
   .object({
-    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada", "chalala_workout_started", "chalala_progression_shown", "chalala_reps_evolution_shown", "chalala_record_unlocked", "chalala_advanced_technique_shown", "chalala_workout_completed", "chalala_push_permission_granted", "chalala_push_permission_revoked", "chalala_vai_que_ta_facil", "missao_vista", "missao_clicada"]),
+    tipo: z.enum(["conclusao_vista", "editor_aberto", "modelo_escolhido", "card_gerado", "download", "compartilhar_nativo", "compartilhar_cancelado", "vitrine_vista", "explicacao_aberta", "colecao_vista", "conhecimento_aberto", "quiz_respondido", "sugestao_vista", "sugestao_aberta", "descoberta_salva", "descoberta_compartilhada", "chalala_workout_started", "chalala_progression_shown", "chalala_reps_evolution_shown", "chalala_record_unlocked", "chalala_advanced_technique_shown", "chalala_workout_completed", "chalala_push_permission_granted", "chalala_push_permission_revoked", "chalala_vai_que_ta_facil", "missao_vista", "missao_clicada", "montinho_ranking_aberto"]),
     ref: z.string().regex(/^[A-Za-z0-9_:-]{1,80}$/).nullable().optional(),
     modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade", "ranking"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({

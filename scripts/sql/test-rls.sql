@@ -2416,3 +2416,7 @@ begin
   if not ok then raise exception 'T78: código fora da lista aceito'; end if;
 end $$;
 \echo 'T78 OK: troféus de Monitoramento'
+
+-- T79 — 0128: evento “Ver 👀” do Montinho no Ranking aceito
+insert into eventos_chalala (aluno_id, tipo, origem) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'montinho_ranking_aberto', 'ranking');
+\echo 'T79 OK: evento do Montinho no Ranking'
