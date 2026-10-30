@@ -8,15 +8,26 @@ import { Logo } from "@/components/brand/Logo";
 import { Voltar } from "@/components/ui/Voltar";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
 import { CompartilharPagina } from "@/components/montinho/CompartilharPagina";
+import { BarraFixaCta } from "@/components/montinho/BarraFixaCta";
 import { PACOTE_FLEXIVEL as P } from "@/lib/montinho/apresentacao";
 
 export const metadata = { title: "Pacote Flexível" };
 
 export default async function PacoteFlexivelPage() {
   const sessao = await requireAlunoPage();
-  const botao = BRAND.contact.whatsapp ? <FalarComMontinho origem="pacote" whatsapp={BRAND.contact.whatsapp} visitante={ehVisitante(sessao)} /> : null;
+  const whatsapp = BRAND.contact.whatsapp;
+  const visitante = ehVisitante(sessao);
+  const botao = whatsapp ? <FalarComMontinho origem="pacote" whatsapp={whatsapp} visitante={visitante} /> : null;
+  // Chamada no meio do texto: na hora que dá vontade, o botão está ali.
+  const chamada = (c: { texto: string; botao: string }) =>
+    whatsapp ? (
+      <div className="space-y-2 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-center">
+        <p className="font-bold">{c.texto}</p>
+        <FalarComMontinho origem="pacote" whatsapp={whatsapp} visitante={visitante} texto={c.botao} />
+      </div>
+    ) : null;
   return (
-    <div className="space-y-8 pb-6">
+    <div className="space-y-8 pb-24">
       <div className="flex items-center justify-between gap-2">
         <Voltar href="/aluno/perfil" />
         <CompartilharPagina origem="pacote" />
@@ -52,6 +63,7 @@ export default async function PacoteFlexivelPage() {
             </div>
           ))}
         </div>
+        {chamada(P.chamadas.aula)}
       </section>
 
       <section className="space-y-3">
@@ -62,6 +74,7 @@ export default async function PacoteFlexivelPage() {
             <p className="mt-1 text-sm leading-relaxed text-fg-muted">{q.texto}</p>
           </div>
         ))}
+        {chamada(P.chamadas.paraQuem)}
       </section>
       <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
         <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-accent">Do seu jeito</p>
@@ -77,6 +90,7 @@ export default async function PacoteFlexivelPage() {
             </li>
           ))}
         </ul>
+        {chamada(P.chamadas.jeitos)}
       </section>
       <section className="grid gap-3">
         <div className="rounded-2xl border border-success/40 bg-card p-4">
@@ -96,6 +110,7 @@ export default async function PacoteFlexivelPage() {
         <p className="text-center text-lg font-bold leading-snug">{P.fecho}</p>
         {botao}
       </section>
+      {whatsapp ? <BarraFixaCta origem="pacote" whatsapp={whatsapp} visitante={visitante} texto={P.barra.texto} detalhe={P.barra.detalhe} botao={P.barra.botao} /> : null}
     </div>
   );
 }

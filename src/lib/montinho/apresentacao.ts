@@ -176,7 +176,15 @@ export const PACOTE_FLEXIVEL = {
     { icone: "🔥", titulo: "Uma semana inteira junto", texto: "Concentre as aulas para dar um gás forte de uma vez." },
     { icone: "🎓", titulo: "No começo, para aprender", texto: "Junte as aulas no início do protocolo para dominar a execução de cada exercício." },
     { icone: "🚀", titulo: "No fim, para puxar mais", texto: "Junte as aulas no final do protocolo para intensificar e fechar com tudo." },
+    { icone: "🎯", titulo: "Do jeito que você quiser", texto: "Não tem regra: você usa as aulas como fizer mais sentido para a sua rotina. O único combinado é usar as 10 aulas em até 3 meses." },
   ],
+  /** Chamadas no meio do texto (pedido do Montinho, 30/10/2026: “dá vontade de comprar e não tem o botão”). */
+  chamadas: {
+    aula: { texto: "Quer sentir isso na prática?", botao: "💬 Quero minhas 10 aulas" },
+    paraQuem: { texto: "Se identificou? Me chama que eu te explico tudo.", botao: "💬 Falar com o Montinho" },
+    jeitos: { texto: "Já sabe como vai usar? Bora montar o seu jeito.", botao: "💬 Quero o Pacote Flexível" },
+  },
+  barra: { texto: "Consultoria + 10 aulas", detalhe: "Dá para parcelar", botao: "💬 Quero" },
   vantagens: [
     "Consultoria online completa, com o treino no app e eu acompanhando",
     "Sem horário fixo: você usa as aulas quando puder",
@@ -187,6 +195,7 @@ export const PACOTE_FLEXIVEL = {
   atencao: [
     "Não tem um horário fixo reservado: a gente marca cada aula conforme a agenda",
     "Depende da agenda do Montinho: quanto antes você pedir, mais fácil encaixar",
+    "As 10 aulas valem por 3 meses",
   ],
   fecho: "Fale comigo no WhatsApp: eu explico como funciona, os valores e o parcelamento.",
 };
