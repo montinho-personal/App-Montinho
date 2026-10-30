@@ -658,8 +658,8 @@ export const CATALOGO: ExercicioCatalogo[] = [
     err: ["Descer demais forçando o ombro.", "Afastar o quadril do banco.", "Cotovelos abrindo."],
     sub: ["triceps-maquina", "triceps-corda"], reg: ["repeticoes", "carga"], est: ["ombro"],
   }),
-  ex("supino-fechado", "Supino com pegada fechada", "triceps", {
-    s: ["supino fechado", "close grip bench press", "supino pegada fechada"],
+  ex("supino-fechado", "Supino fechado com a barra", "triceps", {
+    s: ["supino fechado", "close grip bench press", "supino pegada fechada", "supino com pegada fechada"],
     p: { peito: 0.5, ombro_anterior: 0.25 }, pad: "empurrar_horizontal", art: EMP_H, t: "multi", eq: ["barra", "banco"], n: "intermediario",
     exe: ["Pegada na largura dos ombros.", "Desça a barra até a parte baixa do peito com os cotovelos próximos ao corpo.", "Empurre até estender."],
     err: ["Pegada fechada demais (dor no punho).", "Cotovelos abrindo.", "Quicar no peito."],
