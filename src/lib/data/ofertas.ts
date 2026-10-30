@@ -6,7 +6,7 @@ import { getDb } from "@/lib/supabase/rls";
 import { demoStore } from "@/lib/mock/store";
 import { getAluno, listAlunos } from "@/lib/db";
 import { dataLocal, somarDias } from "@/lib/aderencia/calcular";
-import { cargaParada, motivoDaOferta, ofertasPara, type Motivo, type Oferta, type Publico } from "@/lib/ofertas/regras";
+import { cargaParada, motivoDaOferta, ofertasPara, type EventoOferta, type Motivo, type Oferta, type Publico } from "@/lib/ofertas/regras";
 import { listSessoes } from "@/lib/data/sessoes";
 import { execucoesDeSessoes } from "@/lib/evolucao/adaptar";
 import { respostasConhecidas } from "@/lib/data/pulso";
@@ -100,4 +100,16 @@ export async function contextoOferta(alunoId: string): Promise<ContextoOferta | 
   const dor = ((recentes ?? []) as Array<{ feedback_percepcao: string | null; checkin_pre: string | null }>).some((s) => s.feedback_percepcao === "dor" || s.checkin_pre === "desconforto");
   const poucoTempo = !!pulso?.respostas.some((r) => r.dimensao === "dificuldade" && (r.valor === "falta_tempo" || r.valor === "rotina_corrida"));
   return { publico, nome, treinos: count ?? 0, dor, ofertas, motivo: motivoDaOferta({ ...baseMotivo, cargaParada: travado, poucoTempo }) };
+}
+
+/** Fase 3: eventos das ofertas (visto/clicado/“agora não”) dos últimos dias, para a conversão por lugar. Só o personal lê. */
+export async function eventosDasOfertas(dias = 30): Promise<EventoOferta[]> {
+  if (isDemoMode()) {
+    const ev = (cta: string, tipo: EventoOferta["tipo"], tela: string, visitante: boolean, n: number) => Array.from({ length: n }, () => ({ cta, tipo, tela, visitante }));
+    return [...ev("pacote", "exibido", "inicio", false, 14), ...ev("pacote", "clicado", "inicio", false, 2), ...ev("pacote", "exibido", "fim_treino", false, 9), ...ev("pacote", "clicado", "fim_treino", false, 3), ...ev("consultoria", "exibido", "inicio", true, 20), ...ev("consultoria", "clicado", "inicio", true, 2), ...ev("consultoria", "dispensado", "inicio", true, 5), ...ev("pacote", "exibido", "descanso", false, 4), ...ev("pacote", "clicado", "descanso", false, 1)];
+  }
+  const db = await getDb();
+  const desde = new Date(Date.now() - dias * 86_400_000).toISOString();
+  const { data } = await db.from("cta_eventos").select("cta, tipo, tela, aluno:alunos(modalidade)").in("cta", ["consultoria", "pacote", "presencial"]).gte("created_at", desde).limit(5000);
+  return ((data ?? []) as unknown as Array<{ cta: string; tipo: EventoOferta["tipo"]; tela: string | null; aluno: { modalidade: string } | null }>).map((e) => ({ cta: e.cta, tipo: e.tipo, tela: e.tela, visitante: e.aluno?.modalidade === "visitante" }));
 }

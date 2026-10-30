@@ -138,3 +138,45 @@ export function cargaParada(porExercicio: Array<{ nome: string; execucoes: Array
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Fase 3: conversão por lugar (painel do personal).
+// ---------------------------------------------------------------------------
+export const LUGARES_OFERTA: Record<string, string> = {
+  inicio: "🏠 Início",
+  fim_treino: "🏁 Fim do treino",
+  descanso: "⏱ Descanso do treino",
+  planos: "✨ Página Planos",
+  consultoria: "💎 Página da Consultoria",
+  pacote: "🎟️ Página do Pacote Flexível",
+  presencial: "🏋️ Página do Presencial",
+};
+
+export type EventoOferta = { cta: string; tipo: "exibido" | "clicado" | "dispensado"; tela: string | null; visitante: boolean };
+export type LinhaConversao = { lugar: string; rotulo: string; oferta: string; publico: "visitante" | "aluno"; vistas: number; cliques: number; dispensas: number; taxa: number | null };
+
+/** Vistas, cliques no WhatsApp e “agora não” por lugar, oferta e público; taxa = cliques ÷ vistas. */
+export function conversaoPorLugar(eventos: EventoOferta[]): LinhaConversao[] {
+  const m = new Map<string, LinhaConversao>();
+  for (const e of eventos) {
+    if (e.cta !== "consultoria" && e.cta !== "pacote" && e.cta !== "presencial") continue;
+    const lugar = e.tela ?? "outro";
+    const publico = e.visitante ? "visitante" : "aluno";
+    const k = `${lugar}|${e.cta}|${publico}`;
+    const l = m.get(k) ?? { lugar, rotulo: LUGARES_OFERTA[lugar] ?? lugar, oferta: e.cta, publico, vistas: 0, cliques: 0, dispensas: 0, taxa: null };
+    if (e.tipo === "exibido") l.vistas++;
+    else if (e.tipo === "clicado") l.cliques++;
+    else l.dispensas++;
+    m.set(k, l);
+  }
+  return [...m.values()].map((l) => ({ ...l, taxa: l.vistas ? Math.round((l.cliques / l.vistas) * 1000) / 10 : null })).sort((a, b) => b.cliques - a.cliques || b.vistas - a.vistas);
+}
+
+/** No treino: o histórico deste exercício mostra a carga parada? (mesma regra de cargaParada) */
+export function travouNoHistorico(hist: Array<{ data: string; dor?: boolean; series: Array<{ tipo: string; carga: number | null }> }>): boolean {
+  const execucoes = hist
+    .filter((h) => !h.dor)
+    .sort((a, b) => (a.data < b.data ? 1 : -1))
+    .map((h) => ({ dia: h.data.slice(0, 10), maior: Math.max(0, ...h.series.filter((x) => x.tipo !== "aquecimento").map((x) => x.carga ?? 0)) }));
+  return cargaParada([{ nome: "", execucoes }]) !== null;
+}

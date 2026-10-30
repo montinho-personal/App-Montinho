@@ -25,6 +25,10 @@ const gravar = (h: HistoricoOferta) => {
     localStorage.setItem(CHAVE, JSON.stringify(h));
   } catch {}
 };
+/** Vista, clique e “agora não” por lugar (visitante e aluno; o CRM só leva o visitante). */
+export function registrarOferta(cta: string, tipo: "exibido" | "clicado" | "dispensado", tela: string) {
+  void fetch("/api/visitante/cta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cta, tipo, tela }), keepalive: true }).catch(() => undefined);
+}
 const diaDoAno = () => Math.floor(Date.now() / 86_400_000);
 
 export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" | "fim_treino"; whatsapp: string; /** false = a tela já sabe que há dor/desconforto hoje. */ semDor?: boolean }) {
@@ -45,7 +49,7 @@ export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" 
         gravar({ ...historico, ultimaVista: Date.now() });
         setEstado({ ctx, oferta });
         eventoGa("oferta_plano", { oferta: oferta.id, tela, acao: "vista", motivo: ctx.motivo?.oferta === oferta.id ? ctx.motivo.chave : "padrao" });
-        if (ctx.publico === "visitante") void fetch("/api/visitante/cta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cta: oferta.id, tipo: "exibido", tela }), keepalive: true }).catch(() => undefined);
+        registrarOferta(oferta.id, "exibido", tela);
       })
       .catch(() => undefined);
     return () => {
@@ -58,7 +62,6 @@ export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" 
   const padrao = textoDaOferta(oferta, { publico: ctx.publico, nome: ctx.nome, treinos: ctx.treinos });
   // Com um motivo do momento (carga parada, renovação, pouco tempo, dias do visitante), o texto fala disso.
   const t = ctx.motivo?.oferta === oferta.id ? { ...padrao, titulo: ctx.motivo.titulo, texto: ctx.motivo.texto } : padrao;
-  const visitante = ctx.publico === "visitante";
 
   function marcar(campo: "dispensada" | "clicada") {
     const h = ler();
@@ -68,7 +71,7 @@ export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" 
     marcar("dispensada");
     setFechado(true);
     eventoGa("oferta_plano", { oferta: oferta.id, tela, acao: "dispensada" });
-    if (visitante) void fetch("/api/visitante/cta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cta: oferta.id, tipo: "dispensado", tela }), keepalive: true }).catch(() => undefined);
+    registrarOferta(oferta.id, "dispensado", tela);
   }
 
   return (
@@ -77,7 +80,7 @@ export function OfertaPlano({ tela, whatsapp, semDor = true }: { tela: "inicio" 
       <h2 className="text-lg font-extrabold leading-snug">{t.titulo}</h2>
       <p className="text-sm leading-relaxed text-fg-muted">{t.texto}</p>
       {oferta.promo ? <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm font-bold text-success">🎁 {oferta.promo}</p> : null}
-      <FalarComMontinho origem={oferta.id} whatsapp={whatsapp} visitante={visitante} texto={t.botao} onClick={() => { marcar("clicada"); eventoGa("oferta_plano", { oferta: oferta.id, tela, acao: "clicada" }); }} />
+      <FalarComMontinho origem={oferta.id} whatsapp={whatsapp} visitante={false} texto={t.botao} onClick={() => { marcar("clicada"); registrarOferta(oferta.id, "clicado", tela); eventoGa("oferta_plano", { oferta: oferta.id, tela, acao: "clicada" }); }} />
       <div className="flex items-center justify-between gap-2 text-sm">
         <Link href="/aluno/planos" className="alvo font-semibold text-accent underline-offset-2 hover:underline">Ver todos os planos →</Link>
         <button type="button" onClick={agoraNao} className="alvo text-fg-muted hover:text-fg">Agora não</button>

@@ -61,6 +61,8 @@ import { TelaChalala, type BaseConclusao } from "@/components/chalala/TelaChalal
 import { CardioDoTreino } from "@/components/strava/CardioDoTreino";
 import { CardioAposTreino } from "@/components/cardio/CardioAposTreino";
 import { OfertaPlano } from "@/components/ofertas/OfertaPlano";
+import { OfertaNoDescanso } from "@/components/ofertas/OfertaNoDescanso";
+import { travouNoHistorico } from "@/lib/ofertas/regras";
 import { IncentivoIndicacao } from "@/components/indicacao/IncentivoIndicacao";
 import { OPCOES_TEMPO_MIN, encurtarDescanso, ganhoDescansoReduzido, treinoPossivel } from "@/lib/treino/possivel";
 import { dataLocal } from "@/lib/aderencia/calcular";
@@ -1852,6 +1854,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       )
                     ) : null}
                     {timer && !completo ? <DescansoNoCartao fim={timer.fim} onPular={() => { setTimer(null); setSugestaoDescanso(null); }} /> : null}
+                    {timer && !completo && !presencial && !troca && checkinPre !== "desconforto" && BRAND.contact.whatsapp && travouNoHistorico(historico[ex.id] ?? []) ? <OfertaNoDescanso sessaoId={sessao.id} exercicio={ex.nome} whatsapp={BRAND.contact.whatsapp} /> : null}
                     {completo && !finalizado ? (
                       <button type="button" id={`concluir-${se.id}`} onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
                         <Icon name="check" size={18} /> Concluir exercício e ir para o próximo

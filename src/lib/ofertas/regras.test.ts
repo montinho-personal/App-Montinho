@@ -63,3 +63,31 @@ describe("gatilhos das ofertas", () => {
     expect(cargaParada([{ nome: "Supino", execucoes: [{ dia: "2026-10-28", maior: 40 }, { dia: "2026-10-25", maior: 40 }, { dia: "2026-10-20", maior: 40 }] }])).toBeNull();
   });
 });
+
+import { conversaoPorLugar } from "./regras";
+
+describe("conversão por lugar", () => {
+  it("conta vistas, cliques e dispensas por lugar e calcula a taxa", () => {
+    const r = conversaoPorLugar([
+      { cta: "pacote", tipo: "exibido", tela: "inicio", visitante: false },
+      { cta: "pacote", tipo: "exibido", tela: "inicio", visitante: false },
+      { cta: "pacote", tipo: "clicado", tela: "inicio", visitante: false },
+      { cta: "consultoria", tipo: "dispensado", tela: "fim_treino", visitante: true },
+      { cta: "constancia", tipo: "clicado", tela: "inicio", visitante: true },
+    ]);
+    expect(r[0]).toMatchObject({ rotulo: "🏠 Início", oferta: "pacote", publico: "aluno", vistas: 2, cliques: 1, taxa: 50 });
+    expect(r[1]).toMatchObject({ lugar: "fim_treino", dispensas: 1, taxa: null });
+    expect(r).toHaveLength(2);
+  });
+});
+
+import { travouNoHistorico } from "./regras";
+
+describe("carga travada no treino", () => {
+  const h = (data: string, carga: number) => ({ data: `${data}T10:00:00Z`, series: [{ tipo: "aquecimento", carga: 60 }, { tipo: "valida", carga }] });
+  it("usa a mesma regra (aquecimento fora)", () => {
+    expect(travouNoHistorico([h("2026-10-10", 40), h("2026-10-28", 40), h("2026-10-20", 40)])).toBe(true);
+    expect(travouNoHistorico([h("2026-10-10", 40), h("2026-10-28", 45), h("2026-10-20", 40)])).toBe(false);
+    expect(travouNoHistorico([h("2026-10-28", 40)])).toBe(false);
+  });
+});
