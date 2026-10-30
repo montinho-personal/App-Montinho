@@ -16,6 +16,7 @@ import * as musaGreenValley from "./missao-musa-green-valley";
 import * as celticQueen from "./missao-celtic-queen-intensificacao";
 import * as forcaBruta from "./operacao-forca-bruta";
 import * as deusaGluteos from "./projeto-deusa-dos-gluteos";
+import * as estherHipertrofia from "./hipertrofia-esther-intensificacao";
 
 export type PrescricaoPronta = { id: string; titulo: string; alunoNome: string; plano: SalvarPlanoInput; pendencias: string[]; /** Treinos extras liberados criados junto no cadastro (sem duplicar pelo título). */ extras?: ExtraInput[] };
 
@@ -33,6 +34,7 @@ export const PRESCRICOES: PrescricaoPronta[] = [
   { id: celticQueen.ID_PRESCRICAO, titulo: `${celticQueen.ROTULO} — Lower/Upper/Lower/Full Body em sequência (A → D)`, alunoNome: celticQueen.NOME_ALUNA, plano: celticQueen.PRESCRICAO, pendencias: celticQueen.PENDENCIAS },
   { id: forcaBruta.ID_PRESCRICAO, titulo: `${forcaBruta.ROTULO} — 5 treinos em sequência (A → E)`, alunoNome: forcaBruta.NOME_ALUNO, plano: forcaBruta.PRESCRICAO, pendencias: forcaBruta.PENDENCIAS },
   { id: deusaGluteos.ID_PRESCRICAO, titulo: `${deusaGluteos.ROTULO} — 5 treinos em sequência (A → E)`, alunoNome: deusaGluteos.NOME_ALUNA, plano: deusaGluteos.PRESCRICAO, pendencias: deusaGluteos.PENDENCIAS },
+  { id: estherHipertrofia.ID_PRESCRICAO, titulo: `${estherHipertrofia.ROTULO} — Lower/Upper/Lower/Upper em sequência (A → D)`, alunoNome: estherHipertrofia.NOME_ALUNA, plano: estherHipertrofia.PRESCRICAO, pendencias: estherHipertrofia.PENDENCIAS },
 ];
 
 export function prescricoesParaAluno(nome: string | null | undefined): PrescricaoPronta[] {
