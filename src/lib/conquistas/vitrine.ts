@@ -11,6 +11,9 @@ import { totalDeSeries } from "./volume-series";
 import { mesesComTreino } from "./acompanhamento";
 import { progressoSemanasCompletas } from "./semanas-completas";
 import { JANELAS_CARDIO } from "./cardio-horario";
+import { CODIGOS_MULTI, LIMITES_MULTI } from "./multimodalidade";
+import { contaCarimbo } from "./carimbos";
+import { FEATURES } from "@/lib/env";
 import { classificarSessao, dataLocal, type ResultadoAderencia } from "@/lib/aderencia/calcular";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, sessoesValidas } from "./criterios";
 import { CONTEUDO } from "./conteudo";
@@ -168,10 +171,19 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   // Volume total
   { codigo: "series_500", selo: "500" },
   { codigo: "series_1000", selo: "1k" },
+  // Multimodalidade (só com a Multimodalidade ligada, ou para quem já ganhou)
+  { codigo: "primeiro_wod", selo: "WOD" },
+  { codigo: "primeira_hyrox", selo: "HYROX" },
+  { codigo: "primeiro_funcional", selo: "🔁" },
+  { codigo: "primeiro_benchmark", selo: "BM" },
+  { codigo: "superando_recorde", selo: "BM↑" },
+  { codigo: "semana_multimodalidade", selo: "2 mod" },
+  { codigo: "atleta_versatil", selo: "3 mod" },
+  { codigo: "evolucao_sem_fronteiras", selo: "∞" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -211,6 +223,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   // Semanas completas no total e Semanas Perfeitas (mesma regra dos troféus).
   const progSemanas = progressoSemanasCompletas(e.aderencia.semanas, e.sessoes);
   const participando = e.aderencia.semanas.filter((w) => w.meta && !w.pausada && w.concluidas + w.parciais > 0).length;
+  // Multimodalidade: modalidades com treino que vale (mesma regra do troféu).
+  const modalidadesFeitas = new Set(e.sessoes.filter((s) => s.status !== "em_andamento" && contaCarimbo(s)).map((s) => s.modalidade || "musculacao"));
 
   // Além do necessário: treinos curtos concluídos, extras e séries além das prescritas.
   const daApp = e.sessoes.filter((s) => s.conta_aderencia !== false && s.status !== "em_andamento");
@@ -500,13 +514,34 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Só acontece no começo: se nos primeiros 30 dias você ficar de 7 a 13 dias sem treinar, volte e conclua um treino.", disponivel: false };
       case "uma_a_mais":
         return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `${faltaN(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
+      case "primeiro_wod":
+        return { atual: null, alvo: null, falta: "Faça um treino de Cross Training pelo app (da ficha ou o WOD do dia em Treinar), anote o resultado de um bloco e termine.", disponivel: true };
+      case "primeira_hyrox":
+        return { atual: null, alvo: null, falta: "Faça um treino de HYROX pelo app, anote pelo menos um trecho e termine.", disponivel: true };
+      case "primeiro_funcional":
+        return { atual: null, alvo: null, falta: "Faça um treino funcional pelo app, anote o resultado de um circuito e termine.", disponivel: true };
+      case "primeiro_benchmark":
+        return { atual: null, alvo: null, falta: "Quando o WOD for um benchmark (Fran, Grace…), anote o resultado e a condição (RX, Scaled ou adaptado).", disponivel: true };
+      case "superando_recorde":
+        return { atual: null, alvo: null, falta: "Repita um benchmark na mesma condição (RX com RX, Scaled com Scaled) e faça melhor que todas as vezes anteriores.", disponivel: true };
+      case "atleta_versatil": {
+        const n = LIMITES_MULTI.modalidadesVersatil;
+        const atual = Math.min(modalidadesFeitas.size, n);
+        return { atual, alvo: n, falta: `Treine em ${n} modalidades diferentes (musculação, Cross Training, HYROX, funcional ou híbrido) — agora: ${atual} de ${n}.`, disponivel: true };
+      }
+      case "semana_multimodalidade":
+        return { atual: null, alvo: null, falta: "Na mesma semana, treine em 2 modalidades, sendo pelo menos uma fora da musculação.", disponivel: true };
+      case "evolucao_sem_fronteiras":
+        return { atual: null, alvo: null, falta: "Suba um recorde de força (mesmo número de repetições) e supere um benchmark comparável.", disponivel: true };
       default: return { atual: null, alvo: null, falta: null, disponivel: true };
     }
   };
 
   // “Mestre do Conhecimento” (50) só aparece quando o app tiver 50 perguntas ou mais (ou já ganho).
   const quiz50 = (e.extras?.quizTotal ?? 0) >= 50 || ganhas.has("quiz_50");
-  return ORDEM.filter(({ codigo }) => codigo !== "quiz_50" || quiz50).map(({ codigo, selo }) => {
+  const multi = new Set<string>(CODIGOS_MULTI);
+  const mostrar = (c: string) => (c !== "quiz_50" || quiz50) && (!multi.has(c) || FEATURES.multimodalidade || ganhas.has(c));
+  return ORDEM.filter(({ codigo }) => mostrar(codigo)).map(({ codigo, selo }) => {
     const data = ganhas.get(codigo) ?? null;
     const p = progresso(codigo);
     return {

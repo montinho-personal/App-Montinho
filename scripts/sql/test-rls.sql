@@ -2611,3 +2611,24 @@ begin
 end $$;
 select test_logout();
 \echo 'T85 OK: WOD do dia + ranking do dia'
+
+-- T86 — 0136: troféus da Multimodalidade aceitos; no ranking só o Atleta Versátil conta
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare antes int; depois int; ok boolean := false;
+begin
+  select coalesce(max(trofeus) filter (where ref = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), 0) into antes from public.ranking_trofeus_v3();
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'primeiro_wod', '1', 'Primeiro WOD', now()) on conflict do nothing;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'superando_recorde', '1', 'Superando Meu Recorde', now()) on conflict do nothing;
+  select coalesce(max(trofeus) filter (where ref = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), 0) into depois from public.ranking_trofeus_v3();
+  if depois <> antes then raise exception 'T86a: troféu de modalidade entrou no ranking (% → %)', antes, depois; end if;
+  insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'atleta_versatil', '1', 'Atleta Versátil', now()) on conflict do nothing;
+  select coalesce(max(trofeus) filter (where ref = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), 0) into depois from public.ranking_trofeus_v3();
+  if depois <> antes + 1 then raise exception 'T86b: Atleta Versátil deveria contar no ranking (% → %)', antes, depois; end if;
+  begin
+    insert into conquistas_aluno (aluno_id, codigo, referencia, titulo, conquistado_em) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'primeiro_crossfit', '1', 'x', now());
+  exception when check_violation then ok := true; end;
+  if not ok then raise exception 'T86c: código fora da lista aceito'; end if;
+end $$;
+select test_logout();
+\echo 'T86 OK: troféus da Multimodalidade'

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ORDEM } from "@/lib/conquistas/vitrine";
 import { CATALOGO } from "@/lib/conquistas/regras";
+import { MULTI_FORA_DO_RANKING } from "@/lib/conquistas/multimodalidade";
 import { desempateDaAderencia, FORA_DO_RANKING, fraseDoRanking, podioDaPosicao, proximoDegrau, type LinhaRanking } from "./trofeus";
 
 const l = (posicao: number, nome: string, trofeus: number, eu = false): LinhaRanking => ({ posicao, nome, trofeus, eu, visitante: false });
@@ -31,7 +32,9 @@ describe("ranking conta os mesmos troféus da sala de troféus", () => {
   it("toda conquista fora da lista de exceções aparece na vitrine (e vice-versa)", () => {
     const naVitrine = new Set(ORDEM.map((o) => o.codigo as string));
     const fora = new Set<string>(FORA_DO_RANKING);
-    for (const codigo of Object.keys(CATALOGO)) expect(naVitrine.has(codigo) !== fora.has(codigo), codigo).toBe(true);
+    // Exceção aprovada (Multimodalidade): os troféus de modalidade aparecem na vitrine, mas só o Atleta Versátil conta no ranking.
+    const soNaVitrine = new Set<string>(MULTI_FORA_DO_RANKING);
+    for (const codigo of Object.keys(CATALOGO)) expect(soNaVitrine.has(codigo) ? naVitrine.has(codigo) && fora.has(codigo) : naVitrine.has(codigo) !== fora.has(codigo), codigo).toBe(true);
   });
 });
 

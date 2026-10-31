@@ -7,6 +7,8 @@ import Link from "next/link";
 import { BlocosWod } from "@/components/wod/BlocosWod";
 import { RankingWod } from "@/components/wod/RankingWod";
 import { useToast } from "@/components/ui/Toast";
+import { CelebracaoMedalha } from "@/components/chalala/CelebracaoMedalha";
+import type { ConquistaRow } from "@/lib/data/conquistas";
 import type { LinhaRankingWod, WodDoDia } from "@/lib/data/wod-dia";
 
 type SessaoMin = { id: string; status: string };
@@ -15,6 +17,8 @@ export function WodDoDiaClient({ wod, sessaoInicial, rankingInicial }: { wod: Wo
   const [sessao, setSessao] = useState<SessaoMin | null>(sessaoInicial);
   const [ranking, setRanking] = useState(rankingInicial);
   const [ocupado, setOcupado] = useState(false);
+  // Troféus que saíram com este WOD (Primeiro WOD, Dose Dupla…), comemorados aqui mesmo.
+  const [trofeus, setTrofeus] = useState<ConquistaRow[]>([]);
   const toast = useToast();
 
   if (!wod) {
@@ -55,6 +59,14 @@ export function WodDoDiaClient({ wod, sessaoInicial, rankingInicial }: { wod: Wo
     setSessao({ ...sessao, status: "concluida" });
     toast.success("WOD pago! Chalalá! 🔥");
     void atualizarRanking();
+    // Mesma conta do fim dos outros treinos: grava e devolve os troféus a comemorar.
+    const c = (await fetch(`/api/sessoes/${sessao.id}/chalala`, { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null)) as { comemorar?: typeof trofeus } | null;
+    if (c?.comemorar?.length) setTrofeus(c.comemorar);
+  }
+  function fecharTrofeus() {
+    const ids = trofeus.map((t) => t.id);
+    setTrofeus([]);
+    if (ids.length) fetch("/api/conquistas/vistas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }).catch(() => undefined);
   }
 
   const emAndamento = sessao?.status === "em_andamento";
@@ -84,6 +96,7 @@ export function WodDoDiaClient({ wod, sessaoInicial, rankingInicial }: { wod: Wo
 
       <RankingWod linhas={ranking} />
       <Link href="/aluno/treinar" className="alvo block rounded-xl border border-border px-4 py-3 text-center text-sm font-semibold">💪 Ver meus treinos</Link>
+      {trofeus.length ? <CelebracaoMedalha conquistas={trofeus} onFechar={fecharTrofeus} /> : null}
     </div>
   );
 }

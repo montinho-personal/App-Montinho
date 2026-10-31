@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade" | "feriados";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade" | "feriados" | "multimodalidade";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -31,6 +31,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   cardio: "Cardio & Resistência",
   mobilidade: "Mobilidade & Alongamento",
   feriados: "Feriados",
+  multimodalidade: "Multimodalidade",
 };
 
 /** Ícone de cada categoria (abas do topo da tela Conquistas). */
@@ -50,6 +51,7 @@ export const CATEGORIA_EMOJI: Record<Categoria, string> = {
   cardio: "❤️‍🔥",
   mobilidade: "🧘",
   feriados: "🎉",
+  multimodalidade: "🏟️",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -1479,6 +1481,95 @@ const BASE: Record<CodigoConquista, Base> = {
     explicacao: "Conta toda semana com a meta cumprida e 100% das séries de todos os treinos do plano. Não precisam ser seguidas. Troféu desafiador.",
     proximoPasso: "Converse com o Montinho sobre como está a recuperação: com esse volume completo, ajustar a carga faz diferença.",
     fontes: ["habitos2024"],
+  },
+  // Multimodalidade (fase 5, 30/10/2026): WOD, HYROX, funcional e benchmarks.
+  primeiro_wod: {
+    categoria: "multimodalidade",
+    resumo: "O primeiro treino de Cross Training concluído no app.",
+    mensagem: "Primeiro WOD! Bem-vindo ao Cross Training.",
+    comoConquistar: "Abra um treino de Cross Training (da sua ficha ou o WOD do dia em Treinar), anote o resultado de pelo menos um bloco e termine o treino.",
+    significado: "Você experimentou um jeito novo de treinar, com blocos, relógio e resultado do dia.",
+    importancia: "Variar o estímulo pode deixar o treino mais interessante. Quando a pessoa escolhe e gosta do que faz, fica mais fácil manter a rotina.",
+    explicacao: "Vale o primeiro treino de Cross Training que conta como treino feito (a mesma regra do carimbo). Vale uma vez.",
+    proximoPasso: "Anote sempre se fez RX, Scaled ou adaptado: é isso que deixa as próximas comparações justas.",
+    fontes: ["sdt2025"],
+  },
+  primeira_hyrox: {
+    categoria: "multimodalidade",
+    resumo: "A primeira sessão de HYROX concluída no app.",
+    mensagem: "Primeira Sessão HYROX! Corrida e estações registradas.",
+    comoConquistar: "Faça um treino de HYROX pelo app, toque em “▶ Começar a prova” ou anote pelo menos um trecho, e termine o treino.",
+    significado: "Você treinou o formato que junta corrida e força numa prova só.",
+    importancia: "As recomendações de saúde pedem atividade aeróbica e fortalecimento muscular ao longo da semana; o HYROX treina os dois juntos.",
+    explicacao: "Vale a primeira sessão de HYROX que conta como treino feito. A corrida da sessão também entra como cardio. Vale uma vez.",
+    proximoPasso: "Guarde os tempos de cada trecho: no próximo simulado, compare só com simulados do mesmo tipo (completo com completo).",
+    fontes: ["oms2020"],
+  },
+  primeiro_funcional: {
+    categoria: "multimodalidade",
+    resumo: "O primeiro treino funcional concluído no app.",
+    mensagem: "Primeiro Circuito Funcional! Estação por estação, treino pago.",
+    comoConquistar: "Faça um treino funcional pelo app, anote o resultado de pelo menos um circuito e termine o treino.",
+    significado: "Você treinou o corpo inteiro em estações, do jeito que o Montinho montou.",
+    importancia: "Treinar em estações junta força e fôlego no mesmo tempo de treino, um jeito prático de cumprir as recomendações de atividade da semana.",
+    explicacao: "Vale o primeiro treino funcional que conta como treino feito (a mesma regra do carimbo). Vale uma vez.",
+    proximoPasso: "Anote quantos rounds saíram: no próximo, dá para ver a evolução no mesmo formato.",
+    fontes: ["oms2020"],
+  },
+  primeiro_benchmark: {
+    categoria: "multimodalidade",
+    resumo: "O primeiro resultado de benchmark (Fran, Grace, Cindy, Helen, Murph…).",
+    mensagem: "Primeiro Benchmark! Agora você tem uma marca para bater.",
+    comoConquistar: "Quando o WOD for um benchmark, anote o resultado (tempo, rounds ou reps) e se foi RX, Scaled ou adaptado.",
+    significado: "Um benchmark é um treino fixo, sempre igual: o resultado de hoje vira o ponto de comparação dos próximos.",
+    importancia: "Acompanhar o progresso com um número registrado ajuda a chegar à meta: fica claro o que melhorou e o que ainda falta.",
+    explicacao: "Vale o primeiro resultado de benchmark anotado no app, em qualquer condição. Vale uma vez.",
+    proximoPasso: "Veja a sua marca em Evolução → “🏅 Meus recordes” e combine com o Montinho quando repetir.",
+    fontes: ["harkin2016"],
+  },
+  superando_recorde: {
+    categoria: "multimodalidade",
+    resumo: "Um benchmark melhor que todas as vezes anteriores comparáveis.",
+    mensagem: "Superando Meu Recorde! Você bateu a sua própria marca.",
+    comoConquistar: "Repita um benchmark que você já fez, na mesma condição (RX com RX, Scaled com Scaled), e faça melhor que todas as vezes anteriores.",
+    significado: "Mesmo treino, mesma condição, resultado melhor: evolução medida, sem achismo.",
+    importancia: "Comparar só o que é comparável deixa a evolução honesta. Ver o número melhorar é o retorno que mantém a motivação.",
+    explicacao: "Compara o mesmo benchmark e a mesma versão, RX só com RX e Scaled só com Scaled. Resultado adaptado não entra. Menor tempo vence; sem terminar, conta quem fez mais repetições. Vale uma vez.",
+    proximoPasso: "Mostre ao Montinho o antes e o depois em “🏅 Meus recordes” e defina a próxima meta.",
+    fontes: ["harkin2016"],
+  },
+  atleta_versatil: {
+    categoria: "multimodalidade",
+    resumo: "Treinos em 3 modalidades diferentes.",
+    mensagem: "Atleta Versátil! Três modalidades no seu currículo.",
+    comoConquistar: "Treine pelo app em 3 modalidades diferentes: musculação, Cross Training, HYROX, funcional ou híbrido. Não precisa ser na mesma semana.",
+    significado: "Você se adapta a formatos diferentes de treino.",
+    importancia: "As recomendações de saúde pedem tanto atividade aeróbica quanto fortalecimento muscular. Experimentar formatos diferentes também ajuda a encontrar o que você gosta de fazer, e gostar facilita manter.",
+    explicacao: "Conta treino que vale pela regra do carimbo. Cada modalidade conta uma vez, a musculação incluída. Este troféu conta no ranking. Vale uma vez.",
+    proximoPasso: "Converse com o Montinho sobre como encaixar as modalidades na semana sem atrapalhar a recuperação.",
+    fontes: ["oms2020", "sdt2025"],
+  },
+  semana_multimodalidade: {
+    categoria: "multimodalidade",
+    resumo: "2 modalidades na mesma semana, uma delas fora da musculação.",
+    mensagem: "Semana Multimodalidade! Força e condicionamento na mesma semana.",
+    comoConquistar: "Na mesma semana (segunda a domingo), treine pelo app em 2 modalidades diferentes, sendo pelo menos uma Cross Training, HYROX, funcional ou híbrido.",
+    significado: "Você combinou estímulos diferentes dentro da mesma semana de treino.",
+    importancia: "As recomendações de saúde pedem atividade aeróbica e fortalecimento muscular ao longo da semana. Juntar formatos é uma forma prática de cobrir os dois.",
+    explicacao: "Conta treino que vale pela regra do carimbo, na semana de segunda a domingo (horário de Brasília). Vale uma vez.",
+    proximoPasso: "Veja com o Montinho a melhor ordem dos treinos na semana para chegar descansado em cada um.",
+    fontes: ["oms2020"],
+  },
+  evolucao_sem_fronteiras: {
+    categoria: "multimodalidade",
+    resumo: "Recorde de força e benchmark superado: evoluindo nas duas frentes.",
+    mensagem: "Evolução Sem Fronteiras! Mais forte e com mais fôlego.",
+    comoConquistar: "Suba um recorde de força com o mesmo número de repetições (1, 2, 3, 5 ou 10) e supere um benchmark comparável. A ordem não importa.",
+    significado: "Força e condicionamento subindo juntos, medidos do jeito justo.",
+    importancia: "Treinar força e condicionamento juntos pode render nas duas frentes. Ver as duas marcas subirem mostra que o plano está funcionando.",
+    explicacao: "Força: a carga sobe no mesmo número de repetições (80 kg × 5 nunca vira 1RM). Benchmark: o mesmo benchmark e versão, na mesma condição, melhor que todas as vezes anteriores. Vale uma vez.",
+    proximoPasso: "Comemore com o Montinho e planejem o próximo ciclo a partir das duas marcas.",
+    fontes: ["harkin2016", "oms2020"],
   },
 };
 

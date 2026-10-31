@@ -3,7 +3,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 import { cardDaMedalha, destaqueDaConquista, TEXTO_COMPARTILHAVEL } from "./compartilhavel";
 
 const codigos = Object.keys(CATALOGO) as CodigoConquista[];
-const PROIBIDO = [/dopamina/i, /reprogram/i, /21 dias/i, /garant/i, /neuroplastic/i, /circuito/i, /permanente/i, /cérebro|cerebro/i];
+const PROIBIDO = [/dopamina/i, /reprogram/i, /21 dias/i, /garant/i, /neuroplastic/i, /circuitos? (neura|cerebra|do c[ée]rebro|de recompensa)/i, /permanente/i, /cérebro|cerebro/i];
 
 describe("card compartilhável da medalha", () => {
   it("toda medalha tem frase curta (cabe no Story) e o porquê em uma linha", () => {

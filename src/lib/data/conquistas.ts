@@ -28,7 +28,7 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { tecnicasFeitas, type FamiliaTecnica } from "@/lib/conquistas/regras";
 import type { Medalha, ProgressoExtras } from "@/lib/conquistas/vitrine";
-import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, CODIGOS_SEMANAS_COMPLETAS, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, CODIGOS_SEMANAS_COMPLETAS, CODIGOS_MULTI, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
@@ -97,10 +97,12 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
   const quiz = await respostasDoQuiz(aluno.id);
   const mobilidade = await import("@/lib/data/mobilidade").then((m) => m.listarMobilidade(aluno.id)).catch(() => []);
   const registrosAvaliacao = await registrosDeAvaliacao(aluno.id).catch(() => []);
+  // Multimodalidade: resultados de benchmark (sem a 0133 no banco, vem vazio).
+  const benchmarks = await import("@/lib/data/wod").then((m) => m.resultadosDeBenchmark(aluno.id)).catch(() => []);
   const sessoes = completas.map(paraConquista);
   if (cardio) cardio.semanasPausadas = aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio);
   const relatorio = existentes.find((c) => c.codigo === "relatorio_mensal");
-  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null, compartilhar: compartilhar ? marcosCompartilhar(compartilhar.eventos, compartilhar.primeiroAmigoEm) : null, eventosCompartilhar: compartilhar?.eventos ?? null, quiz, desafiosAmigos, cardio, mobilidade, registrosAvaliacao });
+  const detectadas = detectarConquistas({ sessoes, aderencia, relatorioVistoEm: relatorio?.conquistado_em ?? null, baseCarga: baseCargaDoResumo(resumo), hoje: dataLocal(new Date()), desafios, primeiraAvaliacao: avaliacao, stravaConectadoEm: strava?.desde ?? null, compartilhar: compartilhar ? marcosCompartilhar(compartilhar.eventos, compartilhar.primeiroAmigoEm) : null, eventosCompartilhar: compartilhar?.eventos ?? null, quiz, desafiosAmigos, cardio, mobilidade, registrosAvaliacao, benchmarks });
   const chave = (c: { codigo: string; referencia: string }) => `${c.codigo}:${c.referencia}`;
   const ja = new Set(existentes.map(chave));
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
@@ -132,10 +134,12 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const novasCombo = linhas.filter((l) => (CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) || (CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo));
     const novasMonitoramento = linhas.filter((l) => (CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo));
     const novasSemanas = linhas.filter((l) => (CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo));
-    const antigas = linhas.filter((l) => !(CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo) && !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo) && !(CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo) && !CODIGOS_29OUT.includes(l.codigo) && !(CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
+    const novasMulti = linhas.filter((l) => (CODIGOS_MULTI as CodigoConquista[]).includes(l.codigo));
+    const antigas = linhas.filter((l) => !(CODIGOS_MULTI as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo) && !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo) && !(CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo) && !CODIGOS_29OUT.includes(l.codigo) && !(CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
     if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasSemanas.length) await db.from("conquistas_aluno").upsert(novasSemanas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasMonitoramento.length) await db.from("conquistas_aluno").upsert(novasMonitoramento, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasMulti.length) await db.from("conquistas_aluno").upsert(novasMulti, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasAlem.length) await db.from("conquistas_aluno").upsert(novasAlem, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasTecnica.length) await db.from("conquistas_aluno").upsert(novasTecnica, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasFase.length) await db.from("conquistas_aluno").upsert(novasFase, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });

@@ -27,6 +27,7 @@ import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-
 import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { trofeusDeMonitoramento, type CodigoMonitoramento } from "./monitoramento";
 import { trofeusDeSemanasCompletas, type CodigoSemanasCompletas } from "./semanas-completas";
+import { trofeusMultimodalidade, type CodigoMulti, type ResultadoBenchmarkConquista } from "./multimodalidade";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
@@ -127,6 +128,8 @@ export type CodigoConquista =
   | CodigoMonitoramento
   // Semanas completas no total + Semana Perfeita (0129, semanas-completas.ts)
   | CodigoSemanasCompletas
+  // Multimodalidade: WOD, HYROX, funcional, benchmarks (0136, multimodalidade.ts)
+  | CodigoMulti
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -196,6 +199,8 @@ export { CODIGOS_SERIES } from "./volume-series";
 export { CODIGOS_MONITORAMENTO } from "./monitoramento";
 /** Semanas completas + Semana Perfeita (0129): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_SEMANAS_COMPLETAS } from "./semanas-completas";
+/** Multimodalidade (0136): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_MULTI } from "./multimodalidade";
 /** Troféus de 29/10/2026 (0113): gravados à parte, como as outras famílias novas. */
 export const CODIGOS_29OUT: CodigoConquista[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_1_ano", "retomada_30", "quiz_1", "quiz_10", "quiz_30", "quiz_50", "semana_compartilhada", "cards_10", "cards_20", "cards_30", "trofeus_compartilhados_10", "trofeus_compartilhados_20", "trofeus_compartilhados_30", "trofeus_compartilhados_50", "cardio_madrugada", "cardio_4h", "cardio_meia_noite", "cardio_10km", "cardio_escada_1h"];
 /** Mobilidade e alongamento (0116): gravados à parte, como as outras famílias novas. */
@@ -349,6 +354,14 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   semana_perfeita_5: { titulo: "5 Semanas Perfeitas", criterio: "5 semanas (no total) com a meta cumprida e todas as séries de todos os treinos feitas.", repete: false },
   semana_perfeita_10: { titulo: "10 Semanas Perfeitas", criterio: "10 semanas (no total) com a meta cumprida e todas as séries de todos os treinos feitas.", repete: false },
   monitoramento_26: { titulo: "Cientista de Si Mesmo", criterio: "Registrar medidas ou uma avaliação em 26 semanas seguidas (seis meses; vale quando o registro entra no app).", repete: false },
+  primeiro_wod: { titulo: "Primeiro WOD", criterio: "Concluir o primeiro treino de Cross Training no app (com o resultado de pelo menos um bloco anotado).", repete: false },
+  primeira_hyrox: { titulo: "Primeira Sessão HYROX", criterio: "Concluir a primeira sessão de HYROX no app (com pelo menos um trecho anotado).", repete: false },
+  primeiro_funcional: { titulo: "Primeiro Circuito Funcional", criterio: "Concluir o primeiro treino funcional no app (com o resultado de pelo menos um circuito anotado).", repete: false },
+  primeiro_benchmark: { titulo: "Primeiro Benchmark", criterio: "Anotar o resultado de um benchmark (Fran, Grace, Cindy, Helen, Murph…) pela primeira vez.", repete: false },
+  superando_recorde: { titulo: "Superando Meu Recorde", criterio: "Fazer um benchmark melhor que todas as vezes anteriores comparáveis (mesmo benchmark e versão; RX com RX, Scaled com Scaled; adaptado não entra).", repete: false },
+  atleta_versatil: { titulo: "Atleta Versátil", criterio: "Treinar em 3 modalidades diferentes no app (musculação, Cross Training, HYROX, funcional ou híbrido).", repete: false },
+  semana_multimodalidade: { titulo: "Semana Multimodalidade", criterio: "Na mesma semana (segunda a domingo), treinar em 2 modalidades diferentes, sendo pelo menos uma fora da musculação.", repete: false },
+  evolucao_sem_fronteiras: { titulo: "Evolução Sem Fronteiras", criterio: "Subir um recorde de força (mesmo número de repetições: 1, 2, 3, 5 ou 10) E superar um benchmark comparável.", repete: false },
 };
 
 /** Versão do critério de cada conquista (gravada junto; mudar critério nunca apaga conquista antiga). */
@@ -453,6 +466,8 @@ export type SessaoConquista = SessaoAderencia & {
   origem?: string | null;
   /** Fase do protocolo no dia (snapshot da sessão). */
   fase?: string | null;
+  /** Multimodalidade (0133): musculação, cross, hyrox, funcional ou híbrido. */
+  modalidade?: string | null;
 };
 
 export type ItemRecorde = { exercicio: string; tipo: "carga" | "reps"; antes: number; agora: number; carga?: number };
@@ -500,6 +515,8 @@ export type EntradaConquistas = {
   mobilidade?: SessaoMobilidade[] | null;
   /** Quando cada medida/arquivo de avaliação entrou no app (Monitoramento). */
   registrosAvaliacao?: string[] | null;
+  /** Resultados de benchmarks (Multimodalidade). */
+  benchmarks?: ResultadoBenchmarkConquista[] | null;
 };
 
 const dias = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86_400_000);
@@ -610,6 +627,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
     const pausadas = e.aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio);
     for (const t of trofeusDeMonitoramento(e.registrosAvaliacao, hoje, pausadas)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   }
+  for (const t of trofeusMultimodalidade(e.sessoes, e.benchmarks ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   if (e.stravaConectadoEm) out.push(nova("strava_conectado", "1", e.stravaConectadoEm, null, "Relógio conectado pelo Strava: seus batimentos e cardios entram no acompanhamento."));
   const validasDoApp = validas.filter(ehDoApp);
   if (validasDoApp[0]) {
