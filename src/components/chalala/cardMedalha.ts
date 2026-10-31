@@ -124,12 +124,12 @@ export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
 
   // Textos
   let y = 1035;
-  y = bloco(ctx, card.lendaria ? "TROFÉU LENDÁRIO" : "NOVA MEDALHA", y, { tamanho: 34, peso: 700, cor: card.lendaria ? "#f59e0b" : OURO, familia, espacamento: 10, maxLinhas: 1 });
+  y = bloco(ctx, card.chamada ?? (card.lendaria ? "TROFÉU LENDÁRIO" : "NOVA MEDALHA"), y, { tamanho: 34, peso: 700, cor: card.lendaria ? "#f59e0b" : OURO, familia, espacamento: 10, maxLinhas: 1 });
   y = bloco(ctx, card.titulo, y + 92, { tamanho: 80, peso: 800, cor: "#ffffff", familia, maxLinhas: 2 });
   if (card.destaque) y = bloco(ctx, card.destaque, y + 68, { tamanho: 40, peso: 700, cor: OURO_CLARO, familia, maxLinhas: 2 });
   ctx.fillStyle = OURO;
   ctx.fillRect(W / 2 - 40, y + 46, 80, 4);
-  y = bloco(ctx, `“${card.frase}”`, y + 130, { tamanho: 54, peso: 700, cor: "#f5f5f5", familia, maxLinhas: 2, largura: 880 });
+  y = bloco(ctx, card.semAspas ? card.frase : `“${card.frase}”`, y + 130, { tamanho: 54, peso: 700, cor: "#f5f5f5", familia, maxLinhas: 2, largura: 880 });
   if (card.porque) y = bloco(ctx, card.porque, y + 74, { tamanho: 34, peso: 400, cor: "#a3a3a3", familia, maxLinhas: 3, largura: 860, altura: 46 });
 
   // Rodapé logo abaixo do texto e acima da faixa da caixa de resposta do Story.

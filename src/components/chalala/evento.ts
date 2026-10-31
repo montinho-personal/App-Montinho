@@ -6,7 +6,7 @@ type Evento = {
   /** Modelo do card — ou, no Desbloqueia, o id da descoberta. */
   modelo?: string;
   formato?: string;
-  origem?: "conclusao" | "historico" | "mensal" | "reconhecimento" | "vitrine" | "colecao" | "medalha" | "album" | "biblioteca" | "treino" | "fim_treino" | "inicio" | "conquistas" | "personal" | "contexto" | "tribo" | "mobilidade" | "ranking";
+  origem?: "conclusao" | "historico" | "mensal" | "reconhecimento" | "vitrine" | "colecao" | "medalha" | "album" | "biblioteca" | "treino" | "fim_treino" | "inicio" | "conquistas" | "personal" | "contexto" | "tribo" | "mobilidade" | "ranking" | "recordes";
 };
 
 export function enviarEvento(e: Evento): void {

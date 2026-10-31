@@ -8,6 +8,8 @@ import { InputSenha } from "@/components/ui/InputSenha";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { eventoGa } from "@/components/analytics/ga";
 import { MSG_WHATSAPP, whatsappBR } from "@/lib/visitante/whatsapp";
+import { FEATURES } from "@/lib/env";
+import { LISTA_MODALIDADES, MODALIDADES_TREINO, type ModalidadeTreino } from "@/lib/modalidades/tipos";
 
 export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: string; depois?: string | null }) {
   const [nome, setNome] = useState("");
@@ -15,6 +17,7 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
   const [whatsapp, setWhatsapp] = useState("");
   const [cidade, setCidade] = useState("");
   const [perto, setPerto] = useState<"sim" | "nao" | "nao_sei" | "">("");
+  const [modalidades, setModalidades] = useState<ModalidadeTreino[]>([]);
   const [senha, setSenha] = useState("");
   const [aceite, setAceite] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -34,7 +37,7 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
       const r = await fetch("/api/public/convite/cadastro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), whatsapp: whatsapp.trim(), cidade: cidade.trim(), ...(perto ? { perto_alphaville: perto } : {}), senha, aceite_privacidade: true }),
+        body: JSON.stringify({ codigo, nome: nome.trim(), email: email.trim(), whatsapp: whatsapp.trim(), cidade: cidade.trim(), ...(perto ? { perto_alphaville: perto } : {}), ...(modalidades.length ? { modalidades } : {}), senha, aceite_privacidade: true }),
       });
       const j = (await r.json().catch(() => ({}))) as { error?: string; entrarPeloEmail?: boolean };
       if (!r.ok) throw new Error(j.error ?? "Não foi possível criar a conta agora.");
@@ -85,6 +88,21 @@ export function CadastroVisitanteClient({ codigo, depois = null }: { codigo: str
           ))}
         </div>
       </fieldset>
+      {FEATURES.multimodalidade ? (
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium">O que você gosta de treinar? <span className="text-fg-subtle">(opcional, marque quantos quiser)</span></legend>
+          <div className="flex flex-wrap gap-2">
+            {LISTA_MODALIDADES.map((m) => {
+              const on = modalidades.includes(m);
+              return (
+                <button key={m} type="button" aria-pressed={on} onClick={() => setModalidades((x) => (on ? x.filter((y) => y !== m) : [...x, m]))} className={`touch rounded-lg border px-3 py-2 text-sm font-semibold ${on ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                  {MODALIDADES_TREINO[m].emoji} {MODALIDADES_TREINO[m].nome}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
       <div>
         <Label htmlFor="senha">Crie uma senha</Label>
         <InputSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Pelo menos 8 caracteres" autoComplete="new-password" required />

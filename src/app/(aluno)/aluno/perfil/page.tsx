@@ -23,12 +23,17 @@ import { getRankingVisivel } from "@/lib/data/ranking";
 import { RankingVisivel } from "@/components/ranking/RankingVisivel";
 import { ConectarStrava } from "@/components/strava/ConectarStrava";
 import { listarCardio, statusStrava } from "@/lib/data/strava";
+import { EscolherModalidades } from "@/components/perfil/EscolherModalidades";
+import { modalidadesDoAluno } from "@/lib/data/modalidades-interesse";
+import { textoInteresse } from "@/lib/modalidades/interesse";
+import { FEATURES } from "@/lib/env";
 
 export const metadata = { title: "Perfil" };
 
 export default async function PerfilPage({ searchParams }: { searchParams: Promise<{ strava?: string }> }) {
   const sessao = await requireAlunoPage();
   const { strava } = await searchParams;
+  const interesse = FEATURES.multimodalidade ? await modalidadesDoAluno(sessao.alunoId).catch(() => []) : [];
   const [aluno, plano, adaptacoes, intervencoes, dieta, prefsNotif, padraoCarga, rankingVisivel, stravaStatus, cardio, pulsoConsent] = await Promise.all([
     getAluno(sessao.alunoId),
     getPlanoAtivo(sessao.alunoId),
@@ -157,6 +162,11 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
         <ItemAbrir icone="⚖️" titulo="Como eu anoto o peso" sub="Anilhas e halteres: total ou por lado">
           <PadraoCargaPerfil inicial={padraoCarga} />
         </ItemAbrir>
+        {FEATURES.multimodalidade ? (
+          <ItemAbrir icone="🏟️" titulo="O que eu gosto de treinar" sub={interesse.length ? textoInteresse(interesse) : "Musculação, Cross Training, HYROX…"}>
+            <EscolherModalidades inicial={interesse} />
+          </ItemAbrir>
+        ) : null}
         <ItemAbrir icone="📱" titulo="Tela sempre acesa no treino" sub="O celular não apaga no meio da série">
           <TelaAcesaPerfil />
         </ItemAbrir>

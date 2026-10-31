@@ -51,3 +51,21 @@ describe("troféus da Multimodalidade", () => {
     expect(codigos(trofeusDoDiaDuplo([s("a", "2026-10-28T10:00:00Z", null), s("b", "2026-10-28T20:00:00Z", "cross", { modo: "extra", series_planejadas: 1, series_concluidas: 1 })], []))).toEqual(["dose_dupla"]);
   });
 });
+
+describe("regressão: Multimodalidade desligada = app igual para quem só faz musculação", () => {
+  it("só musculação (sem modalidade gravada) não gera nenhum troféu novo", () => {
+    const sessoes = Array.from({ length: 30 }, (_, i) => s(`m${i}`, `2026-10-${String((i % 28) + 1).padStart(2, "0")}T10:00:00Z`, null));
+    expect(trofeusMultimodalidade(sessoes, [])).toEqual([]);
+  });
+  it("vitrine sem a flag: os 8 troféus novos não aparecem (só para quem já ganhou)", async () => {
+    const { vitrineDeMedalhas } = await import("./vitrine");
+    const { calcularAderencia } = await import("@/lib/aderencia/calcular");
+    const sessoes = [s("a", "2026-10-01T13:00:00Z", null)];
+    const aderencia = calcularAderencia({ inicio: "2026-09-28", hoje: "2026-10-20", metas: [{ desde: "2026-01-01", meta: 3, origem: "personal" }], sessoes });
+    const sem = vitrineDeMedalhas({ conquistas: [], sessoes, aderencia, hoje: "2026-10-20" }).map((m) => m.codigo as string);
+    expect(sem.filter((c) => c === "primeiro_wod" || c === "atleta_versatil")).toEqual([]);
+    const com = vitrineDeMedalhas({ conquistas: [{ codigo: "primeiro_wod", conquistado_em: "2026-10-02T13:00:00Z" }], sessoes, aderencia, hoje: "2026-10-20" }).map((m) => m.codigo as string);
+    expect(com).toContain("primeiro_wod");
+    expect(com).not.toContain("atleta_versatil");
+  });
+});

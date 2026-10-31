@@ -11,7 +11,7 @@ import { minhasCutucadasRanking } from "@/lib/data/ranking";
 import { conquistasTribo } from "@/lib/data/tribo";
 import { progressoDoAluno } from "@/lib/data/desbloqueia";
 import { getDb } from "@/lib/supabase/rls";
-import { isDemoMode } from "@/lib/env";
+import { FEATURES, isDemoMode } from "@/lib/env";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { nomeDaConquistaTribo } from "@/lib/tribo/regras";
 import { resumoRevisao, type ProgressoRevisao } from "@/lib/desbloqueia/revisao";
@@ -116,6 +116,21 @@ export async function centralDoAluno(s: { alunoId: string; userId: string }): Pr
   if (fer && fer.dia <= somarDias(hoje, 3)) {
     const ehHoje = fer.dia === hoje;
     itens.push({ id: `feriado:${fer.dia}`, tipo: "aviso", emoji: fer.feriado.emoji, titulo: ehHoje ? `Hoje é ${fer.feriado.nome}: treino vale troféu especial` : `${fer.feriado.nome} em ${fer.dia.slice(8, 10)}/${fer.dia.slice(5, 7)}: treino vale troféu especial`, texto: "Treine no dia e ganhe o troféu com o nome do feriado.", href: "/aluno/treinar", quando: ehHoje ? agoraIso : `${somarDias(fer.dia, -3)}T11:00:00Z` });
+  }
+
+  // Multimodalidade: o WOD do dia publicado e ainda não feito (pede ação).
+  if (FEATURES.multimodalidade) {
+    const wod = await seguro(import("@/lib/data/wod-dia").then(async (m) => {
+      const w = await m.wodDoDia(hoje);
+      if (!w) return null;
+      // Só para quem quer (ou ainda não disse o que gosta de treinar).
+      const { modalidadesDoAluno } = await import("@/lib/data/modalidades-interesse");
+      const { querAvisoDoWod } = await import("@/lib/modalidades/interesse");
+      if (!querAvisoDoWod(await modalidadesDoAluno(s.alunoId))) return null;
+      const minha = await m.minhaSessaoDoWod(s.alunoId, w.id);
+      return minha ? null : w;
+    }), null);
+    if (wod) itens.push({ id: `wod:${wod.id}`, tipo: "acao", emoji: "🔥", titulo: `WOD do dia no ar: ${curto(wod.titulo, 60)}`, texto: "Faça hoje e veja onde você fica no ranking do dia.", href: "/aluno/wod", quando: wod.updated_at });
   }
 
   return montarCentral(itens, agoraIso);

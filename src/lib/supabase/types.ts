@@ -39,6 +39,8 @@ export type Aluno = {
   cidade?: string | null;
   /** 0130: pode fazer aula presencial em Alphaville (Pacote Flexível); o personal marca. */
   pode_presencial?: boolean;
+  /** 0137: modalidades que a pessoa gosta de treinar (vazia = não respondeu). */
+  modalidades_interesse?: string[];
   created_at: string;
   updated_at: string;
 };

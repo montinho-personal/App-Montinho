@@ -4,6 +4,7 @@ import { FEATURES } from "@/lib/env";
 import { recordesDoAluno } from "@/lib/data/recordes";
 import { MeusRecordes } from "@/components/recordes/MeusRecordes";
 import { Voltar } from "@/components/ui/Voltar";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 export const metadata = { title: "Meus recordes" };
 
@@ -18,7 +19,7 @@ export default async function MeusRecordesPage() {
         <h1 className="text-2xl font-black">🏅 Meus recordes</h1>
         <p className="text-sm text-fg-muted">Comparação justa: 1RM com 1RM, 5RM com 5RM, e o mesmo benchmark na mesma versão. RX nunca com Scaled.</p>
       </div>
-      <MeusRecordes dados={dados} modo="aluno" />
+      <MeusRecordes dados={dados} modo="aluno" nome={sessao.nome ?? ""} hoje={dataLocal(new Date())} />
     </div>
   );
 }

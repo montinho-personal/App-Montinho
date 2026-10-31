@@ -14,6 +14,8 @@ import { textoResultado } from "@/lib/modalidades/resultado";
 import { BENCHMARKS_REF } from "@/lib/modalidades/blocos";
 import { rotuloRm, type PontoRecorde } from "@/lib/modalidades/recordes";
 import type { RecordesDoAluno } from "@/lib/data/recordes";
+import { cardRecordeBenchmark, cardRecordeForca } from "@/lib/modalidades/card-recorde";
+import { CompartilharRecorde } from "./CompartilharRecorde";
 
 type Aba = "forca" | "benchmarks" | "marcas";
 const fmtData = (d: string) => d.split("-").reverse().join("/");
@@ -38,7 +40,8 @@ function Linha({ pontos, invertido = false }: { pontos: PontoRecorde[]; invertid
   );
 }
 
-export function MeusRecordes({ dados, modo, alunoId }: { dados: RecordesDoAluno; modo: "aluno" | "personal"; alunoId?: string }) {
+export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados: RecordesDoAluno; modo: "aluno" | "personal"; alunoId?: string; /** Nome da pessoa (o card leva só o primeiro). */ nome?: string; /** Dia de Brasília (AAAA-MM-DD): destaca o recorde de hoje. */ hoje?: string }) {
+  const podeCompartilhar = modo === "aluno";
   const [aba, setAba] = useState<Aba>(dados.forca.length ? "forca" : dados.benchmarks.length ? "benchmarks" : "marcas");
   const [anotar, setAnotar] = useState(false);
   const primeiros = dados.marcas.filter((m) => m.tipo === "primeiro");
@@ -76,7 +79,11 @@ export function MeusRecordes({ dados, modo, alunoId }: { dados: RecordesDoAluno;
                           {fmtData(r.data)}
                         </span>
                       </span>
-                      <Linha pontos={r.historico} />
+                      <span className="flex shrink-0 flex-col items-end gap-1">
+                        {hoje && r.data === hoje && r.anterior != null ? <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-black text-success">🆕 HOJE</span> : null}
+                        <Linha pontos={r.historico} />
+                        {podeCompartilhar ? <CompartilharRecorde card={cardRecordeForca(r, nome)} refEvento={`recorde:${ex.chave}:${r.rm}`} destaque={!!hoje && r.data === hoje} /> : null}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -96,6 +103,7 @@ export function MeusRecordes({ dados, modo, alunoId }: { dados: RecordesDoAluno;
                 <div className="flex items-center gap-2">
                   <p className="min-w-0 flex-1 font-bold">{nomeBenchmark(b.benchmark)}</p>
                   <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-bold">{b.condicao === "rx" ? "RX" : "Scaled"}</span>
+                  {podeCompartilhar ? <CompartilharRecorde card={cardRecordeBenchmark(b, nomeBenchmark(b.benchmark), nome)} refEvento={`benchmark:${b.benchmark}:${b.condicao}`} destaque={!!hoje && b.melhor.data === hoje} /> : null}
                 </div>
                 <div className="mt-1 flex items-center gap-3">
                   <span className="min-w-0 flex-1">

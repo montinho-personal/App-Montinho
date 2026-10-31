@@ -57,10 +57,10 @@ export async function POST(request: Request) {
   try {
     await admin.from("profiles").update({ nome: body.nome, role: "aluno" }).eq("id", userId);
     const base = { profile_id: userId, telefone: body.whatsapp, status: "ativo", modalidade: "visitante", data_inicio: dataLocal(agora), acesso_ate: fim ? dataLocal(fim) : null }; /* dias de Brasília (auditoria 29/10/2026: em UTC gravava 1 dia a mais) */
-    const extras = { ...(body.cidade ? { cidade: body.cidade } : {}), ...(body.perto_alphaville === "nao" ? { pode_presencial: false } : {}) };
+    const extras = { ...(body.cidade ? { cidade: body.cidade } : {}), ...(body.perto_alphaville === "nao" ? { pode_presencial: false } : {}), ...(body.modalidades?.length ? { modalidades_interesse: [...new Set(body.modalidades)] } : {}) };
     let { data: aluno, error: alunoErr } = await admin.from("alunos").insert({ ...base, ...extras }).select("id").single();
     // Sem a 0130 no banco ainda: cadastra sem a cidade (nunca trava o cadastro).
-    if (alunoErr && /cidade|pode_presencial/.test(alunoErr.message)) ({ data: aluno, error: alunoErr } = await admin.from("alunos").insert(base).select("id").single());
+    if (alunoErr && /cidade|pode_presencial|modalidades_interesse/.test(alunoErr.message)) ({ data: aluno, error: alunoErr } = await admin.from("alunos").insert(base).select("id").single());
     if (alunoErr || !aluno) throw alunoErr ?? new Error("aluno");
     const { error: acessoErr } = await admin.from("acessos_visitante").insert({
       aluno_id: aluno.id,

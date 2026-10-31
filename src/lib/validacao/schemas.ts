@@ -118,6 +118,10 @@ export const resultadoBlocoSchema = z.object({
 });
 
 /** Marca pessoal anotada (0133, `marcas_pessoais`). */
+/** 0137: o que a pessoa gosta de treinar (só preferência). */
+export const MODALIDADES_INTERESSE = ["musculacao", "cross", "hyrox", "funcional", "hibrido"] as const;
+export const modalidadesInteresseSchema = z.object({ modalidades: z.array(z.enum(MODALIDADES_INTERESSE)).max(5) }).strict();
+
 export const marcaSchema = z.object({
   biblioteca_id: z.string().max(64).nullable().optional(),
   nome: texto(120).min(1, "Diga o movimento"),
@@ -426,7 +430,7 @@ export const eventoChalalaSchema = z
     ref: z.string().regex(/^[A-Za-z0-9_:-]{1,80}$/).nullable().optional(),
     modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade", "ranking"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade", "ranking", "recordes"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({
@@ -623,6 +627,8 @@ export const cadastroVisitanteSchema = z.object({
   /** 0130: cidade e se consegue ir a Alphaville (aulas presenciais). Opcionais para telas antigas. */
   cidade: z.string().trim().max(80).optional(),
   perto_alphaville: z.enum(["sim", "nao", "nao_sei"]).optional(),
+  /** 0137: o que gosta de treinar (opcional; só com a Multimodalidade ligada). */
+  modalidades: z.array(z.enum(MODALIDADES_INTERESSE)).max(5).optional(),
 });
 
 /** 0130: o personal liga/desliga uma oferta e escreve a vantagem (opcional). */

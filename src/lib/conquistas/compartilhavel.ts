@@ -233,7 +233,7 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
   }
 }
 
-export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string; /** Troféu lendário (Guerreiro): visual de fogo. */ lendaria?: boolean };
+export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string; /** Troféu lendário (Guerreiro): visual de fogo. */ lendaria?: boolean; /** Linha de cima no lugar de “NOVA MEDALHA” (ex.: recorde). */ chamada?: string; /** Frase sem aspas (ex.: nome do exercício). */ semAspas?: boolean };
 
 const SELO_EXTRA: Record<string, string> = { recorde: "★", eu_voltei: "↺" };
 export const seloDaConquista = (codigo: string) => ORDEM.find((o) => o.codigo === codigo)?.selo ?? SELO_EXTRA[codigo] ?? "★";

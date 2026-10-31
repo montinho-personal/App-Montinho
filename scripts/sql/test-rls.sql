@@ -2632,3 +2632,26 @@ begin
 end $$;
 select test_logout();
 \echo 'T86 OK: troféus da Multimodalidade'
+
+-- T87 — 0137: modalidades de interesse — o aluno grava só as dele, valores validados
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare v text[]; ok boolean;
+begin
+  ok := public.salvar_minhas_modalidades(array['cross','hyrox','crossfit','cross']);
+  if not ok then raise exception 'T87a: aluno não conseguiu salvar'; end if;
+  select modalidades_interesse into v from alunos where id = public.aluno_id_atual();
+  if v <> array['cross','hyrox'] then raise exception 'T87b: lista salva errada (%)', v; end if;
+  update alunos set modalidades_interesse = array['funcional'] where id <> public.aluno_id_atual();
+  if exists (select 1 from alunos where id <> public.aluno_id_atual() and modalidades_interesse = array['funcional']) then raise exception 'T87c: aluno mudou a lista de outra pessoa'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare n int;
+begin
+  select count(*) into n from alunos where 'cross' = any(modalidades_interesse);
+  if n < 1 then raise exception 'T87d: personal não vê o interesse'; end if;
+end $$;
+select test_logout();
+\echo 'T87 OK: modalidades de interesse'
