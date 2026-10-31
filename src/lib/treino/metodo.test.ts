@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Tecnica } from "@/lib/volume/calcular";
-import { aplicarMetodo, aplicarMetodoEmVarios, proximoBloco } from "./metodo";
+import { aplicarMetodo, aplicarMetodoEmVarios, juntarEmBloco, parceirosDoBloco, proximoBloco } from "./metodo";
 import { configIgual } from "@/lib/series";
 import { METODOS } from "@/lib/volume/tecnicas";
 import { TECNICAS } from "@/lib/validacao/schemas";
@@ -47,6 +47,33 @@ describe("método do exercício no montador", () => {
     it("método que não é de bloco vale para cada selecionado", () => {
       const r = aplicarMetodoEmVarios([L("a"), L("b"), L("c")], ["a", "c"], "dropset", "A");
       expect(r.map((x) => x.tecnica)).toEqual(["dropset", "normal", "dropset"]);
+    });
+  });
+
+  describe("bi-set escolhendo com quem", () => {
+    const L = (key: string, bloco = "", tecnica: Tecnica = "normal") => ({ key, tecnica, bloco, seriesConfig: configIgual(4, "12", null) });
+    const ver = (r: ReturnType<typeof L>[]) => r.map((x) => `${x.key}:${x.tecnica === "normal" ? "-" : x.bloco}`);
+    it("o 1º com o 4º: o 4º vem para logo depois do 1º", () => {
+      expect(ver(juntarEmBloco([L("a"), L("b"), L("c"), L("d")], "a", ["d"], "biset", "A"))).toEqual(["a:A1", "d:A1", "b:-", "c:-"]);
+    });
+    it("escolhido no último: os marcados vão para depois dele", () => {
+      expect(ver(juntarEmBloco([L("a"), L("b"), L("c"), L("d")], "d", ["a"], "biset", "A"))).toEqual(["b:-", "c:-", "d:A1", "a:A1"]);
+    });
+    it("tri-set mantém a ordem dos marcados", () => {
+      expect(ver(juntarEmBloco([L("a"), L("b"), L("c"), L("d"), L("e")], "b", ["e", "a"], "triset", "A"))).toEqual(["b:A1", "a:A1", "e:A1", "c:-", "d:-"]);
+    });
+    it("trocar o parceiro: o antigo sai do bloco e o código continua", () => {
+      const r = juntarEmBloco([L("a", "A1", "biset"), L("b", "A1", "biset"), L("c")], "a", ["c"], "biset", "A");
+      expect(ver(r)).toEqual(["a:A1", "c:A1", "b:-"]);
+      expect(parceirosDoBloco(r, "a")).toEqual(["c"]);
+    });
+    it("pegar alguém de outro bloco desfaz o que ficou sozinho", () => {
+      const r = juntarEmBloco([L("a"), L("b", "A1", "biset"), L("c", "A1", "biset")], "a", ["c"], "biset", "A");
+      expect(ver(r)).toEqual(["a:A2", "c:A2", "b:-"]);
+    });
+    it("sem ninguém marcado não muda nada", () => {
+      const rows = [L("a"), L("b")];
+      expect(juntarEmBloco(rows, "a", [], "biset", "A")).toBe(rows);
     });
   });
 });

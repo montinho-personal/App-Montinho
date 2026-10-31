@@ -77,9 +77,47 @@ export function aplicarMetodoEmVarios<R extends LinhaMetodo & { key: string }>(r
   const ligados = escolhidos.map((r) => ({ ...r, tecnica: metodo, bloco: codigo }));
   const antes = resto.slice(0, rows.slice(0, primeiro).filter((r) => !sel.has(r.key)).length);
   const depois = resto.slice(antes.length);
-  const out = [...antes, ...ligados, ...depois];
-  // Quem estava num bloco que perdeu integrantes volta a ser tradicional se ficou sozinho.
+  return semBlocoSozinho([...antes, ...ligados, ...depois]);
+}
+
+/** Quem estava num bloco que perdeu integrantes volta a ser tradicional se ficou sozinho. */
+function semBlocoSozinho<R extends LinhaMetodo>(out: R[]): R[] {
   const contagem = new Map<string, number>();
   for (const r of out) if (ehTecnicaBloco(r.tecnica) && r.bloco.trim()) contagem.set(r.bloco.trim(), (contagem.get(r.bloco.trim()) ?? 0) + 1);
   return out.map((r) => (ehTecnicaBloco(r.tecnica) && r.bloco.trim() && contagem.get(r.bloco.trim()) === 1 ? { ...r, tecnica: "normal" as Tecnica, bloco: "" } : r));
+}
+
+/** Com quem o exercício está ligado hoje (mesmo bloco), sem ele mesmo. */
+export function parceirosDoBloco<R extends LinhaMetodo & { key: string }>(rows: R[], key: string): string[] {
+  const atual = rows.find((r) => r.key === key);
+  const codigo = atual && ehTecnicaBloco(atual.tecnica) ? atual.bloco.trim() : "";
+  return codigo ? rows.filter((r) => r.key !== key && ehTecnicaBloco(r.tecnica) && r.bloco.trim() === codigo).map((r) => r.key) : [];
+}
+
+/**
+ * Bi-set/tri-set escolhendo COM QUEM (pedido do Montinho, 31/10/2026): o
+ * exercício onde o personal escolheu o método fica no lugar dele e os
+ * marcados (de qualquer posição do treino) vão logo depois, na ordem em que
+ * estavam. Quem saiu do bloco antigo e ficou sozinho volta a ser tradicional.
+ */
+export function juntarEmBloco<R extends LinhaMetodo & { key: string }>(rows: R[], ancoraKey: string, outrosKeys: string[], metodo: Tecnica, letra: string): R[] {
+  const ancora = rows.find((r) => r.key === ancoraKey);
+  if (!ancora || !ehTecnicaBloco(metodo)) return rows;
+  const sel = new Set(outrosKeys.filter((k) => k !== ancoraKey));
+  const outros = rows.filter((r) => sel.has(r.key));
+  if (!outros.length) return rows;
+  const codigoAntigo = ehTecnicaBloco(ancora.tecnica) ? ancora.bloco.trim() : "";
+  const codigo = codigoAntigo || proximoBloco(rows, letra);
+  const liga = (r: R): R => ({ ...r, tecnica: metodo, bloco: codigo });
+  const out: R[] = [];
+  for (const r of rows) {
+    if (sel.has(r.key)) continue;
+    if (r.key === ancoraKey) {
+      out.push(liga(r), ...outros.map(liga));
+      continue;
+    }
+    // Parceiro antigo que não foi marcado sai do bloco.
+    out.push(codigoAntigo && ehTecnicaBloco(r.tecnica) && r.bloco.trim() === codigoAntigo ? { ...r, tecnica: "normal" as Tecnica, bloco: "" } : r);
+  }
+  return semBlocoSozinho(out);
 }

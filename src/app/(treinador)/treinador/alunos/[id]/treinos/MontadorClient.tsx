@@ -20,8 +20,9 @@ import { useRouter } from "next/navigation";
 import { PorqueExercicio } from "@/components/montador/PorqueExercicio";
 import { useToast } from "@/components/ui/Toast";
 import { Icon } from "@/components/ui/Icon";
-import { COR_TECNICA, EXTRAS_PADRAO, ehTecnicaBloco, METODOS, temExtras } from "@/lib/volume/tecnicas";
-import { aplicarMetodo, aplicarMetodoEmVarios, proximoBloco } from "@/lib/treino/metodo";
+import { COR_TECNICA, EXTRAS_PADRAO, ehTecnicaBloco, METODOS, TAMANHO_BLOCO, temExtras } from "@/lib/volume/tecnicas";
+import { aplicarMetodo, aplicarMetodoEmVarios, juntarEmBloco, parceirosDoBloco, proximoBloco } from "@/lib/treino/metodo";
+import { EscolherParceirosBloco } from "@/components/montador/EscolherParceirosBloco";
 import { MetodoPicker } from "@/components/montador/MetodoPicker";
 import { ConfigTecnicaPainel } from "@/components/montador/ConfigTecnicaPainel";
 import { ehConfiguravel, type ConfigTecnica } from "@/lib/treino/tecnica-config";
@@ -471,8 +472,25 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const updPrograma = (patch: Partial<ProgramaVM>) => commit((e) => ({ ...e, programa: { ...e.programa, ...patch } }));
   const updTreino = (key: string, patch: Partial<TreinoVM>) => commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === key ? { ...t, ...patch } : t)) }));
   const updRow = (tk: string, rk: string, patch: Partial<Row>) => commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === tk ? { ...t, rows: t.rows.map((r) => (r.key === rk ? { ...r, ...patch } : r)) } : t)) }));
+  /** Bi-set/tri-set: a caixinha “com qual exercício?” aberta (null = fechada). */
+  const [juntando, setJuntando] = useState<{ tk: string; rk: string; metodo: Tecnica } | null>(null);
+  const juntarCom = (tk: string, rk: string, metodo: Tecnica, outros: string[]) =>
+    commit((e) => ({ ...e, treinos: e.treinos.map((t) => (t.key === tk ? { ...t, rows: comConfigNova(juntarEmBloco(t.rows, rk, outros, metodo, t.letra), [rk, ...outros], metodo) } : t)) }));
+  const confirmarJuntar = (keys: string[]) => {
+    if (juntando) juntarCom(juntando.tk, juntando.rk, juntando.metodo, keys);
+    setJuntando(null);
+  };
+  /** Método do exercício. Bi-set/tri-set com outros exercícios no treino: pergunta com qual juntar. */
+  const escolherMetodo = (tk: string, rk: string, metodo: Tecnica) => {
+    const t = estado.treinos.find((x) => x.key === tk);
+    if (ehTecnicaBloco(metodo) && t && t.rows.some((r) => r.key !== rk && r.nome.trim())) {
+      setJuntando({ tk, rk, metodo });
+      return;
+    }
+    aplicarMetodoUm(tk, rk, metodo);
+  };
   /** Método do exercício: liga bi-set/tri-set aos próximos e monta a pirâmide (lib/treino/metodo). */
-  const escolherMetodo = (tk: string, rk: string, metodo: Tecnica) =>
+  const aplicarMetodoUm = (tk: string, rk: string, metodo: Tecnica) =>
     commit((e) => ({
       ...e,
       treinos: e.treinos.map((t) => {
@@ -895,6 +913,35 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           <button type="button" onClick={() => void salvar()} disabled={saving} className="touch rounded-md bg-accent px-5 text-sm font-bold text-bg hover:bg-accent-hover disabled:opacity-50">{saving ? "Salvando…" : "Salvar (Ctrl+S)"}</button>
         </div>
       </header>
+
+      {juntando
+        ? (() => {
+            const t = estado.treinos.find((x) => x.key === juntando.tk);
+            const idx = t ? t.rows.findIndex((r) => r.key === juntando.rk) : -1;
+            if (!t || idx < 0) return null;
+            const precisa = Math.max(1, (TAMANHO_BLOCO[juntando.metodo] ?? 2) - 1);
+            const ancora = t.rows[idx];
+            const opcoes = t.rows
+              .map((r, i) => ({ r, i }))
+              .filter(({ r }) => r.key !== ancora.key && r.nome.trim())
+              .map(({ r, i }) => ({ key: r.key, numero: i + 1, nome: r.nome, bloco: ehTecnicaBloco(r.tecnica) && r.bloco.trim() && r.bloco.trim() !== ancora.bloco.trim() ? r.bloco.trim() : null }));
+            // Começa marcado com quem já está junto; senão, o(s) seguinte(s).
+            const atuais = parceirosDoBloco(t.rows, ancora.key);
+            const seguintes = t.rows.slice(idx + 1).filter((r) => r.nome.trim()).map((r) => r.key);
+            return (
+              <EscolherParceirosBloco
+                metodo={METODOS.find((m) => m.v === juntando.metodo)?.l ?? "Bi-set"}
+                precisa={precisa}
+                ancora={{ numero: idx + 1, nome: ancora.nome }}
+                opcoes={opcoes}
+                inicial={atuais.length ? atuais : seguintes}
+                cor={COR_TECNICA[juntando.metodo] ?? null}
+                onCancelar={() => setJuntando(null)}
+                onConfirmar={confirmarJuntar}
+              />
+            );
+          })()
+        : null}
 
       {regioesLesao.length > 0 ? (
         <div className="rounded-lg border border-red/30 bg-red/5 px-4 py-2.5 text-sm text-fg-muted" role="note">
