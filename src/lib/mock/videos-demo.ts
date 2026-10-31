@@ -2,6 +2,7 @@
 // biblioteca real, para a demo mostrar a experiência completa do aluno.
 // Só IDs públicos do YouTube; nenhum dado de aluno.
 export const VIDEOS_DEMO: Record<string, string> = {
+  "abdominal-maquina": "JoRVN9R8kQo",
   "abducao-polia": "CE4CWIzGsi0",
   "afundo-halteres": "qhAF04jTtUQ",
   "agachamento-bulgaro": "v-bItsW7fUI",
