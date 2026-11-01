@@ -60,11 +60,12 @@ describe("quiz", () => {
 
 describe("álbum e desbloqueios", () => {
   const inicio = "2026-09-01";
-  it("11. aluno sem medalhas: 1ª descoberta por tempo de acompanhamento; mais uma a cada 14 dias", () => {
+  it("11. aluno sem medalhas: 1ª descoberta por tempo de acompanhamento; mais uma a cada 7 dias", () => {
     const a = albumDoAluno({ conteudos: base, progresso: [], conquistas: [], inicio, hoje: "2026-09-01" });
     expect(a.filter((i) => i.estado === "disponivel")).toHaveLength(1);
     const b = albumDoAluno({ conteudos: base, progresso: [], conquistas: [], inicio, hoje: "2026-09-29" });
-    expect(b.filter((i) => i.origem === "periodo")).toHaveLength(3);
+    expect(b.filter((i) => i.origem === "periodo")).toHaveLength(5);
+    expect(b.filter((i) => i.origem === "periodo").map((i) => i.disponivelEm)).toEqual(["2026-09-01", "2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29"]);
     expect(progressoAlbum(b)).toEqual({ explorados: 0, total: 57 });
   });
   it("7. desbloqueio por medalha, com a data da conquista; 9. explorado sem acertar", () => {

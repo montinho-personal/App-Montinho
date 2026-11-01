@@ -16,7 +16,7 @@ import type { ContextoConhecimento, ConteudoConhecimento } from "./tipos";
 
 export const REGRAS_DESBLOQUEIA = {
   /** A cada N dias de acompanhamento, uma nova descoberta fica disponível (alunos com pouca frequência também recebem). */
-  diasPorOportunidade: 14,
+  diasPorOportunidade: 7,
   /** Selo “Nova” por 7 dias. */
   diasNovo: 7,
   /** No máximo 1 sugestão educativa nova por sessão de treino. */
