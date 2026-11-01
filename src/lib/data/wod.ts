@@ -32,6 +32,15 @@ export function blocosDoSnapshot(snapshot: unknown): BlocoTreino[] {
 /** Quantos blocos “com resultado” o treino tem (entram no previsto da sessão). */
 export const blocosComResultado = (blocos: BlocoTreino[]) => blocos.filter((b) => pedeResultado(b.tipo)).length;
 
+/** Blocos com resultado já anotados em várias sessões (painel “Treinando agora”): sessão e quando. */
+export async function blocosFeitosDasSessoes(ids: string[]): Promise<Array<{ session_id: string; em: string }>> {
+  if (!ids.length) return [];
+  if (isDemoMode()) return demo().linhas.filter((l) => ids.includes(l.session_id) && pedeResultado(l.tipo)).map((l) => ({ session_id: l.session_id, em: l.updated_at }));
+  const db = await getDb();
+  const { data } = await db.from("sessao_blocos").select("session_id, updated_at").in("session_id", ids).in("tipo", ["metcon", "circuito", "corrida", "estacao"]);
+  return ((data ?? []) as Array<{ session_id: string; updated_at: string }>).map((l) => ({ session_id: l.session_id, em: l.updated_at }));
+}
+
 /** Blocos com resultado já registrados na sessão (somam às séries feitas). */
 export async function blocosFeitosNaSessao(sessionId: string): Promise<number> {
   if (isDemoMode()) return demo().linhas.filter((l) => l.session_id === sessionId && pedeResultado(l.tipo)).length;

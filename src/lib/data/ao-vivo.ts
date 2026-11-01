@@ -12,6 +12,7 @@ import { estadoAoVivo, MINUTOS_AO_VIVO, outrasAtividadesAoVivo, RECADO_ACOMPANHA
 import { cardiosAbertos } from "@/lib/data/cardio";
 import { mobilidadesAbertas } from "@/lib/data/mobilidade";
 import { infoModalidade } from "@/lib/cardio/modalidades";
+import { blocosFeitosDasSessoes } from "@/lib/data/wod";
 import type { Intervencao, SessionExercise, SessionSet, TrainingSession } from "@/lib/supabase/types-sessoes";
 
 export type TreinandoAgora = {
@@ -26,6 +27,8 @@ export type TreinandoAgora = {
   ultimaAtividade: string;
   estado: EstadoAoVivo;
   series: { feitas: number; planejadas: number };
+  /** O que se conta neste treino: séries (musculação), blocos (WOD/HYROX/funcional) ou os dois. */
+  unidade: "series" | "blocos" | "misto";
   exercicioAtual: string | null;
   recados: Array<{ id: string; texto: string; em: string; audio?: boolean }>;
 };
@@ -68,11 +71,14 @@ async function carregar(desde: string): Promise<Linhas> {
 export async function treinandoAgora(agoraMs = Date.now()): Promise<TreinandoAgora[]> {
   const desde = new Date(agoraMs - 6 * 3_600_000).toISOString();
   const [l, alunos] = await Promise.all([carregar(desde), listAlunos({ incluirVisitantes: true })]);
+  const comBlocos = l.sessoes.filter((s) => Array.isArray((s.snapshot as { blocos?: unknown } | null)?.blocos) && ((s.snapshot as { blocos: unknown[] }).blocos.length > 0)).map((s) => s.id);
+  const blocosFeitos = await blocosFeitosDasSessoes(comBlocos).catch(() => []);
   const porAluno = new Map(alunos.map((a) => [a.id, a]));
   const out: TreinandoAgora[] = [];
   for (const s of l.sessoes) {
     const sets = l.sets.filter((x) => x.session_id === s.id).sort((a, b) => (a.concluida_em < b.concluida_em ? 1 : -1));
-    const ultimaAtividade = sets[0]?.concluida_em ?? s.iniciado_em;
+    const blocos = blocosFeitos.filter((b) => b.session_id === s.id).map((b) => b.em).sort().reverse();
+    const ultimaAtividade = [sets[0]?.concluida_em, blocos[0], s.iniciado_em].filter(Boolean).sort().reverse()[0] as string;
     const estado = estadoAoVivo(ultimaAtividade, agoraMs);
     if (estado === "esquecido") continue;
     const exs = l.exercicios.filter((e) => e.session_id === s.id).sort((a, b) => a.ordem - b.ordem);
@@ -90,7 +96,8 @@ export async function treinandoAgora(agoraMs = Date.now()): Promise<TreinandoAgo
       iniciadoEm: s.iniciado_em,
       ultimaAtividade,
       estado,
-      series: { feitas: sets.length, planejadas: s.series_planejadas ?? 0 },
+      series: { feitas: sets.length + blocos.length, planejadas: s.series_planejadas ?? 0 },
+      unidade: !comBlocos.includes(s.id) ? "series" : exs.length ? "misto" : "blocos",
       exercicioAtual: atual?.nome ?? null,
       recados: l.recados.filter((r) => r.referencia?.sessao_id === s.id).sort((x, y) => (x.created_at < y.created_at ? -1 : 1)).map((r) => ({ id: r.id, texto: r.descricao, em: r.created_at, audio: !!(r.referencia?.audio || r.referencia?.audio_demo) })),
     });

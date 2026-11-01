@@ -111,7 +111,7 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
             </div>
             <div>
               <div className="flex justify-between text-xs text-fg-muted">
-                <span>{t.series.feitas} de {t.series.planejadas || "?"} séries</span>
+                <span>{t.series.feitas} de {t.series.planejadas || "?"} {t.unidade === "blocos" ? "blocos" : t.unidade === "misto" ? "séries e blocos" : "séries"}</span>
                 <span>começou {haQuanto(t.iniciadoEm, agora)}</span>
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-border" aria-hidden>
@@ -119,7 +119,7 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
               </div>
               <p className="mt-1.5 text-sm">
                 {t.exercicioAtual ? <>Agora: <strong>{t.exercicioAtual}</strong> · </> : null}
-                <span className="text-fg-muted">última série {t.series.feitas ? haQuanto(t.ultimaAtividade, agora) : "—"}</span>
+                <span className="text-fg-muted">{t.unidade === "blocos" ? "último bloco" : "última série"} {t.series.feitas ? haQuanto(t.ultimaAtividade, agora) : "—"}</span>
               </p>
             </div>
             {t.recados.length ? (
