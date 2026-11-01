@@ -1,6 +1,7 @@
 // Ranking de troféus visto pelo personal: nomes completos e quem é visitante.
 import { requireTreinadorPage } from "@/lib/auth/session";
-import { atualizarTrofeus, cliquesMontinhoNoRanking, getRanking, salvarDesempate } from "@/lib/data/ranking";
+import { atualizarTrofeus, cliquesMontinhoNoRanking, getRanking, quemPassouOMontinho, salvarDesempate } from "@/lib/data/ranking";
+import { QuemPassouOMontinho } from "@/components/ranking/QuemPassouOMontinho";
 import { CliquesMontinhoRanking } from "@/components/ranking/CliquesMontinhoRanking";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { listAlunos } from "@/lib/db";
@@ -21,6 +22,7 @@ export default async function RankingTreinadorPage() {
   // O “Meu treino” do personal fica fora do ranking (pedido do Montinho, 28/10/2026).
   const linhas = semMinhaLinha(await getRanking(null).catch(() => []));
   const cliques = await cliquesMontinhoNoRanking(90).catch(() => null);
+  const passaram = await quemPassouOMontinho(null).catch(() => null);
   await registrarTopoRanking();
   const topo = await topoHoje().catch(() => null);
   const nomeTopo = topo ? (linhas.find((l) => l.ref === topo.alunoId)?.nome ?? null) : null;
@@ -29,7 +31,8 @@ export default async function RankingTreinadorPage() {
       <NarrativaRanking />
       <TopoDoRanking modo="personal" dias={topo?.dias ?? null} nome={nomeTopo} />
       {cliques ? <CliquesMontinhoRanking r={cliques} dias={90} /> : null}
-      <RankingTrofeus linhas={linhas} nomeCompleto />
+      {passaram ? <QuemPassouOMontinho pessoas={passaram} personal /> : null}
+      <RankingTrofeus linhas={linhas} nomeCompleto passaram={passaram?.map((p) => p.ref)} />
       <p className="text-[11px] text-fg-subtle">Aqui você vê o nome completo de todos. Os alunos veem só o primeiro nome e a inicial, e quem desligou “Aparecer no ranking” não aparece para eles.</p>
     </div>
   );

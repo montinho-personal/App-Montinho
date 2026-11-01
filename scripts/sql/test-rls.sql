@@ -2714,3 +2714,16 @@ begin
 end $$;
 select test_logout();
 \echo 'T89 OK: Passei o Montinho'
+
+-- T90 — 0140: quem_passou_montinho — anon não executa; o aluno não vê quem saiu do ranking
+do $$ begin
+  if has_function_privilege('anon', 'public.quem_passou_montinho()', 'execute') then raise exception 'T90a: anon não pode ver a lista'; end if;
+end $$;
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$ declare n_func int; n_trof int; begin
+  select count(*) into n_func from public.quem_passou_montinho();
+  select count(distinct c.aluno_id) into n_trof from conquistas_aluno c join alunos a on a.id = c.aluno_id where c.codigo = 'passou_montinho' and a.status = 'ativo';
+  if n_func <> n_trof then raise exception 'T90b: o personal vê todos que passaram (% × %)', n_func, n_trof; end if;
+end $$;
+select test_logout();
+\echo 'T90 OK: Quem passou o Montinho'

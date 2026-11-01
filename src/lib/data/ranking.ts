@@ -174,3 +174,23 @@ export async function cliquesMontinhoNoRanking(dias = 90): Promise<import("@/lib
   const pessoas = Object.fromEntries(alunos.map((a) => [a.id, { nome: a.profile?.nome ?? "Aluno", visitante: a.modalidade === "visitante" }]));
   return quemViuOMontinho(eventos.filter((e) => e.tipo === "montinho_ranking_aberto" || e.ref === REF_CARD_MONTINHO), pessoas);
 }
+
+// ---------------------------------------------------------------------------
+// Quem já passou o Montinho (0140): do primeiro a passar ao mais recente.
+// ---------------------------------------------------------------------------
+export type PassouMontinho = { ref: string; nome: string; em: string; eu: boolean };
+
+export async function quemPassouOMontinho(meuAlunoId: string | null): Promise<PassouMontinho[]> {
+  if (isDemoMode()) {
+    const hoje = Date.now();
+    return [
+      { ref: "x-carla", nome: "Carla M.", em: new Date(hoje - 9 * 86_400_000).toISOString(), eu: false },
+      { ref: "x-diego", nome: "Diego P.", em: new Date(hoje - 2 * 86_400_000).toISOString(), eu: false },
+      { ref: "aline", nome: "Aline S.", em: new Date(hoje - 3_600_000).toISOString(), eu: meuAlunoId === "aline" },
+    ];
+  }
+  const db = await getDb();
+  const { data, error } = await db.rpc("quem_passou_montinho");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Array<{ ref: string; nome: string; em: string; eu: boolean }>).map((r) => ({ ref: r.ref, nome: r.nome, em: r.em, eu: !!r.eu }));
+}

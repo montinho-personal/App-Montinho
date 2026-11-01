@@ -33,8 +33,11 @@ function Degrau({ posicao, linhas, onAbrir }: { posicao: 1 | 2 | 3; linhas: Linh
   );
 }
 
-export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false }: { linhas: LinhaRanking[]; nomeCompleto?: boolean; desafiar?: boolean }) {
+export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false, passaram }: { linhas: LinhaRanking[]; nomeCompleto?: boolean; desafiar?: boolean; passaram?: string[] }) {
   const [aberto, setAberto] = useState<LinhaRanking | null>(null);
+  const passou = new Set(passaram ?? []);
+  // Selo de quem já passou o Montinho (pedido do Montinho, 01/11/2026).
+  const selo = (l: LinhaRanking) => (l.ref && passou.has(l.ref) ? <span className="ml-1" role="img" aria-label="passou o Montinho" title="Passou o Montinho">👑</span> : null);
   if (!linhas.length) return <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Ainda ninguém tem troféus. O primeiro a conquistar já sai na frente!</p>;
   return (
     <div className="space-y-4">
@@ -52,6 +55,7 @@ export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false 
               {l.ref ? (
                 <button type="button" onClick={() => setAberto(l)} className={`alvo min-w-0 flex-1 truncate text-left text-sm underline-offset-4 hover:underline ${l.eu ? "font-bold text-accent" : "font-semibold"}`} aria-label={`Ver perfil de ${l.eu ? "você" : l.nome}: troféus e desempate`}>
                   {l.eu ? `Você${nomeCompleto ? "" : ` (${l.nome})`}` : l.nome}
+                  {selo(l)}
                   {nomeCompleto && l.visitante ? <span className="ml-1.5 rounded-full border border-border px-1.5 text-[10px] font-normal text-fg-subtle">visitante</span> : null}
                   <span aria-hidden className="ml-1 text-[10px] text-fg-subtle">›</span>
                 </button>
@@ -74,6 +78,7 @@ export function RankingTrofeus({ linhas, nomeCompleto = false, desafiar = false 
           );
         })}
       </ol>
+      {linhas.some((l) => l.ref && passou.has(l.ref)) ? <p className="text-[11px] text-fg-subtle">👑 = já passou o Montinho no ranking.</p> : null}
       {linhas.some((l) => l.ref) ? <p className="text-[11px] text-fg-subtle">👆 Toque no nome para ver os troféus, o desempate{desafiar ? ", desafiar e cutucar" : ""}.</p> : null}
       <p className="text-[11px] leading-relaxed text-fg-subtle">{DESEMPATE}</p>
       {aberto?.ref ? <PerfilRankingSheet refPessoa={aberto.ref} nome={aberto.nome} posicao={aberto.posicao} interagir={desafiar} onFechar={() => setAberto(null)} /> : null}

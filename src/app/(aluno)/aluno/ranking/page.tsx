@@ -8,7 +8,8 @@ import { getAluno } from "@/lib/db";
 import { fraseDoRanking, podioDaPosicao, PODIO, semMinhaLinha } from "@/lib/ranking/trofeus";
 import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
 import { CutucadasRecebidas } from "@/components/ranking/CutucadasRecebidas";
-import { minhasCutucadasRanking, montinhoNoRanking } from "@/lib/data/ranking";
+import { minhasCutucadasRanking, montinhoNoRanking, quemPassouOMontinho } from "@/lib/data/ranking";
+import { QuemPassouOMontinho } from "@/components/ranking/QuemPassouOMontinho";
 import { MontinhoNoRanking } from "@/components/ranking/MontinhoNoRanking";
 import { ehVisitante } from "@/lib/auth/guards";
 import { BRAND } from "@/config/brand";
@@ -37,6 +38,7 @@ export default async function RankingPage() {
   await registrarTopoRanking();
   const [todas, desafios, cutucadas] = await Promise.all([getRanking(sessao.alunoId).catch(() => []), listarMeusDesafios(sessao.alunoId).catch(() => []), sessao.comoPersonal ? Promise.resolve([]) : minhasCutucadasRanking(sessao.alunoId).catch(() => [])]);
   const montinho = await montinhoNoRanking().catch(() => null);
+  const passaram = await quemPassouOMontinho(sessao.alunoId).catch(() => null);
   const topo = sessao.comoPersonal ? null : await topoHoje().catch(() => null);
   const meuTopo = topo && topo.alunoId === sessao.alunoId ? topo.dias : null;
   const ganhosTopo = meuTopo ? new Set((await listarConquistas(sessao.alunoId).catch(() => [])).map((c) => c.codigo as string)) : undefined;
@@ -63,7 +65,8 @@ export default async function RankingPage() {
       {/* O personal no app como aluno vê a prévia do cartão (sem a comparação com ele mesmo). */}
       {montinho && sessao.comoPersonal ? <p className="-mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">👀 Prévia: é assim que os alunos veem</p> : null}
       {montinho ? <MontinhoNoRanking dados={montinho} meusTrofeus={sessao.comoPersonal ? null : (eu?.trofeus ?? null)} minhaPosicao={sessao.comoPersonal ? null : (eu?.posicao ?? null)} nome={aluno?.profile?.nome ?? sessao.nome} visitante={ehVisitante(sessao)} whatsapp={BRAND.contact.whatsapp ?? null} /> : null}
-      <RankingTrofeus linhas={linhas} desafiar />
+      {passaram ? <QuemPassouOMontinho pessoas={passaram} /> : null}
+      <RankingTrofeus linhas={linhas} desafiar passaram={passaram?.map((p) => p.ref)} />
       {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
     </div>
