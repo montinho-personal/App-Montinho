@@ -36,3 +36,13 @@ describe("treino livre", () => {
     expect(textoUltimaVez(null)).toBeNull();
   });
 });
+
+describe("continuar a sessão: cada tipo na sua tela", () => {
+  it("WOD do dia e WOD livre têm tela própria; o resto continua igual", async () => {
+    const { hrefDaSessao } = await import("./livre");
+    expect(hrefDaSessao({ id: "s1", treino_id: null, snapshot: { wod_dia_id: "w1" } })).toBe("/aluno/wod");
+    expect(hrefDaSessao({ id: "s2", treino_id: null, snapshot: { wod_livre: true } })).toBe("/aluno/wod/livre");
+    expect(hrefDaSessao({ id: "s3", treino_id: null, snapshot: { livre: true } })).toBe("/aluno/livre/s3");
+    expect(hrefDaSessao({ id: "s4", treino_id: "t1", snapshot: {} })).toBe("/aluno/treino/t1?sessao=s4");
+  });
+});

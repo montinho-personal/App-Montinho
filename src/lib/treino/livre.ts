@@ -45,6 +45,10 @@ export const ehSessaoLivre = (s: { snapshot?: unknown } | null | undefined): boo
 
 /** Para onde levar a pessoa para continuar uma sessão (treino livre tem tela própria). */
 export function hrefDaSessao(s: { id: string; treino_id: string | null; snapshot?: unknown }): string {
+  const snap = s.snapshot as { wod_dia_id?: string; wod_livre?: boolean } | null | undefined;
+  // Multimodalidade: o WOD do dia e o WOD livre têm tela própria.
+  if (snap?.wod_dia_id) return "/aluno/wod";
+  if (snap?.wod_livre) return "/aluno/wod/livre";
   return ehSessaoLivre(s) || !s.treino_id ? `/aluno/livre/${s.id}` : `/aluno/treino/${s.treino_id}?sessao=${s.id}`;
 }
 

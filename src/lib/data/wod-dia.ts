@@ -186,3 +186,55 @@ export async function rankingWodDia(wodId: string, quem: { alunoId: string | nul
     registrado_em: String(r.registrado_em),
   }));
 }
+
+/**
+ * WOD livre (pedido do Montinho, 01/11/2026): o próprio aluno monta e anota um
+ * WOD feito fora da ficha, como no treino livre da musculação. Sessão EXTRA sem
+ * treino da ficha, com `snapshot.wod_livre` e os blocos que a pessoa montou;
+ * o resultado de cada bloco vai pelo mesmo caminho do WOD do dia. Não entra no
+ * ranking do dia (não tem `wod_dia_id`).
+ */
+export type EntradaWodLivre = { titulo?: string | null; modalidade: WodDoDia["modalidade"]; blocos: BlocoTreino[] };
+export const ehWodLivre = (s: { snapshot?: unknown } | null | undefined) => !!(s?.snapshot as { wod_livre?: boolean } | null | undefined)?.wod_livre;
+
+export async function iniciarSessaoWodLivre(alunoId: string, e: EntradaWodLivre, clientKey: string): Promise<SessaoCompleta> {
+  const atual = await getSessaoEmAndamento(alunoId);
+  if (atual) {
+    if (ehWodLivre(atual)) return atual;
+    throw new Error("Você tem um treino em andamento. Termine ele antes de começar o WOD livre.");
+  }
+  const blocos = normalizarBlocos(e.blocos);
+  if (!blocos.length) throw new Error("Monte pelo menos um bloco.");
+  const titulo = e.titulo?.trim() || "WOD livre";
+  const agora = new Date().toISOString();
+  const sessao: TrainingSession = {
+    id: uid(),
+    aluno_id: alunoId,
+    treino_id: null,
+    programa_versao_id: null,
+    letra: null,
+    nome_treino: titulo === "WOD livre" ? "WOD livre" : `WOD livre · ${titulo}`,
+    client_key: clientKey,
+    status: "em_andamento",
+    iniciado_em: agora,
+    finalizado_em: null,
+    duracao_seg: null,
+    snapshot: { wod_livre: true, modalidade: e.modalidade, blocos, treino: { id: null, letra: null, nome: titulo, observacoes: null, tempos: {} }, exercicios: [] },
+    series_planejadas: blocosComResultado(blocos),
+    tempo_estimado_seg: null,
+    pausado_seg: 0,
+    checkin_pre: null,
+    checkin_pre_nota: null,
+    modo: "extra",
+    tempo_disponivel_min: null,
+    extra_id: null,
+    series_concluidas: 0,
+    feedback_percepcao: null,
+    feedback_comentario: null,
+    origem: "app",
+    modalidade: e.modalidade,
+    created_at: agora,
+    updated_at: agora,
+  };
+  return gravarSessaoNova(alunoId, clientKey, sessao, []);
+}

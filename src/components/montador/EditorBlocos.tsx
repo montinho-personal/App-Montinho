@@ -17,6 +17,8 @@ type Props = {
   itens: ItemBiblioteca[];
   favoritos: Set<string>;
   uso: Map<string, number>;
+  /** WOD livre do aluno / WOD do dia: sem bloco de Força (lá não há linhas de exercício embaixo). */
+  semForca?: boolean;
 };
 
 const BOTOES: Record<ModalidadeTreino, Array<{ tipo: TipoBloco; formato?: Formato; rotulo: string }>> = {
@@ -55,7 +57,7 @@ const FORMATOS_DO_TIPO: Partial<Record<TipoBloco, Formato[]>> = {
 const minutos = (seg: number | null | undefined) => (seg ? Math.round((seg / 60) * 10) / 10 : null);
 const campo = "h-9 rounded-md border border-border bg-bg px-2 text-sm";
 
-export function EditorBlocos({ modalidade, blocos, onChange, itens, favoritos, uso }: Props) {
+export function EditorBlocos({ modalidade, blocos, onChange, itens, favoritos, uso, semForca = false }: Props) {
   const idPorSlug = (slug: string) => itens.find((i) => i.slug === slug)?.id ?? null;
   const upd = (id: string, p: Partial<BlocoTreino>) => onChange(blocos.map((b) => (b.id === id ? { ...b, ...p } : b)));
   const mover = (id: string, dir: -1 | 1) => {
@@ -149,7 +151,7 @@ export function EditorBlocos({ modalidade, blocos, onChange, itens, favoritos, u
               ) : null}
 
               {b.tipo === "aquecimento" || b.tipo === "tecnica" || b.tipo === "volta_calma" || b.tipo === "metcon" || b.tipo === "circuito" ? (
-                <textarea value={b.texto ?? ""} onChange={(e) => upd(b.id, { texto: e.target.value.slice(0, 1500) })} rows={b.tipo === "metcon" || b.tipo === "circuito" ? 2 : 3} placeholder={b.tipo === "tecnica" ? "Ex.: Double Under, 10 min de prática com progressão" : b.tipo === "metcon" || b.tipo === "circuito" ? "Observações para o aluno (opcional)" : "O que fazer (texto livre)"} aria-label={`Descrição: ${info.nome}`} className="mt-2 w-full rounded-lg border border-border bg-bg p-2 text-sm" />
+                <textarea value={b.texto ?? ""} onChange={(e) => upd(b.id, { texto: e.target.value.slice(0, 1500) })} rows={b.tipo === "metcon" || b.tipo === "circuito" ? 2 : 3} placeholder={b.tipo === "tecnica" ? "Ex.: Double Under, 10 min de prática com progressão" : b.tipo === "metcon" || b.tipo === "circuito" ? (semForca ? "Observações (opcional)" : "Observações para o aluno (opcional)") : "O que fazer (texto livre)"} aria-label={`Descrição: ${info.nome}`} className="mt-2 w-full rounded-lg border border-border bg-bg p-2 text-sm" />
               ) : null}
 
               {temMovimentos ? (
@@ -191,7 +193,7 @@ export function EditorBlocos({ modalidade, blocos, onChange, itens, favoritos, u
       </ol>
 
       <div className="flex flex-wrap gap-1.5">
-        {BOTOES[modalidade].map((x) => (
+        {BOTOES[modalidade].filter((x) => !semForca || x.tipo !== "forca").map((x) => (
           <button key={x.rotulo} type="button" onClick={() => {
             const nb = novoBloco(x.tipo, blocos, x.formato);
             onChange([...blocos, x.tipo === "corrida" ? { ...nb, movimentos: [{ nome: "Corrida", distancia_m: 1000 }] } : x.tipo === "estacao" ? { ...nb, movimentos: [{ nome: "" }] } : nb]);

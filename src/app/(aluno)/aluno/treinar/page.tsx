@@ -62,6 +62,17 @@ export default async function TreinarPage() {
         </Link>
       ) : null}
 
+      {FEATURES.multimodalidade && !emAndamento && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null) ? (
+        <Link href="/aluno/wod/livre" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 hover:border-accent/60">
+          <span className="text-3xl" aria-hidden>📝</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">WOD livre</span>
+            <span className="block text-xs text-fg-muted">Fez um Cross Training, HYROX ou funcional fora da ficha? Monte e anote aqui.</span>
+          </span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
+
       {emAndamento ? (
         <div className="space-y-1">
         <Link href={hrefDaSessao(emAndamento)} className="block">

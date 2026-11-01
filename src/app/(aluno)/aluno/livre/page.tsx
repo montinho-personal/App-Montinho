@@ -12,6 +12,7 @@ import { ComecarLivre } from "./ComecarLivre";
 import { placarDoAluno } from "@/lib/data/livre-metas";
 import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 import { DiferencaLivre } from "@/components/livre-metas/DiferencaLivre";
+import { FEATURES } from "@/lib/env";
 
 export const metadata = { title: "Treino livre" };
 
@@ -50,6 +51,9 @@ export default async function ComecarLivrePage() {
         // Visitante depois dos 30 dias: o botão continua e abre o convite para o WhatsApp (TravaVisitante).
         <ComecarLivre />
       )}
+      {FEATURES.multimodalidade ? (
+        <Link href="/aluno/wod/livre" className="alvo block rounded-xl border border-border bg-card px-4 py-3 text-sm"><strong>📝 Foi Cross Training, HYROX ou funcional?</strong> <span className="text-fg-muted">Use o WOD livre: blocos, relógio e resultado.</span> <span className="text-accent">→</span></Link>
+      ) : null}
     </div>
   );
 }

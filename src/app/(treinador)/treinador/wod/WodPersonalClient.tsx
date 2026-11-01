@@ -24,7 +24,7 @@ export function WodPersonalClient({ hoje, wods, itens, rankingHoje }: { hoje: st
   const [titulo, setTitulo] = useState(doDia?.titulo ?? "");
   const [obs, setObs] = useState(doDia?.observacoes ?? "");
   const [modalidade, setModalidade] = useState<Modal>(doDia?.modalidade ?? "cross");
-  const [blocos, setBlocos] = useState<BlocoTreino[]>(doDia?.blocos ?? blocosIniciais("cross"));
+  const [blocos, setBlocos] = useState<BlocoTreino[]>(doDia?.blocos ?? blocosIniciais("cross").filter((b) => b.tipo !== "forca"));
   const [salvando, setSalvando] = useState(false);
   const toast = useToast();
   const router = useRouter();
@@ -35,7 +35,7 @@ export function WodPersonalClient({ hoje, wods, itens, rankingHoje }: { hoje: st
     setTitulo(w?.titulo ?? "");
     setObs(w?.observacoes ?? "");
     setModalidade(w?.modalidade ?? "cross");
-    setBlocos(w?.blocos ?? blocosIniciais("cross"));
+    setBlocos(w?.blocos ?? blocosIniciais("cross").filter((b) => b.tipo !== "forca"));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -62,12 +62,12 @@ export function WodPersonalClient({ hoje, wods, itens, rankingHoje }: { hoje: st
         <div className="grid gap-2 p-3 sm:grid-cols-[1fr_auto_auto]">
           <input value={titulo} onChange={(e) => setTitulo(e.target.value.slice(0, 80))} placeholder="Nome do WOD (ex.: Sexta de Fogo)" aria-label="Nome do WOD" className="h-11 rounded-lg border border-border bg-bg px-3 text-base font-bold" />
           <input type="date" value={data} onChange={(e) => setData(e.target.value)} aria-label="Dia" className="h-11 rounded-lg border border-border bg-bg px-3 text-sm" />
-          <select value={modalidade} onChange={(e) => { const m = e.target.value as Modal; setModalidade(m); if (!editando) setBlocos(blocosIniciais(m)); }} aria-label="Tipo" className="h-11 rounded-lg border border-border bg-bg px-2 text-sm">
+          <select value={modalidade} onChange={(e) => { const m = e.target.value as Modal; setModalidade(m); if (!editando) setBlocos(blocosIniciais(m).filter((b) => b.tipo !== "forca")); }} aria-label="Tipo" className="h-11 rounded-lg border border-border bg-bg px-2 text-sm">
             {MODAIS.map((m) => <option key={m} value={m}>{MODALIDADES_TREINO[m].emoji} {MODALIDADES_TREINO[m].nome}</option>)}
           </select>
           <textarea value={obs} onChange={(e) => setObs(e.target.value.slice(0, 500))} rows={2} placeholder="Recado para os alunos (opcional): ex.: escolha a carga que deixa terminar em 10 min" aria-label="Recado" className="rounded-lg border border-border bg-bg p-2 text-sm sm:col-span-3" />
         </div>
-        <EditorBlocos modalidade={modalidade} blocos={blocos} onChange={setBlocos} itens={itens} favoritos={new Set()} uso={new Map()} />
+        <EditorBlocos modalidade={modalidade} blocos={blocos} onChange={setBlocos} itens={itens} favoritos={new Set()} uso={new Map()} semForca />
         <div className="grid grid-cols-2 gap-2 p-3 pt-0">
           <button type="button" disabled={salvando} onClick={() => void salvar(true)} className="alvo col-span-2 rounded-xl bg-accent px-4 py-3 font-black text-bg disabled:opacity-60">{salvando ? "Salvando…" : editando?.publicado ? "💾 Salvar e manter publicado" : "📣 Publicar para os alunos"}</button>
           {editando?.publicado ? <button type="button" disabled={salvando} onClick={() => void salvar(false)} className="alvo rounded-xl border border-border px-4 py-3 text-sm font-semibold">Tirar do ar</button> : null}
