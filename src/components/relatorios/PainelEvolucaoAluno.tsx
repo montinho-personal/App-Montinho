@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { PainelEvolucao, Tom } from "@/lib/relatorios/painel-aluno";
 
 const COR_TOM: Record<Tom, string> = { alta: "text-success", baixa: "text-fg-subtle", igual: "text-fg-subtle", novo: "text-accent" };
-const COR_DESTAQUE = { ouro: "border-accent/60 bg-[linear-gradient(160deg,#2a2415_0%,#171717_80%)]", verde: "border-success/40 bg-card", neutro: "border-border bg-card" } as const;
+const COR_DESTAQUE = { ouro: "border-accent/60 bg-[linear-gradient(160deg,#2a2415_0%,#171717_80%)]", verde: "border-success/40 bg-card", neutro: "border-border bg-card", recuperar: "border-dashed border-warning/60 bg-card" } as const;
 
 export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior }: { p: PainelEvolucao; dias: number; periodos: readonly number[]; basePath: string; anterior: string }) {
   return (
@@ -47,7 +47,8 @@ export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior }: {
                 <p className="text-2xl" aria-hidden>{d.emoji}</p>
                 <div className="mt-2">
                   <p className="text-sm font-bold leading-snug">{d.titulo}</p>
-                  {d.valor ? <p className="mt-1 text-xl font-black text-accent tabular-nums">{d.valor}</p> : null}
+                  {d.tom === "recuperar" ? <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-warning">Bora recuperar</p> : null}
+                  {d.valor ? <p className={`mt-1 font-black tabular-nums ${d.tom === "recuperar" ? "text-base text-fg" : "text-xl text-accent"}`}>{d.valor}</p> : null}
                   <p className="mt-1 text-xs leading-snug text-fg-muted">{d.detalhe}</p>
                 </div>
               </li>

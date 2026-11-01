@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SessaoCompleta } from "@/lib/data/sessoes";
-import { cargasEmAlta } from "./cargas-em-alta";
+import { cargasEmAlta, cargasParaRecuperar } from "./cargas-em-alta";
 
 const AGORA = new Date("2026-10-19T12:00:00Z"); // segunda-feira
 
@@ -40,5 +40,19 @@ describe("cargas em alta", () => {
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ desde: "2026-09-01", ganhoKg: 20 });
     expect(cargasEmAlta([sessao(1, "A", [{ ex: "Leg press", carga: 120, reps: 10 }])])).toEqual([]);
+  });
+});
+
+describe("cargas para recuperar", () => {
+  it("lista quem ficou abaixo do melhor anterior, só se treinou nos últimos 30 dias", () => {
+    const sessoes = [
+      sessao(1, "A", [{ ex: "Supino reto", carga: 40, reps: 8 }, { ex: "Crucifixo", carga: 10, reps: 12 }]),
+      sessao(8, "A", [{ ex: "Supino reto", carga: 35, reps: 8 }, { ex: "Crucifixo", carga: 12, reps: 12 }]),
+      sessao(40, "B", [{ ex: "Stiff", carga: 50, reps: 10 }]),
+      sessao(50, "B", [{ ex: "Stiff", carga: 60, reps: 10 }]),
+    ];
+    const r = cargasParaRecuperar(sessoes, 3, 30, AGORA);
+    expect(r.map((x) => x.nome)).toEqual(["Crucifixo"]);
+    expect(r[0]).toMatchObject({ melhor: 12, ultima: 10, quedaKg: 2 });
   });
 });

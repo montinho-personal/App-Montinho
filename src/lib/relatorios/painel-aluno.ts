@@ -6,18 +6,20 @@
 // Só o que foi registrado; medidas com cor neutra (nada de “ideal”).
 // ============================================================================
 import type { SessaoMes } from "@/lib/visitante/evolucao";
-import type { CargaEmAlta } from "@/lib/relatorios/cargas-em-alta";
+import type { CargaEmAlta, CargaParaRecuperar } from "@/lib/relatorios/cargas-em-alta";
 import type { ItemInvisivel } from "@/lib/relatorios/invisivel";
 
 export type Tom = "alta" | "baixa" | "igual" | "novo";
 export type Numero = { valor: string; rotulo: string; delta: { texto: string; tom: Tom } | null };
-export type Destaque = { id: string; emoji: string; titulo: string; valor: string; detalhe: string; tom: "ouro" | "verde" | "neutro" };
+export type Destaque = { id: string; emoji: string; titulo: string; valor: string; detalhe: string; tom: "ouro" | "verde" | "neutro" | "recuperar" };
 export type PainelEvolucao = { emoji: string; manchete: string; sub: string; numeros: Numero[]; destaques: Destaque[] };
 
 export type EntradaPainel = {
   sessoes: SessaoMes[];
   dias: number;
   emAlta: CargaEmAlta[];
+  /** Exercícios abaixo do melhor (vão por último nos destaques, como convite). */
+  paraRecuperar?: CargaParaRecuperar[];
   invisivel: ItemInvisivel[];
   medidas: Array<{ data: string; peso_kg: number | null; cintura_cm: number | null }>;
   /** Semanas seguidas com a meta cumprida. */
@@ -105,6 +107,10 @@ export function painelEvolucao(e: EntradaPainel): PainelEvolucao {
   }
   for (const i of e.invisivel.filter((x) => x.tipo !== "frequencia").slice(0, 2)) {
     destaques.push({ id: `inv:${i.tipo}`, emoji: "✨", titulo: i.titulo, valor: "", detalhe: i.dado, tom: "verde" });
+  }
+  // Por último: onde dá para recuperar (convite, nunca bronca).
+  for (const r of (e.paraRecuperar ?? []).slice(0, 3)) {
+    destaques.push({ id: `recuperar:${r.chave}`, emoji: "🎯", titulo: r.nome, valor: `${fmt(r.ultima)} kg · seu melhor: ${fmt(r.melhor)} kg`, detalhe: `Faltam ${fmt(r.quedaKg)} kg para voltar ao seu melhor (${ddmm(r.melhorEm)}).`, tom: "recuperar" });
   }
 
   // Manchete: a melhor notícia verdadeira.

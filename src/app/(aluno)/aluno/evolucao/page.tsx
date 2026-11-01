@@ -30,7 +30,7 @@ import { painelEvolucao } from "@/lib/relatorios/painel-aluno";
 import { exerciciosComCarga, totaisPorTreino } from "@/lib/relatorios/graficos-aluno";
 import { evolucaoExercicio } from "@/lib/relatorios/calcular";
 import { GraficosEvolucao, type PontoExercicio } from "@/components/relatorios/GraficosEvolucao";
-import { cargasEmAlta } from "@/lib/relatorios/cargas-em-alta";
+import { cargasEmAlta, cargasParaRecuperar } from "@/lib/relatorios/cargas-em-alta";
 import { evolucaoInvisivel } from "@/lib/relatorios/invisivel";
 import { sessaoParaConquista } from "@/lib/conquistas/mapear";
 import { dataBR } from "@/lib/format";
@@ -63,7 +63,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   const hoje = dataLocal(new Date());
   const inicio = aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null;
   const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje, inicioAcompanhamento: inicio ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hoje });
-  const painel = painelEvolucao({ sessoes, dias, emAlta: cargasEmAlta(sessoes, historicoResumo, 3), invisivel, medidas: evolucao, sequencia: aderencia?.sequencia.atual ?? 0 });
+  const painel = painelEvolucao({ sessoes, dias, emAlta: cargasEmAlta(sessoes, historicoResumo, 3), paraRecuperar: cargasParaRecuperar(sessoes, 3), invisivel, medidas: evolucao, sequencia: aderencia?.sequencia.atual ?? 0 });
 
   // Gráficos fáceis (antes do relatório completo): treino a treino, exercício a exercício e peso.
   const exerciciosGrafico = exerciciosComCarga(sessoes).slice(0, 25);
