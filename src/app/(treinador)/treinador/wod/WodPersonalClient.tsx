@@ -68,8 +68,8 @@ export function WodPersonalClient({ hoje, wods, itens, rankingHoje }: { hoje: st
           <textarea value={obs} onChange={(e) => setObs(e.target.value.slice(0, 500))} rows={2} placeholder="Recado para os alunos (opcional): ex.: escolha a carga que deixa terminar em 10 min" aria-label="Recado" className="rounded-lg border border-border bg-bg p-2 text-sm sm:col-span-3" />
         </div>
         <EditorBlocos modalidade={modalidade} blocos={blocos} onChange={setBlocos} itens={itens} favoritos={new Set()} uso={new Map()} />
-        <div className="flex flex-wrap gap-2 p-3 pt-0">
-          <button type="button" disabled={salvando} onClick={() => void salvar(true)} className="alvo flex-1 rounded-xl bg-accent px-4 py-3 font-black text-bg disabled:opacity-60">{salvando ? "Salvando…" : editando?.publicado ? "💾 Salvar e manter publicado" : "📣 Publicar para os alunos"}</button>
+        <div className="grid grid-cols-2 gap-2 p-3 pt-0">
+          <button type="button" disabled={salvando} onClick={() => void salvar(true)} className="alvo col-span-2 rounded-xl bg-accent px-4 py-3 font-black text-bg disabled:opacity-60">{salvando ? "Salvando…" : editando?.publicado ? "💾 Salvar e manter publicado" : "📣 Publicar para os alunos"}</button>
           {editando?.publicado ? <button type="button" disabled={salvando} onClick={() => void salvar(false)} className="alvo rounded-xl border border-border px-4 py-3 text-sm font-semibold">Tirar do ar</button> : null}
           {editando ? <button type="button" onClick={() => abrir(null)} className="alvo rounded-xl border border-border px-4 py-3 text-sm font-semibold">＋ Novo WOD</button> : null}
         </div>
