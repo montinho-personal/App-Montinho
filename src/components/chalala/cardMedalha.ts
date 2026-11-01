@@ -4,6 +4,7 @@
 import type { CardMedalha } from "@/lib/conquistas/compartilhavel";
 import { LOGO_STORY } from "@/lib/desbloqueia/card";
 import { carregarSvg, familiaFonte, paraBlob } from "./desenhar";
+import { gerarCardPasseiMontinho } from "./cardPasseiMontinho";
 
 const W = 1080;
 const H = 1920;
@@ -48,6 +49,7 @@ function bloco(ctx: CanvasRenderingContext2D, texto: string, y: number, o: { tam
 }
 
 export async function gerarImagemMedalha(card: CardMedalha): Promise<File> {
+  if (card.modelo === "passei_montinho") return gerarCardPasseiMontinho(card);
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;

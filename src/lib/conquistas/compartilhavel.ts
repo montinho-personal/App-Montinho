@@ -237,7 +237,7 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
   }
 }
 
-export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string; /** Troféu lendário (Guerreiro): visual de fogo. */ lendaria?: boolean; /** Linha de cima no lugar de “NOVA MEDALHA” (ex.: recorde). */ chamada?: string; /** Frase sem aspas (ex.: nome do exercício). */ semAspas?: boolean };
+export type CardMedalha = { selo: string; titulo: string; destaque: string | null; frase: string; porque: string; nome: string; data: string; legenda: string; /** Troféu lendário (Guerreiro): visual de fogo. */ lendaria?: boolean; /** Linha de cima no lugar de “NOVA MEDALHA” (ex.: recorde). */ chamada?: string; /** Frase sem aspas (ex.: nome do exercício). */ semAspas?: boolean; /** Card de desenho próprio (“Passei o Montinho”). */ modelo?: "passei_montinho"; /** Placar de troféus do card “Passei o Montinho” (quando a tela sabe). */ placar?: { eu: number; montinho: number } };
 
 const SELO_EXTRA: Record<string, string> = { recorde: "★", eu_voltei: "↺" };
 export const seloDaConquista = (codigo: string) => ORDEM.find((o) => o.codigo === codigo)?.selo ?? SELO_EXTRA[codigo] ?? "★";
@@ -259,5 +259,6 @@ export function cardDaMedalha(c: { codigo: string; titulo?: string | null; descr
     data: dataBR,
     legenda: `${t.frase} ${LENDARIAS.has(c.codigo) ? "🏆" : "🏅"} ${titulo} — treinando com @montinho_personal`,
     lendaria: LENDARIAS.has(c.codigo),
+    ...(c.codigo === "passou_montinho" ? { modelo: "passei_montinho" as const, legenda: "PASSEI O MONTINHO! 👑 Meu personal treina pelo app também e ficou para trás 😎 Duvido você passar ele — @montinho_personal" } : {}),
   };
 }

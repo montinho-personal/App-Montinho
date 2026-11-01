@@ -36,7 +36,7 @@ export function MontinhoNoRanking({ dados, meusTrofeus, minhaPosicao, nome, visi
   async function compartilhar() {
     const titulo = frente ? "PASSEI O MONTINHO!" : "META: PASSAR O MONTINHO";
     const destaque = frente ? `${meusTrofeus} troféus × ${dados.trofeus} do Montinho` : `Faltam ${Math.max(1, -(dif ?? 0) + 1)} troféus para eu passar o Montinho`;
-    const card = { selo: frente ? "👑" : "🎯", titulo, destaque, frase: frente ? "Estou na frente do meu personal no ranking!" : "Ele treina pelo app também. Vou passar ele!", porque: "Ranking de troféus do app — Montinho Personal Trainer.", nome: nome.split(" ")[0] ?? "", data: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }), legenda: `${titulo} 🏆 — @montinho_personal` };
+    const card = { selo: frente ? "👑" : "🎯", titulo, destaque, frase: frente ? "Estou na frente do meu personal no ranking!" : "Ele treina pelo app também. Vou passar ele!", porque: "Ranking de troféus do app — Montinho Personal Trainer.", nome: nome.split(" ")[0] ?? "", data: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }), legenda: frente ? "PASSEI O MONTINHO! 👑 Meu personal treina pelo app também e ficou para trás 😎 Duvido você passar ele — @montinho_personal" : `${titulo} 🏆 — @montinho_personal`, ...(frente && meusTrofeus != null ? { modelo: "passei_montinho" as const, placar: { eu: meusTrofeus, montinho: dados.trofeus } } : {}) };
     let r: ResultadoCompartilhar;
     try {
       r = await compartilharArquivo(navigator, await gerarImagemMedalha(card), card.legenda, baixar);
