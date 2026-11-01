@@ -2,7 +2,7 @@
 // Conquistas vêm dos registros reais; a mensagem é escrita pelo personal.
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { listAlunos } from "@/lib/db";
-import { listarConquistas, listarEventos, listarReconhecimentos } from "@/lib/data/conquistas";
+import { datasDasConquistas, listarConquistas, listarEventos, listarReconhecimentos } from "@/lib/data/conquistas";
 import { agregarChalalaTreino, agregarEventos } from "@/lib/chalala/metricas";
 import { getConfigChalala, metricasPush } from "@/lib/data/notificacoes";
 import { PainelChalalaCelular } from "./PainelChalalaCelular";
@@ -37,6 +37,8 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
   const nomes = Object.fromEntries(alunos.map((a) => [a.id, a.profile?.nome ?? "Aluno"]));
   const telefones = Object.fromEntries(alunos.map((a) => [a.id, a.telefone ?? null]));
   const conquistas = conquistasTodas.filter((c) => c.aluno_id in nomes);
+  // Gráfico por semana/quinzena/mês: 12 meses de histórico, sem visitantes (mesma regra da lista).
+  const historico = (await datasDasConquistas(new Date(new Date().getTime() - 380 * 86_400_000).toISOString()).catch(() => [])).filter((c) => c.alunoId in nomes);
   const ativos = alunos.filter((a) => a.status === "ativo");
   const ader = ativos.length ? await aderenciaDeTodos(ativos) : {};
   const semanasTurma = Object.values(ader).map((r) => r.semanas);
@@ -82,6 +84,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
         alunos={alunos.filter((a) => a.status !== "arquivado").map((a) => ({ id: a.id, nome: nomes[a.id] }))}
         conquistas={[...avisosTopo, ...conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", telefone: telefones[c.aluno_id] ?? null, codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id), dispensada: dispensadas.has(c.id) }))]}
         resultados={resultados}
+        historico={historico}
         enviados={reconhecimentos.slice(0, 20).map((r) => ({ id: r.id, aluno: nomes[r.aluno_id] ?? "Aluno", mensagem: r.mensagem, data: r.created_at }))}
         metricas={agregarEventos(eventos)}
       />

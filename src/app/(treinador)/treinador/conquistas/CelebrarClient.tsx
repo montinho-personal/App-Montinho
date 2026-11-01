@@ -11,6 +11,7 @@ import { ROTULO_MODELO, FORMATOS, type ModeloId, type Formato } from "@/lib/chal
 import { CATEGORIA_EMOJI, type Categoria } from "@/lib/conquistas/conteudo";
 import { TIPOS_CELEBRAR, antigasParaDispensar, filtrarParaCelebrar, mensagemWhatsConquista, ordenarParaCelebrar, resumoCelebrar, type Situacao } from "@/lib/conquistas/celebrar";
 import { linkWhatsApp } from "@/lib/acesso/mensagem";
+import { GraficoConquistas } from "@/components/conquistas/GraficoConquistas";
 
 const EditorCard = dynamic(() => import("@/components/chalala/EditorCard"), { ssr: false });
 
@@ -31,7 +32,8 @@ const chip = (ativo: boolean) =>
   `inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition-colors ${ativo ? "border-accent bg-accent-soft text-fg" : "border-border bg-card text-fg-muted hover:border-border-strong"}`;
 const emoji = (c: Conquista) => (c.codigo === "recorde" ? "🏆" : (CATEGORIA_EMOJI[c.categoria as Categoria] ?? "🏅"));
 
-export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial = "", alunos, conquistas, enviados, metricas, resultados }: { dias: number; autor: string; alunoInicial?: string; mensagemInicial?: string; alunos: Array<{ id: string; nome: string }>; conquistas: Conquista[]; enviados: Array<{ id: string; aluno: string; mensagem: string; data: string }>; metricas: MetricasChalala; resultados: Resultados }) {
+export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial = "", alunos, conquistas, enviados, metricas, resultados, historico = [] }: { dias: number; autor: string; alunoInicial?: string; mensagemInicial?: string; alunos: Array<{ id: string; nome: string }>; conquistas: Conquista[]; enviados: Array<{ id: string; aluno: string; mensagem: string; data: string }>; metricas: MetricasChalala; resultados: Resultados; historico?: Array<{ alunoId: string; em: string }> }) {
+  const [grafico, setGrafico] = useState(false);
   const router = useRouter();
   const toast = useToast();
   const [filtro, setFiltro] = useState("");
@@ -109,11 +111,14 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   return (
     <div className="space-y-5">
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Resumo">
-        <Numero valor={resumo.total} rotulo={resumo.total === 1 ? "conquista no período" : "conquistas no período"} />
+        <button type="button" onClick={() => setGrafico((g) => !g)} aria-expanded={grafico} className="text-left">
+          <Numero valor={resumo.total} rotulo={`${resumo.total === 1 ? "conquista no período" : "conquistas no período"} · ${grafico ? "fechar ▴" : "📈 ver gráfico"}`} destaqueAcao />
+        </button>
         <Numero valor={resumo.alunos} rotulo={resumo.alunos === 1 ? "aluno ganhou" : "alunos ganharam"} />
         <Numero valor={resumo.celebradas} rotulo="✓ já celebradas" />
         <Numero valor={resumo.falta} rotulo="🎯 falta celebrar" destaque={resumo.falta > 0} />
       </dl>
+      {grafico ? <GraficoConquistas historico={historico} /> : null}
 
       <section className="space-y-3" aria-label="Filtros">
         <div>
@@ -393,9 +398,9 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   );
 }
 
-function Numero({ valor, rotulo, destaque }: { valor: number; rotulo: string; destaque?: boolean }) {
+function Numero({ valor, rotulo, destaque, destaqueAcao }: { valor: number; rotulo: string; destaque?: boolean; destaqueAcao?: boolean }) {
   return (
-    <div className={`flex flex-col rounded-xl border bg-card px-3 py-2.5 ${destaque ? "border-warning/50" : "border-border"}`}>
+    <div className={`flex h-full flex-col rounded-xl border bg-card px-3 py-2.5 ${destaque ? "border-warning/50" : destaqueAcao ? "border-accent/60" : "border-border"}`}>
       <dt className="order-2 text-[11px] font-semibold leading-tight text-fg-muted">{rotulo}</dt>
       <dd className={`order-1 font-mono text-2xl font-bold leading-tight ${destaque ? "text-warning" : ""}`}>{valor}</dd>
     </div>

@@ -89,6 +89,33 @@ export async function listarConquistas(alunoId: string | null, opts: { desde?: s
 }
 
 /**
+ * Datas das conquistas da turma (gráfico do Celebrar, 01/11/2026): só aluno e
+ * data, em páginas de 1.000 (limite do banco), desde `desde`.
+ */
+export async function datasDasConquistas(desde: string): Promise<Array<{ alunoId: string; em: string }>> {
+  if (isDemoMode()) {
+    // Demonstração: histórico fictício de 12 meses, crescendo aos poucos.
+    const out: Array<{ alunoId: string; em: string }> = [];
+    const ids = ["aline", "joao", "x-1", "x-2", "x-3", "x-4"];
+    const hoje = Date.now();
+    for (let d = 364; d >= 0; d--) {
+      const n = Math.round(((365 - d) / 365) * 3 + ((d * 7) % 5 === 0 ? 2 : 0) + ((d * 13) % 3));
+      for (let k = 0; k < n; k++) out.push({ alunoId: ids[(d + k) % ids.length], em: new Date(hoje - d * 86_400_000 - k * 3_600_000).toISOString() });
+    }
+    return out.filter((x) => x.em >= desde);
+  }
+  const db = await getDb();
+  const out: Array<{ alunoId: string; em: string }> = [];
+  for (let de = 0; de < 50_000; de += 1000) {
+    const { data, error } = await db.from("conquistas_aluno").select("aluno_id, conquistado_em").gte("conquistado_em", desde).order("conquistado_em", { ascending: true }).range(de, de + 999);
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as Array<{ aluno_id: string; conquistado_em: string }>) out.push({ alunoId: r.aluno_id, em: r.conquistado_em });
+    if ((data ?? []).length < 1000) break;
+  }
+  return out;
+}
+
+/**
  * Recalcula as conquistas sustentadas pelos dados e grava as que faltam.
  * Pode ser chamada quantas vezes for: nunca duplica.
  */
