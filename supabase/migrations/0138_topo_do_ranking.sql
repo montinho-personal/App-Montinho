@@ -14,6 +14,11 @@
 --   • registrar_topo_ranking() (qualquer login, ao abrir o Ranking) e
 --     registrar_topo_ranking_agendador(p_chave) (cron api/cron/lembretes, a
 --     cada 5 min): anotam o líder de hoje e concedem os troféus dos dias seguidos.
+--   • Lembretes no celular (canal dos desafios, 1 por dia): quem assume o
+--     topo é avisado na hora (“segure por 5 dias e ganhe…”); quem está no topo
+--     recebe ao meio-dia quanto falta para o próximo troféu (“amanhã tem
+--     troféu”, “conquistado!”); quem perde o topo recebe o convite para
+--     recuperar.
 --   • Os troféus do topo ficam FORA da contagem do ranking (senão o líder ganharia
 --     troféu por ser líder e ninguém mais alcançaria): ranking_trofeus_v2/v3 e
 --     montinho_no_ranking recriadas com a lista nova (espelho FORA_DO_RANKING
@@ -65,12 +70,22 @@ create or replace function public.registrar_topo_ranking_interno()
 returns void language plpgsql security definer set search_path = public as $$
 declare
   hoje date := (now() at time zone 'America/Sao_Paulo')::date;
+  agora_sp timestamp := now() at time zone 'America/Sao_Paulo';
   lider uuid := public.ranking_lider_publico();
+  antes uuid;
   inicio date;
   dias int;
   marco record;
+  prox record;
+  v_prof uuid;
+  v_titulo text;
+  v_corpo text;
+  v_quando timestamptz;
 begin
   if lider is null then return; end if;
+  -- Quem estava no topo antes desta conferência (hoje mais cedo, senão ontem).
+  select aluno_id into antes from ranking_topo where dia = hoje;
+  if antes is null then select aluno_id into antes from ranking_topo where dia = hoje - 1; end if;
   insert into ranking_topo (dia, aluno_id, atualizado_em) values (hoje, lider, now())
     on conflict (dia) do update set aluno_id = excluded.aluno_id, atualizado_em = now();
   -- Dias seguidos no topo terminando hoje.
@@ -90,6 +105,49 @@ begin
       on conflict (aluno_id, codigo, referencia) do nothing;
     end if;
   end loop;
+
+  -- Lembretes no celular para quem está no topo (canal dos desafios, 0095:
+  -- respeita “motivacionais”, silêncio e a chave geral). 1 por dia: no dia em
+  -- que assume sai na hora; nos outros, ao meio-dia. Textos espelhados em
+  -- src/lib/conquistas/topo-ranking.ts (lembreteDoTopo).
+  select a.profile_id into v_prof from alunos a where a.id = lider;
+  select * into prox from (values (5, 'Topo Firme'), (10, 'Topo Inabalável'), (30, 'Lenda do Topo')) v(n, titulo)
+   where v.n > dias and not exists (select 1 from conquistas_aluno c where c.aluno_id = lider and c.codigo = 'topo_' || v.n || '_dias')
+   order by v.n limit 1;
+  if dias = 1 then
+    v_titulo := '👑 Você assumiu o 1º lugar do ranking!';
+    v_corpo := case when prox.n is not null then 'Segure o topo por ' || prox.n || ' dias seguidos e ganhe o troféu ' || prox.titulo || '. Cada treino conta!' else 'Você está no topo de novo. Bora segurar!' end;
+  elsif dias in (5, 10, 30) then
+    v_titulo := '🏆 ' || case dias when 5 then 'Topo Firme' when 10 then 'Topo Inabalável' else 'Lenda do Topo' end || ' conquistado!';
+    v_corpo := dias || ' dias seguidos em 1º lugar. ' || case when prox.n is not null then 'Próximo: ' || prox.titulo || ' com ' || prox.n || ' dias.' else 'Você é lenda. Siga inspirando a galera!' end;
+  elsif prox.n is not null and prox.n - dias = 1 then
+    v_titulo := '🔥 Amanhã tem troféu: ' || prox.titulo;
+    v_corpo := 'Você está há ' || dias || ' dias em 1º lugar. Segure o topo até amanhã e o troféu é seu!';
+  elsif prox.n is not null then
+    v_titulo := '👑 Dia ' || dias || ' no topo do ranking';
+    v_corpo := 'Faltam ' || (prox.n - dias) || ' dias para o troféu ' || prox.titulo || '. Treine hoje para não perder a posição!';
+  elsif dias % 7 = 0 then
+    v_titulo := '👑 ' || dias || ' dias no topo!';
+    v_corpo := 'Você segue em 1º lugar. A galera está de olho: bora manter!';
+  end if;
+  if v_prof is not null and v_titulo is not null then
+    v_quando := case when dias = 1 or agora_sp::time >= time '12:00' then now() else (hoje + time '12:00') at time zone 'America/Sao_Paulo' end;
+    insert into notificacoes_envios (profile_id, categoria, dedupe, agendada_para, expira_em, dados)
+    values (v_prof, 'desafio', left('topo:' || lider || ':' || hoje, 120), v_quando, (hoje + time '21:30') at time zone 'America/Sao_Paulo',
+            jsonb_build_object('titulo', left(v_titulo, 120), 'corpo', left(v_corpo, 300), 'url', '/aluno/ranking'))
+    on conflict (dedupe) do nothing;
+  end if;
+
+  -- Quem perdeu o topo recebe o convite para recuperar (1 por dia).
+  if antes is not null and antes <> lider then
+    select a.profile_id into v_prof from alunos a where a.id = antes and a.status = 'ativo';
+    if v_prof is not null then
+      insert into notificacoes_envios (profile_id, categoria, dedupe, agendada_para, expira_em, dados)
+      values (v_prof, 'desafio', left('topo-perdeu:' || antes || ':' || hoje, 120), now(), (hoje + time '21:30') at time zone 'America/Sao_Paulo',
+              jsonb_build_object('titulo', 'Alguém passou você no ranking 😮', 'corpo', 'Você saiu do 1º lugar, mas a diferença é pequena. Bora recuperar o topo?', 'url', '/aluno/ranking'))
+      on conflict (dedupe) do nothing;
+    end if;
+  end if;
 end;
 $$;
 revoke all on function public.registrar_topo_ranking_interno() from public, anon, authenticated;

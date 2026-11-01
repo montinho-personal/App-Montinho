@@ -28,3 +28,20 @@ describe("Topo do Ranking", () => {
     expect(proximoDoTopo(7, new Set(["topo_5_dias"]))).toEqual({ titulo: "Topo Inabalável", faltam: 3 });
   });
 });
+
+import { lembreteDoTopo } from "./topo-ranking";
+describe("lembretes de quem está no topo", () => {
+  it("assumiu, contagem, véspera do troféu, conquistado e depois de tudo", () => {
+    expect(lembreteDoTopo(1, new Set())?.titulo).toBe("👑 Você assumiu o 1º lugar do ranking!");
+    expect(lembreteDoTopo(1, new Set())?.corpo).toContain("5 dias seguidos e ganhe o troféu Topo Firme");
+    expect(lembreteDoTopo(2, new Set())).toEqual({ titulo: "👑 Dia 2 no topo do ranking", corpo: "Faltam 3 dias para o troféu Topo Firme. Treine hoje para não perder a posição!" });
+    expect(lembreteDoTopo(4, new Set())?.titulo).toBe("🔥 Amanhã tem troféu: Topo Firme");
+    expect(lembreteDoTopo(5, new Set(["topo_5_dias"]))?.titulo).toBe("🏆 Topo Firme conquistado!");
+    expect(lembreteDoTopo(5, new Set(["topo_5_dias"]))?.corpo).toContain("Próximo: Topo Inabalável com 10 dias.");
+    // Já tinha o Topo Firme de antes: a nova sequência mira o próximo que falta.
+    expect(lembreteDoTopo(2, new Set(["topo_5_dias"]))?.corpo).toContain("Faltam 8 dias para o troféu Topo Inabalável");
+    const todos = new Set(["topo_5_dias", "topo_10_dias", "topo_30_dias"]);
+    expect(lembreteDoTopo(33, todos)).toBeNull();
+    expect(lembreteDoTopo(35, todos)?.titulo).toBe("👑 35 dias no topo!");
+  });
+});

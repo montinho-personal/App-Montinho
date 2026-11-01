@@ -75,6 +75,8 @@ import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
 import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
 import { MissaoDeHoje } from "@/components/inicio/MissaoDeHoje";
 import { AvisoInstalar } from "@/components/instalar/AvisoInstalar";
+import { TopoDoRanking } from "@/components/ranking/TopoDoRanking";
+import { topoHoje } from "@/lib/data/topo-ranking";
 import { missaoDeHoje } from "@/lib/inicio/missao";
 import { ehDeHoje } from "@/lib/conquistas/ao-alcance";
 import { destaqueFeriado } from "@/lib/conquistas/feriados";
@@ -152,6 +154,9 @@ export default async function AlunoHomePage() {
   const livreMetas = placarSemana?.origem === "livre_metas" ? placarSemana : null;
   // Indicação premiada (0102): desconto de quem indicou amigos que fecharam.
   const indicacao = sessao.comoPersonal ? null : await minhaIndicacao(alunoId).catch(() => null);
+  // Topo do Ranking (0138): quem está em 1º vê quantos dias e quanto falta para o próximo troféu.
+  const topo = sessao.comoPersonal ? null : await topoHoje().catch(() => null);
+  const meuTopo = topo && topo.alunoId === alunoId ? topo.dias : null;
   // Treino de hoje já feito: o Início comemora (e destaca o cardio, se faltar).
   const hojeSP = dataLocal(new Date());
   const treinoDeHoje = sessoes.filter((s) => dataLocal(s.iniciado_em) === hojeSP && contaCarimbo(s)).at(-1) ?? null;
@@ -220,6 +225,8 @@ export default async function AlunoHomePage() {
       {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
+
+      {meuTopo ? <TopoDoRanking modo="aluno" dias={meuTopo} ganhos={new Set(conquistas.map((c) => c.codigo as string))} link /> : null}
 
       {/* 1. Sessão em andamento, dia concluído ou próximo treino — CTA prioritário */}
       {estadoDia !== "a_fazer" && treinoDeHoje ? (

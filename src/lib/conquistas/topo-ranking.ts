@@ -60,3 +60,20 @@ export function proximoDoTopo(diasSeguidos: number, ganhos: ReadonlySet<string>)
   const m = MARCOS_TOPO.find((x) => !ganhos.has(x.codigo) && x.dias > diasSeguidos);
   return m ? { titulo: m.titulo, faltam: m.dias - diasSeguidos } : null;
 }
+
+/**
+ * O recado do dia para quem está no topo (o MESMO texto do aviso no celular
+ * que o banco agenda em registrar_topo_ranking_interno, 0138). null = sem
+ * recado hoje (depois de todos os troféus, só a cada 7 dias).
+ */
+export function lembreteDoTopo(dias: number, ganhos: ReadonlySet<string>): { titulo: string; corpo: string } | null {
+  if (dias < 1) return null;
+  const prox = MARCOS_TOPO.find((m) => m.dias > dias && !ganhos.has(m.codigo)) ?? null;
+  const agora = MARCOS_TOPO.find((m) => m.dias === dias);
+  if (dias === 1) return { titulo: "👑 Você assumiu o 1º lugar do ranking!", corpo: prox ? `Segure o topo por ${prox.dias} dias seguidos e ganhe o troféu ${prox.titulo}. Cada treino conta!` : "Você está no topo de novo. Bora segurar!" };
+  if (agora) return { titulo: `🏆 ${agora.titulo} conquistado!`, corpo: `${dias} dias seguidos em 1º lugar. ${prox ? `Próximo: ${prox.titulo} com ${prox.dias} dias.` : "Você é lenda. Siga inspirando a galera!"}` };
+  if (prox && prox.dias - dias === 1) return { titulo: `🔥 Amanhã tem troféu: ${prox.titulo}`, corpo: `Você está há ${dias} dias em 1º lugar. Segure o topo até amanhã e o troféu é seu!` };
+  if (prox) return { titulo: `👑 Dia ${dias} no topo do ranking`, corpo: `Faltam ${prox.dias - dias} dias para o troféu ${prox.titulo}. Treine hoje para não perder a posição!` };
+  if (dias % 7 === 0) return { titulo: `👑 ${dias} dias no topo!`, corpo: "Você segue em 1º lugar. A galera está de olho: bora manter!" };
+  return null;
+}

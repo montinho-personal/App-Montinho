@@ -2666,6 +2666,7 @@ begin
   select aluno_id into l from ranking_topo where dia = (now() at time zone 'America/Sao_Paulo')::date;
   if l is null then raise exception 'T88a: líder de hoje não foi anotado'; end if;
   if exists (select 1 from conquistas_aluno where codigo like 'topo_%') then raise exception 'T88b: chegar ao topo não deveria dar troféu'; end if;
+  if not exists (select 1 from notificacoes_envios where dedupe like 'topo:' || l || ':%') then raise exception 'T88c: quem assumiu o topo não recebeu o aviso'; end if;
 end $$;
 select test_logout();
 -- 4 dias anteriores com o mesmo líder → 5 seguidos = Topo Firme
