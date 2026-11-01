@@ -5,9 +5,13 @@
 export type ConquistaCelebrar = { id: string; alunoId: string; codigo: string; categoria: string; titulo: string; data: string; reconhecida: boolean; dispensada?: boolean };
 
 /** Filtros por tipo de conquista (o personal vê o que importa celebrar). */
+/** Aviso “chegou ao 1º lugar do ranking” (não é troféu: só aparece aqui para o personal parabenizar). */
+export const AVISO_TOPO = "aviso_topo";
+
 export const TIPOS_CELEBRAR: Array<{ v: string; l: string; ok: (c: Pick<ConquistaCelebrar, "codigo" | "categoria">) => boolean }> = [
   { v: "", l: "Todos os tipos", ok: () => true },
-  { v: "medalhas", l: "Novas medalhas", ok: (c) => c.codigo !== "recorde" && c.codigo !== "eu_voltei" },
+  { v: "medalhas", l: "Novas medalhas", ok: (c) => c.codigo !== "recorde" && c.codigo !== "eu_voltei" && c.codigo !== AVISO_TOPO },
+  { v: "topo", l: "👑 1º lugar no ranking", ok: (c) => c.codigo === AVISO_TOPO || c.categoria === "ranking" },
   { v: "metas", l: "Metas e constância", ok: (c) => c.categoria === "constancia" },
   { v: "retornos", l: "Retornos após pausa", ok: (c) => c.categoria === "retomada" },
   { v: "marcos", l: "Marcos de acompanhamento", ok: (c) => ["acompanhamento", "pratica", "comeco"].includes(c.categoria) },
@@ -50,6 +54,7 @@ export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nom
 /** Mensagem pronta do WhatsApp: chama pelo primeiro nome e cita o troféu. */
 export function mensagemWhatsConquista(nome: string, titulo: string, codigo?: string): string {
   const n = primeiroNome(nome);
+  if (codigo === AVISO_TOPO) return `Fala, ${n}! Vi no app que você chegou ao 1º LUGAR do ranking de troféus! 👑 Parabéns!\n\nIsso é resultado da constância, ${n}. Agora é segurar o topo: 5 dias seguidos lá em cima valem o troféu Topo Firme! 💪`;
   const o = codigo === "recorde" ? `o recorde pessoal (${titulo})` : `o troféu “${titulo}”`;
   return `Fala, ${n}! Vi no app que saiu ${o}. Parabéns! 🏆\n\nIsso é resultado da constância, ${n}. Bora para o próximo! 💪`;
 }

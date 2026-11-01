@@ -1045,8 +1045,10 @@ export const mobilidadePrescreverSchema = z
   .strict();
 export const dispensarConquistasSchema = z
   .object({
-    itens: z.array(z.object({ aluno_id: z.string().min(1).max(64), conquista_id: z.string().min(1).max(64) }).strict()).min(1).max(300),
+    itens: z.array(z.object({ aluno_id: z.string().min(1).max(64), conquista_id: z.string().min(1).max(80) }).strict()).min(1).max(300),
     desfazer: z.boolean().optional(),
+    /** Aviso do 1º lugar do ranking (id “topo:…”) celebrado no app. */
+    celebrado: z.boolean().optional(),
   })
   .strict();
 export const mobilidadeConcluirSchema = z.object({ nota_depois: z.number().int().min(0).max(10).nullable().optional(), feitos: z.number().int().min(0).max(50).nullable().optional() }).strict();

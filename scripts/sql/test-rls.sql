@@ -2656,21 +2656,16 @@ end $$;
 select test_logout();
 \echo 'T87 OK: modalidades de interesse'
 
--- T88 — 0138: Topo do Ranking — líder do dia anotado, troféus concedidos e fora da contagem
+-- T88 — 0138: Topo do Ranking — líder do dia anotado; chegar ao topo NÃO dá troféu; 5 dias seguidos dão, fora da contagem
 select test_login('11111111-1111-1111-1111-111111111111');
 do $$
-declare l uuid; antes int; depois int;
+declare l uuid;
 begin
   update alunos set ranking_visivel = true where status = 'ativo';
   perform public.registrar_topo_ranking();
   select aluno_id into l from ranking_topo where dia = (now() at time zone 'America/Sao_Paulo')::date;
   if l is null then raise exception 'T88a: líder de hoje não foi anotado'; end if;
-  if not exists (select 1 from conquistas_aluno where aluno_id = l and codigo = 'topo_ranking') then raise exception 'T88b: Topo do Ranking não foi concedido'; end if;
-  select coalesce(max(trofeus) filter (where ref = l), 0) into antes from public.ranking_trofeus_v3();
-  perform public.registrar_topo_ranking();
-  if (select count(*) from conquistas_aluno where aluno_id = l and codigo = 'topo_ranking') <> 1 then raise exception 'T88c: repetiu o troféu na mesma sequência'; end if;
-  select coalesce(max(trofeus) filter (where ref = l), 0) into depois from public.ranking_trofeus_v3();
-  if depois <> antes then raise exception 'T88d: troféu do topo entrou na contagem do ranking'; end if;
+  if exists (select 1 from conquistas_aluno where codigo like 'topo_%') then raise exception 'T88b: chegar ao topo não deveria dar troféu'; end if;
 end $$;
 select test_logout();
 -- 4 dias anteriores com o mesmo líder → 5 seguidos = Topo Firme
@@ -2692,11 +2687,14 @@ end $$;
 select test_logout();
 select test_login('11111111-1111-1111-1111-111111111111');
 do $$
-declare l uuid;
+declare l uuid; v int; esperado int;
 begin
   select aluno_id into l from ranking_topo where dia = (now() at time zone 'America/Sao_Paulo')::date;
   if not exists (select 1 from conquistas_aluno where aluno_id = l and codigo = 'topo_5_dias') then raise exception 'T88g: Topo Firme (5 dias) não foi concedido'; end if;
-  if exists (select 1 from conquistas_aluno where aluno_id = l and codigo = 'topo_10_dias') then raise exception 'T88h: Topo Inabalável antes da hora'; end if;
+  if exists (select 1 from conquistas_aluno where aluno_id = l and codigo in ('topo_10_dias', 'topo_ranking')) then raise exception 'T88h: troféu do topo errado'; end if;
+  select trofeus into v from public.ranking_trofeus_v3() where ref = l;
+  select count(distinct codigo) into esperado from conquistas_aluno where aluno_id = l and codigo not in ('recorde', 'eu_voltei', 'desafio_concluido', 'cardio_voltei', 'cardio_500', 'cardio_1000', 'retomada_30', 'primeiro_wod', 'primeiro_benchmark', 'superando_recorde', 'primeira_hyrox', 'primeiro_funcional', 'semana_multimodalidade', 'evolucao_sem_fronteiras', 'topo_ranking', 'topo_5_dias', 'topo_10_dias', 'topo_30_dias');
+  if v <> esperado then raise exception 'T88i: troféu do topo entrou na contagem do ranking (% × %)', v, esperado; end if;
 end $$;
 select test_logout();
 \echo 'T88 OK: Topo do Ranking'

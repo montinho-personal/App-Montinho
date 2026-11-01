@@ -6,9 +6,9 @@ const codigos = Object.keys(CATALOGO) as CodigoConquista[];
 const PROIBIDO = [/dopamina/i, /reprogram/i, /21 dias.*h[áa]bito|h[áa]bito.*21 dias/i, /garant/i, /neuroplastic/i, /circuitos? (neura|cerebra|do c[ée]rebro|de recompensa)/i, /h[áa]bito (est[áa]|j[áa] est[áa]) formado/i, /permanente/i];
 
 describe("biblioteca editorial das conquistas", () => {
-  it("136 conquistas (127 únicas + 9 recorrentes: as de sempre + as 3 de feriado + o Topo do Ranking), todas com o conteúdo completo", () => {
-    expect(codigos).toHaveLength(136);
-    expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["cardio_voltei", "desafio_concluido", "eu_voltei", "feriado_cardio", "feriado_combo", "feriado_musculacao", "recorde", "retomada_30", "topo_ranking"]);
+  it("135 conquistas (127 únicas + 8 recorrentes: as de sempre + as 3 de feriado), todas com o conteúdo completo", () => {
+    expect(codigos).toHaveLength(135);
+    expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["cardio_voltei", "desafio_concluido", "eu_voltei", "feriado_cardio", "feriado_combo", "feriado_musculacao", "recorde", "retomada_30"]);
     for (const c of codigos) {
       const t = CONTEUDO[c];
       for (const campo of ["nome", "resumo", "criterio", "mensagem", "comoConquistar", "significado", "importancia", "explicacao", "proximoPasso"] as const) expect(t[campo].length, `${c}.${campo}`).toBeGreaterThan(campo === "nome" ? 3 : 10);

@@ -73,14 +73,6 @@ function demo(): DemoConquistas {
 }
 
 
-/** Demonstração: põe uma conquista pronta (troféus que, no app de verdade, o banco concede — ex.: Topo do Ranking). */
-export function demoGuardarConquista(c: Omit<ConquistaRow, "id" | "created_at">): void {
-  if (!isDemoMode()) return;
-  const lista = demo().conquistas;
-  if (lista.some((x) => x.aluno_id === c.aluno_id && x.codigo === c.codigo && x.referencia === c.referencia)) return;
-  lista.push({ ...c, id: `demo-${c.codigo}-${c.referencia}`, created_at: c.conquistado_em });
-}
-
 export async function listarConquistas(alunoId: string | null, opts: { desde?: string; limite?: number } = {}): Promise<ConquistaRow[]> {
   if (isDemoMode()) {
     return demo()

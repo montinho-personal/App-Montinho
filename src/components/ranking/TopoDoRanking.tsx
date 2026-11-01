@@ -1,6 +1,7 @@
-// Topo do Ranking (0138): faixa no Ranking. Aluno no 1º lugar vê há quantos
-// dias está lá e quanto falta para o próximo troféu; quem não está vê o convite.
-// O personal vê quem lidera e o atalho para o Celebrar.
+// Topo do Ranking (0138): faixa no Ranking. Chegar ao 1º lugar não dá troféu
+// (só avisa o personal no Celebrar); troféu é para quem SEGURA o topo.
+// Aluno no 1º lugar vê há quantos dias está lá e quanto falta para o próximo
+// troféu; quem não está vê o convite. O personal vê quem lidera + Celebrar.
 import Link from "next/link";
 import { MARCOS_TOPO, proximoDoTopo } from "@/lib/conquistas/topo-ranking";
 
@@ -15,7 +16,7 @@ export function TopoDoRanking({ modo, dias, nome, ganhos }: { modo: "aluno" | "p
         <span className="text-3xl" aria-hidden>👑</span>
         <span className="min-w-0 flex-1 text-sm">
           <b>{nome}</b> está em 1º lugar {diasTxt(dias)}.
-          <span className="block text-xs text-fg-muted">{prox ? `Com mais ${prox.faltam} ${prox.faltam === 1 ? "dia" : "dias"} no topo ganha o “${prox.titulo}”.` : "Já tem todos os troféus do topo."} Cada troféu do topo aparece no Celebrar para você mandar os parabéns.</span>
+          <span className="block text-xs text-fg-muted">{prox ? `Com mais ${prox.faltam} ${prox.faltam === 1 ? "dia" : "dias"} no topo ganha o “${prox.titulo}”.` : "Já tem todos os troféus do topo."} Toda chegada ao 1º lugar aparece no Celebrar para você mandar os parabéns.</span>
         </span>
         <Link href="/treinador/conquistas" className="alvo shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-bg">🎉 Celebrar</Link>
       </section>
@@ -32,7 +33,7 @@ export function TopoDoRanking({ modo, dias, nome, ganhos }: { modo: "aluno" | "p
   }
   return (
     <p className="rounded-xl border border-border bg-card px-3 py-2 text-xs text-fg-muted">
-      👑 Chegou ao 1º lugar? Ganha o troféu <b className="text-fg">Topo do Ranking</b>. Segurando o topo: {MARCOS_TOPO.map((m) => `${m.dias} dias = ${m.titulo}`).join(" · ")}.
+      👑 Chegue ao 1º lugar e segure: dias seguidos no topo valem troféu — {MARCOS_TOPO.map((m) => `${m.dias} dias = ${m.titulo}`).join(" · ")}.
     </p>
   );
 }

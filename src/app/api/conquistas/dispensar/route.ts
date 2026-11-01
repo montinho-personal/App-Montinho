@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const { data, error: vErr } = await lerJson(request, dispensarConquistasSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
-    const n = await dispensarConquistas(data.itens.map((i) => ({ alunoId: i.aluno_id, conquistaId: i.conquista_id })), data.desfazer ?? false);
+    const n = await dispensarConquistas(data.itens.map((i) => ({ alunoId: i.aluno_id, conquistaId: i.conquista_id })), data.desfazer ?? false, data.celebrado ?? false);
     return NextResponse.json({ ok: true, n });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Não foi possível dispensar" }, { status: 400 });

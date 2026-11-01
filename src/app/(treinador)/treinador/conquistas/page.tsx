@@ -7,7 +7,10 @@ import { agregarChalalaTreino, agregarEventos } from "@/lib/chalala/metricas";
 import { getConfigChalala, metricasPush } from "@/lib/data/notificacoes";
 import { PainelChalalaCelular } from "./PainelChalalaCelular";
 import { CelebrarClient } from "./CelebrarClient";
-import { conquistasDispensadas } from "@/lib/data/celebrar";
+import { conquistasDispensadas, topoCelebrados } from "@/lib/data/celebrar";
+import { chegadasRecentes } from "@/lib/data/topo-ranking";
+import { AVISO_TOPO } from "@/lib/conquistas/celebrar";
+import { dataLocal } from "@/lib/aderencia/calcular";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
 import { nomeDaConquista, CONTEUDO } from "@/lib/conquistas/conteudo";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
@@ -46,6 +49,13 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
     recordes: conquistas.filter((c) => c.codigo === "recorde").length,
   };
   const reconhecidas = new Set(reconhecimentos.map((r) => r.conquista_id).filter(Boolean) as string[]);
+  // Chegou ao 1º lugar do ranking: não é troféu, é um aviso para o personal parabenizar (0138).
+  const [chegadas, topoFeitos] = await Promise.all([chegadasRecentes(dataLocal(desde)).catch(() => []), topoCelebrados().catch(() => new Set<string>())]);
+  const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  const avisosTopo = chegadas.filter((c) => c.alunoId in nomes).map((c) => {
+    const id = `topo:${c.alunoId}:${c.desde}`;
+    return { id, alunoId: c.alunoId, aluno: nomes[c.alunoId] ?? "Aluno", telefone: telefones[c.alunoId] ?? null, codigo: AVISO_TOPO, categoria: "ranking", titulo: "Chegou ao 1º lugar do ranking", descricao: `Em 1º lugar desde ${ddmm(c.desde)}${c.dias > 1 ? ` (${c.dias} dias seguidos)` : ""}.`, data: `${c.desde}T15:00:00.000Z`, reconhecida: topoFeitos.has(id), dispensada: dispensadas.has(id) };
+  });
   return (
     <div className="space-y-5">
       <header>
@@ -60,6 +70,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
           <li>🎉 Celebrar no app: escolha a conquista, escreva sua mensagem e envie. O aluno vê no app, identificada como escrita por você. Nada é enviado automaticamente.</li>
           <li>💬 Parabenizar no WhatsApp: abre a conversa com uma mensagem pronta, que você pode editar antes de mandar.</li>
           <li>“Falta celebrar” = conquistas que ainda não receberam mensagem sua no app. Elas aparecem primeiro.</li>
+          <li>👑 Quando alguém chega ao 1º lugar do ranking, aparece aqui um aviso para você parabenizar (não é troféu). Troféu é para quem segura o topo: 5, 10 e 30 dias seguidos.</li>
           <li>✖ Dispensar: tira da lista sem mandar nada e sem apagar o troféu do aluno (bom para as antigas). Dá para voltar em “Dispensadas”.</li>
         </ul>
       </details>
@@ -69,7 +80,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
         alunoInicial={alunos.some((a) => a.id === alunoParam) ? alunoParam! : ""}
         mensagemInicial={(msg ?? "").slice(0, 600)}
         alunos={alunos.filter((a) => a.status !== "arquivado").map((a) => ({ id: a.id, nome: nomes[a.id] }))}
-        conquistas={conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", telefone: telefones[c.aluno_id] ?? null, codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id), dispensada: dispensadas.has(c.id) }))}
+        conquistas={[...avisosTopo, ...conquistas.map((c) => ({ id: c.id, alunoId: c.aluno_id, aluno: nomes[c.aluno_id] ?? "Aluno", telefone: telefones[c.aluno_id] ?? null, codigo: c.codigo, categoria: CONTEUDO[c.codigo as CodigoConquista]?.categoria ?? "pratica", titulo: nomeDaConquista(c.codigo, c.titulo), descricao: c.descricao, data: c.conquistado_em, reconhecida: reconhecidas.has(c.id), dispensada: dispensadas.has(c.id) }))]}
         resultados={resultados}
         enviados={reconhecimentos.slice(0, 20).map((r) => ({ id: r.id, aluno: nomes[r.aluno_id] ?? "Aluno", mensagem: r.mensagem, data: r.created_at }))}
         metricas={agregarEventos(eventos)}

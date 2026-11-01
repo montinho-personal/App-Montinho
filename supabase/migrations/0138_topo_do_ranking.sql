@@ -1,9 +1,10 @@
 -- ============================================================================
--- 0138 — Topo do Ranking (pedido do Montinho, 01/11/2026): quem chega ao 1º
--- lugar do ranking de troféus ganha o troféu “Topo do Ranking” (repete a cada
--- vez que assume o topo de novo — aparece no Celebrar do personal para mandar
--- os parabéns) e quem SEGURA o topo ganha “Topo Firme” (5 dias seguidos),
--- “Topo Inabalável” (10) e “Lenda do Topo” (30, lendário).
+-- 0138 — Topo do Ranking (pedido do Montinho, 01/11/2026): chegar ao 1º lugar
+-- NÃO dá troféu — só avisa o personal (o app lê ranking_topo e põe no
+-- Celebrar). Troféu é para quem SEGURA o topo: “Topo Firme” (5 dias
+-- seguidos), “Topo Inabalável” (10) e “Lenda do Topo” (30, lendário).
+-- O código 'topo_ranking' fica aceito/fora do ranking só por reserva (nunca é
+-- concedido).
 --   • ranking_topo: 1 linha por dia de Brasília com quem estava em 1º (a
 --     última conferência do dia vale). Só leitura: o personal vê tudo, o aluno
 --     só os dias dele. Ninguém grava direto.
@@ -12,8 +13,8 @@
 --     desempate da ranking_trofeus_v3.
 --   • registrar_topo_ranking() (qualquer login, ao abrir o Ranking) e
 --     registrar_topo_ranking_agendador(p_chave) (cron api/cron/lembretes, a
---     cada 5 min): anotam o líder de hoje e concedem os troféus.
---   • Os 4 troféus ficam FORA da contagem do ranking (senão o líder ganharia
+--     cada 5 min): anotam o líder de hoje e concedem os troféus dos dias seguidos.
+--   • Os troféus do topo ficam FORA da contagem do ranking (senão o líder ganharia
 --     troféu por ser líder e ninguém mais alcançaria): ranking_trofeus_v2/v3 e
 --     montinho_no_ranking recriadas com a lista nova (espelho FORA_DO_RANKING
 --     em src/lib/ranking/trofeus.ts). Regras espelhadas em
@@ -79,12 +80,6 @@ begin
     select s.dia - 1 from seq s join ranking_topo t on t.dia = s.dia - 1 and t.aluno_id = lider
   )
   select min(dia), count(*)::int into inicio, dias from seq;
-  -- Chegou ao topo: 1 troféu por sequência (repete quando volta ao 1º lugar).
-  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo, descricao, dados, evidencia, origem)
-  values (lider, 'topo_ranking', to_char(inicio, 'YYYY-MM-DD'), now(), 'Topo do Ranking',
-          '1º lugar no ranking de troféus em ' || to_char(inicio, 'DD/MM') || '.',
-          jsonb_build_object('desde', inicio), jsonb_build_object('desde', inicio), 'app')
-  on conflict (aluno_id, codigo, referencia) do nothing;
   -- Segurou o topo: 5, 10 e 30 dias seguidos (cada um vale uma vez).
   for marco in select * from (values (5, 'topo_5_dias', 'Topo Firme'), (10, 'topo_10_dias', 'Topo Inabalável'), (30, 'topo_30_dias', 'Lenda do Topo')) v(n, codigo, titulo) loop
     if dias >= marco.n then

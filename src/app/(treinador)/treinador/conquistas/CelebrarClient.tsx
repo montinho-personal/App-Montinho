@@ -89,9 +89,12 @@ export function CelebrarClient({ dias, autor, alunoInicial = "", mensagemInicial
   async function enviar() {
     if (!alunoAlvo || msg.trim().length < 3) return toast.error("Escolha o aluno e escreva sua mensagem.");
     setEnviando(true);
-    const res = await fetch("/api/reconhecimentos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ aluno_id: alunoAlvo, conquista_id: sel?.id ?? null, mensagem: msg.trim(), notificar }) }).catch(() => null);
-    setEnviando(false);
+    // Aviso do 1º lugar (id “topo:…”) não é troféu: o recado vai sem ligação e o aviso fica marcado como celebrado.
+    const aviso = sel?.id.startsWith("topo:") ? sel : null;
+    const res = await fetch("/api/reconhecimentos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ aluno_id: alunoAlvo, conquista_id: aviso ? null : (sel?.id ?? null), mensagem: msg.trim(), notificar }) }).catch(() => null);
     const d = await res?.json().catch(() => ({}));
+    if (res?.ok && aviso) await fetch("/api/conquistas/dispensar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itens: [{ aluno_id: aviso.alunoId, conquista_id: aviso.id }], celebrado: true }) }).catch(() => null);
+    setEnviando(false);
     if (!res?.ok) return toast.error(d?.error ?? "Não foi possível enviar.");
     toast.success(d?.notificados ? "Reconhecimento enviado e aluno avisado no celular." : "Reconhecimento enviado. O aluno vê no app.");
     setMsg("");

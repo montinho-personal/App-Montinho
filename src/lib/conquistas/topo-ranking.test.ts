@@ -1,22 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { proximoDoTopo, sequenciaNoTopo, trofeusDoTopo, type DiaTopo } from "./topo-ranking";
+import { chegadasAoTopo, proximoDoTopo, sequenciaNoTopo, trofeusDoTopo, type DiaTopo } from "./topo-ranking";
 
 const serie = (inicio: string, quem: string[]): DiaTopo[] => quem.map((alunoId, i) => ({ dia: new Date(Date.parse(`${inicio}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10), alunoId }));
 
 describe("Topo do Ranking", () => {
-  it("chegar ao topo dá o troféu; voltar depois de perder dá outro", () => {
-    const d = serie("2026-11-01", ["a", "a", "b", "a"]);
-    const t = trofeusDoTopo(d, "a").filter((x) => x.codigo === "topo_ranking");
-    expect(t.map((x) => x.referencia)).toEqual(["2026-11-01", "2026-11-04"]);
+  it("cada chegada ao 1º lugar vira um aviso (voltar depois de perder = nova chegada)", () => {
+    expect(chegadasAoTopo(serie("2026-11-01", ["a", "a", "b", "a"]))).toEqual([
+      { alunoId: "a", desde: "2026-11-01", dias: 2 },
+      { alunoId: "b", desde: "2026-11-03", dias: 1 },
+      { alunoId: "a", desde: "2026-11-04", dias: 1 },
+    ]);
   });
-  it("5 dias seguidos = Topo Firme; 4 não", () => {
-    expect(trofeusDoTopo(serie("2026-11-01", ["a", "a", "a", "a"]), "a").some((x) => x.codigo === "topo_5_dias")).toBe(false);
-    const t = trofeusDoTopo(serie("2026-11-01", ["a", "a", "a", "a", "a"]), "a");
-    expect(t.find((x) => x.codigo === "topo_5_dias")?.dia).toBe("2026-11-05");
+  it("chegar ao topo não dá troféu; 5 dias seguidos = Topo Firme", () => {
+    expect(trofeusDoTopo(serie("2026-11-01", ["a", "a", "a", "a"]), "a")).toEqual([]);
+    expect(trofeusDoTopo(serie("2026-11-01", ["a", "a", "a", "a", "a"]), "a")).toEqual([{ codigo: "topo_5_dias", dia: "2026-11-05" }]);
   });
   it("um dia sem registro quebra a sequência", () => {
     const d = [...serie("2026-11-01", ["a", "a", "a"]), ...serie("2026-11-05", ["a", "a", "a"])];
-    expect(trofeusDoTopo(d, "a").some((x) => x.codigo === "topo_5_dias")).toBe(false);
+    expect(trofeusDoTopo(d, "a")).toEqual([]);
+    expect(chegadasAoTopo(d)).toHaveLength(2);
   });
   it("sequência de hoje e o que falta", () => {
     const d = serie("2026-11-01", ["b", "a", "a", "a"]);

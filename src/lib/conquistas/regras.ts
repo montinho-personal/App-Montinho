@@ -363,7 +363,6 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   primeiro_benchmark: { titulo: "Primeiro Benchmark", criterio: "Anotar o resultado de um benchmark (Fran, Grace, Cindy, Helen, Murph…) pela primeira vez.", repete: false },
   superando_recorde: { titulo: "Superando Meu Recorde", criterio: "Fazer um benchmark melhor que todas as vezes anteriores comparáveis (mesmo benchmark e versão; RX com RX, Scaled com Scaled; adaptado não entra).", repete: false },
   atleta_versatil: { titulo: "Atleta Versátil", criterio: "Treinar em 3 modalidades diferentes no app (musculação, Cross Training, HYROX, funcional ou híbrido).", repete: false },
-  topo_ranking: { titulo: "Topo do Ranking", criterio: "Chegar ao 1º lugar do ranking de troféus.", repete: true },
   topo_5_dias: { titulo: "Topo Firme", criterio: "Ficar 5 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
   topo_10_dias: { titulo: "Topo Inabalável", criterio: "Ficar 10 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
   topo_30_dias: { titulo: "Lenda do Topo", criterio: "Ficar 30 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
