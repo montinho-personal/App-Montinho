@@ -131,8 +131,9 @@ export type CodigoConquista =
   | CodigoSemanasCompletas
   // Multimodalidade: WOD, HYROX, funcional, benchmarks (0136, multimodalidade.ts)
   | CodigoMulti
-  // Topo do Ranking: gerados pelo BANCO (0138, topo-ranking.ts)
+  // Topo do Ranking e Passei o Montinho: gerados pelo BANCO (0138/0139, topo-ranking.ts)
   | CodigoTopo
+  | "passou_montinho"
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -363,6 +364,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   primeiro_benchmark: { titulo: "Primeiro Benchmark", criterio: "Anotar o resultado de um benchmark (Fran, Grace, Cindy, Helen, Murph…) pela primeira vez.", repete: false },
   superando_recorde: { titulo: "Superando Meu Recorde", criterio: "Fazer um benchmark melhor que todas as vezes anteriores comparáveis (mesmo benchmark e versão; RX com RX, Scaled com Scaled; adaptado não entra).", repete: false },
   atleta_versatil: { titulo: "Atleta Versátil", criterio: "Treinar em 3 modalidades diferentes no app (musculação, Cross Training, HYROX, funcional ou híbrido).", repete: false },
+  passou_montinho: { titulo: "Passei o Montinho", criterio: "Ficar à frente do Montinho no ranking de troféus.", repete: false },
   topo_5_dias: { titulo: "Topo Firme", criterio: "Ficar 5 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
   topo_10_dias: { titulo: "Topo Inabalável", criterio: "Ficar 10 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
   topo_30_dias: { titulo: "Lenda do Topo", criterio: "Ficar 30 dias seguidos em 1º lugar no ranking de troféus.", repete: false },

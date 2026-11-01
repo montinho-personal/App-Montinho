@@ -82,7 +82,7 @@ export function MontinhoNoRanking({ dados, meusTrofeus, minhaPosicao, nome, visi
       {dados.recentes.length ? <p className="text-xs text-fg-muted">Últimos troféus dele: {dados.recentes.map((c) => nomeDaConquista(c)).join(" · ")}</p> : null}
       {dif != null ? (
         <p className="rounded-xl bg-bg/60 px-3 py-2 text-sm font-semibold">
-          {frente ? `👑 Você está ${dif} ${dif === 1 ? "troféu" : "troféus"} na frente do seu personal!` : dif === 0 ? "⚔️ Vocês estão empatados em troféus. Quem cumprir a meta da semana passa na frente!" : `🎯 Faltam ${-dif + 1} ${-dif + 1 === 1 ? "troféu" : "troféus"} para você passar o Montinho.`}
+          {frente ? `👑 Você está ${dif} ${dif === 1 ? "troféu" : "troféus"} na frente do seu personal!` : dif === 0 ? "⚔️ Vocês estão empatados em troféus. Quem cumprir a meta da semana passa na frente!" : `🎯 Faltam ${-dif + 1} ${-dif + 1 === 1 ? "troféu" : "troféus"} para você passar o Montinho e ganhar o troféu “Passei o Montinho”.`}
           {minhaPosicao && dados.posicao ? <span className="block text-xs font-normal text-fg-muted">Você: {minhaPosicao}º · Montinho: {dados.posicao}º (ele fica fora do ranking oficial)</span> : null}
         </p>
       ) : null}

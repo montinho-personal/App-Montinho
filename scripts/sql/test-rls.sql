@@ -2699,3 +2699,18 @@ begin
 end $$;
 select test_logout();
 \echo 'T88 OK: Topo do Ranking'
+
+-- T89 — 0139: “Passei o Montinho” — quem está à frente da ficha do personal ganha; ele nunca
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare m uuid; n_frente int; n_trof int;
+begin
+  perform public.registrar_topo_ranking();
+  select a.id into m from alunos a join profiles p on p.id = a.profile_id where p.role = 'treinador' order by a.created_at limit 1;
+  if m is not null and exists (select 1 from conquistas_aluno where aluno_id = m and codigo = 'passou_montinho') then raise exception 'T89a: o Montinho não pode passar ele mesmo'; end if;
+  select count(*) into n_trof from conquistas_aluno where codigo = 'passou_montinho';
+  if m is null and n_trof > 0 then raise exception 'T89b: sem a ficha do personal ninguém ganha'; end if;
+  if (select count(*) from notificacoes_envios where dedupe like 'montinho:%') <> n_trof then raise exception 'T89c: aviso no celular não bate com os troféus'; end if;
+end $$;
+select test_logout();
+\echo 'T89 OK: Passei o Montinho'

@@ -181,6 +181,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "atleta_versatil", selo: "3 mod" },
   { codigo: "evolucao_sem_fronteiras", selo: "∞" },
   // Topo do Ranking (0138, gerados pelo banco)
+  { codigo: "passou_montinho", selo: "M" },
   { codigo: "topo_5_dias", selo: "5d" },
   { codigo: "topo_10_dias", selo: "10d" },
   { codigo: "topo_30_dias", selo: "30d" },
@@ -537,6 +538,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Na mesma semana, treine em 2 modalidades, sendo pelo menos uma fora da musculação.", disponivel: true };
       case "evolucao_sem_fronteiras":
         return { atual: null, alvo: null, falta: "Suba um recorde de força (mesmo número de repetições) e supere um benchmark comparável.", disponivel: true };
+      case "passou_montinho":
+        return { atual: null, alvo: null, falta: "Junte mais troféus que o Montinho. No Ranking, toque em “Ver 👀” no cartão dele para ver quanto falta.", disponivel: true };
       case "topo_5_dias":
       case "topo_10_dias":
       case "topo_30_dias": {

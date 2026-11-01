@@ -1573,6 +1573,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Comemore com o Montinho e planejem o próximo ciclo a partir das duas marcas.",
     fontes: ["harkin2016", "oms2020"],
   },
+  passou_montinho: {
+    categoria: "ranking",
+    resumo: "Ficar à frente do Montinho no ranking de troféus.",
+    mensagem: "Passei o Montinho! Agora o personal que corra atrás.",
+    comoConquistar: "Junte mais troféus que o Montinho (no Ranking, toque em “Ver 👀” no cartão do Montinho para ver quantos ele tem). Empatou em troféus? Vale a mesma ordem de desempate do ranking.",
+    significado: "Você está à frente do seu personal no ranking de troféus.",
+    importancia: "O Montinho também treina pelo app e junta troféus do mesmo jeito que você. Passar dele mostra a sua constância.",
+    explicacao: "O Montinho não aparece no ranking oficial: a posição dele é só uma referência. O app confere várias vezes por dia. Vale uma vez e conta no ranking como os outros troféus.",
+    proximoPasso: "Compartilhe no Ranking o card “Passei o Montinho!” e segure a posição.",
+    fontes: ["sdt2025"],
+  },
   topo_5_dias: {
     categoria: "ranking",
     resumo: "5 dias seguidos em 1º lugar no ranking.",
