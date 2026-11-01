@@ -13,7 +13,7 @@ import { CATALOGO, type CodigoConquista } from "./regras";
 
 export const CONTEUDO_VERSAO = "2026-10-21.1";
 
-export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade" | "feriados" | "multimodalidade";
+export type Categoria = "comeco" | "constancia" | "pratica" | "acompanhamento" | "retomada" | "autoconhecimento" | "desempenho" | "alem" | "tecnicas" | "fases" | "compartilhar" | "desafios" | "cardio" | "mobilidade" | "feriados" | "multimodalidade" | "ranking";
 
 export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   comeco: "Começo",
@@ -32,6 +32,7 @@ export const CATEGORIA_ROTULO: Record<Categoria, string> = {
   mobilidade: "Mobilidade & Alongamento",
   feriados: "Feriados",
   multimodalidade: "Multimodalidade",
+  ranking: "Topo do Ranking",
 };
 
 /** Ícone de cada categoria (abas do topo da tela Conquistas). */
@@ -52,6 +53,7 @@ export const CATEGORIA_EMOJI: Record<Categoria, string> = {
   mobilidade: "🧘",
   feriados: "🎉",
   multimodalidade: "🏟️",
+  ranking: "👑",
 };
 
 export type Fonte = { id: string; titulo: string; doi: string; nota?: string };
@@ -1570,6 +1572,50 @@ const BASE: Record<CodigoConquista, Base> = {
     explicacao: "Força: a carga sobe no mesmo número de repetições (80 kg × 5 nunca vira 1RM). Benchmark: o mesmo benchmark e versão, na mesma condição, melhor que todas as vezes anteriores. Vale uma vez.",
     proximoPasso: "Comemore com o Montinho e planejem o próximo ciclo a partir das duas marcas.",
     fontes: ["harkin2016", "oms2020"],
+  },
+  topo_ranking: {
+    categoria: "ranking",
+    resumo: "Chegar ao 1º lugar do ranking de troféus.",
+    mensagem: "Topo do Ranking! Você é o 1º lugar da galera do Montinho.",
+    comoConquistar: "Fique em 1º lugar no ranking de troféus. Em caso de empate em troféus, vale a ordem de desempate do ranking (aderência da semana passada, carimbos, semanas seguidas…).",
+    significado: "Ninguém tem mais troféus que você neste momento.",
+    importancia: "Os troféus do ranking vêm de constância, prática e acompanhamento. Estar no topo é o retrato de muitas semanas fazendo o combinado.",
+    explicacao: "O app confere o 1º lugar várias vezes por dia. Toda vez que você chega ao topo (de novo) ganha este troféu. Só entra quem está com “Aparecer no ranking” ligado. Os troféus do Topo não contam na pontuação do ranking: assim ninguém ganha ponto só por já estar na frente.",
+    proximoPasso: "Segure o 1º lugar por 5 dias seguidos e ganhe o Topo Firme.",
+    fontes: ["sdt2025"],
+  },
+  topo_5_dias: {
+    categoria: "ranking",
+    resumo: "5 dias seguidos em 1º lugar no ranking.",
+    mensagem: "Topo Firme! 5 dias seguidos lá em cima.",
+    comoConquistar: "Fique em 1º lugar no ranking de troféus por 5 dias seguidos (o dia vale pelo 1º lugar no fim do dia, horário de Brasília).",
+    significado: "Você não só chegou ao topo: você ficou lá.",
+    importancia: "Manter a posição pede constância todos os dias, não um esforço isolado.",
+    explicacao: "Conta o 1º lugar de cada dia, sem pular nenhum. Perdeu o topo, a contagem recomeça. Vale uma vez e não conta na pontuação do ranking.",
+    proximoPasso: "Mais 5 dias no topo e vem o Topo Inabalável.",
+    fontes: ["sdt2025"],
+  },
+  topo_10_dias: {
+    categoria: "ranking",
+    resumo: "10 dias seguidos em 1º lugar no ranking.",
+    mensagem: "Topo Inabalável! 10 dias seguidos no 1º lugar.",
+    comoConquistar: "Fique em 1º lugar no ranking de troféus por 10 dias seguidos.",
+    significado: "Dez dias seguidos à frente de todo mundo.",
+    importancia: "Constância de verdade: é ela que transforma treino em resultado.",
+    explicacao: "Conta o 1º lugar de cada dia, sem pular nenhum. Vale uma vez e não conta na pontuação do ranking.",
+    proximoPasso: "O troféu lendário pede 30 dias seguidos no topo: a Lenda do Topo.",
+    fontes: ["sdt2025"],
+  },
+  topo_30_dias: {
+    categoria: "ranking",
+    resumo: "30 dias seguidos em 1º lugar no ranking. Troféu lendário.",
+    mensagem: "LENDA DO TOPO! Um mês inteiro em 1º lugar.",
+    comoConquistar: "Fique em 1º lugar no ranking de troféus por 30 dias seguidos.",
+    significado: "Um mês inteiro na liderança.",
+    importancia: "É o retrato de semanas de constância, prática e acompanhamento sem tirar o pé.",
+    explicacao: "Conta o 1º lugar de cada dia, sem pular nenhum. Troféu lendário: vale uma vez e não conta na pontuação do ranking.",
+    proximoPasso: "Combine com o Montinho o próximo desafio: agora é inspirar a galera.",
+    fontes: ["sdt2025"],
   },
 };
 

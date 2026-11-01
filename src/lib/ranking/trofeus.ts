@@ -85,4 +85,4 @@ export function fraseDoRanking(linhas: LinhaRanking[]): string {
 /** Conquistas que se repetem e ficam em seções próprias: não contam como troféu no ranking (igual à sala de troféus). Espelho de 0077. */
 /** cardio_500/1000 ainda desligados (ao ligar: pôr na vitrine e tirar daqui e do SQL). */
 /** Multimodalidade: só o Atleta Versátil entra (o resto fica de fora, como no banco, 0136). */
-export const FORA_DO_RANKING = ["recorde", "eu_voltei", "desafio_concluido", "cardio_voltei", "cardio_500", "cardio_1000", "retomada_30", "primeiro_wod", "primeiro_benchmark", "superando_recorde", "primeira_hyrox", "primeiro_funcional", "semana_multimodalidade", "evolucao_sem_fronteiras"] as const;
+export const FORA_DO_RANKING = ["recorde", "eu_voltei", "desafio_concluido", "cardio_voltei", "cardio_500", "cardio_1000", "retomada_30", "primeiro_wod", "primeiro_benchmark", "superando_recorde", "primeira_hyrox", "primeiro_funcional", "semana_multimodalidade", "evolucao_sem_fronteiras", "topo_ranking", "topo_5_dias", "topo_10_dias", "topo_30_dias"] as const;

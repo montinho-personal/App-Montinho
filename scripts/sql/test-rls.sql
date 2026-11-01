@@ -2655,3 +2655,48 @@ begin
 end $$;
 select test_logout();
 \echo 'T87 OK: modalidades de interesse'
+
+-- T88 — 0138: Topo do Ranking — líder do dia anotado, troféus concedidos e fora da contagem
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare l uuid; antes int; depois int;
+begin
+  update alunos set ranking_visivel = true where status = 'ativo';
+  perform public.registrar_topo_ranking();
+  select aluno_id into l from ranking_topo where dia = (now() at time zone 'America/Sao_Paulo')::date;
+  if l is null then raise exception 'T88a: líder de hoje não foi anotado'; end if;
+  if not exists (select 1 from conquistas_aluno where aluno_id = l and codigo = 'topo_ranking') then raise exception 'T88b: Topo do Ranking não foi concedido'; end if;
+  select coalesce(max(trofeus) filter (where ref = l), 0) into antes from public.ranking_trofeus_v3();
+  perform public.registrar_topo_ranking();
+  if (select count(*) from conquistas_aluno where aluno_id = l and codigo = 'topo_ranking') <> 1 then raise exception 'T88c: repetiu o troféu na mesma sequência'; end if;
+  select coalesce(max(trofeus) filter (where ref = l), 0) into depois from public.ranking_trofeus_v3();
+  if depois <> antes then raise exception 'T88d: troféu do topo entrou na contagem do ranking'; end if;
+end $$;
+select test_logout();
+-- 4 dias anteriores com o mesmo líder → 5 seguidos = Topo Firme
+insert into ranking_topo (dia, aluno_id)
+select (now() at time zone 'America/Sao_Paulo')::date - g, (select aluno_id from ranking_topo where dia = (now() at time zone 'America/Sao_Paulo')::date)
+  from generate_series(1, 4) g on conflict (dia) do nothing;
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$
+declare ok boolean := false; n int;
+begin
+  perform public.registrar_topo_ranking();
+  select count(*) into n from ranking_topo where aluno_id <> public.aluno_id_atual();
+  if n > 0 then raise exception 'T88e: aluno leu o topo de outra pessoa'; end if;
+  begin
+    insert into ranking_topo (dia, aluno_id) values ('2020-01-01', public.aluno_id_atual());
+  exception when insufficient_privilege or others then ok := true; end;
+  if not ok then raise exception 'T88f: aluno gravou direto no ranking_topo'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$
+declare l uuid;
+begin
+  select aluno_id into l from ranking_topo where dia = (now() at time zone 'America/Sao_Paulo')::date;
+  if not exists (select 1 from conquistas_aluno where aluno_id = l and codigo = 'topo_5_dias') then raise exception 'T88g: Topo Firme (5 dias) não foi concedido'; end if;
+  if exists (select 1 from conquistas_aluno where aluno_id = l and codigo = 'topo_10_dias') then raise exception 'T88h: Topo Inabalável antes da hora'; end if;
+end $$;
+select test_logout();
+\echo 'T88 OK: Topo do Ranking'

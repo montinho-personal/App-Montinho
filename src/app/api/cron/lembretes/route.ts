@@ -130,6 +130,8 @@ export async function POST(req: Request) {
       desafios.falhas += r.falha;
     }
   }
+  // Topo do Ranking (0138): anota o 1º lugar de hoje e concede os troféus (sem a 0138, ignora).
+  const { error: e8 } = await db.rpc("registrar_topo_ranking_agendador", { p_chave: chave });
   // 3) CRM do personal (Modo Visitante, 0058): entrega a fila de novidades dos leads.
   const crm = { entregues: 0, falhas: 0 };
   const { data: pendentes, error: e3 } = await db.rpc("crm_pendentes", { p_chave: chave });
@@ -141,5 +143,5 @@ export async function POST(req: Request) {
       else crm.falhas++;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, crm: e3 ? "indisponivel" : crm });
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, topo: e8 ? "indisponivel" : "ok", crm: e3 ? "indisponivel" : crm });
 }

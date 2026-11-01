@@ -1,3 +1,4 @@
+import { CODIGOS_TOPO } from "@/lib/conquistas/topo-ranking";
 import { describe, expect, it } from "vitest";
 import { ORDEM } from "@/lib/conquistas/vitrine";
 import { CATALOGO } from "@/lib/conquistas/regras";
@@ -33,7 +34,8 @@ describe("ranking conta os mesmos troféus da sala de troféus", () => {
     const naVitrine = new Set(ORDEM.map((o) => o.codigo as string));
     const fora = new Set<string>(FORA_DO_RANKING);
     // Exceção aprovada (Multimodalidade): os troféus de modalidade aparecem na vitrine, mas só o Atleta Versátil conta no ranking.
-    const soNaVitrine = new Set<string>(MULTI_FORA_DO_RANKING);
+    // Idem o Topo do Ranking (0138): na vitrine, fora da pontuação (senão o líder ganha ponto por liderar).
+    const soNaVitrine = new Set<string>([...MULTI_FORA_DO_RANKING, ...CODIGOS_TOPO]);
     for (const codigo of Object.keys(CATALOGO)) expect(soNaVitrine.has(codigo) ? naVitrine.has(codigo) && fora.has(codigo) : naVitrine.has(codigo) !== fora.has(codigo), codigo).toBe(true);
   });
 });

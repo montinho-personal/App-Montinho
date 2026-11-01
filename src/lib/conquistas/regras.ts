@@ -28,12 +28,13 @@ import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { trofeusDeMonitoramento, type CodigoMonitoramento } from "./monitoramento";
 import { trofeusDeSemanasCompletas, type CodigoSemanasCompletas } from "./semanas-completas";
 import { trofeusMultimodalidade, type CodigoMulti, type ResultadoBenchmarkConquista } from "./multimodalidade";
+import type { CodigoTopo } from "./topo-ranking";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
 export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
-export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12", "cardio_250"]);
+export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12", "cardio_250", "topo_30_dias"]);
 
 /** Começo (pedido do Montinho, 23/10/2026). */
 export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
@@ -130,6 +131,8 @@ export type CodigoConquista =
   | CodigoSemanasCompletas
   // Multimodalidade: WOD, HYROX, funcional, benchmarks (0136, multimodalidade.ts)
   | CodigoMulti
+  // Topo do Ranking: gerados pelo BANCO (0138, topo-ranking.ts)
+  | CodigoTopo
   // Modo Visitante: desafio (campanha) concluído — uma por desafio
   | "desafio_concluido";
 
@@ -360,6 +363,10 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   primeiro_benchmark: { titulo: "Primeiro Benchmark", criterio: "Anotar o resultado de um benchmark (Fran, Grace, Cindy, Helen, Murph…) pela primeira vez.", repete: false },
   superando_recorde: { titulo: "Superando Meu Recorde", criterio: "Fazer um benchmark melhor que todas as vezes anteriores comparáveis (mesmo benchmark e versão; RX com RX, Scaled com Scaled; adaptado não entra).", repete: false },
   atleta_versatil: { titulo: "Atleta Versátil", criterio: "Treinar em 3 modalidades diferentes no app (musculação, Cross Training, HYROX, funcional ou híbrido).", repete: false },
+  topo_ranking: { titulo: "Topo do Ranking", criterio: "Chegar ao 1º lugar do ranking de troféus.", repete: true },
+  topo_5_dias: { titulo: "Topo Firme", criterio: "Ficar 5 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
+  topo_10_dias: { titulo: "Topo Inabalável", criterio: "Ficar 10 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
+  topo_30_dias: { titulo: "Lenda do Topo", criterio: "Ficar 30 dias seguidos em 1º lugar no ranking de troféus.", repete: false },
   semana_multimodalidade: { titulo: "Semana Multimodalidade", criterio: "Na mesma semana (segunda a domingo), treinar em 2 modalidades diferentes, sendo pelo menos uma fora da musculação.", repete: false },
   evolucao_sem_fronteiras: { titulo: "Evolução Sem Fronteiras", criterio: "Subir um recorde de força (mesmo número de repetições: 1, 2, 3, 5 ou 10) E superar um benchmark comparável.", repete: false },
 };

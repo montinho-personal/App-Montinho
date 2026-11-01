@@ -180,10 +180,15 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "semana_multimodalidade", selo: "2 mod" },
   { codigo: "atleta_versatil", selo: "3 mod" },
   { codigo: "evolucao_sem_fronteiras", selo: "∞" },
+  // Topo do Ranking (0138, gerados pelo banco)
+  { codigo: "topo_ranking", selo: "1º" },
+  { codigo: "topo_5_dias", selo: "5d" },
+  { codigo: "topo_10_dias", selo: "10d" },
+  { codigo: "topo_30_dias", selo: "30d" },
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -533,6 +538,14 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Na mesma semana, treine em 2 modalidades, sendo pelo menos uma fora da musculação.", disponivel: true };
       case "evolucao_sem_fronteiras":
         return { atual: null, alvo: null, falta: "Suba um recorde de força (mesmo número de repetições) e supere um benchmark comparável.", disponivel: true };
+      case "topo_ranking":
+        return { atual: null, alvo: null, falta: "Chegue ao 1º lugar do ranking de troféus (com “Aparecer no ranking” ligado no Perfil).", disponivel: true };
+      case "topo_5_dias":
+      case "topo_10_dias":
+      case "topo_30_dias": {
+        const n = Number(c.split("_")[1]);
+        return { atual: null, alvo: null, falta: `Fique ${n} dias seguidos em 1º lugar no ranking de troféus.`, disponivel: true };
+      }
       default: return { atual: null, alvo: null, falta: null, disponivel: true };
     }
   };
