@@ -12,7 +12,7 @@ const dataBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4
 const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? "";
 
 export function cardRecordeForca(r: LinhaRecorde, nome: string): CardMedalha {
-  const destaque = `${kg(r.atual)} · ${rotuloRm(r.rm)}`;
+  const destaque = `${kg(r.atual)} × ${rotuloRm(r.rm)}`;
   const porque = r.anterior != null ? `Antes ${kg(r.anterior)}: +${kg(r.ganhoKg ?? 0)} (+${String(r.ganhoPct ?? 0).replace(".", ",")}%).` : `Primeira marca de ${rotuloRm(r.rm)} registrada.`;
   return {
     selo: "PR",

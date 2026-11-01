@@ -46,9 +46,10 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
   const [anotar, setAnotar] = useState(false);
   const primeiros = dados.marcas.filter((m) => m.tipo === "primeiro");
   const outras = dados.marcas.filter((m) => m.tipo !== "primeiro" && !m.tipo.endsWith("rm"));
+  // Universal (pedido do Montinho, 01/11/2026): a aba de WOD só aparece para quem já tem resultado de WOD.
   const abas: Array<{ id: Aba; nome: string; n: number }> = [
-    { id: "forca", nome: "🏋️ Força", n: dados.forca.length },
-    { id: "benchmarks", nome: "⏱️ Benchmarks", n: dados.benchmarks.length },
+    { id: "forca", nome: "🏋️ Cargas", n: dados.forca.length },
+    ...(dados.benchmarks.length ? [{ id: "benchmarks" as Aba, nome: "⏱️ WODs", n: dados.benchmarks.length }] : []),
     { id: "marcas", nome: "🎯 Marcas", n: outras.length + primeiros.length },
   ];
 
@@ -65,13 +66,14 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
       {aba === "forca" ? (
         dados.forca.length ? (
           <ul className="space-y-2">
+            <li className="px-1 text-xs text-fg-muted">O maior peso que você já levantou em cada exercício para 1, 2, 3, 5 ou 10 repetições. Comparação justa: 10 repetições só com 10 repetições.</li>
             {dados.forca.map((ex) => (
               <li key={ex.chave} className="rounded-2xl border border-border bg-card p-3">
                 <p className="font-bold">{ex.nome}</p>
                 <ul className="mt-2 space-y-2">
                   {ex.rms.map((r) => (
                     <li key={r.rm} className="flex items-center gap-3">
-                      <span className="w-12 shrink-0 rounded-md bg-accent/15 px-1.5 py-1 text-center text-xs font-black text-accent">{rotuloRm(r.rm)}</span>
+                      <span className="w-14 shrink-0 rounded-md bg-accent/15 px-1.5 py-1 text-center text-xs font-black text-accent">{rotuloRm(r.rm)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-lg font-black tabular-nums">{kg(r.atual)}</span>
                         <span className="block text-[11px] text-fg-muted">
@@ -91,7 +93,7 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
             ))}
           </ul>
         ) : (
-          <Vazio texto="Ainda não tem recorde de força. Eles aparecem sozinhos quando você faz 1, 2, 3, 5 ou 10 repetições com carga e supera a sua marca." />
+          <Vazio texto="Ainda não tem recorde de carga. Eles aparecem sozinhos quando você faz 1, 2, 3, 5 ou 10 repetições com peso em qualquer exercício e depois supera essa marca." />
         )
       ) : null}
 

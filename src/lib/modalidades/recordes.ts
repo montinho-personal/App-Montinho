@@ -137,4 +137,5 @@ export function recordesDoDia(linhas: LinhaRecorde[], data: string): LinhaRecord
 }
 
 /** “1RM”, “5RM”. */
-export const rotuloRm = (rm: Rm) => `${rm}RM`;
+/** “10 reps”: linguagem de academia, vale para musculação e Cross Training (antes “10RM”). */
+export const rotuloRm = (rm: Rm) => `${rm} ${rm === 1 ? "rep" : "reps"}`;

@@ -20,7 +20,7 @@ export default async function RecordesDoAlunoPage({ params }: { params: Promise<
       <Voltar href={`/treinador/alunos/${id}`} />
       <div>
         <h1 className="text-2xl font-black">🏅 Recordes · {aluno.profile?.nome ?? "Aluno"}</h1>
-        <p className="text-sm text-fg-muted">Força por RM exato, benchmarks (RX e Scaled separados) e marcas. Aqui você também registra o primeiro movimento técnico.</p>
+        <p className="text-sm text-fg-muted">Maiores cargas de cada exercício (sempre o mesmo número de repetições: 1, 2, 3, 5 ou 10), resultados de WOD quando houver (RX e Scaled separados) e marcas. Aqui você também anota uma marca ou o primeiro movimento técnico.</p>
       </div>
       <MeusRecordes dados={dados} modo="personal" alunoId={id} />
     </div>

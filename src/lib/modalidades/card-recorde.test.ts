@@ -9,7 +9,7 @@ describe("card Novo recorde pessoal", () => {
       { chave: "a", nome: "Agachamento livre", data: "2026-10-20", carga: 85, reps: 5 },
     ]);
     const c = cardRecordeForca(r, "Aline de Souza");
-    expect(c.destaque).toBe("85 kg · 5RM");
+    expect(c.destaque).toBe("85 kg × 5 reps");
     expect(c.porque).toContain("+5 kg");
     expect(c.nome).toBe("Aline");
     expect(c.data).toBe("20/10/2026");

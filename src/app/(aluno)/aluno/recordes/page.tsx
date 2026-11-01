@@ -17,7 +17,7 @@ export default async function MeusRecordesPage() {
       <Voltar href="/aluno/evolucao" />
       <div>
         <h1 className="text-2xl font-black">🏅 Meus recordes</h1>
-        <p className="text-sm text-fg-muted">Comparação justa: 1RM com 1RM, 5RM com 5RM, e o mesmo benchmark na mesma versão. RX nunca com Scaled.</p>
+        <p className="text-sm text-fg-muted">Seus maiores pesos em cada exercício, sempre comparando o mesmo número de repetições. Faz Cross Training ou HYROX? Seus resultados de WOD também aparecem aqui.</p>
       </div>
       <MeusRecordes dados={dados} modo="aluno" nome={sessao.nome ?? ""} hoje={dataLocal(new Date())} />
     </div>
