@@ -89,15 +89,15 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
         {avisando === "todos" ? "Avisando…" : `👀 Avisar os ${semAviso.length} que estou acompanhando ao vivo`}
       </button>
     ) : null}
-    <ul className="grid gap-3 md:grid-cols-2" aria-live="polite">
+    <ul className="grid grid-cols-1 gap-3 md:grid-cols-2" aria-live="polite">
       {lista.map((t) => {
         const pct = t.series.planejadas ? Math.min(100, Math.round((t.series.feitas / t.series.planejadas) * 100)) : 0;
         return (
-          <li key={t.sessaoId} className="space-y-3 rounded-2xl border border-border bg-card p-4">
+          <li key={t.sessaoId} className="min-w-0 space-y-3 rounded-2xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Link href={`/treinador/alunos/${t.alunoId}`} className="block truncate text-lg font-bold hover:underline">{t.nome}</Link>
-                <p className="truncate text-sm text-fg-muted">
+              <div className="min-w-0 flex-1">
+                <Link href={`/treinador/alunos/${t.alunoId}`} className="block break-words text-lg font-bold leading-tight hover:underline">{t.nome}</Link>
+                <p className="break-words text-sm text-fg-muted">
                   {t.treino}
                   {t.extra ? " · extra" : ""}
                   {t.visitante ? " · visitante" : ""}
