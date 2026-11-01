@@ -164,6 +164,7 @@ export function LoginClient({ next, erroInicial = null, emailInicial = "" }: { n
               Primeiro acesso? Criar minha senha
             </button>
             <p className="text-center text-[11px] text-fg-subtle">Digite o e-mail que o Montinho cadastrou e toque acima: chega um e-mail para você criar a senha.</p>
+            <a href="/instalar" className="alvo block text-center text-xs font-semibold text-accent underline-offset-2 hover:underline">📲 Como instalar o app no celular (iPhone e Android)</a>
           </form>
         )}
       </CardBody>

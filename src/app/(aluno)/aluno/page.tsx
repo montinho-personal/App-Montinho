@@ -74,6 +74,7 @@ import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConheciment
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
 import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
 import { MissaoDeHoje } from "@/components/inicio/MissaoDeHoje";
+import { AvisoInstalar } from "@/components/instalar/AvisoInstalar";
 import { missaoDeHoje } from "@/lib/inicio/missao";
 import { ehDeHoje } from "@/lib/conquistas/ao-alcance";
 import { destaqueFeriado } from "@/lib/conquistas/feriados";
@@ -363,6 +364,8 @@ export default async function AlunoHomePage() {
           </Card>
         </Link>
       ) : null}
+
+      <AvisoInstalar />
 
       {/* 2. Progresso da semana em relação à meta individual */}
       {aderencia.semanaAtual?.meta ? (

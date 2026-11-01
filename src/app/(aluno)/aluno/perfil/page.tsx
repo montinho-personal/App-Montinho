@@ -159,6 +159,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
       </Grupo>
 
       <Grupo titulo="Meu treino no app">
+        <ItemLink icone="📲" titulo="Instalar o app no celular" sub="Passo a passo no iPhone e no Android" href="/aluno/instalar" />
         <ItemAbrir icone="⚖️" titulo="Como eu anoto o peso" sub="Anilhas e halteres: total ou por lado">
           <PadraoCargaPerfil inicial={padraoCarga} />
         </ItemAbrir>
