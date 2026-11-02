@@ -344,6 +344,11 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [descansoMenor, setDescansoMenor] = useState(false);
   // Troca de exercício: painel aberto e trocas feitas nesta tela (seId → biblioteca_id; null = original).
   const [trocaAberta, setTrocaAberta] = useState<string | null>(null);
+  // Tela do treino mais limpa (pedido do Montinho, 02/11/2026): o que não é a série de agora
+  // fica no “⋯ Mais” do exercício; o detalhe do “subir o peso” e a explicação da técnica, a um toque.
+  const [maisAberto, setMaisAberto] = useState<string | null>(null);
+  const [subirAberto, setSubirAberto] = useState<Record<string, boolean>>({});
+  const [tecnicaAberta, setTecnicaAberta] = useState<Record<string, boolean>>({});
   const [trocadoLocal, setTrocadoLocal] = useState<Record<string, string | null>>({});
   const [trocando, setTrocando] = useState(false);
   const drenando = useRef(false);
@@ -1608,7 +1613,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                   <span className="flex-1 min-w-0">
                     <span className="block font-semibold text-sm leading-tight">
                       {ex.nome}
-                      {ex.video ? <span className="ml-1.5 inline-flex items-center rounded-full border border-accent/40 px-1.5 py-px align-middle text-[10px] font-bold text-accent">▶ vídeo</span> : null}
+                      {ex.video && !expandido ? <span className="ml-1.5 inline-flex items-center rounded-full border border-accent/40 px-1.5 py-px align-middle text-[10px] font-bold text-accent">▶ vídeo</span> : null}
                     </span>
                     <span className="block text-xs text-fg-subtle mt-0.5">
                       {(se.prescricao as { series?: number } | null)?.series ?? ex.series} × {ex.reps}
@@ -1664,20 +1669,26 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         </button>
                       </div>
                     ) : null}
-                    {ex.video ? <BotaoVideoTelaCheia source={ex.video} titulo={ex.nome} /> : null}
+                    {(() => {
+                      const txtTecnica = [tecnicaTxt, ex.unilateral && ex.tecnica !== "unilateral" ? TECNICA_LABEL.unilateral : ""].filter(Boolean).join(" ");
+                      return (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {ex.video ? <BotaoVideoTelaCheia source={ex.video} titulo={ex.nome} compacto /> : null}
+                            {txtTecnica ? (
+                              <button type="button" onClick={() => setTecnicaAberta((t) => ({ ...t, [se.id]: !t[se.id] }))} aria-expanded={!!tecnicaAberta[se.id]} className="touch rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: `${corTecnica}66`, color: corTecnica }}>
+                                ⓘ {nomeTecnica && ex.tecnica !== "normal" ? nomeTecnica : "Como fazer"}
+                              </button>
+                            ) : null}
+                            <button type="button" onClick={() => { const abrir = maisAberto !== se.id; setMaisAberto(abrir ? se.id : null); if (abrir) requestAnimationFrame(() => document.getElementById(`mais-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })); }} aria-expanded={maisAberto === se.id} aria-controls={`mais-${se.id}`} className="touch ml-auto rounded-full border border-border px-3 py-1.5 text-xs font-bold text-fg-muted hover:text-fg">
+                              ⋯ Mais{se.observacao_aluno ? " · 📝" : ""}
+                            </button>
+                          </div>
+                          {txtTecnica && tecnicaAberta[se.id] ? <p className="rounded-md bg-bg/60 px-3 py-2 text-xs text-fg-muted">{txtTecnica}</p> : null}
+                        </>
+                      );
+                    })()}
                     <NotaDoPersonal nota={ex.observacoes} />
-                    {!troca && desbloqueia?.porques[ex.id] ? (
-                      <details className="rounded-md border border-accent/30 bg-accent-soft/40 px-3 py-2 text-sm" onToggle={(e) => (e.currentTarget.open ? enviarEvento({ tipo: "explicacao_aberta", origem: "treino" }) : undefined)}>
-                        <summary className="cursor-pointer font-semibold text-accent">Por que esse exercício está no meu treino?</summary>
-                        <p className="mt-1 text-fg">{desbloqueia.porques[ex.id]}</p>
-                        <p className="mt-0.5 text-[11px] text-fg-subtle">Escrito pelo {BRAND.name} para você.</p>
-                      </details>
-                    ) : null}
-                    {desbloqueia?.repsAltas && (repsPrescritas(ex.reps) ?? 0) >= REPS_ALTAS ? (
-                      <button type="button" onClick={() => abrirLeitura(desbloqueia.repsAltas)} className="alvo text-left text-xs font-semibold text-accent underline-offset-2 hover:underline">
-                        Por que {repsPrescritas(ex.reps)} repetições? →
-                      </button>
-                    ) : null}
                     {progressaoChalala[se.id] && feitas === 0 ? (
                       <div className="rounded-md border border-accent/50 bg-accent/10 px-3 py-2">
                         <p className="text-sm font-bold text-accent">{FRASES.progressao}</p>
@@ -1685,49 +1696,29 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       </div>
                     ) : null}
                     {subirPeso && !completo ? (
-                      <div role="note" className="space-y-1.5 rounded-md border border-success/50 bg-success/10 px-3 py-2.5">
-                        <p className="text-base font-bold text-success">⬆️ Hora de subir o peso!</p>
-                        <p className="text-sm">{subirPeso}</p>
-                        <ul className="space-y-0.5 text-sm">
-                          {linhasSubirPeso(passou).map((l) => (
-                            <li key={l} className="flex gap-1.5"><span className="font-bold text-success" aria-hidden>↑</span><span>{l}</span></li>
-                          ))}
-                        </ul>
-                        <p className="text-xs text-fg-muted">{DICA_SUBIR_PESO}</p>
+                      <div role="note" className="rounded-md border border-success/50 bg-success/10">
+                        <button type="button" onClick={() => setSubirAberto((x) => ({ ...x, [se.id]: !x[se.id] }))} aria-expanded={!!subirAberto[se.id]} className="touch flex w-full items-center justify-between gap-2 px-3 py-2 text-left">
+                          <span className="text-sm font-bold text-success">⬆️ Hora de subir o peso!</span>
+                          <span className="shrink-0 text-xs font-semibold text-success/80">{subirAberto[se.id] ? "fechar ▴" : "ver por quê ›"}</span>
+                        </button>
+                        {subirAberto[se.id] ? (
+                          <div className="space-y-1.5 border-t border-success/30 px-3 pb-2.5 pt-2">
+                            <p className="text-sm">{subirPeso}</p>
+                            <ul className="space-y-0.5 text-sm">
+                              {linhasSubirPeso(passou).map((l) => (
+                                <li key={l} className="flex gap-1.5"><span className="font-bold text-success" aria-hidden>↑</span><span>{l}</span></li>
+                              ))}
+                            </ul>
+                            <p className="text-xs text-fg-muted">{DICA_SUBIR_PESO}</p>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
-                    {tecnicaTxt ? <p className="text-xs text-fg-muted">{tecnicaTxt}</p> : null}
-                    {ex.unilateral && ex.tecnica !== "unilateral" ? <p className="text-xs text-fg-muted">{TECNICA_LABEL.unilateral}</p> : null}
-                    {ex.instrucoes.length ? (
-                      <details className="text-xs text-fg-muted">
-                        <summary className="cursor-pointer text-fg-subtle">Como executar</summary>
-                        <ol className="list-decimal pl-4 mt-1 space-y-0.5">
-                          {ex.instrucoes.map((i, k) => (
-                            <li key={k}>{i}</li>
-                          ))}
-                        </ol>
-                      </details>
-                    ) : null}
-
-                    {ultima ? (
-                      <p className="text-xs text-fg-subtle">
-                        Última vez ({dataBR(ultima.data)}
-                        {ultima.nomeTreino ? `, ${ultima.nomeTreino}` : ""}): {ultima.series.map((s) => (ehPorTempo(ex) ? `${s.carga_kg ? `${s.carga_kg}kg × ` : ""}${s.reps ?? "—"}s` : `${s.carga_kg ?? "—"}kg×${s.reps ?? "—"}`)).join(" · ")}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-fg-subtle">Primeira vez registrando este exercício.</p>
-                    )}
                     {tipoPeso && (!modoPeso || trocandoPadrao === tipoPeso) ? (
                       <EscolherPadraoCarga tipo={tipoPeso} atual={modoPeso} onEscolher={(m) => escolherPadrao(tipoPeso, m)} onCancelar={modoPeso ? () => setTrocandoPadrao(null) : undefined} />
-                    ) : tipoPeso && modoPeso ? (
-                      <p className="text-xs text-fg-subtle">
-                        ⚖️ Seu jeito de anotar: {resumoPadrao(tipoPeso, modoPeso)} ·{" "}
-                        <button type="button" onClick={() => setTrocandoPadrao(tipoPeso)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
-                          mudar
-                        </button>
-                      </p>
                     ) : null}
-                    {!ehPorTempo(ex) && anotaCarga(equipamento) ? <LembreteAparelho outro={outro} onOutro={(v) => marcarOutroAparelho(se.id, v)} /> : null}
+                    {/* “Anote sempre no mesmo aparelho”: à vista no 1º exercício (e quando marcado); nos outros, no ⋯ Mais. */}
+                    {!ehPorTempo(ex) && anotaCarga(equipamento) && (outro || idx === 0) ? <LembreteAparelho outro={outro} onOutro={(v) => marcarOutroAparelho(se.id, v)} /> : null}
                     <div className="space-y-2">
                       <div className={`grid ${colunas} gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1`}>
                         <span>#</span>
@@ -1866,48 +1857,92 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         <Icon name="check" size={18} /> Concluir exercício e ir para o próximo
                       </button>
                     ) : null}
-                    <AnotacaoExercicio
-                      key={`nota-${se.id}`}
-                      inicial={se.observacao_aluno ?? ""}
-                      presencial={!!presencial}
-                      onSalvar={async (texto) => {
-                        if (!sessao) return false;
-                        const r = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ observacao_aluno: texto || null }) }).catch(() => null);
-                        if (r?.ok) setSessao((cur) => (cur ? { ...cur, exercicios: cur.exercicios.map((x) => (x.id === se.id ? { ...x, observacao_aluno: texto || null } : x)) } : cur));
-                        return !!r?.ok;
-                      }}
-                    />
-                    {!presencial ? (
-                      <a
-                        href={linkExecucao(textoExecucao({ nomeAluno, exercicio: ex.nome, treino: `Treino ${treino.letra} · ${treino.nome}`, dataISO: new Date(sessao?.iniciado_em ?? Date.now()).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }), series: lista.filter((x) => x.concluida && x.tipo !== "aquecimento").map((x) => ({ carga: x.carga, reps: x.reps })) }))}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="touch flex w-full items-center justify-center gap-2 rounded-lg border border-[#25D366]/60 bg-[#25D366]/10 px-4 py-2.5 text-sm font-bold text-[#25D366]"
-                      >
-                        🎥 Enviar minha execução ao {BRAND.name}
-                      </a>
+                    {maisAberto === se.id ? (
+                      <div id={`mais-${se.id}`} role="region" aria-label={`Mais opções de ${ex.nome}`} className="space-y-3 rounded-xl border border-border bg-bg/50 p-3">
+                        <p className="text-xs text-fg-muted">
+                          <span className="font-semibold text-fg">📈 Última vez</span>{" "}
+                          {ultima ? (
+                            <>({dataBR(ultima.data)}{ultima.nomeTreino ? `, ${ultima.nomeTreino}` : ""}): {ultima.series.map((s) => (ehPorTempo(ex) ? `${s.carga_kg ? `${String(s.carga_kg).replace(".", ",")} kg × ` : ""}${s.reps ?? "—"} s` : s.carga_kg != null ? `${String(s.carga_kg).replace(".", ",")} kg${s.reps != null ? ` × ${s.reps}` : ""}` : `${s.reps ?? "—"} reps`)).join(" · ")}</>
+                          ) : (
+                            "— primeira vez registrando este exercício."
+                          )}
+                        </p>
+                        {ex.instrucoes.length ? (
+                          <details className="text-xs text-fg-muted">
+                            <summary className="cursor-pointer font-semibold text-fg">📖 Como executar</summary>
+                            <ol className="list-decimal pl-4 mt-1 space-y-0.5">
+                              {ex.instrucoes.map((i, k) => (
+                                <li key={k}>{i}</li>
+                              ))}
+                            </ol>
+                          </details>
+                        ) : null}
+
+                        {!troca && desbloqueia?.porques[ex.id] ? (
+                          <details className="rounded-md border border-accent/30 bg-accent-soft/40 px-3 py-2 text-sm" onToggle={(e) => (e.currentTarget.open ? enviarEvento({ tipo: "explicacao_aberta", origem: "treino" }) : undefined)}>
+                            <summary className="cursor-pointer font-semibold text-accent">Por que esse exercício está no meu treino?</summary>
+                            <p className="mt-1 text-fg">{desbloqueia.porques[ex.id]}</p>
+                            <p className="mt-0.5 text-[11px] text-fg-subtle">Escrito pelo {BRAND.name} para você.</p>
+                          </details>
+                        ) : null}
+                        {desbloqueia?.repsAltas && (repsPrescritas(ex.reps) ?? 0) >= REPS_ALTAS ? (
+                          <button type="button" onClick={() => abrirLeitura(desbloqueia.repsAltas)} className="alvo text-left text-xs font-semibold text-accent underline-offset-2 hover:underline">
+                            Por que {repsPrescritas(ex.reps)} repetições? →
+                          </button>
+                        ) : null}
+                        {tipoPeso && modoPeso && trocandoPadrao !== tipoPeso ? (
+                          <p className="text-xs text-fg-subtle">
+                            ⚖️ Seu jeito de anotar: {resumoPadrao(tipoPeso, modoPeso)} ·{" "}
+                            <button type="button" onClick={() => setTrocandoPadrao(tipoPeso)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                              mudar
+                            </button>
+                          </p>
+                        ) : null}
+                        {!ehPorTempo(ex) && anotaCarga(equipamento) && !(outro || idx === 0) ? <LembreteAparelho outro={outro} onOutro={(v) => marcarOutroAparelho(se.id, v)} /> : null}
+                        <AnotacaoExercicio
+                          key={`nota-${se.id}`}
+                          inicial={se.observacao_aluno ?? ""}
+                          presencial={!!presencial}
+                          onSalvar={async (texto) => {
+                            if (!sessao) return false;
+                            const r = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ observacao_aluno: texto || null }) }).catch(() => null);
+                            if (r?.ok) setSessao((cur) => (cur ? { ...cur, exercicios: cur.exercicios.map((x) => (x.id === se.id ? { ...x, observacao_aluno: texto || null } : x)) } : cur));
+                            return !!r?.ok;
+                          }}
+                        />
+                        {!presencial ? (
+                          <a
+                            href={linkExecucao(textoExecucao({ nomeAluno, exercicio: ex.nome, treino: `Treino ${treino.letra} · ${treino.nome}`, dataISO: new Date(sessao?.iniciado_em ?? Date.now()).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }), series: lista.filter((x) => x.concluida && x.tipo !== "aquecimento").map((x) => ({ carga: x.carga, reps: x.reps })) }))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="touch flex w-full items-center justify-center gap-2 rounded-lg border border-[#25D366]/60 bg-[#25D366]/10 px-4 py-2.5 text-sm font-bold text-[#25D366]"
+                          >
+                            🎥 Enviar minha execução ao {BRAND.name}
+                          </a>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
+                            + Série extra
+                          </button>
+                          {!presencial && parceiroParaBiset(itensParaJuntar(), se.id) ? (
+                            <button type="button" onClick={() => void juntarEmBiset(se.id, parceiroParaBiset(itensParaJuntar(), se.id)!)} className="touch rounded-md border border-[#a78bfa]/60 px-3 py-2 text-xs font-semibold text-[#a78bfa]">
+                              ⚡ Juntar em bi-set
+                            </button>
+                          ) : null}
+                          {podeTrocar ? (
+                            <button type="button" onClick={() => { const abrir = trocaAberta !== se.id; setTrocaAberta(abrir ? se.id : null); if (abrir) requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} aria-expanded={trocaAberta === se.id} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
+                              ⇄ Trocar exercício
+                            </button>
+                          ) : null}
+                          <button type="button" onClick={() => setAdaptacaoAberta(adaptacaoAberta === se.id ? null : se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
+                            Não consegui este exercício
+                          </button>
+                          <button type="button" onClick={() => pularExercicio(se.id, ex.nome)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-subtle hover:text-fg">
+                            Pular hoje
+                          </button>
+                        </div>
+                      </div>
                     ) : null}
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
-                        + Série extra
-                      </button>
-                      {!presencial && parceiroParaBiset(itensParaJuntar(), se.id) ? (
-                        <button type="button" onClick={() => void juntarEmBiset(se.id, parceiroParaBiset(itensParaJuntar(), se.id)!)} className="touch rounded-md border border-[#a78bfa]/60 px-3 py-2 text-xs font-semibold text-[#a78bfa]">
-                          ⚡ Juntar em bi-set
-                        </button>
-                      ) : null}
-                      {podeTrocar ? (
-                        <button type="button" onClick={() => { const abrir = trocaAberta !== se.id; setTrocaAberta(abrir ? se.id : null); if (abrir) requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} aria-expanded={trocaAberta === se.id} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
-                          ⇄ Trocar exercício
-                        </button>
-                      ) : null}
-                      <button type="button" onClick={() => setAdaptacaoAberta(adaptacaoAberta === se.id ? null : se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
-                        Não consegui este exercício
-                      </button>
-                      <button type="button" onClick={() => pularExercicio(se.id, ex.nome)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-subtle hover:text-fg">
-                        Pular hoje
-                      </button>
-                    </div>
                     {trocaAberta === se.id ? (
                       <div id={`troca-${se.id}`} role="dialog" aria-label={`Trocar ${exPlano.nome}`} className="scroll-mt-24 space-y-2 rounded-lg border border-accent/40 bg-bg/60 p-3">
                         <div className="flex items-center justify-between">

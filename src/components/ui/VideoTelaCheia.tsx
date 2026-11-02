@@ -8,9 +8,26 @@ import { useFecharComVoltar } from "@/lib/useFecharComVoltar";
 import { createPortal } from "react-dom";
 import { embedUrl, thumbnailUrl, type VideoSource } from "@/lib/video";
 
-export function BotaoVideoTelaCheia({ source, titulo }: { source: VideoSource; titulo: string }) {
+export function BotaoVideoTelaCheia({ source, titulo, compacto = false }: { source: VideoSource; titulo: string; compacto?: boolean }) {
   const [aberto, setAberto] = useState(false);
   const thumb = thumbnailUrl(source);
+  // Versão compacta (tela do treino, 02/11/2026): miniatura + “Ver vídeo” numa pílula.
+  if (compacto)
+    return (
+      <>
+        <button type="button" onClick={() => setAberto(true)} className="touch inline-flex items-center gap-2 rounded-full border border-accent/50 bg-accent-soft/40 py-1 pl-1 pr-3 text-sm font-bold text-accent hover:border-accent" aria-label={`Ver vídeo de ${titulo}`}>
+          <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-black">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {thumb ? <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
+            <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+              <svg viewBox="0 0 24 24" className="ml-0.5 h-3.5 w-3.5 fill-accent" aria-hidden><path d="M8 5v14l11-7z" /></svg>
+            </span>
+          </span>
+          Ver vídeo
+        </button>
+        {aberto ? <VideoTelaCheia source={source} titulo={titulo} onFechar={() => setAberto(false)} /> : null}
+      </>
+    );
   return (
     <>
       <button type="button" onClick={() => setAberto(true)} className="touch flex w-full items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft/40 p-2 text-left hover:border-accent" aria-label={`Ver vídeo de ${titulo}`}>
