@@ -1854,13 +1854,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                       })}
                     </div>
                     {/* “+ Série extra” à vista, logo abaixo das séries (pedido do Montinho, 03/11/2026: tinha ido para o ⋯ Mais). */}
-                    {statusAtual !== "pulado" && !finalizado ? (
+                    {/* Finalizado também: dá para voltar e fazer mais uma (pedido do Montinho, 03/11/2026). */}
+                    {statusAtual !== "pulado" ? (
                       <div className="flex gap-2">
                         <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch flex-1 rounded-lg border border-dashed border-border px-3 py-2 text-sm font-semibold text-fg-muted hover:text-fg">
-                          + Série extra
+                          {finalizado ? "+ Fazer mais uma série" : "+ Série extra"}
                         </button>
                         {/* Bi-set na hora, à vista (pedido do Montinho, 03/11/2026). */}
-                        {!presencial && parceiroParaBiset(itensParaJuntar(), se.id) ? (
+                        {!presencial && !finalizado && parceiroParaBiset(itensParaJuntar(), se.id) ? (
                           <button type="button" onClick={() => void juntarEmBiset(se.id, parceiroParaBiset(itensParaJuntar(), se.id)!)} className="touch flex-1 rounded-lg border border-dashed border-[#a78bfa]/60 px-3 py-2 text-sm font-semibold text-[#a78bfa]">
                             ⚡ Juntar em bi-set
                           </button>
