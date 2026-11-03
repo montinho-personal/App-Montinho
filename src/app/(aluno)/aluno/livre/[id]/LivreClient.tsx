@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { RestTimer } from "@/components/ui/RestTimer";
+import { DescansoNoCartao } from "@/components/treinos/DescansoNoCartao";
 import { GRUPO_LABEL } from "@/lib/grupos";
 import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
 import { lerCarga, lerReps, tiposDeSerie } from "@/lib/treino/livre";
@@ -113,7 +114,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   const [ocupado, setOcupado] = useState(false);
   // Relógio só depois de abrir no aparelho (o servidor não sabe a hora do celular).
   const [agora, setAgora] = useState<number | null>(null);
-  const [timer, setTimer] = useState<{ seg: number; key: number } | null>(null);
+  const [timer, setTimer] = useState<{ seg: number; key: number; fim: number; pausadoSeg?: number } | null>(null);
   const [terminando, setTerminando] = useState(false);
   const [feedback, setFeedback] = useState<(typeof FEEDBACK)[number]["id"] | null>(null);
   const [comentario, setComentario] = useState("");
@@ -296,7 +297,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       setAberto(prox.seId);
     }
     const seg = s.tipo === "aquecimento" ? DESCANSO_SEG.aquecimento : DESCANSO_SEG.valida;
-    setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }));
+    setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim: Date.now() + seg * 1000 }));
   }
 
   async function apagarSerie(e: ExercicioTela, s: SerieTela) {
@@ -410,7 +411,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                         sincronizada={s.salva}
                         onChange={(v) => mudarSerie(e.seId, s.key, { blocos: v, carga: v[0]?.carga ?? s.carga, salva: false })}
                         onConcluir={() => void salvarSerie(e, s)}
-                        onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1 }))}
+                        onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim: Date.now() + seg * 1000 }))}
                       />
                     ) : (
                       <div key={s.key} className="space-y-1">
@@ -436,6 +437,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                         ) : null}
                       </div>
                     ); })}
+                    {timer ? <DescansoNoCartao fim={timer.fim} pausadoSeg={timer.pausadoSeg} onPular={() => setTimer(null)} /> : null}
                     {/* Bi-set na hora (pedido do Montinho, 03/11/2026): junta com o próximo exercício sem par; sem nenhum, abre a busca para escolher. */}
                     {!e.bloco ? (
                       <button
@@ -519,7 +521,15 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       {timer ? (
         // Mesmo descanso do treino normal: flutua embaixo, perto do polegar, acima do menu.
         <div className="fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl bottom-[calc(4.75rem+env(safe-area-inset-bottom)+var(--vv-fundo,0px))] md:bottom-4">
-          <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => setTimer(null)} onDismiss={() => setTimer(null)} />
+          <RestTimer
+            key={timer.key}
+            duracaoSeg={timer.seg}
+            autoStart
+            onComplete={() => setTimer(null)}
+            onDismiss={() => setTimer(null)}
+            // −15/+15 e pausa também no descanso de dentro do cartão (pedido do Montinho, 04/11/2026).
+            onMudar={({ fim, restantes }) => setTimer((t) => (t ? { ...t, fim: fim ?? Date.now() + restantes * 1000, pausadoSeg: fim ? undefined : restantes } : t))}
+          />
         </div>
       ) : null}
 
