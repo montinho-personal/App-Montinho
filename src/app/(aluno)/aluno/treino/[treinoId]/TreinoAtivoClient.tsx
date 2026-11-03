@@ -1853,6 +1853,12 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         );
                       })}
                     </div>
+                    {/* “+ Série extra” à vista, logo abaixo das séries (pedido do Montinho, 03/11/2026: tinha ido para o ⋯ Mais). */}
+                    {statusAtual !== "pulado" && !finalizado ? (
+                      <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch w-full rounded-lg border border-dashed border-border px-3 py-2 text-sm font-semibold text-fg-muted hover:text-fg">
+                        + Série extra
+                      </button>
+                    ) : null}
                     {evolucaoEx[se.id] ? (
                       <p role="status" className="rounded-md border border-success/50 bg-success/10 px-3 py-2 text-sm leading-snug">
                         <span className="font-black text-success">{evolucaoEx[se.id].tipo.startsWith("recorde") ? "🏅 Nova marca pessoal!" : "📈 Você evoluiu!"}</span> {evolucaoEx[se.id].mensagem}
@@ -1944,9 +1950,6 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                           </a>
                         ) : null}
                         <div className="flex flex-wrap gap-2 pt-1">
-                          <button type="button" onClick={() => adicionarSerieExtra(se.id)} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
-                            + Série extra
-                          </button>
                           {!presencial && parceiroParaBiset(itensParaJuntar(), se.id) ? (
                             <button type="button" onClick={() => void juntarEmBiset(se.id, parceiroParaBiset(itensParaJuntar(), se.id)!)} className="touch rounded-md border border-[#a78bfa]/60 px-3 py-2 text-xs font-semibold text-[#a78bfa]">
                               ⚡ Juntar em bi-set
