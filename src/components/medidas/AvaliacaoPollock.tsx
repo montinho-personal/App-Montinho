@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CAMPOS_MEDIDA, lerMedida, type ChaveMedida } from "@/lib/medidas/campos";
-import { calcularPollock, extrasDoPollock, idadeNaData, PONTOS_7_DOBRAS, type PontoDobra, type SexoAvaliacao } from "@/lib/medidas/pollock";
+import { calcularPollock, extrasDoPollock, idadeNaData, leituraForaDoLimite, LIMITES_DOBRA, PONTOS_7_DOBRAS, type PontoDobra, type SexoAvaliacao } from "@/lib/medidas/pollock";
 import { Button } from "@/components/ui/Button";
 
 type Leituras = Record<PontoDobra, [string, string, string]>;
@@ -24,7 +24,7 @@ const br = (v: number, casas = 1) => v.toLocaleString("pt-BR", { maximumFraction
 const vazias = (): Leituras => Object.fromEntries(PONTOS_7_DOBRAS.map((p) => [p.chave, ["", "", ""]])) as unknown as Leituras;
 const CIRCUNFERENCIAS = CAMPOS_MEDIDA.filter((c) => c.grupo === "circunferencias");
 
-export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura, onFechar }: { alunoId: string; sexo: SexoAvaliacao | null; nascimento: string | null; ultimoPeso: number | null; altura: number | null; onFechar: () => void }) {
+export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura, onFechar, onSalvo }: { alunoId: string; sexo: SexoAvaliacao | null; nascimento: string | null; ultimoPeso: number | null; altura: number | null; onFechar: () => void; /** Avaliação gravada: id da linha (abre o relatório). */ onSalvo?: (id: string) => void }) {
   const router = useRouter();
   const chave = `montinho-pollock:${alunoId}`;
   const inicial = (): Rascunho => ({ data: hojeBR(), sexo: sexo ?? "", idade: String(idadeNaData(nascimento, hojeBR()) ?? ""), peso: ultimoPeso ? String(ultimoPeso).replace(".", ",") : "", altura: altura ? String(altura) : "", leituras: vazias(), circ: {}, obs: "" });
@@ -108,7 +108,8 @@ export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura
         localStorage.removeItem(chave);
       } catch {}
       router.refresh();
-      onFechar();
+      if (onSalvo && typeof j.registro?.id === "string") onSalvo(j.registro.id);
+      else onFechar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Algo deu errado.");
     } finally {
@@ -180,7 +181,7 @@ export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura
                       onChange={(e) => mudarLeitura(p.chave, i, e.target.value)}
                       placeholder={`${i + 1}ª`}
                       aria-label={`${p.nome}, ${i + 1}ª leitura`}
-                      className={`min-w-0 flex-1 rounded-lg border bg-bg px-1 py-2 text-center text-sm font-mono ${remedir ? "border-warning" : "border-border"}`}
+                      className={`min-w-0 flex-1 rounded-lg border bg-bg px-1 py-2 text-center text-sm font-mono ${leituraForaDoLimite(num(r.leituras[p.chave][i])) ? "border-red-500 text-red-400" : remedir ? "border-warning" : "border-border"}`}
                     />
                   ))}
                   <span className={`w-14 shrink-0 text-right font-mono text-base font-bold ${v != null ? (remedir ? "text-warning" : "text-accent") : "text-fg-subtle"}`}>{v != null ? br(v) : "—"}</span>
@@ -191,6 +192,7 @@ export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura
                   </p>
                 ) : null}
                 {remedir ? <p className="mt-1 text-[10px] text-warning">Leituras com mais de 2 mm de diferença: meça de novo.</p> : null}
+                {res.fora.includes(p.chave) ? <p className="mt-1 text-[10px] text-red-400">Leitura fora de {LIMITES_DOBRA.min} a {LIMITES_DOBRA.max} mm: confira o número (ela não entra na conta).</p> : null}
               </li>
             );
           })}

@@ -3,6 +3,7 @@
 // Minhas medidas e avaliações: registrar peso, altura, bioimpedância e
 // circunferências e/ou enviar o arquivo da avaliação (PDF, foto, print).
 // Usado pelo aluno (as próprias) e pelo personal (na ficha do aluno).
+import { ehAvaliacao7Dobras } from "@/lib/medidas/relatorio-avaliacao";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -48,6 +49,7 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [relatorioNovo, setRelatorioNovo] = useState<string | null>(null);
   const [novas, setNovas] = useState<Nova[]>([]);
 
   async function enviarArquivo(f: File): Promise<Nova[]> {
@@ -108,6 +110,12 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
     <div className="space-y-4">
       {!doPersonal ? <ChamadaTrofeu acao="medidas" /> : null}
       {ok ? <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-semibold" role="status">✓ {ok}</p> : null}
+      {relatorioNovo ? (
+        <a href={`/avaliacao/${relatorioNovo}`} className="touch flex items-center justify-between gap-2 rounded-xl border border-accent bg-accent/15 px-4 py-3 text-sm font-bold text-accent">
+          <span>📄 Ver o relatório da avaliação{doPersonal ? " e enviar ao aluno" : ""}</span>
+          <span aria-hidden>›</span>
+        </a>
+      ) : null}
       {modo === null ? (
         <section className="space-y-2" aria-label="Nova avaliação">
           <p className="text-sm font-bold">{medidas.length || arquivos.length ? "Registrar uma nova avaliação" : "Como você quer registrar?"}</p>
@@ -120,7 +128,7 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
           </div>
         </section>
       ) : modo === "completa" ? (
-        <AvaliacaoPollock alunoId={alunoId} sexo={sexo} nascimento={nascimento} ultimoPeso={medidas.find((m) => m.peso_kg)?.peso_kg ?? null} altura={medidas.find((m) => m.altura_cm)?.altura_cm ?? null} onFechar={() => { setModo(null); setOk("Avaliação salva."); }} />
+        <AvaliacaoPollock alunoId={alunoId} sexo={sexo} nascimento={nascimento} ultimoPeso={medidas.find((m) => m.peso_kg)?.peso_kg ?? null} altura={medidas.find((m) => m.altura_cm)?.altura_cm ?? null} onFechar={() => setModo(null)} onSalvo={(id) => { setModo(null); setOk("Avaliação salva."); setRelatorioNovo(id); }} />
       ) : (
         <form onSubmit={salvar} className="space-y-4 rounded-xl border border-border bg-surface p-4">
           <div className="flex items-start justify-between gap-2">
@@ -209,8 +217,11 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
                 <li key={m.id} className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm">
                   <p className="font-semibold">{dataBR(m.data)}{m.origem === "personal" ? <span className="ml-2 text-xs font-normal text-fg-subtle">registrado pelo personal</span> : null}</p>
                   <p className="mt-0.5 text-xs text-fg-muted">{itens.length ? itens.map((c) => `${c.rotulo} ${br(m[c.chave] as number)} ${c.unidade}`).join(" · ") : extras.length ? "" : "Sem números"}</p>
-                  {extras.length ? <p className="mt-0.5 text-xs text-fg-subtle">{extras.map((e) => `${e.nome} ${br(e.valor)} ${e.unidade}`).join(" · ")}</p> : null}
+                  {extras.length ? <p className="mt-0.5 text-xs text-fg-subtle">{extras.map((e) => `${e.nome} ${e.unidade === "g/mL" ? e.valor.toLocaleString("pt-BR", { maximumFractionDigits: 4 }) : br(e.valor)} ${e.unidade}`).join(" · ")}</p> : null}
                   {m.observacoes ? <p className="mt-0.5 text-xs text-fg-subtle">{m.observacoes}</p> : null}
+                  {ehAvaliacao7Dobras(m) ? (
+                    <a href={`/avaliacao/${m.id}`} className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-lg border border-accent/60 px-3 text-xs font-bold text-accent">📄 Relatório da avaliação{doPersonal ? " · enviar ao aluno" : ""}</a>
+                  ) : null}
                 </li>
               );
             })}

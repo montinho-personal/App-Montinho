@@ -41,15 +41,21 @@ export const FAIXA_VALIDADA: Record<SexoAvaliacao, { min: number; max: number }>
 const r = (n: number, casas: number) => Math.round(n * 10 ** casas) / 10 ** casas;
 
 /** Valor do ponto a partir das leituras (mm): mediana com 3, média com 2, a própria com 1. */
-export function valorDoPonto(leituras: Array<number | null | undefined>): { valor: number | null; remedir: boolean } {
-  const v = leituras.filter((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= LIMITES_DOBRA.min && x <= LIMITES_DOBRA.max);
-  if (!v.length) return { valor: null, remedir: false };
+export function valorDoPonto(leituras: Array<number | null | undefined>): { valor: number | null; remedir: boolean; fora: boolean } {
+  const numeros = leituras.filter((x): x is number => typeof x === "number" && Number.isFinite(x));
+  const v = numeros.filter((x) => x >= LIMITES_DOBRA.min && x <= LIMITES_DOBRA.max);
+  // Auditoria 04/11/2026: leitura digitada fora de 2–80 mm (ex.: 150 no lugar de 15) não entra na conta, mas AVISA.
+  const fora = numeros.length > v.length;
+  if (!v.length) return { valor: null, remedir: false, fora };
   const ord = [...v].sort((a, b) => a - b);
   const valor = ord.length >= 3 ? ord[Math.floor(ord.length / 2)] : ord.length === 2 ? (ord[0] + ord[1]) / 2 : ord[0];
   // Pede nova medida quando as leituras usadas não batem (2 mm).
   const remedir = ord.length === 2 ? ord[1] - ord[0] > LIMITES_DOBRA.diferencaMaxMm : ord.length >= 3 ? Math.min(ord[1] - ord[0], ord[2] - ord[1]) > LIMITES_DOBRA.diferencaMaxMm : false;
-  return { valor: r(valor, 1), remedir };
+  return { valor: r(valor, 1), remedir, fora };
 }
+
+/** A leitura digitada está fora do que o adipômetro mede (2–80 mm)? */
+export const leituraForaDoLimite = (x: number | null | undefined) => typeof x === "number" && Number.isFinite(x) && (x < LIMITES_DOBRA.min || x > LIMITES_DOBRA.max);
 
 /** Densidade corporal pelas equações de 7 dobras. */
 export function densidade7Dobras(soma: number, idade: number, sexo: SexoAvaliacao): number {
@@ -66,6 +72,8 @@ export type ResultadoPollock = {
   faltam: PontoDobra[];
   pontos: Partial<Record<PontoDobra, number>>;
   remedir: PontoDobra[];
+  /** Pontos com alguma leitura fora de 2–80 mm (ignorada na conta). */
+  fora: PontoDobra[];
   soma: number | null;
   densidade: number | null;
   gorduraPct: number | null;
@@ -78,10 +86,12 @@ export type ResultadoPollock = {
 export function calcularPollock(e: { sexo: SexoAvaliacao | null; idade: number | null; pesoKg: number | null; leituras: Partial<Record<PontoDobra, Array<number | null | undefined>>> }): ResultadoPollock {
   const pontos: Partial<Record<PontoDobra, number>> = {};
   const remedir: PontoDobra[] = [];
+  const fora: PontoDobra[] = [];
   for (const p of PONTOS_7_DOBRAS) {
     const v = valorDoPonto(e.leituras[p.chave] ?? []);
     if (v.valor != null) pontos[p.chave] = v.valor;
     if (v.remedir) remedir.push(p.chave);
+    if (v.fora) fora.push(p.chave);
   }
   const faltam = PONTOS_7_DOBRAS.map((p) => p.chave).filter((k) => pontos[k] == null);
   const completo = faltam.length === 0;
@@ -97,10 +107,11 @@ export function calcularPollock(e: { sexo: SexoAvaliacao | null; idade: number |
     if (gorduraPct < 2 || gorduraPct > 60) avisos.push("Resultado fora do esperado: confira as dobras anotadas.");
   } else if (completo && !e.sexo) avisos.push("Informe o sexo para calcular (as equações são diferentes).");
   else if (completo && (e.idade == null || e.idade <= 0)) avisos.push("Informe a idade para calcular.");
+  if (fora.length) avisos.push(`Leitura fora de ${LIMITES_DOBRA.min} a ${LIMITES_DOBRA.max} mm (não entrou na conta) em: ${fora.map((k) => NOME_PONTO[k]).join(", ")}. Confira o número digitado.`);
   if (remedir.length) avisos.push(`Leituras com mais de ${LIMITES_DOBRA.diferencaMaxMm} mm de diferença em: ${remedir.map((k) => NOME_PONTO[k]).join(", ")}. Vale medir de novo.`);
   const massaGordaKg = gorduraPct != null && e.pesoKg ? r((e.pesoKg * gorduraPct) / 100, 1) : null;
   const massaMagraKg = massaGordaKg != null && e.pesoKg ? r(e.pesoKg - massaGordaKg, 1) : null;
-  return { completo, faltam, pontos, remedir, soma, densidade, gorduraPct, massaGordaKg, massaMagraKg, avisos };
+  return { completo, faltam, pontos, remedir, fora, soma, densidade, gorduraPct, massaGordaKg, massaMagraKg, avisos };
 }
 
 /** Idade em anos completos numa data (AAAA-MM-DD). */

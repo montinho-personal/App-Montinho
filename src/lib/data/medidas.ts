@@ -105,3 +105,11 @@ export async function primeiraAvaliacao(alunoId: string): Promise<string | null>
   const datas = [...medidas.map((m) => `${m.data}T15:00:00Z`), ...arquivos.map((a) => a.created_at)].sort();
   return datas[0] ?? null;
 }
+
+/** Uma linha de medidas pelo id (RLS: o aluno só as dele; o personal, todas). */
+export async function medidaPorId(id: string): Promise<Evolucao | null> {
+  if (isDemoMode()) return ((demoStore().evolucao as Evolucao[]).find((m) => m.id === id) ?? null);
+  const db = await getDb();
+  const { data } = await db.from("evolucao").select("*").eq("id", id).maybeSingle();
+  return (data as Evolucao | null) ?? null;
+}
