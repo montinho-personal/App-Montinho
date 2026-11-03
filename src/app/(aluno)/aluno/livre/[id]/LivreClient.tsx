@@ -437,21 +437,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                         ) : null}
                       </div>
                     ); })}
-                    {timer ? <DescansoNoCartao fim={timer.fim} pausadoSeg={timer.pausadoSeg} onPular={() => setTimer(null)} /> : null}
-                    {/* Bi-set na hora (pedido do Montinho, 03/11/2026): junta com o próximo exercício sem par; sem nenhum, abre a busca para escolher. */}
-                    {!e.bloco ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const i = exs.findIndex((x) => x.seId === e.seId);
-                          const par = exs.slice(i + 1).find((x) => !x.bloco) ?? [...exs.slice(0, i)].reverse().find((x) => !x.bloco);
-                          void aplicarTecnica(e, { tecnica: "biset" as Tecnica, config: null, parceiros: par ? [par.seId] : [], novos: par ? 0 : 1 });
-                        }}
-                        className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#a78bfa]/60 text-sm font-semibold text-[#a78bfa]"
-                      >
-                        ⚡ Juntar em bi-set {exs.some((x) => x.seId !== e.seId && !x.bloco) ? "com o próximo" : "(escolher o exercício)"}
-                      </button>
-                    ) : null}
+                    {/* Séries a mais logo abaixo das séries, antes do descanso e do bi-set (pedido do Montinho, 04/11/2026). */}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => { maisSerie(e); setEscolhendoSerie(null); }} className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border text-sm font-semibold text-fg-muted hover:text-fg">
                         <Icon name="plus" size={16} /> Série normal
@@ -472,6 +458,21 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                           ))}
                         </div>
                       </div>
+                    ) : null}
+                    {timer ? <DescansoNoCartao fim={timer.fim} pausadoSeg={timer.pausadoSeg} onPular={() => setTimer(null)} /> : null}
+                    {/* Bi-set na hora (pedido do Montinho, 03/11/2026): junta com o próximo exercício sem par; sem nenhum, abre a busca para escolher. */}
+                    {!e.bloco ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const i = exs.findIndex((x) => x.seId === e.seId);
+                          const par = exs.slice(i + 1).find((x) => !x.bloco) ?? [...exs.slice(0, i)].reverse().find((x) => !x.bloco);
+                          void aplicarTecnica(e, { tecnica: "biset" as Tecnica, config: null, parceiros: par ? [par.seId] : [], novos: par ? 0 : 1 });
+                        }}
+                        className="alvo flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#a78bfa]/60 text-sm font-semibold text-[#a78bfa]"
+                      >
+                        ⚡ Juntar em bi-set {exs.some((x) => x.seId !== e.seId && !x.bloco) ? "com o próximo" : "(escolher o exercício)"}
+                      </button>
                     ) : null}
                   </div>
 
