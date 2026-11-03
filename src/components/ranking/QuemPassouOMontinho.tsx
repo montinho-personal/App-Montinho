@@ -37,8 +37,14 @@ export function QuemPassouOMontinho({ pessoas, personal = false, lideranca = nul
             <span className="block text-xs text-fg-muted">{personal ? "Quando alguém ficar à frente da sua ficha no ranking, aparece aqui." : "Quem vai ser o primeiro? O troféu “Passei o Montinho” está esperando."}</span>
           )}
         </span>
-        {n > 0 ? <span className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-black text-bg">{aberto ? "Fechar" : destaque ? "Ver quem já passou 👀" : "Ver quem 👀"}</span> : null}
+        {n > 0 && !destaque ? <span className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-black text-bg">{aberto ? "Fechar" : "Ver quem 👀"}</span> : null}
       </button>
+      {/* Com o título longo (liderança/na frente agora), o botão vai embaixo, largura toda, para o texto não espremer (04/11/2026). */}
+      {n > 0 && destaque ? (
+        <button type="button" onClick={() => setAberto((a) => !a)} aria-expanded={aberto} className="mt-3 w-full rounded-full bg-accent px-3 py-2 text-sm font-black text-bg">
+          {aberto ? "Fechar" : "Ver quem já passou 👀"}
+        </button>
+      ) : null}
 
       {aberto && n > 0 ? (
         <div className="mt-3 space-y-2">
