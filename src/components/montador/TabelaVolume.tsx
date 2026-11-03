@@ -118,7 +118,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
     if (filtro === "inferiores") l = l.filter((x) => x.inferior);
     if (ordem === "volume") l = [...l].sort((a, b) => b.total - a.total);
     if (ordem === "prioridade") l = [...l].sort((a, b) => Number(prioridades.includes(b.grupo)) - Number(prioridades.includes(a.grupo)) || b.total - a.total);
-    return l;
+    return partesJuntoDoTotal(l);
   }, [resultado, filtro, ordem, prioridades]);
 
   const letras = resultado.letras;
@@ -380,4 +380,17 @@ function CampoFaixa({ rotulo, inicial, onSalvar }: { rotulo: string; inicial: st
       className={`h-8 w-14 rounded border bg-bg px-1 text-center font-mono text-[12px] ${erro ? "border-red text-red" : "border-border"}`}
     />
   );
+}
+
+/**
+ * Partes (↳) sempre logo abaixo do total delas, em qualquer ordem da tabela: supra/infra embaixo do
+ * Abdômen e anterior/lateral/posterior embaixo de Ombros (04/11/2026: ordenado por volume, o “↳ Supra/Infra”
+ * caía embaixo da Panturrilha).
+ */
+export function partesJuntoDoTotal<T extends { grupo: string; parteDe?: string; somaDasPartes?: boolean }>(linhas: T[]): T[] {
+  const ombrosTotal = linhas.some((x) => x.grupo === "ombros" && x.somaDasPartes);
+  const paiDe = (x: T): string | null => x.parteDe ?? (ombrosTotal && x.grupo.startsWith("ombro_") ? "ombros" : null);
+  const pais = new Set(linhas.map((x) => x.grupo));
+  const soltas = linhas.filter((x) => { const p = paiDe(x); return !p || !pais.has(p); });
+  return soltas.flatMap((x) => [x, ...linhas.filter((y) => paiDe(y) === x.grupo)]);
 }
