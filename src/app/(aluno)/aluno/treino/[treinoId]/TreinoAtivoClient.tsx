@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { RestTimer } from "@/components/ui/RestTimer";
 import { LembretePush } from "@/components/aluno/LembretePush";
-import { BotaoVideoTelaCheia } from "@/components/ui/VideoTelaCheia";
+import { BotaoVideoTelaCheia, VideoTelaCheia } from "@/components/ui/VideoTelaCheia";
 import { useToast } from "@/components/ui/Toast";
 import { drenar, enfileirar, gerarClientKey, lerFila, type OperacaoFila } from "@/lib/sync/fila";
 import { listarSeries, verificarPendencias } from "@/lib/treino/pendencias";
@@ -347,6 +347,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   // Tela do treino mais limpa (pedido do Montinho, 02/11/2026): o que não é a série de agora
   // fica no “⋯ Mais” do exercício; o detalhe do “subir o peso” e a explicação da técnica, a um toque.
   const [maisAberto, setMaisAberto] = useState<string | null>(null);
+  // Lista antes de começar (03/11/2026, pedido do Montinho): tocar no exercício mostra o vídeo
+  // (ou os passos, quando não tem vídeo), só para ver qual é.
+  const [vendoVideo, setVendoVideo] = useState<ExercicioView | null>(null);
+  const [vendoPassos, setVendoPassos] = useState<string | null>(null);
   const [subirAberto, setSubirAberto] = useState<Record<string, boolean>>({});
   const [tecnicaAberta, setTecnicaAberta] = useState<Record<string, boolean>>({});
   const [trocadoLocal, setTrocadoLocal] = useState<Record<string, string | null>>({});
@@ -1422,22 +1426,41 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         </Card>
         {treino.blocos?.length ? <BlocosWod sessaoId="" blocos={treino.blocos} ativo={false} /> : null}
         <ol className="space-y-2" aria-label="Exercícios deste treino">
-          {exercicios.map((e, i) => (
-            <li key={e.id} className={`flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 ${adiadosIds.has(e.id) ? "border-dashed bg-transparent" : ""}`}>
-              <span className="w-7 h-7 rounded-full bg-bg border border-border text-xs font-bold flex items-center justify-center text-fg-muted" aria-hidden>
-                {i + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{e.nome}</p>
-                <p className="text-xs text-fg-subtle">
-                  {cortesIds.has(e.id) ? e.series - 1 : e.series} × {e.reps}
-                  {e.descanso_seg ? (possivel?.descansoReduzido && encurtarDescanso(e.descanso_seg) !== e.descanso_seg ? ` · descanso ${encurtarDescanso(e.descanso_seg)}s (era ${e.descanso_seg}s)` : ` · descanso ${e.descanso_seg}s`) : ""}
-                  {adiadosIds.has(e.id) ? " · fica para outro dia" : cortesIds.has(e.id) ? " · 1 série a menos hoje" : e.prioridade === "essencial" && possivel?.status === "reduzido" ? " · essencial" : ""}
-                </p>
-              </div>
+          {exercicios.map((e, i) => {
+            const temVer = !!e.video || e.instrucoes.length > 0;
+            const abrir = () => (e.video ? setVendoVideo(e) : setVendoPassos(vendoPassos === e.id ? null : e.id));
+            return (
+            <li key={e.id} className={`rounded-lg border border-border bg-card ${adiadosIds.has(e.id) ? "border-dashed bg-transparent" : ""}`}>
+              <button type="button" disabled={!temVer} onClick={abrir} aria-label={e.video ? `Ver o vídeo de ${e.nome}` : temVer ? `Ver como é ${e.nome}` : undefined} className="flex w-full items-center gap-3 px-3 py-2.5 text-left enabled:active:scale-[0.99]">
+                <span className="w-7 h-7 rounded-full bg-bg border border-border text-xs font-bold flex items-center justify-center text-fg-muted" aria-hidden>
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{e.nome}</p>
+                  <p className="text-xs text-fg-subtle">
+                    {cortesIds.has(e.id) ? e.series - 1 : e.series} × {e.reps}
+                    {e.descanso_seg ? (possivel?.descansoReduzido && encurtarDescanso(e.descanso_seg) !== e.descanso_seg ? ` · descanso ${encurtarDescanso(e.descanso_seg)}s (era ${e.descanso_seg}s)` : ` · descanso ${e.descanso_seg}s`) : ""}
+                    {adiadosIds.has(e.id) ? " · fica para outro dia" : cortesIds.has(e.id) ? " · 1 série a menos hoje" : e.prioridade === "essencial" && possivel?.status === "reduzido" ? " · essencial" : ""}
+                  </p>
+                </div>
+                {e.video ? (
+                  <span className="shrink-0 rounded-full border border-accent/50 bg-accent-soft/40 px-2.5 py-1 text-xs font-bold text-accent">▶ Ver</span>
+                ) : temVer ? (
+                  <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-bold text-fg-muted">{vendoPassos === e.id ? "Fechar" : "? Como é"}</span>
+                ) : null}
+              </button>
+              {vendoPassos === e.id && !e.video ? (
+                <ol className="mx-3 mb-3 list-decimal space-y-0.5 rounded-md bg-bg/60 py-2 pl-7 pr-3 text-xs text-fg-muted">
+                  {e.instrucoes.map((t, k) => (
+                    <li key={k}>{t}</li>
+                  ))}
+                </ol>
+              ) : null}
             </li>
-          ))}
+            );
+          })}
         </ol>
+        {vendoVideo?.video ? <VideoTelaCheia source={vendoVideo.video} titulo={vendoVideo.nome} onFechar={() => setVendoVideo(null)} /> : null}
       </div>
     );
   }
