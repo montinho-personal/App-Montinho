@@ -1,4 +1,5 @@
 import { AbasTreinoCardio } from "@/components/cardio/AbasTreinoCardio";
+import { metasDaEstrategia } from "@/lib/estrategia/plano";
 import { notFound } from "next/navigation";
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { getAluno, getAnamnese } from "@/lib/db";
@@ -86,6 +87,7 @@ export default async function MontadorPage({ params }: PageProps) {
       alunoId={id}
       alunoNome={aluno.profile?.nome ?? "Aluno"}
       programa={plano.programa}
+      metasDoRelatorio={estrategia ? { metas: metasDaEstrategia(estrategia.dados), data: estrategia.data_relatorio ?? estrategia.created_at?.slice(0, 10) ?? null } : null}
       treinosIniciais={plano.treinos}
       finalizados={finalizados.map((t) => ({ id: t.id, letra: t.letra, nome: t.nome, exercicios: t.exercicios.length }))}
       biblioteca={biblioteca.map((b) => ({ id: b.id, nome: b.nome, grupo_muscular: b.grupo, grupos_secundarios: b.secundarios, sinonimos: b.sinonimos, equipamento: b.equipamento }))}

@@ -19,11 +19,17 @@ export function prioridadesEmGrupos(e: EstrategiaImportada): GrupoMuscular[] {
   return out.slice(0, 6);
 }
 
+/** Metas de séries por músculo (faixas) do relatório do Montinho Strategy. */
+export function metasDaEstrategia(e: Pick<EstrategiaImportada, "volume">): Partial<Record<GrupoMuscular, { min: number; max: number }>> {
+  const metas: Partial<Record<GrupoMuscular, { min: number; max: number }>> = {};
+  for (const v of e.volume ?? []) if (v.grupo && v.series > 0) metas[v.grupo] = { min: v.series, max: Math.max(v.series, v.max ?? v.series) };
+  return metas;
+}
+
 export function planoDaEstrategia(e: EstrategiaImportada): SalvarPlanoInput | null {
   const dias = diasDaEstrategia(e);
   if (!dias.length) return null;
-  const metas: Partial<Record<GrupoMuscular, { min: number; max: number }>> = {};
-  for (const v of e.volume) if (v.grupo && v.series > 0) metas[v.grupo] = { min: v.series, max: Math.max(v.series, v.max ?? v.series) };
+  const metas = metasDaEstrategia(e);
   const letras = dias.map((d) => d.letra as TreinoLetra);
   const obs = [
     e.intensidade && `Intensidade: ${e.intensidade}.`,

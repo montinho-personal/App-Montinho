@@ -118,6 +118,8 @@ type BibliotecaItem = { id: string; nome: string; grupo_muscular: GrupoMuscular;
 type Props = {
   /** 0133: Montinho Multimodalidade ligado (tipo do treino + blocos). */
   multimodalidade?: boolean;
+  /** Faixas de séries do último relatório do Montinho Strategy (entram quando o plano está sem metas). */
+  metasDoRelatorio?: { metas: Partial<Record<GrupoMuscular, MetaVolume>>; data: string | null } | null;
   /** Foco de cada dia segundo a estratégia importada (séries/semana por músculo). */
   focoEstrategia?: Record<string, string>;
   /** Padrões de tempo do treinador (nível acima do treino). */
@@ -254,20 +256,26 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false, metasDoRelatorio = null }: Props) {
   const router = useRouter();
   const toast = useToast();
 
+  const usarMetasDoRelatorio = !!metasDoRelatorio && Object.keys(metasDoRelatorio.metas).length > 0 && !Object.keys(programa?.metas_volume ?? {}).length;
   const [estado, setEstado] = useState<Estado>(() => {
     const treinos = treinosIniciais.length
       ? treinosIniciais.map((t) => ({ key: novaKey(), id: t.id, letra: t.letra as TreinoLetra, nome: t.nome, ativo: t.ativo, observacoes: t.observacoes ?? "", rows: t.exercicios.length ? t.exercicios.map(rowDeExercicio) : [emptyRow()], tempos: (t.tempos ?? {}) as Partial<ParametrosTempo>, tempoAlvo: t.tempo_alvo_min != null ? String(t.tempo_alvo_min) : "", modalidade: t.modalidade ?? "musculacao", blocos: t.blocos ?? [] }))
       : [emptyTreino("A"), emptyTreino("B"), emptyTreino("C")];
-    return { programa: programaInicial(programa, treinos.map((t) => t.letra)), treinos };
+    const prog = programaInicial(programa, treinos.map((t) => t.letra));
+    // Plano sem metas, mas com relatório do Montinho Strategy importado: as faixas do relatório entram na tabela
+    // (04/11/2026: protocolo cadastrado depois da importação tinha zerado as metas; divisão sem modelo automático não as gravava).
+    if (usarMetasDoRelatorio) prog.metas_volume = metasDoRelatorio!.metas;
+    return { programa: prog, treinos };
   });
   const passado = useRef<Estado[]>([]);
   const futuro = useRef<Estado[]>([]);
   const [hist, setHist] = useState({ passado: 0, futuro: 0 });
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(usarMetasDoRelatorio);
+  const [avisoMetasRelatorio, setAvisoMetasRelatorio] = useState(usarMetasDoRelatorio);
   // Proteção contra perda de trabalho: rascunho neste aparelho + versão em que a tela abriu.
   const chaveRascunho = `montinho-montador:${alunoId}`;
   const versaoBase = useRef<number | null>(programa?.versao ?? null);
@@ -772,6 +780,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         }),
       }));
       setDirty(false);
+      setAvisoMetasRelatorio(false);
       setMotivo("");
       setSavedAt(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
       toast.success(`Plano salvo (versão ${data.versao?.versao ?? "nova"}). ${corr.length ? `${corr.length} correção(ões) de grupo guardada(s).` : ""}`);
@@ -1048,6 +1057,14 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           </span>
           <button type="button" onClick={() => void salvar(true)} disabled={saving} className="touch rounded-lg bg-accent px-3 py-2 font-bold text-bg disabled:opacity-50">Salvar o meu por cima</button>
           <button type="button" onClick={() => window.location.reload()} className="touch rounded-lg border border-border px-3 py-2 text-fg-muted">Ver a outra versão</button>
+        </div>
+      ) : null}
+      {avisoMetasRelatorio && metasDoRelatorio ? (
+        <div role="status" className="mb-3 rounded-xl border border-accent/60 bg-accent/10 px-4 py-3 text-sm">
+          <p className="font-bold text-accent">📋 Metas do relatório colocadas na tabela de volume</p>
+          <p className="mt-0.5 text-fg-muted">
+            Este protocolo estava sem metas de séries. Usei as {Object.keys(metasDoRelatorio.metas).length} faixas do relatório do Montinho Strategy{metasDoRelatorio.data ? ` de ${metasDoRelatorio.data.slice(0, 10).split("-").reverse().join("/")}` : ""}. Confira em “Volume semanal” e toque em <strong>Salvar</strong> para guardar.
+          </p>
         </div>
       ) : null}
       {rascunho ? (

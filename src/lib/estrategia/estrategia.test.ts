@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { cadastroDoArquivoStrategy, estrategiaValida, grupoDoRotulo, lerArquivoStrategy, lerEstrategia, telefoneDoWhatsapp } from "./ler";
 import { diasDaEstrategia, modeloDaDivisao } from "./divisao";
-import { planoDaEstrategia, prioridadesEmGrupos } from "./plano";
+import { metasDaEstrategia, planoDaEstrategia, prioridadesEmGrupos } from "./plano";
 import { estrategiaSchema, salvarPlanoSchema } from "@/lib/validacao/schemas";
 
 // Relatório real do Montinho Strategy, com nomes trocados (dados fictícios).
@@ -178,3 +178,14 @@ describe("divisão escrita por dia da semana (arquivo da Naya, 22/10/2026)", () 
     expect((plano.programa.calendario as { diasPorSemana: number }).diasPorSemana).toBe(6);
   });
 });
+
+describe("metas do relatório (04/11/2026: montador puxa quando o plano está sem metas)", () => {
+  it("as mesmas faixas que o plano inicial grava, mesmo sem modelo automático de divisão", () => {
+    const m = metasDaEstrategia(e);
+    expect(Object.keys(m).length).toBeGreaterThan(0);
+    expect(planoDaEstrategia(e)?.programa.metas_volume ?? m).toEqual(m);
+    expect(metasDaEstrategia({ ...e, divisao: "ABCDE" } as typeof e)).toEqual(m);
+    expect(metasDaEstrategia({ volume: [{ grupo: "quadriceps", rotulo: "Quadríceps", series: 15, max: 20 }] } as never)).toEqual({ quadriceps: { min: 15, max: 20 } });
+  });
+});
+

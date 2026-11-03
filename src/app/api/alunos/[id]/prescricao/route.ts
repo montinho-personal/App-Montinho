@@ -49,7 +49,15 @@ export async function POST(request: Request, { params }: Ctx) {
   // Treinos atuais (se houver) ficam arquivados — nada é apagado.
   const arquivados: TreinoInput[] = atual.treinos.map((t) => paraTreinoInput(t, false));
   try {
-    const resultado = await salvarPlano(id, sessao.userId, { ...pr.plano, treinos: [...pr.plano.treinos, ...arquivados], motivo: `${pr.plano.motivo ?? "Prescrição cadastrada"} [${pr.id}]` });
+    // Metas de séries (ex.: do relatório do Montinho Strategy) e prioridades já gravadas NÃO se perdem
+    // quando a prescrição pronta não traz as dela (bug de 04/11/2026: o cadastro zerava as metas).
+    const prog = pr.plano.programa;
+    const programa = {
+      ...prog,
+      metas_volume: Object.keys(prog.metas_volume ?? {}).length ? prog.metas_volume : (atual.programa?.metas_volume ?? {}),
+      prioridades: prog.prioridades?.length ? prog.prioridades : (atual.programa?.prioridades ?? []),
+    };
+    const resultado = await salvarPlano(id, sessao.userId, { ...pr.plano, programa, treinos: [...pr.plano.treinos, ...arquivados], motivo: `${pr.plano.motivo ?? "Prescrição cadastrada"} [${pr.id}]` });
     await criarExtras();
     await criarIntervencao(id, sessao.userId, { tipo: "revisao_treino", titulo: `Treino cadastrado (versão ${resultado.versao.versao})`, descricao: pr.titulo, referencia: { versao_id: resultado.versao.id, prescricao: pr.id }, visivel_aluno: true }).catch(() => undefined);
     const ativos = resultado.treinos.filter((t) => t.ativo);
