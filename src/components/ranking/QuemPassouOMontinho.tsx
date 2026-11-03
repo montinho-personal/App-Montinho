@@ -5,15 +5,18 @@
 // de chegada (o 1º a passar ganha destaque). Dados da 0140 (`quem_passou_montinho`).
 import { useState } from "react";
 import type { PassouMontinho } from "@/lib/data/ranking";
+import { textoDoClube, type Lideranca } from "@/lib/ranking/montinho-lideranca";
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
 const inicial = (nome: string) => nome.trim().charAt(0).toUpperCase() || "?";
 
-export function QuemPassouOMontinho({ pessoas, personal = false }: { pessoas: PassouMontinho[]; personal?: boolean }) {
+export function QuemPassouOMontinho({ pessoas, personal = false, lideranca = null }: { pessoas: PassouMontinho[]; personal?: boolean; lideranca?: Lideranca | null }) {
   const [aberto, setAberto] = useState(false);
   const n = pessoas.length;
   const euEstou = pessoas.some((p) => p.eu);
-  const titulo = n === 0 ? "Ninguém passou o Montinho ainda" : n === 1 ? "1 pessoa já passou o Montinho" : `${n} pessoas já passaram o Montinho`;
+  // O Clube é o histórico (o troféu fica); o título conta o que está acontecendo AGORA (04/11/2026).
+  const { titulo, frase, destaque } = textoDoClube(n, lideranca, personal);
+  const naFrente = new Set((lideranca?.naFrente ?? []).map((p) => p.ref).filter(Boolean));
 
   return (
     <section aria-label="Quem já passou o Montinho" className="rounded-2xl border border-accent/60 bg-[linear-gradient(160deg,#2a2415_0%,#171717_80%)] p-4">
@@ -21,7 +24,8 @@ export function QuemPassouOMontinho({ pessoas, personal = false }: { pessoas: Pa
         <span className="text-4xl" aria-hidden>👑</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-accent">Clube de quem passou o Montinho</span>
-          <span className="block font-black leading-snug">{titulo}</span>
+          <span className={`block font-black leading-snug ${destaque ? "text-lg" : ""}`}>{titulo}</span>
+          {frase ? <span className="block text-xs text-fg-muted">{frase}</span> : null}
           {n > 0 ? (
             <span className="mt-1 flex -space-x-2" aria-hidden>
               {pessoas.slice(0, 6).map((p) => (
@@ -33,7 +37,7 @@ export function QuemPassouOMontinho({ pessoas, personal = false }: { pessoas: Pa
             <span className="block text-xs text-fg-muted">{personal ? "Quando alguém ficar à frente da sua ficha no ranking, aparece aqui." : "Quem vai ser o primeiro? O troféu “Passei o Montinho” está esperando."}</span>
           )}
         </span>
-        {n > 0 ? <span className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-black text-bg">{aberto ? "Fechar" : "Ver quem 👀"}</span> : null}
+        {n > 0 ? <span className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-black text-bg">{aberto ? "Fechar" : destaque ? "Ver quem já passou 👀" : "Ver quem 👀"}</span> : null}
       </button>
 
       {aberto && n > 0 ? (
@@ -45,6 +49,7 @@ export function QuemPassouOMontinho({ pessoas, personal = false }: { pessoas: Pa
                 <span className="min-w-0 flex-1">
                   <span className={`block truncate text-sm ${p.eu ? "font-black text-accent" : "font-bold"}`}>{p.eu ? `Você (${p.nome})` : p.nome}</span>
                   <span className="block text-[11px] text-fg-muted">{i === 0 ? "O 1º a passar o Montinho · " : ""}passou em {fmt(p.em)}</span>
+                  {naFrente.has(p.ref) ? <span className="mt-0.5 inline-block rounded-full bg-[#f97316]/20 px-2 py-0.5 text-[10px] font-bold text-[#fdba74]">🔥 na frente agora</span> : null}
                 </span>
               </li>
             ))}

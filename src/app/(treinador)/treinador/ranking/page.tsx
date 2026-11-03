@@ -1,6 +1,7 @@
 // Ranking de troféus visto pelo personal: nomes completos e quem é visitante.
 import { requireTreinadorPage } from "@/lib/auth/session";
-import { atualizarTrofeus, cliquesMontinhoNoRanking, getRanking, quemPassouOMontinho, salvarDesempate } from "@/lib/data/ranking";
+import { atualizarTrofeus, cliquesMontinhoNoRanking, getRanking, montinhoNoRanking, quemPassouOMontinho, salvarDesempate } from "@/lib/data/ranking";
+import { liderancaDoMontinho } from "@/lib/ranking/montinho-lideranca";
 import { QuemPassouOMontinho } from "@/components/ranking/QuemPassouOMontinho";
 import { CliquesMontinhoRanking } from "@/components/ranking/CliquesMontinhoRanking";
 import { aderenciaDeTodos } from "@/lib/data/aderencia";
@@ -23,6 +24,7 @@ export default async function RankingTreinadorPage() {
   const linhas = semMinhaLinha(await getRanking(null).catch(() => []));
   const cliques = await cliquesMontinhoNoRanking(90).catch(() => null);
   const passaram = await quemPassouOMontinho(null).catch(() => null);
+  const montinho = await montinhoNoRanking().catch(() => null);
   await registrarTopoRanking();
   const topo = await topoHoje().catch(() => null);
   const nomeTopo = topo ? (linhas.find((l) => l.ref === topo.alunoId)?.nome ?? null) : null;
@@ -31,7 +33,7 @@ export default async function RankingTreinadorPage() {
       <NarrativaRanking />
       <TopoDoRanking modo="personal" dias={topo?.dias ?? null} nome={nomeTopo} />
       {cliques ? <CliquesMontinhoRanking r={cliques} dias={90} /> : null}
-      {passaram ? <QuemPassouOMontinho pessoas={passaram} personal /> : null}
+      {passaram ? <QuemPassouOMontinho pessoas={passaram} personal lideranca={liderancaDoMontinho(montinho?.posicao, linhas)} /> : null}
       <RankingTrofeus linhas={linhas} nomeCompleto passaram={passaram?.map((p) => p.ref)} />
       <p className="text-[11px] text-fg-subtle">Aqui você vê o nome completo de todos. Os alunos veem só o primeiro nome e a inicial, e quem desligou “Aparecer no ranking” não aparece para eles.</p>
     </div>

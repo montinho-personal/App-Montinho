@@ -62,8 +62,9 @@ export function MontinhoNoRanking({ dados, meusTrofeus, minhaPosicao, nome, visi
         <span className="text-4xl" aria-hidden>🕵️</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-accent">Você sabia?</span>
-          <span className="block font-black leading-snug">O Montinho também faz todos os treinos aqui pelo app.</span>
-          <span className="block text-xs text-fg-muted">Em que lugar ele estaria neste ranking? Quantos troféus ele tem?</span>
+          {/* Em 1º, a curiosidade vira desafio (pedido do Montinho, 04/11/2026). */}
+          <span className="block font-black leading-snug">O Montinho também faz todos os treinos aqui pelo app{dados.posicao === 1 ? "… e hoje está na frente de todo mundo." : "."}</span>
+          <span className="block text-xs text-fg-muted">{dados.posicao === 1 ? "Você consegue passar ele? Quantos troféus ele tem?" : "Em que lugar ele estaria neste ranking? Quantos troféus ele tem?"}</span>
         </span>
         <span className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-black text-bg">Ver 👀</span>
       </button>

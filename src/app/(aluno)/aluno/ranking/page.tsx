@@ -10,6 +10,7 @@ import { RankingTrofeus } from "@/components/ranking/RankingTrofeus";
 import { CutucadasRecebidas } from "@/components/ranking/CutucadasRecebidas";
 import { minhasCutucadasRanking, montinhoNoRanking, quemPassouOMontinho } from "@/lib/data/ranking";
 import { QuemPassouOMontinho } from "@/components/ranking/QuemPassouOMontinho";
+import { liderancaDoMontinho } from "@/lib/ranking/montinho-lideranca";
 import { MontinhoNoRanking } from "@/components/ranking/MontinhoNoRanking";
 import { ehVisitante } from "@/lib/auth/guards";
 import { BRAND } from "@/config/brand";
@@ -65,7 +66,7 @@ export default async function RankingPage() {
       {/* O personal no app como aluno vê a prévia do cartão (sem a comparação com ele mesmo). */}
       {montinho && sessao.comoPersonal ? <p className="-mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">👀 Prévia: é assim que os alunos veem</p> : null}
       {montinho ? <MontinhoNoRanking dados={montinho} meusTrofeus={sessao.comoPersonal ? null : (eu?.trofeus ?? null)} minhaPosicao={sessao.comoPersonal ? null : (eu?.posicao ?? null)} nome={aluno?.profile?.nome ?? sessao.nome} visitante={ehVisitante(sessao)} whatsapp={BRAND.contact.whatsapp ?? null} /> : null}
-      {passaram ? <QuemPassouOMontinho pessoas={passaram} /> : null}
+      {passaram ? <QuemPassouOMontinho pessoas={passaram} lideranca={liderancaDoMontinho(montinho?.posicao, linhas)} /> : null}
       <RankingTrofeus linhas={linhas} desafiar passaram={passaram?.map((p) => p.ref)} />
       {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
