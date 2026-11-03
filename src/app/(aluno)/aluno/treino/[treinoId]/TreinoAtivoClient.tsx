@@ -253,7 +253,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [series, setSeries] = useState<Record<string, SerieLocal[]>>({}); // session_exercise_id → séries
   const [aberto, setAberto] = useState<string | null>(() => sessaoInicial?.exercicios.find((e) => e.status === "pendente")?.id ?? sessaoInicial?.exercicios[0]?.id ?? null);
   // `fim` (epoch ms) permite retomar o descanso se o app fechar no meio dele.
-  const [timer, setTimer] = useState<{ seg: number; key: number; fim: number } | null>(null);
+  const [timer, setTimer] = useState<{ seg: number; key: number; fim: number; pausadoSeg?: number } | null>(null);
   // Padrão de carga (total × por lado) e “Outro aparelho hoje” por exercício da sessão.
   const [padrao, setPadrao] = useState<PadraoCarga>(padraoCarga ?? PADRAO_CARGA_VAZIO);
   const [trocandoPadrao, setTrocandoPadrao] = useState<TipoPeso | null>(null);
@@ -1551,7 +1551,10 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         // Flutua na parte de baixo da tela (perto do polegar), acima do menu do
         // aluno: dá para ver e ajustar o descanso sem rolar a página para cima.
         <div className={`fixed inset-x-3 z-[45] mx-auto max-w-xl drop-shadow-2xl ${presencial ? "bottom-[calc(0.75rem+var(--vv-fundo,0px))]" : "bottom-[calc(4.75rem+env(safe-area-inset-bottom)+var(--vv-fundo,0px))] md:bottom-4"}`}>
-          <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => { setTimer(null); setSugestaoDescanso(null); }} onDismiss={() => { setTimer(null); setSugestaoDescanso(null); }} />
+          <RestTimer key={timer.key} duracaoSeg={timer.seg} autoStart onComplete={() => { setTimer(null); setSugestaoDescanso(null); }} onDismiss={() => { setTimer(null); setSugestaoDescanso(null); }}
+            // −15/+15 e pausa também no descanso de dentro do cartão (pedido do Montinho, 04/11/2026).
+            onMudar={({ fim, restantes }) => setTimer((t) => (t ? { ...t, fim: fim ?? new Date().getTime() + restantes * 1000, pausadoSeg: fim ? undefined : restantes } : t))}
+          />
           {sugestaoDescanso ? (
             <button type="button" onClick={() => { abrirLeitura(sugestaoDescanso.id); setSugestaoDescanso(null); }} className="alvo mt-1 block w-full rounded-lg bg-card/95 px-3 py-1.5 text-left text-xs font-semibold text-accent">
               {sugestaoDescanso.chamada} →
@@ -1896,7 +1899,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                         </div>
                       )
                     ) : null}
-                    {timer && !completo ? <DescansoNoCartao fim={timer.fim} onPular={() => { setTimer(null); setSugestaoDescanso(null); }} /> : null}
+                    {timer && !completo ? <DescansoNoCartao fim={timer.fim} pausadoSeg={timer.pausadoSeg} onPular={() => { setTimer(null); setSugestaoDescanso(null); }} /> : null}
                     {timer && !completo && !presencial && !troca && checkinPre !== "desconforto" && BRAND.contact.whatsapp && travouNoHistorico(historico[ex.id] ?? []) ? <OfertaNoDescanso sessaoId={sessao.id} exercicio={ex.nome} whatsapp={BRAND.contact.whatsapp} /> : null}
                     {completo && !finalizado ? (
                       <button type="button" id={`concluir-${se.id}`} onClick={() => setPerguntandoEsforco(se.id)} className="touch flex w-full items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-base font-bold text-bg">
@@ -2253,17 +2256,17 @@ function AnotacaoExercicio({ inicial, presencial, onSalvar }: { inicial: string;
 }
 
 /** Descanso também dentro do cartão do exercício (iPhone: o flutuante às vezes fica fora da tela). */
-function DescansoNoCartao({ fim, onPular }: { fim: number; onPular: () => void }) {
+function DescansoNoCartao({ fim, pausadoSeg, onPular }: { fim: number; pausadoSeg?: number; onPular: () => void }) {
   const [agora, setAgora] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setAgora(Date.now()), 500);
     return () => window.clearInterval(id);
   }, []);
-  const resta = Math.max(0, Math.ceil((fim - agora) / 1000));
+  const resta = pausadoSeg ?? Math.max(0, Math.ceil((fim - agora) / 1000));
   if (!resta) return null;
   return (
     <div role="status" className="flex items-center justify-between gap-3 rounded-lg border border-accent/50 bg-accent/10 px-4 py-2.5">
-      <span className="text-sm font-bold">⏱ Descanso: <span className="font-mono tabular-nums text-accent">{Math.floor(resta / 60)}:{String(resta % 60).padStart(2, "0")}</span></span>
+      <span className="text-sm font-bold">⏱ Descanso: <span className="font-mono tabular-nums text-accent">{Math.floor(resta / 60)}:{String(resta % 60).padStart(2, "0")}</span>{pausadoSeg != null ? <span className="text-xs font-semibold text-fg-muted"> · pausado</span> : null}</span>
       <button type="button" onClick={onPular} className="alvo rounded-md px-2 text-xs font-semibold text-fg-muted underline-offset-2 hover:underline">Pular descanso</button>
     </div>
   );

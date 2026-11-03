@@ -8,6 +8,8 @@ type RestTimerProps = {
   onComplete?: () => void;
   onDismiss?: () => void;
   autoStart?: boolean;
+  /** Avisa quando o fim muda (−15/+15, pausar, retomar), para outros relógios da tela acompanharem. `fim` nulo = pausado com `restantes`. */
+  onMudar?: (m: { fim: number | null; restantes: number }) => void;
 };
 
 function beep() {
@@ -40,7 +42,7 @@ function vibrar() {
  * Timer de descanso. Usa timestamps (não contagem de intervalos) para
  * continuar correto quando o app vai para segundo plano e volta.
  */
-export function RestTimer({ duracaoSeg, onComplete, onDismiss, autoStart = false }: RestTimerProps) {
+export function RestTimer({ duracaoSeg, onComplete, onDismiss, autoStart = false, onMudar }: RestTimerProps) {
   const [restantes, setRestantes] = useState(duracaoSeg);
   const [rodando, setRodando] = useState(autoStart);
   const fimRef = useRef<number | null>(null);
@@ -77,13 +79,16 @@ export function RestTimer({ duracaoSeg, onComplete, onDismiss, autoStart = false
       fimRef.current = Date.now() + duracaoSeg * 1000;
       setRestantes(duracaoSeg);
       setRodando(true);
+      onMudar?.({ fim: fimRef.current, restantes: duracaoSeg });
       return;
     }
     if (rodando) {
       setRodando(false);
+      onMudar?.({ fim: null, restantes });
     } else {
       fimRef.current = Date.now() + restantes * 1000;
       setRodando(true);
+      onMudar?.({ fim: fimRef.current, restantes });
     }
   }
 
@@ -91,6 +96,7 @@ export function RestTimer({ duracaoSeg, onComplete, onDismiss, autoStart = false
     const novo = Math.max(0, restantes + delta);
     setRestantes(novo);
     if (rodando) fimRef.current = Date.now() + novo * 1000;
+    onMudar?.({ fim: rodando ? fimRef.current : null, restantes: novo });
   }
 
   const min = Math.floor(restantes / 60);
