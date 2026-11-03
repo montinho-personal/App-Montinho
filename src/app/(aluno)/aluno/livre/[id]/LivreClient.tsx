@@ -369,6 +369,12 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                 <Icon name="trash" size={18} />
               </button>
               </div>
+              {/* Exercício já feito e fechado: dá para voltar e fazer mais uma (pedido do Montinho, 03/11/2026). */}
+              {!abertoAqui && feitas > 0 ? (
+                <button type="button" onClick={() => { setAberto(e.seId); maisSerie(e); setEscolhendoSerie(null); }} className="alvo mx-4 mb-3 flex min-h-10 w-[calc(100%-2rem)] items-center justify-center gap-2 rounded-lg border border-dashed border-border text-sm font-semibold text-fg-muted hover:text-fg">
+                  <Icon name="plus" size={16} /> Fazer mais uma série
+                </button>
+              ) : null}
               {erroEx?.seId === e.seId ? <p role="alert" className="mx-4 mb-3 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erroEx.texto}</p> : null}
               {abertoAqui ? (
                 <div className="space-y-3 border-t border-border px-4 py-3">
