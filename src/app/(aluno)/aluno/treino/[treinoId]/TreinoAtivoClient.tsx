@@ -1663,6 +1663,14 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
                   </span>
                   <Icon name={expandido ? "up" : "down"} className="text-fg-subtle shrink-0" />
                 </button>
+                {/* Fechado e já finalizado (inclusive o último exercício): “+ Fazer mais uma série” sem precisar abrir (pedido do Montinho, 03/11/2026). */}
+                {!expandido && finalizado && statusAtual !== "pulado" ? (
+                  <div className="px-4 pb-3">
+                    <button type="button" onClick={() => { setAberto(se.id); adicionarSerieExtra(se.id); }} className="touch w-full rounded-lg border border-dashed border-border px-3 py-2 text-sm font-semibold text-fg-muted hover:text-fg">
+                      + Fazer mais uma série
+                    </button>
+                  </div>
+                ) : null}
                 {completo && prefsEvo.aoConcluir ? <ResumoDoExercicio ex={ex} series={lista} historico={troca ? [] : (historico[ex.id] ?? [])} dor={sessao.checkin_pre === "desconforto"} /> : null}
 
                 {expandido ? (
