@@ -11,9 +11,10 @@ import { useRouter } from "next/navigation";
 import { CAMPOS_MEDIDA, lerMedida, type ChaveMedida } from "@/lib/medidas/campos";
 import { calcularPollock, extrasDoPollock, idadeNaData, leituraForaDoLimite, LIMITES_DOBRA, PONTOS_7_DOBRAS, type PontoDobra, type SexoAvaliacao } from "@/lib/medidas/pollock";
 import { Button } from "@/components/ui/Button";
+import { ehDeLado, itensCircunferencia, lerExtrasCirc } from "@/lib/medidas/lados";
 
 type Leituras = Record<PontoDobra, [string, string, string]>;
-type Rascunho = { data: string; sexo: SexoAvaliacao | ""; idade: string; peso: string; altura: string; leituras: Leituras; circ: Partial<Record<ChaveMedida, string>>; obs: string };
+type Rascunho = { data: string; sexo: SexoAvaliacao | ""; idade: string; peso: string; altura: string; leituras: Leituras; circ: Partial<Record<ChaveMedida, string>>; lados?: Record<string, string>; obs: string };
 
 const hojeBR = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 const num = (t: string) => {
@@ -87,6 +88,8 @@ export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura
       if (er) return setErro(er);
       if (valor != null) circ[c.chave] = valor;
     }
+    const lados = lerExtrasCirc(r.lados ?? {});
+    if (lados.erro) return setErro(lados.erro);
     const alt = num(r.altura);
     setSalvando(true);
     try {
@@ -98,7 +101,7 @@ export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura
         gordura_pct: res.gorduraPct,
         ...(res.massaMagraKg != null ? { massa_magra_kg: res.massaMagraKg } : {}),
         ...circ,
-        extras: extrasDoPollock(res),
+        extras: [...extrasDoPollock(res), ...lados.extras],
         observacoes: `Avaliação de 7 dobras (Jackson & Pollock + Siri), ${r.sexo === "M" ? "homem" : "mulher"}, ${r.idade} anos.${r.obs.trim() ? ` ${r.obs.trim()}` : ""}`.slice(0, 500),
       };
       const resp = await fetch("/api/medidas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) });
@@ -221,14 +224,25 @@ export function AvaliacaoPollock({ alunoId, sexo, nascimento, ultimoPeso, altura
       {/* Circunferências (opcional, na mesma avaliação) */}
       <details className="rounded-xl border border-border px-3 py-2">
         <summary className="cursor-pointer text-sm font-semibold">📏 Circunferências (opcional)</summary>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {CIRCUNFERENCIAS.map((c) => (
-            <label key={c.chave} className="text-xs font-semibold">
-              {c.rotulo} <span className="font-normal text-fg-subtle">(cm)</span>
-              <input inputMode="decimal" value={r.circ[c.chave] ?? ""} onChange={(e) => setR((x) => ({ ...x, circ: { ...x.circ, [c.chave]: e.target.value } }))} placeholder="—" className="mt-1 block w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm font-mono" />
-            </label>
-          ))}
+        {/* Os dois lados + pescoço (04/11/2026): direito nos campos de sempre, esquerdo e pescoço em extras.
+            Tronco numa grade e, embaixo, cada membro numa linha com direito | esquerdo lado a lado. */}
+        {[itensCircunferencia().filter((it) => !ehDeLado(it)), itensCircunferencia().filter(ehDeLado)].map((grupo, gi) => (
+        <div key={gi} className="mt-2 grid grid-cols-2 items-end gap-2">
+          {grupo.map((it) =>
+            it.tipo === "campo" ? (
+              <label key={it.campo.chave} className="text-xs font-semibold">
+                {it.rotulo} <span className="font-normal text-fg-subtle">(cm)</span>
+                <input inputMode="decimal" value={r.circ[it.campo.chave] ?? ""} onChange={(e) => setR((x) => ({ ...x, circ: { ...x.circ, [it.campo.chave]: e.target.value } }))} placeholder="—" className="mt-1 block w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm font-mono" />
+              </label>
+            ) : (
+              <label key={it.extra.nome} className="text-xs font-semibold">
+                {it.extra.nome} <span className="font-normal text-fg-subtle">(cm)</span>
+                <input inputMode="decimal" value={r.lados?.[it.extra.nome] ?? ""} onChange={(e) => setR((x) => ({ ...x, lados: { ...(x.lados ?? {}), [it.extra.nome]: e.target.value } }))} placeholder="—" className="mt-1 block w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm font-mono" />
+              </label>
+            )
+          )}
         </div>
+        ))}
       </details>
 
       <label className="block text-xs font-semibold">

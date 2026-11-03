@@ -10,9 +10,10 @@
 // bioimpedância dá outro número e não se compara). Rótulos e cores NEUTROS:
 // quem interpreta o que é bom para cada aluno é o Montinho.
 // ============================================================================
-import { CAMPOS_MEDIDA, type ChaveMedida } from "@/lib/medidas/campos";
+import { type ChaveMedida } from "@/lib/medidas/campos";
 import { PONTOS_7_DOBRAS, type PontoDobra } from "@/lib/medidas/pollock";
 import type { Evolucao } from "@/lib/supabase/types";
+import { itensCircunferencia } from "@/lib/medidas/lados";
 
 export const NOME_SOMA = "Soma das 7 dobras";
 export const PREFIXO_OBS = "Avaliação de 7 dobras";
@@ -56,7 +57,6 @@ export function lerObservacao(obs: string | null | undefined): { sexo: "M" | "F"
 /** IMC (kg/m²), com 1 casa. */
 export const imcDe = (pesoKg: number | null, alturaCm: number | null) => (pesoKg && alturaCm && alturaCm >= 100 ? r1(pesoKg / (alturaCm / 100) ** 2) : null);
 
-const CIRCUNFERENCIAS = CAMPOS_MEDIDA.filter((c) => c.grupo === "circunferencias");
 
 /**
  * Monta o relatório da avaliação `id`. `alturaCadastro` entra quando a altura
@@ -88,11 +88,20 @@ export function relatorioAvaliacao(medidas: Evolucao[], id: string, alturaCadast
     : [];
 
   // Circunferências: medida com fita não depende do método → compara com o último registro que tem aquela medida.
-  const circunferencias = CIRCUNFERENCIAS.map((c) => {
+  // Com os dois lados + pescoço (04/11/2026): o esquerdo e o pescoço vêm de `extras`; com o esquerdo anotado, o campo de sempre vira “direito”.
+  const temLados = itensCircunferencia().some((it) => it.tipo === "extra" && it.extra.nome !== "Pescoço" && extra(atual, it.extra.nome) != null);
+  const circunferencias = itensCircunferencia().map((it) => {
+    if (it.tipo === "extra") {
+      const v = extra(atual, it.extra.nome);
+      if (v == null) return null;
+      const ant = [...antes].reverse().find((m) => extra(m, it.extra.nome) != null);
+      return linha(it.extra.nome, "cm", v, ant ? extra(ant, it.extra.nome) : null);
+    }
+    const c = it.campo;
     const v = atual[c.chave as ChaveMedida] as number | null | undefined;
     if (v == null) return null;
     const ant = [...antes].reverse().find((m) => typeof m[c.chave as ChaveMedida] === "number");
-    return linha(c.rotulo, c.unidade, v, ant ? (ant[c.chave as ChaveMedida] as number) : null);
+    return linha(temLados ? it.rotulo : c.rotulo, c.unidade, v, ant ? (ant[c.chave as ChaveMedida] as number) : null);
   }).filter((l): l is Linha => !!l);
 
   return {

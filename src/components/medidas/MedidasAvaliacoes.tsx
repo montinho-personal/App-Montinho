@@ -14,6 +14,7 @@ import { dataBR } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { CelebracaoMedalha, type ConquistaCelebravel } from "@/components/chalala/CelebracaoMedalha";
 import { LerAvaliacaoIA } from "./LerAvaliacaoIA";
+import { itensCircunferencia, lerExtrasCirc } from "@/lib/medidas/lados";
 import { AvaliacaoPollock } from "./AvaliacaoPollock";
 import type { SexoAvaliacao } from "@/lib/medidas/pollock";
 
@@ -44,6 +45,7 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
   const setAberto = (v: boolean) => setModo(v ? modo : null);
   const [data, setData] = useState(hojeBR());
   const [valores, setValores] = useState<Partial<Record<ChaveMedida, string>>>({});
+  const [lados_, setLados] = useState<Record<string, string>>({});
   const [obs, setObs] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -79,19 +81,22 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
       if (er) return setErro(er);
       if (valor != null) lidos[c.chave] = valor;
     }
-    const temMedida = Object.keys(lidos).length > 0;
+    const lados = modo === "caseiro" ? lerExtrasCirc(lados_) : { extras: [], erro: null };
+    if (lados.erro) return setErro(lados.erro);
+    const temMedida = Object.keys(lidos).length > 0 || lados.extras.length > 0;
     if (!temMedida && !arquivo) return setErro("Preencha pelo menos uma medida ou escolha o arquivo da avaliação.");
     setSalvando(true);
     try {
       const ganhas: Nova[] = [];
       if (arquivo) ganhas.push(...(await enviarArquivo(arquivo)));
       if (temMedida) {
-        const r = await fetch("/api/medidas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ aluno_id: alunoId, data, observacoes: obs.trim() || null, ...lidos }) });
+        const r = await fetch("/api/medidas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ aluno_id: alunoId, data, observacoes: obs.trim() || null, ...lidos, ...(lados.extras.length ? { extras: lados.extras } : {}) }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error ?? "Não foi possível salvar as medidas.");
         ganhas.push(...((j.novas ?? []) as Nova[]));
       }
       setValores({});
+      setLados({});
       setObs("");
       setArquivo(null);
       setAberto(false);
@@ -150,17 +155,25 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
             </fieldset>
           ) : (
             <>
-              <p className="rounded-lg bg-bg px-3 py-2 text-xs text-fg-muted">📌 Use a fita sem apertar a pele, sempre do lado direito e no mesmo horário. Se der, peça ajuda a alguém. Medir a cada 2 a 4 semanas já mostra a evolução.</p>
+              <p className="rounded-lg bg-bg px-3 py-2 text-xs text-fg-muted">📌 Use a fita sem apertar a pele e sempre no mesmo horário. Braço, coxa e panturrilha: meça os dois lados. Se der, peça ajuda a alguém. Medir a cada 2 a 4 semanas já mostra a evolução.</p>
               <div className="grid gap-2">
-                {CAMPOS_MEDIDA.filter((c) => CASEIRO.includes(c.chave)).map((c) => (
+                {[...CAMPOS_MEDIDA.filter((c) => CASEIRO.includes(c.chave) && c.grupo !== "circunferencias").map((c) => ({ tipo: "campo" as const, campo: c, rotulo: c.rotulo })), ...itensCircunferencia(CASEIRO)].map((it) => it.tipo === "extra" ? (
+                  <label key={it.extra.nome} className="block rounded-lg border border-border px-3 py-2">
+                    <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+                      <span>{it.extra.nome} <span className="font-normal text-fg-subtle">(cm)</span></span>
+                      <input inputMode="decimal" value={lados_[it.extra.nome] ?? ""} onChange={(e) => setLados((v) => ({ ...v, [it.extra.nome]: e.target.value }))} placeholder="—" className="w-24 rounded-lg border border-border bg-bg px-3 py-2 text-right text-sm font-mono" />
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-snug text-fg-subtle">{it.extra.como}</span>
+                  </label>
+                ) : ((c, rotulo) => (
                   <label key={c.chave} className="block rounded-lg border border-border px-3 py-2">
                     <span className="flex items-center justify-between gap-2 text-sm font-semibold">
-                      <span>{c.rotulo} <span className="font-normal text-fg-subtle">({c.unidade})</span></span>
+                      <span>{rotulo} <span className="font-normal text-fg-subtle">({c.unidade})</span></span>
                       <input inputMode="decimal" value={valores[c.chave] ?? ""} onChange={(e) => setValores((v) => ({ ...v, [c.chave]: e.target.value }))} placeholder="—" className="w-24 rounded-lg border border-border bg-bg px-3 py-2 text-right text-sm font-mono" />
                     </span>
                     {COMO_MEDIR[c.chave] ? <span className="mt-1 block text-[11px] leading-snug text-fg-subtle">{COMO_MEDIR[c.chave]}</span> : null}
                   </label>
-                ))}
+                ))(it.campo, it.rotulo))}
               </div>
               <details className="rounded-lg border border-border px-3 py-2">
                 <summary className="cursor-pointer text-sm font-semibold">Fez bioimpedância? Anote aqui</summary>
