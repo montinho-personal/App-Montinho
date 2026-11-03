@@ -32,9 +32,11 @@ import type { CodigoTopo } from "./topo-ranking";
 import { avaliarJanela, avaliarPrimeiroMes, avaliarRaizes, avaliarRecomeco, LIMITES, type Avaliacao } from "./criterios";
 
 /** Marcos de semanas seguidas com a meta cumprida (12 = troféu lendário “Guerreiro”). */
-export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12] as const;
+export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12, 16, 20, 26, 39, 52] as const;
+/** Treinos concluídos (extras e parciais não entram). 75 em diante = trilha longa (04/11/2026). */
+export const MARCOS_TREINOS = [10, 25, 50, 75, 100, 150, 200, 300, 365, 500] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
-export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12", "cardio_250", "topo_30_dias"]);
+export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
 
 /** Começo (pedido do Montinho, 23/10/2026). */
 export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
@@ -58,12 +60,25 @@ export type CodigoConquista =
   | "treinos_10"
   | "treinos_25"
   | "treinos_50"
+  // Trilhas longas (04/11/2026, pedido do Montinho: o veterano continua ganhando)
+  | "treinos_75"
+  | "treinos_100"
+  | "treinos_150"
+  | "treinos_200"
+  | "treinos_300"
+  | "treinos_365"
+  | "treinos_500"
   | "semanas_consistentes_4"
   | "semanas_consistentes_5"
   | "semanas_consistentes_6"
   | "semanas_consistentes_8"
   | "semanas_consistentes_10"
   | "semanas_consistentes_12"
+  | "semanas_consistentes_16"
+  | "semanas_consistentes_20"
+  | "semanas_consistentes_26"
+  | "semanas_consistentes_39"
+  | "semanas_consistentes_52"
   | "acompanhamento_12_semanas"
   | "recorde"
   | "relatorio_mensal"
@@ -209,6 +224,12 @@ export { CODIGOS_MULTI } from "./multimodalidade";
 export const CODIGOS_29OUT: CodigoConquista[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_1_ano", "retomada_30", "quiz_1", "quiz_10", "quiz_30", "quiz_50", "semana_compartilhada", "cards_10", "cards_20", "cards_30", "trofeus_compartilhados_10", "trofeus_compartilhados_20", "trofeus_compartilhados_30", "trofeus_compartilhados_50", "cardio_madrugada", "cardio_4h", "cardio_meia_noite", "cardio_10km", "cardio_escada_1h"];
 /** Mobilidade e alongamento (0116): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_MOBILIDADE } from "@/lib/mobilidade/regras";
+/**
+ * Trilhas longas (04/11/2026, pedido do Montinho: “continuar sempre motivando”):
+ * passos a mais nas trilhas que já existiam. Gravadas à parte (como as outras
+ * famílias novas), para nunca travar as antigas se o banco ainda não as aceitar (0141).
+ */
+export const CODIGOS_TRILHAS: CodigoConquista[] = ["treinos_75", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52"];
 export const CODIGOS_DESAFIOS: CodigoConquista[] = ["criador_desafios", "campeao_desafio", "palavra_cumprida", "desafiante_nato"];
 const FMT_HORA = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** Minutos desde a meia-noite no horário de Brasília (segundos ignorados: 4h30m59s = 4h30). */
@@ -252,8 +273,20 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   semanas_consistentes_8: { titulo: "Oito semanas consistentes", criterio: "Cumprir a meta em 8 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
   semanas_consistentes_10: { titulo: "Dez semanas consistentes", criterio: "Cumprir a meta em 10 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
   semanas_consistentes_12: { titulo: "Guerreiro das 12 semanas", criterio: "Cumprir a meta em 12 semanas elegíveis seguidas — três meses sem perder um treino da semana (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_16: { titulo: "Dezesseis semanas consistentes", criterio: "Cumprir a meta em 16 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_20: { titulo: "Vinte semanas consistentes", criterio: "Cumprir a meta em 20 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_26: { titulo: "Meio Ano Sem Falhar", criterio: "Cumprir a meta em 26 semanas elegíveis seguidas — seis meses sem perder um treino da semana (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_39: { titulo: "Trinta e nove semanas consistentes", criterio: "Cumprir a meta em 39 semanas elegíveis seguidas (pausas combinadas não quebram nem somam).", repete: false },
+  semanas_consistentes_52: { titulo: "Um Ano Inabalável", criterio: "Cumprir a meta em 52 semanas elegíveis seguidas — um ano inteiro sem perder um treino da semana (pausas combinadas não quebram nem somam).", repete: false },
   acompanhamento_12_semanas: { titulo: "Doze semanas de acompanhamento", criterio: "Completar 12 semanas com treino prescrito e pelo menos um treino registrado em cada uma (não precisam ser seguidas).", repete: false },
   treinos_50: { titulo: "50 treinos", criterio: "Somar 50 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_75: { titulo: "75 treinos", criterio: "Somar 75 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_100: { titulo: "Clube dos 100", criterio: "Somar 100 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_150: { titulo: "150 treinos", criterio: "Somar 150 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_200: { titulo: "200 treinos", criterio: "Somar 200 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_300: { titulo: "300 treinos", criterio: "Somar 300 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_365: { titulo: "Um Treino para Cada Dia do Ano", criterio: "Somar 365 treinos concluídos (treinos extras e parciais não entram).", repete: false },
+  treinos_500: { titulo: "Lenda dos 500", criterio: "Somar 500 treinos concluídos (treinos extras e parciais não entram).", repete: false },
   criando_raizes: { titulo: "Criando raízes", criterio: `Treinar em ${LIMITES.raizes.alvo} semanas diferentes dentro das ${LIMITES.raizes.semanas} primeiras semanas de acompanhamento (pausas combinadas estendem o prazo, até ${LIMITES.raizes.maxCalendario} semanas).`, repete: false },
   constancia_vida_real: { titulo: "Constância na vida real", criterio: `Cumprir a meta em ${LIMITES.vidaReal.alvo} de ${LIMITES.vidaReal.janela} semanas elegíveis seguidas.`, repete: false },
   constancia_verdade: { titulo: "Constância de verdade", criterio: `Cumprir a meta em ${LIMITES.verdade.alvo} de ${LIMITES.verdade.janela} semanas elegíveis seguidas.`, repete: false },
@@ -318,12 +351,17 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   combo_30: { titulo: "30 Dias de Combo", criterio: `30 dias seguidos com musculação e cardio (${LIMITES_COMBO.minutosCardio} minutos ou mais) no mesmo dia.`, repete: false },
   series_500: { titulo: "500 Séries", criterio: "Somar 500 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
   series_1000: { titulo: "1.000 Séries", criterio: "Somar 1.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
+  series_2000: { titulo: "2.000 Séries", criterio: "Somar 2.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
+  series_5000: { titulo: "5.000 Séries", criterio: "Somar 5.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
   cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
   acompanhamento_3_meses: { titulo: "Três meses de acompanhamento", criterio: "Treinar em 3 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
   acompanhamento_6_meses: { titulo: "Seis meses de acompanhamento", criterio: "Treinar em 6 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
+  acompanhamento_9_meses: { titulo: "Nove meses de acompanhamento", criterio: "Treinar em 9 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
   acompanhamento_1_ano: { titulo: "Um ano de acompanhamento", criterio: "Treinar em 12 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
+  acompanhamento_18_meses: { titulo: "Um ano e meio de acompanhamento", criterio: "Treinar em 18 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
+  acompanhamento_2_anos: { titulo: "Dois anos de acompanhamento", criterio: "Treinar em 24 meses diferentes (blocos de 30 dias desde o 1º treino no app), não precisam ser seguidos.", repete: false },
   retomada_30: { titulo: "A Volta por Cima", criterio: "Fazer um treino válido depois de 30 dias ou mais sem treinar.", repete: true },
   quiz_1: { titulo: "Primeiro Acerto", criterio: "Acertar a primeira resposta do “Mito ou verdade?”.", repete: false },
   quiz_10: { titulo: "Mente Afiada", criterio: "Acertar 10 respostas do “Mito ou verdade?” (vale a primeira resposta de cada).", repete: false },
@@ -358,6 +396,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   semana_perfeita_5: { titulo: "5 Semanas Perfeitas", criterio: "5 semanas (no total) com a meta cumprida e todas as séries de todos os treinos feitas.", repete: false },
   semana_perfeita_10: { titulo: "10 Semanas Perfeitas", criterio: "10 semanas (no total) com a meta cumprida e todas as séries de todos os treinos feitas.", repete: false },
   monitoramento_26: { titulo: "Cientista de Si Mesmo", criterio: "Registrar medidas ou uma avaliação em 26 semanas seguidas (seis meses; vale quando o registro entra no app).", repete: false },
+  monitoramento_52: { titulo: "Cientista de Um Ano", criterio: "Registrar medidas ou uma avaliação em 52 semanas seguidas (um ano; vale quando o registro entra no app).", repete: false },
   primeiro_wod: { titulo: "Primeiro WOD", criterio: "Concluir o primeiro treino de Cross Training no app (com o resultado de pelo menos um bloco anotado).", repete: false },
   primeira_hyrox: { titulo: "Primeira Sessão HYROX", criterio: "Concluir a primeira sessão de HYROX no app (com pelo menos um trecho anotado).", repete: false },
   primeiro_funcional: { titulo: "Primeiro Circuito Funcional", criterio: "Concluir o primeiro treino funcional no app (com o resultado de pelo menos um circuito anotado).", repete: false },
@@ -651,7 +690,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
     }
   }
 
-  for (const n of [10, 25, 50] as const) {
+  for (const n of MARCOS_TREINOS) {
     const s = concluidas[n - 1];
     if (s) out.push(nova(`treinos_${n}`, "1", s.iniciado_em, s.id, `Você chegou a ${n} treinos concluídos.`));
   }

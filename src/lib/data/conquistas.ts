@@ -28,7 +28,7 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { tecnicasFeitas, type FamiliaTecnica } from "@/lib/conquistas/regras";
 import type { Medalha, ProgressoExtras } from "@/lib/conquistas/vitrine";
-import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, CODIGOS_SEMANAS_COMPLETAS, CODIGOS_MULTI, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, CODIGOS_SEMANAS_COMPLETAS, CODIGOS_MULTI, CODIGOS_TRILHAS, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
@@ -145,24 +145,27 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const db = gravadorDeConquistas(aluno.id, linhas);
     // Medalhas novas vão num pedido separado: se o banco ainda não as aceitar
     // (migração 0037 pendente), as demais continuam sendo gravadas.
-    const novasAlem = linhas.filter((l) => CODIGOS_ALEM.includes(l.codigo));
-    const novasTecnica = linhas.filter((l) => CODIGOS_TECNICA.includes(l.codigo));
-    const novasFase = linhas.filter((l) => CODIGOS_FASE.includes(l.codigo));
-    const novasDesafio = linhas.filter((l) => CODIGOS_DESAFIO.includes(l.codigo));
-    const novasSamurai = linhas.filter((l) => CODIGOS_SAMURAI.includes(l.codigo));
-    const novasStrava = linhas.filter((l) => CODIGOS_STRAVA.includes(l.codigo));
-    const novasCompartilhar = linhas.filter((l) => CODIGOS_COMPARTILHAR.includes(l.codigo));
-    const novasDesafios = linhas.filter((l) => CODIGOS_DESAFIOS.includes(l.codigo));
-    const novasCardio = linhas.filter((l) => (CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo));
-    const novasDiaDuplo = linhas.filter((l) => (CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo));
-    const novasFeriado = linhas.filter((l) => (CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
-    const novas29 = linhas.filter((l) => CODIGOS_29OUT.includes(l.codigo));
-    const novasMobilidade = linhas.filter((l) => (CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo));
-    const novasCombo = linhas.filter((l) => (CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) || (CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo));
-    const novasMonitoramento = linhas.filter((l) => (CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo));
-    const novasSemanas = linhas.filter((l) => (CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo));
-    const novasMulti = linhas.filter((l) => (CODIGOS_MULTI as CodigoConquista[]).includes(l.codigo));
-    const antigas = linhas.filter((l) => !(CODIGOS_MULTI as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo) && !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo) && !(CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo) && !CODIGOS_29OUT.includes(l.codigo) && !(CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
+    // Trilhas longas (0141) num pedido só delas: sem a migração, as outras continuam.
+    const novasTrilhas = linhas.filter((l) => CODIGOS_TRILHAS.includes(l.codigo));
+    const base = linhas.filter((l) => !CODIGOS_TRILHAS.includes(l.codigo));
+    const novasAlem = base.filter((l) => CODIGOS_ALEM.includes(l.codigo));
+    const novasTecnica = base.filter((l) => CODIGOS_TECNICA.includes(l.codigo));
+    const novasFase = base.filter((l) => CODIGOS_FASE.includes(l.codigo));
+    const novasDesafio = base.filter((l) => CODIGOS_DESAFIO.includes(l.codigo));
+    const novasSamurai = base.filter((l) => CODIGOS_SAMURAI.includes(l.codigo));
+    const novasStrava = base.filter((l) => CODIGOS_STRAVA.includes(l.codigo));
+    const novasCompartilhar = base.filter((l) => CODIGOS_COMPARTILHAR.includes(l.codigo));
+    const novasDesafios = base.filter((l) => CODIGOS_DESAFIOS.includes(l.codigo));
+    const novasCardio = base.filter((l) => (CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo));
+    const novasDiaDuplo = base.filter((l) => (CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo));
+    const novasFeriado = base.filter((l) => (CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
+    const novas29 = base.filter((l) => CODIGOS_29OUT.includes(l.codigo));
+    const novasMobilidade = base.filter((l) => (CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo));
+    const novasCombo = base.filter((l) => (CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) || (CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo));
+    const novasMonitoramento = base.filter((l) => (CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo));
+    const novasSemanas = base.filter((l) => (CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo));
+    const novasMulti = base.filter((l) => (CODIGOS_MULTI as CodigoConquista[]).includes(l.codigo));
+    const antigas = base.filter((l) => !(CODIGOS_MULTI as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_MONITORAMENTO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SEMANAS_COMPLETAS as CodigoConquista[]).includes(l.codigo) && !CODIGOS_ALEM.includes(l.codigo) && !CODIGOS_TECNICA.includes(l.codigo) && !CODIGOS_FASE.includes(l.codigo) && !CODIGOS_DESAFIO.includes(l.codigo) && !CODIGOS_SAMURAI.includes(l.codigo) && !CODIGOS_STRAVA.includes(l.codigo) && !CODIGOS_COMPARTILHAR.includes(l.codigo) && !CODIGOS_DESAFIOS.includes(l.codigo) && !(CODIGOS_CARDIO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_DIA_DUPLO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_COMBO as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_SERIES as CodigoConquista[]).includes(l.codigo) && !CODIGOS_29OUT.includes(l.codigo) && !(CODIGOS_MOBILIDADE as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_FERIADO as CodigoConquista[]).includes(l.codigo));
     if (antigas.length) await db.from("conquistas_aluno").upsert(antigas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasSemanas.length) await db.from("conquistas_aluno").upsert(novasSemanas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasMonitoramento.length) await db.from("conquistas_aluno").upsert(novasMonitoramento, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
@@ -180,6 +183,7 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     if (novasCombo.length) await db.from("conquistas_aluno").upsert(novasCombo, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novas29.length) await db.from("conquistas_aluno").upsert(novas29, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasMobilidade.length) await db.from("conquistas_aluno").upsert(novasMobilidade, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasTrilhas.length) await db.from("conquistas_aluno").upsert(novasTrilhas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasFeriado.length) await db.from("conquistas_aluno").upsert(novasFeriado, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
   }
   const todas = await listarConquistas(aluno.id);

@@ -14,7 +14,7 @@ describe("Acompanhamento em meses", () => {
   it("3, 6 e 12 meses com treino (blocos de 30 dias, não precisam ser seguidos)", () => {
     const sessoes = [0, 31, 95, 125, 155, 200, 230, 260, 290, 320, 350].map((d) => treino(somar("2026-01-05", d)));
     expect(mesesComTreino(sessoes)).toBe(11);
-    expect(trofeusDeTempo(sessoes).filter((t) => t.codigo !== "retomada_30").map((t) => t.codigo)).toEqual(["acompanhamento_3_meses", "acompanhamento_6_meses"]);
+    expect(trofeusDeTempo(sessoes).filter((t) => t.codigo !== "retomada_30").map((t) => t.codigo)).toEqual(["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_9_meses"]);
     const ano = [...sessoes, treino(somar("2026-01-05", 65))];
     const t = trofeusDeTempo(ano).find((x) => x.codigo === "acompanhamento_1_ano");
     expect(t?.sessaoId).toBe(sessoes[10].id); // o 12º mês com treino fecha no último treino

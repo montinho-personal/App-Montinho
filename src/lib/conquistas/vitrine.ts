@@ -70,16 +70,32 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "semanas_consistentes_8", selo: "8 sem" },
   { codigo: "semanas_consistentes_10", selo: "10 sem" },
   { codigo: "semanas_consistentes_12", selo: "12" },
+  { codigo: "semanas_consistentes_16", selo: "16 sem" },
+  { codigo: "semanas_consistentes_20", selo: "20 sem" },
+  { codigo: "semanas_consistentes_26", selo: "½ ano" },
+  { codigo: "semanas_consistentes_39", selo: "39 sem" },
+  { codigo: "semanas_consistentes_52", selo: "1 ano" },
   { codigo: "acompanhamento_12_semanas", selo: "12 sem" },
   { codigo: "acompanhamento_3_meses", selo: "3 m" },
   { codigo: "acompanhamento_6_meses", selo: "6 m" },
+  { codigo: "acompanhamento_9_meses", selo: "9 m" },
   { codigo: "acompanhamento_1_ano", selo: "1 ano" },
+  { codigo: "acompanhamento_18_meses", selo: "18 m" },
+  { codigo: "acompanhamento_2_anos", selo: "2 anos" },
   { codigo: "monitoramento_4", selo: "📏4" },
   { codigo: "monitoramento_8", selo: "📏8" },
   { codigo: "monitoramento_12", selo: "📏12" },
   { codigo: "monitoramento_26", selo: "📏26" },
+  { codigo: "monitoramento_52", selo: "📏52" },
   { codigo: "constancia_verdade", selo: "8/12" },
   { codigo: "treinos_50", selo: "50" },
+  { codigo: "treinos_75", selo: "75" },
+  { codigo: "treinos_100", selo: "100" },
+  { codigo: "treinos_150", selo: "150" },
+  { codigo: "treinos_200", selo: "200" },
+  { codigo: "treinos_300", selo: "300" },
+  { codigo: "treinos_365", selo: "365" },
+  { codigo: "treinos_500", selo: "500" },
   { codigo: "recomeco_consistente", selo: "Volta" },
   // Além do necessário
   { codigo: "fiz_o_necessario", selo: "Feito" },
@@ -171,6 +187,8 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   // Volume total
   { codigo: "series_500", selo: "500" },
   { codigo: "series_1000", selo: "1k" },
+  { codigo: "series_2000", selo: "2k" },
+  { codigo: "series_5000", selo: "5k" },
   // Multimodalidade (só com a Multimodalidade ligada, ou para quem já ganhou)
   { codigo: "primeiro_wod", selo: "WOD" },
   { codigo: "primeira_hyrox", selo: "HYROX" },
@@ -188,7 +206,16 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
 ];
 
 /** “Mais desafiadores”: troféus de disciplina, que só saem com meses de treino. */
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias"];
+/** Trilhas longas (04/11/2026): cada degrau novo aparece na vitrine quando o anterior é ganho. */
+export const DEGRAU_ANTERIOR: Record<string, CodigoConquista> = {
+  treinos_75: "treinos_50", treinos_100: "treinos_75", treinos_150: "treinos_100", treinos_200: "treinos_150", treinos_300: "treinos_200", treinos_365: "treinos_300", treinos_500: "treinos_365",
+  semanas_consistentes_16: "semanas_consistentes_12", semanas_consistentes_20: "semanas_consistentes_16", semanas_consistentes_26: "semanas_consistentes_20", semanas_consistentes_39: "semanas_consistentes_26", semanas_consistentes_52: "semanas_consistentes_39",
+  series_2000: "series_1000", series_5000: "series_2000",
+  acompanhamento_9_meses: "acompanhamento_6_meses", acompanhamento_18_meses: "acompanhamento_1_ano", acompanhamento_2_anos: "acompanhamento_18_meses",
+  monitoramento_52: "monitoramento_26",
+};
+
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -260,6 +287,13 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "treinos_10": return treinos(10);
       case "treinos_25": return treinos(25);
       case "treinos_50": return treinos(50);
+      case "treinos_75":
+      case "treinos_100":
+      case "treinos_150":
+      case "treinos_200":
+      case "treinos_300":
+      case "treinos_365":
+      case "treinos_500": return treinos(Number(c.slice(8)));
       case "semanas_completas_5":
       case "semanas_completas_10":
       case "semanas_completas_25":
@@ -281,10 +315,18 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "semanas_consistentes_8": return semanas(8);
       case "semanas_consistentes_10": return semanas(10);
       case "semanas_consistentes_12": return semanas(12);
+      case "semanas_consistentes_16":
+      case "semanas_consistentes_20":
+      case "semanas_consistentes_26":
+      case "semanas_consistentes_39":
+      case "semanas_consistentes_52": return semanas(Number(c.split("_").at(-1)));
       case "acompanhamento_3_meses":
       case "acompanhamento_6_meses":
-      case "acompanhamento_1_ano": {
-        const n = c === "acompanhamento_1_ano" ? 12 : Number(c.split("_")[1]);
+      case "acompanhamento_9_meses":
+      case "acompanhamento_1_ano":
+      case "acompanhamento_18_meses":
+      case "acompanhamento_2_anos": {
+        const n = c === "acompanhamento_1_ano" ? 12 : c === "acompanhamento_2_anos" ? 24 : Number(c.split("_")[1]);
         const m = Math.min(mesesTreinados, n);
         return { atual: m, alvo: n, falta: `Treine em ${n} meses diferentes (blocos de 30 dias desde o 1º treino; não precisam ser seguidos) — você está em ${plural(m, "mês", "meses")}.`, disponivel: true };
       }
@@ -331,7 +373,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "monitoramento_4":
       case "monitoramento_8":
       case "monitoramento_12":
-      case "monitoramento_26": {
+      case "monitoramento_26":
+      case "monitoramento_52": {
         const n = Number(c.slice(14));
         const m = e.extras?.monitoramento;
         if (!m) return { atual: null, alvo: n, falta: `Registre medidas ou uma avaliação uma vez por semana, ${n} semanas seguidas.`, disponivel: true };
@@ -472,8 +515,10 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual, alvo: n, falta: `Musculação e 20 minutos ou mais de cardio no mesmo dia, ${n} dias seguidos — você está em ${plural(atual, "dia", "dias")}.`, disponivel: true };
       }
       case "series_500":
-      case "series_1000": {
-        const n = c === "series_500" ? 500 : 1000;
+      case "series_1000":
+      case "series_2000":
+      case "series_5000": {
+        const n = Number(c.slice(7));
         const feitas = totalDeSeries(e.sessoes);
         return { atual: Math.min(feitas, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitas), "série válida", "séries válidas")} — você já fez ${feitas.toLocaleString("pt-BR")}.`, disponivel: true };
       }
@@ -553,7 +598,9 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
   // “Mestre do Conhecimento” (50) só aparece quando o app tiver 50 perguntas ou mais (ou já ganho).
   const quiz50 = (e.extras?.quizTotal ?? 0) >= 50 || ganhas.has("quiz_50");
   const multi = new Set<string>(CODIGOS_MULTI);
-  const mostrar = (c: string) => (c !== "quiz_50" || quiz50) && (!multi.has(c) || FEATURES.multimodalidade || ganhas.has(c));
+  // Trilhas longas (04/11/2026): o degrau novo só aparece depois do anterior ganho
+  // (quem está começando não vê “500 treinos” trancado logo de cara).
+  const mostrar = (c: string) => (c !== "quiz_50" || quiz50) && (!multi.has(c) || FEATURES.multimodalidade || ganhas.has(c)) && (!DEGRAU_ANTERIOR[c] || ganhas.has(c) || ganhas.has(DEGRAU_ANTERIOR[c]));
   return ORDEM.filter(({ codigo }) => mostrar(codigo)).map(({ codigo, selo }) => {
     const data = ganhas.get(codigo) ?? null;
     const p = progresso(codigo);

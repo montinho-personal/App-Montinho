@@ -2715,6 +2715,13 @@ end $$;
 select test_logout();
 \echo 'T89 OK: Passei o Montinho'
 
+-- T91 — 0141: trilhas longas aceitas no banco (o servidor grava; o aluno não)
+do $$ begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'treinos_100', '1', now(), 'Clube dos 100'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'semanas_consistentes_52', '1', now(), 'Um Ano Inabalável') on conflict do nothing;
+  if not exists (select 1 from conquistas_aluno where codigo = 'semanas_consistentes_52') then raise exception 'T91a: código novo da trilha longa não foi aceito'; end if;
+end $$;
+\echo 'T91 OK: trilhas longas'
+
 -- T90 — 0140: quem_passou_montinho — anon não executa; o aluno não vê quem saiu do ranking
 do $$ begin
   if has_function_privilege('anon', 'public.quem_passou_montinho()', 'execute') then raise exception 'T90a: anon não pode ver a lista'; end if;

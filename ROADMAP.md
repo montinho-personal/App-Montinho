@@ -72,3 +72,12 @@ Estado em 19/10/2026. Legenda: ✅ entregue e testado · 🟡 parcial · ⬜ fut
 3. Versão reduzida do treino (30 min) com priorização pré-aprovada por exercício.
 4. Lembretes opt-in e PWA.
 5. Camada de IA opcional na memória, com schema de resposta e auditoria.
+
+## Ideias guardadas para depois
+
+- **Temporadas de 3 meses (troféus)** — discutida com o Montinho em 04/11/2026 e GUARDADA (“quando chegar mais perto, a gente vê”). Retomar perto de dezembro/2026 para começar no Verão 2027.
+  - Ano em 4 temporadas: Verão (jan–mar), Outono (abr–jun), Inverno (jul–set), Primavera (out–dez).
+  - 5 troféus por temporada, com o nome e o ano dela: Abertura (1º treino válido), No Ritmo (4 semanas cumpridas), Temporada Firme (8), Temporada Completa (12 de 13, pode falhar 1), Missão da Temporada (ex.: 12 cardios no verão, 3 recordes no outono, 6 mobilidades no inverno, 4 combos na primavera).
+  - Bônus: Temporada Perfeita (os 5 da mesma temporada) e Colecionador de Temporadas (4 completas).
+  - Quem entra no meio vê só o que ainda dá para ganhar; pausa combinada não conta como falta.
+  - Decisões em aberto: fora do ranking geral + “Ranking da Temporada” que zera a cada 3 meses (sugestão); missão fixa ou escolhida pelo personal; temporada de lançamento curta ou começar direto; prêmio real ou só troféu.

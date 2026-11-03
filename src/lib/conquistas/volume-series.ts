@@ -7,8 +7,8 @@
 // ============================================================================
 import type { SessaoAderencia } from "@/lib/aderencia/calcular";
 
-export const MARCOS_SERIES = [500, 1000] as const;
-export type CodigoSeries = "series_500" | "series_1000";
+export const MARCOS_SERIES = [500, 1000, 2000, 5000] as const;
+export type CodigoSeries = "series_500" | "series_1000" | "series_2000" | "series_5000";
 export const CODIGOS_SERIES: CodigoSeries[] = MARCOS_SERIES.map((n) => `series_${n}` as CodigoSeries);
 
 type SessaoSeries = SessaoAderencia & { conta_aderencia?: boolean | null };

@@ -10,12 +10,12 @@
 // ============================================================================
 import { classificarSessao, dataLocal, type SessaoAderencia } from "@/lib/aderencia/calcular";
 
-export const MARCOS_MESES = [3, 6, 12] as const;
+export const MARCOS_MESES = [3, 6, 9, 12, 18, 24] as const;
 export const DIAS_DO_MES = 30;
 export const DIAS_RETOMADA_LONGA = 30;
-export type CodigoAcompanhamento = "acompanhamento_3_meses" | "acompanhamento_6_meses" | "acompanhamento_1_ano";
-export const CODIGOS_ACOMPANHAMENTO: CodigoAcompanhamento[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_1_ano"];
-export const codigoDosMeses = (n: (typeof MARCOS_MESES)[number]): CodigoAcompanhamento => (n === 12 ? "acompanhamento_1_ano" : `acompanhamento_${n}_meses`) as CodigoAcompanhamento;
+export type CodigoAcompanhamento = "acompanhamento_3_meses" | "acompanhamento_6_meses" | "acompanhamento_9_meses" | "acompanhamento_1_ano" | "acompanhamento_18_meses" | "acompanhamento_2_anos";
+export const CODIGOS_ACOMPANHAMENTO: CodigoAcompanhamento[] = ["acompanhamento_3_meses", "acompanhamento_6_meses", "acompanhamento_9_meses", "acompanhamento_1_ano", "acompanhamento_18_meses", "acompanhamento_2_anos"];
+export const codigoDosMeses = (n: (typeof MARCOS_MESES)[number]): CodigoAcompanhamento => (n === 12 ? "acompanhamento_1_ano" : n === 24 ? "acompanhamento_2_anos" : `acompanhamento_${n}_meses`) as CodigoAcompanhamento;
 
 type SessaoTempo = SessaoAderencia & { conta_aderencia?: boolean | null };
 export type TrofeuTempo = { codigo: CodigoAcompanhamento | "retomada_30"; referencia: string; data: string; sessaoId: string; descricao: string; evidencia: Record<string, unknown> };
@@ -48,7 +48,7 @@ export function trofeusDeTempo(sessoes: SessaoTempo[]): TrofeuTempo[] {
     meses.add(Math.floor(dias(d0, dataLocal(s.iniciado_em)) / DIAS_DO_MES));
     if (meses.size === antes) continue;
     for (const n of MARCOS_MESES) {
-      if (meses.size === n) out.push({ codigo: codigoDosMeses(n), referencia: "1", data: s.iniciado_em, sessaoId: s.id, descricao: n === 12 ? "1 ano de acompanhamento: 12 meses com treino no app." : `${n} meses de acompanhamento com treino no app.`, evidencia: { meses: n, desde: d0 } });
+      if (meses.size === n) out.push({ codigo: codigoDosMeses(n), referencia: "1", data: s.iniciado_em, sessaoId: s.id, descricao: n === 12 ? "1 ano de acompanhamento: 12 meses com treino no app." : n === 24 ? "2 anos de acompanhamento: 24 meses com treino no app." : `${n} meses de acompanhamento com treino no app.`, evidencia: { meses: n, desde: d0 } });
     }
   }
   // Retomada de 1 mês (só treino concluído ou parcial: o extra não é “voltar ao plano”).

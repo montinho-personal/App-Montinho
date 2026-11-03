@@ -17,8 +17,8 @@
 // ============================================================================
 import { dataLocal, inicioDaSemana, somarDias } from "@/lib/aderencia/calcular";
 
-export const MARCOS_MONITORAMENTO = [4, 8, 12, 26] as const;
-export type CodigoMonitoramento = "monitoramento_4" | "monitoramento_8" | "monitoramento_12" | "monitoramento_26";
+export const MARCOS_MONITORAMENTO = [4, 8, 12, 26, 52] as const;
+export type CodigoMonitoramento = "monitoramento_4" | "monitoramento_8" | "monitoramento_12" | "monitoramento_26" | "monitoramento_52";
 export const CODIGOS_MONITORAMENTO: CodigoMonitoramento[] = MARCOS_MONITORAMENTO.map((n) => `monitoramento_${n}` as CodigoMonitoramento);
 
 export type TrofeuMonitoramento = { codigo: CodigoMonitoramento; data: string; descricao: string; evidencia: Record<string, unknown> };

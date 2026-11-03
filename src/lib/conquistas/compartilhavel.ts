@@ -38,6 +38,24 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   acompanhamento_12_semanas: { frase: "12 semanas na jornada.", porque: "Continuar mesmo quando a semana não sai perfeita é o que faz a diferença." },
   constancia_verdade: { frase: "Constância de verdade.", porque: "Metas cumpridas ao longo de meses mostram que o treino virou parte da rotina." },
   treinos_50: { frase: "50 treinos. Isso já é quem eu sou.", porque: "Uma marca de quem fez do treino parte da própria vida." },
+  treinos_75: { frase: "75 treinos. E contando.", porque: "Cada treino somado é prática que fica." },
+  treinos_100: { frase: "Clube dos 100!", porque: "Cem treinos concluídos: poucos chegam aqui." },
+  treinos_150: { frase: "150 treinos na conta.", porque: "Constância que já virou rotina." },
+  treinos_200: { frase: "200 treinos. Isso é estilo de vida.", porque: "Duzentas vezes escolhendo treinar." },
+  treinos_300: { frase: "300 treinos.", porque: "Uma trajetória longa, construída treino a treino." },
+  treinos_365: { frase: "365 treinos: um para cada dia do ano.", porque: "Um ano inteiro de treinos, somados com paciência." },
+  treinos_500: { frase: "500 treinos. Lenda.", porque: "Quinhentos treinos concluídos: história de verdade." },
+  semanas_consistentes_16: { frase: "16 semanas seguidas.", porque: "Quatro meses sem perder a meta da semana." },
+  semanas_consistentes_20: { frase: "20 semanas seguidas.", porque: "Cinco meses cumprindo a meta, semana após semana." },
+  semanas_consistentes_26: { frase: "Meio ano sem falhar.", porque: "26 semanas seguidas com a meta cumprida." },
+  semanas_consistentes_39: { frase: "39 semanas seguidas.", porque: "Nove meses sem perder a meta da semana." },
+  semanas_consistentes_52: { frase: "Um ano inabalável.", porque: "52 semanas seguidas com a meta cumprida." },
+  series_2000: { frase: "2.000 séries feitas.", porque: "Duas mil séries de trabalho registradas no app." },
+  series_5000: { frase: "5.000 séries feitas.", porque: "Cinco mil séries de trabalho registradas no app." },
+  acompanhamento_9_meses: { frase: "9 meses de acompanhamento.", porque: "Nove meses de treino com acompanhamento." },
+  acompanhamento_18_meses: { frase: "1 ano e meio de acompanhamento.", porque: "Dezoito meses construindo a minha evolução." },
+  acompanhamento_2_anos: { frase: "2 anos de acompanhamento.", porque: "Dois anos de história no treino." },
+  monitoramento_52: { frase: "52 semanas seguidas medindo.", porque: "Um ano inteiro conhecendo o corpo pelos números." },
   recomeco_consistente: { frase: "Eu recomecei. E continuei.", porque: "Retomar e manter na semana seguinte mostra a rotina se reorganizando." },
   recorde: { frase: "Mais forte do que da última vez.", porque: "Superar a própria marca é um dos sinais mais claros de progresso no treino." },
   eu_voltei: { frase: "De volta ao jogo.", porque: "Pausas acontecem. Voltar é o que importa na trajetória." },
@@ -171,14 +189,28 @@ export function destaqueDaConquista(c: { codigo: string; dados?: { recordes?: It
     case "treinos_25":
       return "25 treinos concluídos";
     case "treinos_50":
-      return "50 treinos concluídos";
+    case "treinos_75":
+    case "treinos_100":
+    case "treinos_150":
+    case "treinos_200":
+    case "treinos_300":
+    case "treinos_365":
+    case "treinos_500":
+      return `${c.codigo.split("_").at(-1)} treinos concluídos`;
     case "semanas_consistentes_4":
       return "4 semanas seguidas com a meta cumprida";
     case "semanas_consistentes_5":
     case "semanas_consistentes_6":
     case "semanas_consistentes_8":
     case "semanas_consistentes_10":
+    case "semanas_consistentes_16":
+    case "semanas_consistentes_20":
+    case "semanas_consistentes_39":
       return `${c.codigo.split("_").at(-1)} semanas seguidas com a meta cumprida`;
+    case "semanas_consistentes_26":
+      return "26 semanas seguidas · meio ano sem perder a meta";
+    case "semanas_consistentes_52":
+      return "52 semanas seguidas · um ano sem perder a meta";
     case "semanas_consistentes_12":
       return "12 semanas seguidas · 3 meses sem perder a meta";
     case "constancia_vida_real":

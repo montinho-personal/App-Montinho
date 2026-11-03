@@ -59,10 +59,10 @@ export function ehDeHoje(quando?: string): boolean {
 type ExercicioTecnica = { nome: string; tecnica?: string | null };
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-const MARCOS_TREINOS: CodigoConquista[] = ["primeiro_treino", "treinos_10", "treinos_25", "treinos_50"];
+const MARCOS_TREINOS: CodigoConquista[] = ["primeiro_treino", "treinos_10", "treinos_25", "treinos_50", "treinos_75", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500"];
 /** Marcos de quantidade de cardio ligados (500 e 1.000 ainda desligados). */
 const MARCOS_CARDIO_ALCANCE = [1, 2, 3, 10, 25, 50, 100, 250] as const;
-const MARCOS_SEMANAS: CodigoConquista[] = ["semanas_consistentes_4", "semanas_consistentes_5", "semanas_consistentes_6", "semanas_consistentes_8", "semanas_consistentes_10", "semanas_consistentes_12"];
+const MARCOS_SEMANAS: CodigoConquista[] = ["semanas_consistentes_4", "semanas_consistentes_5", "semanas_consistentes_6", "semanas_consistentes_8", "semanas_consistentes_10", "semanas_consistentes_12", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52"];
 
 function porCodigo(ms: Medalha[]) {
   const m = new Map(ms.map((x) => [x.codigo, x]));
@@ -318,14 +318,14 @@ function trofeusDasAcoes(medalhas: Medalha[], a: AcoesAlcance): ItemAlcance[] {
     else if (faltam <= 3) out.push(item(comboSeq, `Musculação e 20 minutos ou mais de cardio por mais ${faltam} dias seguidos.`, `Em ${faltam} dias`));
   }
   // 500 e 1.000 séries: quando falta pouco (cerca de uma semana de treino).
-  const series = (["series_500", "series_1000"] as CodigoConquista[]).map((c) => aberta(c)).find((m) => !!m);
+  const series = (["series_500", "series_1000", "series_2000", "series_5000"] as CodigoConquista[]).map((c) => aberta(c)).find((m) => !!m);
   if (series && series.alvo && (series.atual ?? 0) > 0) {
     const f = series.alvo - (series.atual ?? 0);
     if (f > 0 && f <= 60) out.push(item(series, `Faltam ${f} ${f === 1 ? "série válida" : "séries válidas"} (aquecimento não conta).`, f <= 20 ? "No próximo treino" : "Nos próximos treinos"));
   }
   // Monitoramento: medidas desta semana fecham ou contam para a sequência.
   const m = a.monitoramento;
-  const monit = (["monitoramento_4", "monitoramento_8", "monitoramento_12", "monitoramento_26"] as CodigoConquista[]).map((c) => aberta(c)).find((x) => !!x);
+  const monit = (["monitoramento_4", "monitoramento_8", "monitoramento_12", "monitoramento_26", "monitoramento_52"] as CodigoConquista[]).map((c) => aberta(c)).find((x) => !!x);
   if (m && monit?.alvo && !m.estaSemana && m.seguidas > 0) {
     const n = m.seguidas + 1;
     out.push(item(monit, n >= monit.alvo ? `Registre suas medidas (ou uma avaliação) nesta semana: é a ${n}ª semana seguida.` : `Registre suas medidas nesta semana: conta a semana ${n} de ${monit.alvo} seguidas.`, "Até domingo"));
@@ -383,7 +383,7 @@ export function chamadaDaAcao(acao: AcaoTrofeu, abertas: ReadonlyMap<CodigoConqu
       const p = ganha("ponto_de_partida", "Registre suas medidas ou envie uma avaliação e ganhe o troféu");
       const m = a.monitoramento;
       if (p || !m || m.estaSemana) return p;
-      const alvo = ([4, 8, 12, 26] as const).find((n) => n > m.seguidas && abertas.has(`monitoramento_${n}` as CodigoConquista));
+      const alvo = ([4, 8, 12, 26, 52] as const).find((n) => n > m.seguidas && abertas.has(`monitoramento_${n}` as CodigoConquista));
       if (!alvo) return null;
       const codigo = `monitoramento_${alvo}` as CodigoConquista;
       return m.seguidas + 1 >= alvo ? ganha(codigo, `${alvo}ª semana seguida medindo: registre agora e ganhe o troféu`) : conta(codigo, `Registrar esta semana conta ${m.seguidas + 1} de ${alvo} semanas seguidas para o troféu`);
