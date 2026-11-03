@@ -3,6 +3,7 @@
 // Cronômetro do cardio rápido (10/15/20 min ou o prescrito): tela cheia,
 // contagem regressiva, uma frase de incentivo por minuto e tela acesa.
 // Ao terminar (ou parar antes), abre o registro já preenchido.
+import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { useEffect, useRef, useState } from "react";
 import { RegistrarCardio } from "./RegistrarCardio";
 import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
@@ -84,6 +85,8 @@ export function CronometroCardio({ minutos: minutosIniciais, prescricao, session
   const C = 2 * Math.PI * R;
   return (
     <div className="sem-safe-top fixed inset-0 z-[70] overflow-y-auto bg-bg text-center" role="dialog" aria-modal="true" aria-label="Cronômetro de cardio">
+      {/* Recado do Montinho durante o cardio (pedido do Montinho, 04/11/2026). */}
+      {inicioId ? <RecadosAoVivo sessaoId={`cardio:${inicioId}`} endpoint={`/api/ao-vivo/recados-atividade?id=cardio:${inicioId}`} /> : null}
       {/* Barra fixa no topo: sempre dá para voltar, mesmo com a tela rolada. */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg/95 px-3 py-2 backdrop-blur" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
         <button type="button" onClick={() => { if (terminou) setRegistrar({ minutos: minutosDoCronometro(seg), completo: true }); else if (!inicio || window.confirm("Sair do cronômetro? O tempo de agora não é registrado.")) onFechar(); }} className="alvo inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm font-semibold text-fg-muted">

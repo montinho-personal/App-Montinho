@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
 import { GravarAudio } from "@/components/ao-vivo/GravarAudio";
-import { haQuanto, LIMITES_RECADO, RECADO_ACOMPANHANDO, RECADOS_PRONTOS } from "@/lib/ao-vivo/regras";
+import { haQuanto, LIMITES_RECADO, RECADO_ACOMPANHANDO, RECADOS_PRONTOS, RECADOS_PRONTOS_CARDIO, RECADOS_PRONTOS_MOBILIDADE } from "@/lib/ao-vivo/regras";
 import type { TreinandoAgora } from "@/lib/data/ao-vivo";
 import type { OutraAtividadeAoVivo } from "@/lib/ao-vivo/regras";
 
 const ATUALIZAR_MS = 15_000;
 
-async function mandarRecado(sessaoId: string, texto: string): Promise<{ ok: boolean; notificados: number; error?: string }> {
-  const r = await fetch("/api/ao-vivo/recado", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessao_id: sessaoId, texto }) }).catch(() => null);
+/** `alvo` = id da sessão de musculação, ou `cardio:<id>`/`mob:<id>` para quem está no cardio/mobilidade. */
+async function mandarRecado(alvo: string, texto: string): Promise<{ ok: boolean; notificados: number; error?: string }> {
+  const corpo = /^(cardio|mob):/.test(alvo) ? { atividade_id: alvo, texto } : { sessao_id: alvo, texto };
+  const r = await fetch("/api/ao-vivo/recado", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
   const d = (await r?.json().catch(() => null)) as { notificados?: number; error?: string } | null;
   return { ok: !!r?.ok, notificados: d?.notificados ?? 0, error: d?.error };
 }
@@ -36,6 +38,14 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
     void atualizar();
   }
 
+  async function avisarAtividade(o: OutraAtividadeAoVivo) {
+    setAvisando(o.id);
+    const r = await mandarRecado(o.id, RECADO_ACOMPANHANDO);
+    setAvisando(null);
+    if (!r.ok) return toast.error(r.error ?? "Não foi possível avisar agora.");
+    toast.success(`${o.nome.split(" ")[0]} já sabe que você está de olho! 👀`);
+  }
+
   async function atualizar() {
     const r = await fetch("/api/ao-vivo", { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { agora: string; lista: TreinandoAgora[]; outras?: OutraAtividadeAoVivo[] } | null;
     if (!r) return;
@@ -55,17 +65,32 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
       <h2 className="text-sm font-bold uppercase tracking-wider text-fg-muted">❤️‍🔥 Cardio e 🧘 mobilidade agora</h2>
       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2" aria-live="polite">
         {outras.map((o) => (
-          <li key={o.id} className={`flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 ${o.tipo === "cardio" ? "border-danger/40" : "border-accent/40"}`}>
+          <li key={o.id} className={`flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border bg-card p-3 ${o.tipo === "cardio" ? "border-danger/40" : "border-accent/40"}`}>
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full motion-safe:animate-pulse ${o.tipo === "cardio" ? "bg-danger" : "bg-accent"}`} aria-hidden />
             <span className="min-w-0 flex-1">
               <Link href={`/treinador/alunos/${o.alunoId}`} className="block truncate font-bold hover:underline">{o.nome}{o.visitante ? <span className="ml-1 text-xs font-normal text-fg-muted">· visitante</span> : null}</Link>
               <span className="block text-sm text-fg-muted">{o.atividade} · começou {haQuanto(o.iniciadoEm, agora)}</span>
             </span>
             <span className="shrink-0 rounded-full bg-fg/10 px-2 py-1 text-[11px] font-bold">{o.tipo === "cardio" ? "No cardio" : "Na mobilidade"}</span>
+            {/* Recado também para quem está no cardio/mobilidade (pedido do Montinho, 04/11/2026). */}
+            <div className="basis-full">
+              {aberto === o.id ? (
+                <Recado alvo={o.id} nome={o.nome.split(" ")[0]} semAudio onFechar={() => setAberto(null)} onEnviado={() => setAberto(null)} />
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" disabled={!!avisando} onClick={() => void avisarAtividade(o)} className="alvo rounded-xl bg-accent px-3 py-2 text-xs font-bold text-bg disabled:opacity-60">
+                    {avisando === o.id ? "Avisando…" : "👀 Estou acompanhando"}
+                  </button>
+                  <button type="button" onClick={() => setAberto(o.id)} className="alvo rounded-xl border border-accent/60 px-3 py-2 text-xs font-bold text-accent">
+                    💬 Mandar recado
+                  </button>
+                </div>
+              )}
+            </div>
           </li>
         ))}
       </ul>
-      <p className="text-[11px] text-fg-subtle">Aparece quem tocou em “▶ Começar” no cronômetro do cardio ou na mobilidade. Cardio só anotado depois, sem o cronômetro, não aparece aqui.</p>
+      <p className="text-[11px] text-fg-subtle">Aparece quem tocou em “▶ Começar” no cronômetro do cardio ou na mobilidade. Cardio só anotado depois, sem o cronômetro, não aparece aqui. O recado aparece no cronômetro e chega no celular.</p>
     </section>
   ) : null;
 
@@ -135,7 +160,7 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
               </button>
             )}
             {t.presencial ? null : aberto === t.sessaoId ? (
-              <Recado sessaoId={t.sessaoId} nome={t.nome.split(" ")[0]} onFechar={() => setAberto(null)} onEnviado={() => { setAberto(null); void atualizar(); }} />
+              <Recado alvo={t.sessaoId} nome={t.nome.split(" ")[0]} onFechar={() => setAberto(null)} onEnviado={() => { setAberto(null); void atualizar(); }} />
             ) : (
               <button type="button" onClick={() => setAberto(t.sessaoId)} className="alvo w-full rounded-xl border border-accent/60 px-4 py-2.5 text-sm font-bold text-accent">
                 💬 Mandar recado
@@ -150,25 +175,25 @@ export function AoVivoClient({ inicial, outrasInicial, agoraInicial }: { inicial
   );
 }
 
-function Recado({ sessaoId, nome, onFechar, onEnviado }: { sessaoId: string; nome: string; onFechar: () => void; onEnviado: () => void }) {
+function Recado({ alvo, nome, semAudio = false, onFechar, onEnviado }: { alvo: string; nome: string; /** Cardio/mobilidade: só recado escrito. */ semAudio?: boolean; onFechar: () => void; onEnviado: () => void }) {
   const toast = useToast();
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   async function enviar(t: string) {
     if (!t.trim() || enviando) return;
     setEnviando(true);
-    const d = await mandarRecado(sessaoId, t);
+    const d = await mandarRecado(alvo, t);
     setEnviando(false);
     if (!d.ok) return toast.error(d.error ?? "Não foi possível enviar agora.");
-    toast.success(d.notificados ? `Recado enviado! Chegou no celular de ${nome}.` : `Recado enviado! Aparece na tela do treino de ${nome}.`);
+    toast.success(d.notificados ? `Recado enviado! Chegou no celular de ${nome}.` : `Recado enviado! Aparece na tela de ${nome}.`);
     onEnviado();
   }
   return (
     <div className="space-y-2 rounded-xl border border-accent/40 bg-accent/5 p-3">
-      <GravarAudio sessaoId={sessaoId} nome={nome} onErro={(m) => toast.error(m)} onEnviado={(n) => { toast.success(n ? `Áudio enviado! Chegou no celular de ${nome}.` : `Áudio enviado! Aparece na tela do treino de ${nome}.`); onEnviado(); }} />
-      <p className="text-xs font-semibold text-fg-muted">Ou toque num recado pronto ou escreva o seu:</p>
+      {semAudio ? null : <GravarAudio sessaoId={alvo} nome={nome} onErro={(m) => toast.error(m)} onEnviado={(n) => { toast.success(n ? `Áudio enviado! Chegou no celular de ${nome}.` : `Áudio enviado! Aparece na tela do treino de ${nome}.`); onEnviado(); }} />}
+      <p className="text-xs font-semibold text-fg-muted">{semAudio ? "Toque num recado pronto ou escreva o seu:" : "Ou toque num recado pronto ou escreva o seu:"}</p>
       <div className="flex flex-wrap gap-1.5">
-        {RECADOS_PRONTOS.map((p) => (
+        {(alvo.startsWith("cardio:") ? RECADOS_PRONTOS_CARDIO : alvo.startsWith("mob:") ? RECADOS_PRONTOS_MOBILIDADE : RECADOS_PRONTOS).map((p) => (
           <button key={p} type="button" disabled={enviando} onClick={() => void enviar(p)} className="alvo rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:border-accent disabled:opacity-50">
             {p}
           </button>

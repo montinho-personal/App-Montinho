@@ -5,6 +5,7 @@
 // exercício com a dose e as dicas do roteiro, cronômetro nos que são por tempo
 // e “Concluir”. Só vale começado no app: a hora de começar e de concluir é a
 // do servidor, com 10+ minutos entre as duas (0116).
+import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTravaVisitante } from "@/components/visitante/TravaVisitante";
@@ -252,6 +253,8 @@ export function MobilidadeClient({ slug, emAndamento, nome, demo = false }: { sl
 
   return (
     <div className="space-y-4 pb-24">
+      {/* Recado do Montinho durante a mobilidade (pedido do Montinho, 04/11/2026). */}
+      {sessao?.id ? <RecadosAoVivo sessaoId={`mob:${sessao.id}`} endpoint={`/api/ao-vivo/recados-atividade?id=mob:${sessao.id}`} /> : null}
       <header>
         <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Mobilidade em andamento</p>
         <h1 className="text-xl font-black">{p.emoji} {p.nome}</h1>

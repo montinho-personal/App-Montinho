@@ -144,6 +144,38 @@ export async function enviarRecadoAoVivo(autorId: string, sessaoId: string, text
   return { id: r.id, notificados };
 }
 
+/**
+ * Recado para quem está no cardio ou na mobilidade agora (pedido do Montinho, 04/11/2026).
+ * `atividadeId` = id da lista “Cardio e mobilidade agora” (`cardio:<início>` ou `mob:<sessão>`);
+ * só vale enquanto a atividade aparece lá. Texto só (o áudio é preso à sessão de musculação).
+ */
+export async function enviarRecadoAtividade(autorId: string, atividadeId: string, texto: string): Promise<{ id: string; notificados: number } | null> {
+  const atividade = (await outrasAtividadesAgora()).find((o) => o.id === atividadeId);
+  if (!atividade) return null;
+  const r = await criarIntervencao(atividade.alunoId, autorId, { tipo: "mensagem", titulo: atividade.tipo === "cardio" ? "Recado no cardio" : "Recado na mobilidade", descricao: texto, referencia: { atividade_id: atividadeId, ao_vivo: true }, visivel_aluno: true });
+  let notificados = 0;
+  if (!isDemoMode() && configurarVapid()) {
+    const aparelhos = await inscricoesPushDoAluno(atividade.alunoId).catch(() => []);
+    const titulo = texto === RECADO_ACOMPANHANDO ? `👀 O Montinho está acompanhando seu ${atividade.tipo === "cardio" ? "cardio" : "alongamento"}` : "💬 Recado do Montinho";
+    const res = await enviarAosAparelhos(aparelhos, { titulo, corpo: texto, url: atividade.tipo === "cardio" ? "/aluno/cardio" : "/aluno/mobilidade", tag: `recado-${r.id}` }, { ttl: MINUTOS_AO_VIVO.esquecido * 60 });
+    notificados = res.ok;
+  }
+  return { id: r.id, notificados };
+}
+
+/** Recados do cardio/mobilidade em andamento, para o cronômetro do aluno. */
+export async function recadosDaAtividade(alunoId: string, atividadeId: string): Promise<RecadoAoVivo[]> {
+  if (isDemoMode()) {
+    return demoStore()
+      .intervencoes.filter((i) => i.aluno_id === alunoId && i.tipo === "mensagem" && i.visivel_aluno && i.referencia?.atividade_id === atividadeId)
+      .sort((a, b) => (a.created_at < b.created_at ? -1 : 1))
+      .map((i) => ({ id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho" }));
+  }
+  const db = await getDb();
+  const { data } = await db.from("intervencoes").select("id, descricao, created_at").eq("aluno_id", alunoId).eq("tipo", "mensagem").eq("visivel_aluno", true).eq("referencia->>atividade_id", atividadeId).order("created_at").limit(30);
+  return ((data ?? []) as Array<{ id: string; descricao: string; created_at: string }>).map((i) => ({ id: i.id, texto: i.descricao, em: i.created_at, autor: "Montinho" }));
+}
+
 /** Recados desta sessão, para a tela do treino do aluno. */
 export async function recadosDaSessao(alunoId: string, sessaoId: string): Promise<RecadoAoVivo[]> {
   if (isDemoMode()) {

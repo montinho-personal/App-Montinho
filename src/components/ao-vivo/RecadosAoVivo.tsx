@@ -24,7 +24,7 @@ function gravarVistos(sessaoId: string, ids: string[]) {
   }
 }
 
-export function RecadosAoVivo({ sessaoId }: { sessaoId: string }) {
+export function RecadosAoVivo({ sessaoId, endpoint }: { sessaoId: string; /** Cardio/mobilidade: outra rota (a chave dos vistos continua sendo `sessaoId`). */ endpoint?: string }) {
   const [fila, setFila] = useState<RecadoAoVivo[]>([]);
   const vistos = useRef<Set<string>>(new Set());
 
@@ -33,7 +33,7 @@ export function RecadosAoVivo({ sessaoId }: { sessaoId: string }) {
     let vivo = true;
     async function buscar() {
       if (document.visibilityState !== "visible") return;
-      const r = await fetch(`/api/sessoes/${sessaoId}/recados`, { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { recados?: RecadoAoVivo[] } | null;
+      const r = await fetch(endpoint ?? `/api/sessoes/${sessaoId}/recados`, { cache: "no-store" }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { recados?: RecadoAoVivo[] } | null;
       if (!vivo || !r?.recados) return;
       const novos = r.recados.filter((x) => !vistos.current.has(x.id));
       if (!novos.length) return;
@@ -55,7 +55,7 @@ export function RecadosAoVivo({ sessaoId }: { sessaoId: string }) {
       window.clearInterval(t);
       document.removeEventListener("visibilitychange", aoVoltar);
     };
-  }, [sessaoId]);
+  }, [sessaoId, endpoint]);
 
   const atual = fila[0];
   if (!atual) return null;

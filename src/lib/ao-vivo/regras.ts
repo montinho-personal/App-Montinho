@@ -13,6 +13,24 @@ export const RECADOS_PRONTOS = [
   "Orgulho de você! Chalalá! 🎉",
 ] as const;
 
+/** Recados prontos para quem está no cardio ou na mobilidade (04/11/2026). */
+export const RECADOS_PRONTOS_CARDIO = [
+  "Bora! Tô de olho no seu cardio 👀🔥",
+  "Segura esse ritmo! 💪",
+  "Respira e mantém, tá indo bem! 🫁",
+  "Falta pouco, não para agora! ⏱️",
+  "Bebe uma água 💧",
+  "Orgulho de você! Chalalá! 🎉",
+] as const;
+
+export const RECADOS_PRONTOS_MOBILIDADE = [
+  "Bora! Tô de olho na sua mobilidade 👀",
+  "Sem pressa, respira em cada posição 🧘",
+  "Vai até onde não dói, sem forçar 🙏",
+  "Isso vai deixar seu treino melhor! 💪",
+  "Orgulho de você! Chalalá! 🎉",
+] as const;
+
 /** Aviso de um toque: o personal está acompanhando o treino ao vivo. */
 export const RECADO_ACOMPANHANDO = "Tô acompanhando seu treino ao vivo! Tô de olho 👀🔥";
 
