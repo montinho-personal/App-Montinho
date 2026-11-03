@@ -94,7 +94,7 @@ export const PROTOCOLOS: Record<SlugMobilidade, ProtocoloMobilidade> = {
     blocos: [
       {
         titulo: "1. Soltar",
-        exercicios: [ex("rolo-liberacao", "Rolo de liberação", { series: 1, segundos: 40, porLado: true }, "Vai doer, e é normal. Role devagar", "Achou o nó, o ponto que dói mais? Fique parado em cima dele", "Não role sobre o joelho")],
+        exercicios: [ex("rolo-liberacao", "Rolo de liberação", { series: 1, segundos: 40, porLado: true }, "Faça nos 4 músculos: quadríceps (frente da coxa), posterior de coxa, glúteo e panturrilha — 40 s em cada, dos dois lados", "Vai doer, e é normal. Role devagar", "Achou o nó, o ponto que dói mais? Fique parado em cima dele", "Não role sobre o joelho")],
       },
       {
         titulo: "2. Alongar",
