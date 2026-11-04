@@ -25,7 +25,7 @@ async function postar(url: string, body: unknown): Promise<{ novas?: Array<Conqu
   }
 }
 
-export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoInicial, origem, proximaHref, revisao = false }: { conteudo: ConteudoConhecimento; fontes: Fonte[]; respostaAnterior: string | null; salvoInicial: boolean; origem: Origem | null; proximaHref: string | null; /** A pessoa errou essa e chegou a hora de revisar (0114). */ revisao?: boolean }) {
+export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoInicial, origem, proximaHref, revisao = false, antesDaHora = false }: { conteudo: ConteudoConhecimento; fontes: Fonte[]; respostaAnterior: string | null; salvoInicial: boolean; origem: Origem | null; proximaHref: string | null; /** A pessoa errou essa e chegou a hora de revisar (0114). */ revisao?: boolean; /** Ainda não saiu no álbum: o acerto só conta nos troféus quando sair. */ antesDaHora?: boolean }) {
   const [resposta, setResposta] = useState<string | null>(respostaAnterior);
   const [nivel, setNivel] = useState<1 | 2 | 3>(1);
   const [salvo, setSalvo] = useState(salvoInicial);
@@ -99,6 +99,7 @@ export function DescobertaClient({ conteudo: c, fontes, respostaAnterior, salvoI
             <section aria-live="polite" className={`space-y-1 rounded-xl border p-4 ${resultado.acertou ? "border-success/50 bg-success/10" : "border-accent/40 bg-accent-soft/40"}`}>
               <p className="text-base font-bold">{revisao && resultado.acertou ? "Aprendida! ✅ Essa você não erra mais." : revisao ? "Ainda não foi dessa vez — ela volta daqui a alguns dias." : resultado.titulo}</p>
               {!resultado.acertou && !revisao ? <p className="text-xs text-fg-muted">🔁 Essa pergunta volta daqui a 3 dias para você revisar.</p> : null}
+              {resultado.acertou && antesDaHora && !revisao ? <p className="text-xs text-fg-muted">📚 Essa ainda não saiu no seu álbum: o acerto entra nos troféus quando ela sair.</p> : null}
               <p className="text-sm">Resposta: <strong>{resultado.veredito}</strong>{!resultado.acertou ? ` · você respondeu “${c.alternativas.find((a) => a.id === resposta)?.texto}”` : ""}</p>
             </section>
           ) : (

@@ -112,7 +112,8 @@ export async function explorarConteudo(alunoId: string, conteudo: ConteudoConhec
     }
   }
   await upsertProgresso(alunoId, conteudo.id, (atual) => ({
-    origem: atual?.origem ?? e.origem ?? "biblioteca",
+    // Lida pela Biblioteca antes da hora e aberta depois pelo álbum: passa a valer a origem do álbum.
+    origem: atual?.origem && !(atual.origem === "biblioteca" && e.origem && e.origem !== "biblioteca") ? atual.origem : (e.origem ?? "biblioteca"),
     explorado_em: atual?.explorado_em ?? agora,
     ...(resposta && !atual?.resposta ? { resposta, acertou: resultado!.acertou } : {}),
   }));

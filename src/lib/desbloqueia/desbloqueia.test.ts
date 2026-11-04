@@ -103,3 +103,19 @@ describe("álbum e desbloqueios", () => {
     expect(publicados(base).length).toBe(115);
   });
 });
+
+describe("ritmo do álbum (04/11/2026)", () => {
+  const inicio = "2026-09-01";
+  it("abrir a pergunta da semana não libera outra na hora", () => {
+    const a = albumDoAluno({ conteudos: base, progresso: [{ conteudo_id: "d01", origem: "periodo", disponivel_em: null, explorado_em: "2026-09-01T15:00:00Z", resposta: "mito", acertou: true, salvo: false }], conquistas: [], inicio, hoje: "2026-09-03" });
+    expect(a.filter((i) => i.estado === "disponivel")).toHaveLength(0);
+    expect(a.find((i) => i.conteudo.id === "d01")).toMatchObject({ estado: "explorado", disponivelEm: "2026-09-01", origem: "periodo" });
+  });
+  it("a lida pela Biblioteca antes da hora sai no álbum na vez dela", () => {
+    const prog = [{ conteudo_id: "d02", origem: "biblioteca", disponivel_em: null, explorado_em: "2026-09-01T15:00:00Z", resposta: "verdade", acertou: true, salvo: false }];
+    const dia1 = albumDoAluno({ conteudos: base, progresso: prog, conquistas: [], inicio, hoje: "2026-09-01" });
+    expect(dia1.find((i) => i.conteudo.id === "d02")?.disponivelEm).toBeNull();
+    const semana2 = albumDoAluno({ conteudos: base, progresso: prog, conquistas: [], inicio, hoje: "2026-09-08" });
+    expect(semana2.find((i) => i.conteudo.id === "d02")).toMatchObject({ estado: "explorado", disponivelEm: "2026-09-08", origem: "periodo" });
+  });
+});

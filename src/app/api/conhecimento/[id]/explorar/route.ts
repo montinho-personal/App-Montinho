@@ -3,7 +3,7 @@
 // Autoconhecimento (1, 10, 30, 50): saiu troféu novo, volta para comemorar.
 import { NextResponse } from "next/server";
 import { requireAlunoApi } from "@/lib/auth/session";
-import { explorarConteudo, getConteudo } from "@/lib/data/desbloqueia";
+import { albumParaAluno, explorarConteudo, getConteudo } from "@/lib/data/desbloqueia";
 import { explorarConhecimentoSchema, lerJson } from "@/lib/validacao/schemas";
 import { getAluno } from "@/lib/db";
 import { sincronizarConquistas } from "@/lib/data/conquistas";
@@ -20,10 +20,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!conteudo || conteudo.status !== "publicado") return NextResponse.json({ error: "Conteúdo não encontrado" }, { status: 404 });
   try {
     const t0 = new Date(Date.now() - 60_000).toISOString();
-    const resultado = await explorarConteudo(sessao.alunoId, conteudo, { resposta: data.resposta ?? null, origem: data.origem ?? null, revisao: data.revisao ?? false });
+    // A origem vem do servidor: pergunta que já saiu no álbum fica com a origem
+    // do álbum (conta nos troféus); a que ainda não saiu é “biblioteca” (só conta
+    // quando sair). A sugestão do treino (“contexto”) continua valendo.
+    const aluno = await getAluno(sessao.alunoId).catch(() => null);
+    const album = aluno ? await albumParaAluno(aluno).catch(() => null) : null;
+    const item = album?.itens.find((i) => i.conteudo.id === id) ?? null;
+    const origem = item?.disponivelEm && item.origem && item.origem !== "biblioteca" ? item.origem : data.origem === "contexto" ? "contexto" : "biblioteca";
+    const resultado = await explorarConteudo(sessao.alunoId, conteudo, { resposta: data.resposta ?? null, origem, revisao: data.revisao ?? false });
     let novas: unknown[] = [];
     if (data.resposta && resultado?.acertou && !data.revisao) {
-      const aluno = await getAluno(sessao.alunoId).catch(() => null);
       const sync = aluno ? await sincronizarConquistas(aluno).catch(() => null) : null;
       novas = sync ? paraComemorar(sync.todas, t0, (c) => (CODIGOS_QUIZ as string[]).includes(c)) : [];
     }

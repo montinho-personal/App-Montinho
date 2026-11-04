@@ -24,6 +24,9 @@ export default async function DescobertaPage({ params, searchParams }: { params:
   const album = aluno ? await albumParaAluno(aluno) : null;
   const prog = album?.progresso.find((p) => p.conteudo_id === id) ?? null;
   const daBiblioteca = o === "biblioteca";
+  // Ainda não saiu no álbum: dá para ler e responder, mas o acerto só conta nos troféus quando ela sair.
+  const item = album?.itens.find((i) => i.conteudo.id === id) ?? null;
+  const antesDaHora = !!album && !item?.disponivelEm && o !== "contexto";
   // Errou essa e chegou a hora de revisar: o quiz aparece de novo, sem a resposta anterior.
   const revisao = !!prog && revisaoDevida(prog, new Date().toISOString());
   const proxima = album ? proximaDescoberta(album.itens, id, daBiblioteca) : null;
@@ -36,6 +39,7 @@ export default async function DescobertaPage({ params, searchParams }: { params:
         conteudo={conteudo}
         fontes={fontes}
         revisao={revisao}
+        antesDaHora={antesDaHora}
         respostaAnterior={revisao ? null : conteudo.reformuladaEm && (prog?.explorado_em ?? "") < conteudo.reformuladaEm ? null : (prog?.resposta ?? null)}
         salvoInicial={!!prog?.salvo}
         proximaHref={proxima ? `/aluno/descobertas/${proxima.id}${proxima.biblioteca ? "?o=biblioteca" : ""}` : null}

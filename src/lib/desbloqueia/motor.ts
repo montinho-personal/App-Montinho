@@ -86,9 +86,17 @@ export function albumDoAluno(e: {
     const porConquista = c.gatilhos.conquistas.length ? primeiraConquista(c.gatilhos.conquistas) : null;
     const porRegistro = p?.disponivel_em ? dia(p.disponivel_em) : null;
     const disponivelEm = [porConquista, porRegistro].filter(Boolean).sort()[0] ?? null;
-    const origem: ItemAlbum["origem"] = porConquista && porConquista === disponivelEm ? "conquista" : porRegistro ? ((p?.origem as ItemAlbum["origem"]) ?? "personal") : null;
+    let origem: ItemAlbum["origem"] = porConquista && porConquista === disponivelEm ? "conquista" : porRegistro ? ((p?.origem as ItemAlbum["origem"]) ?? "personal") : null;
     const exploradoEm = dia(p?.explorado_em);
-    return { conteudo: c, estado: exploradoEm ? "explorado" : disponivelEm ? "disponivel" : "futuro", disponivelEm, origem, exploradoEm, novo: null, salvo: !!p?.salvo };
+    let liberadaEm = disponivelEm;
+    // Aberta pelo álbum (vaga da semana) ou pela sugestão do treino: liberada no dia em
+    // que foi aberta e continua ocupando a vaga dela (antes, abrir a da semana
+    // liberava outra na hora). Só a lida pela Biblioteca antes da hora não conta.
+    if (!liberadaEm && exploradoEm && p?.origem !== "biblioteca") {
+      liberadaEm = exploradoEm;
+      origem = p?.origem === "contexto" ? "contexto" : "periodo";
+    }
+    return { conteudo: c, estado: exploradoEm ? "explorado" : liberadaEm ? "disponivel" : "futuro", disponivelEm: liberadaEm, origem, exploradoEm, novo: null, salvo: !!p?.salvo };
   });
 
   // Oportunidade periódica: quem treina pouco também recebe descobertas.
@@ -97,8 +105,10 @@ export function albumDoAluno(e: {
   let k = 0;
   for (const i of itens) {
     if (k + jaPorPeriodo >= vagas) break;
-    if (i.estado !== "futuro") continue;
-    i.estado = "disponivel";
+    // Livre para a vaga: a que ainda não saiu e a lida pela Biblioteca antes da hora
+    // (ela “sai” no álbum na vez dela e aí a resposta passa a contar nos troféus).
+    if (i.disponivelEm) continue;
+    if (i.estado === "futuro") i.estado = "disponivel";
     i.origem = "periodo";
     i.disponivelEm = somarDias(e.inicio, (jaPorPeriodo + k) * REGRAS_DESBLOQUEIA.diasPorOportunidade);
     k++;

@@ -121,7 +121,7 @@ export async function datasDasConquistas(desde: string): Promise<Array<{ alunoId
  */
 export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: ConquistaRow[]; novas: ConquistaRow[]; sessoes: SessaoConquista[]; aderencia: AderenciaAluno }> {
   const [completas, aderencia, existentes, resumo, desafios, avaliacao, strava, compartilhar, desafiosAmigos, cardio] = await Promise.all([listSessoes(aluno.id, { limite: 400, status: "todas" }), aderenciaDoAluno(aluno), listarConquistas(aluno.id), listarHistoricoResumo(aluno.id), desafiosDoAluno(aluno.id).catch(() => []), primeiraAvaliacao(aluno.id).catch(() => null), statusStrava(aluno.id).catch(() => null), eventosCompartilharDoAluno(aluno.id).catch(() => null), marcosDosDesafios(aluno.id).catch(() => null), entradaCardio(aluno.id).catch(() => null)]);
-  const quiz = await respostasDoQuiz(aluno.id);
+  const quiz = await respostasDoQuiz(aluno, existentes);
   const mobilidade = await import("@/lib/data/mobilidade").then((m) => m.listarMobilidade(aluno.id)).catch(() => []);
   const registrosAvaliacao = await registrosDeAvaliacao(aluno.id).catch(() => []);
   // Multimodalidade: resultados de benchmark (sem a 0133 no banco, vem vazio).
@@ -491,7 +491,7 @@ async function eventosCompartilharDoAluno(alunoId: string): Promise<{ eventos: E
 export async function progressoExtras(alunoId: string): Promise<ProgressoExtras> {
   const [ev, quiz, conteudos] = await Promise.all([
     eventosCompartilharDoAluno(alunoId).catch(() => null),
-    respostasDoQuiz(alunoId),
+    import("@/lib/db").then((m) => m.getAluno(alunoId)).then((a) => respostasDoQuiz(a)).catch(() => [] as RespostaQuiz[]),
     import("@/lib/data/desbloqueia").then((m) => m.listarConteudos()).catch(() => []),
   ]);
   const c = ev ? contagemCompartilhar(ev.eventos) : null;
@@ -515,10 +515,14 @@ export async function totalQuizPublicado(): Promise<number> {
 }
 
 /** Respostas do “Mito ou verdade?” (troféus de Autoconhecimento). */
-async function respostasDoQuiz(alunoId: string): Promise<RespostaQuiz[]> {
-  const { progressoDoAluno } = await import("@/lib/data/desbloqueia");
-  const ps = await progressoDoAluno(alunoId).catch(() => []);
-  return ps.filter((p) => p.resposta).map((p) => ({ conteudo_id: p.conteudo_id, acertou: p.acertou ?? null, em: (p as { updated_at?: string | null }).updated_at ?? p.explorado_em ?? null }));
+// Conta só a pergunta que já saiu no álbum (ritmo de 1 por semana + troféus + personal).
+async function respostasDoQuiz(aluno: AlunoBase | null, conquistas?: Array<{ codigo: string; conquistado_em: string }>): Promise<RespostaQuiz[]> {
+  if (!aluno) return [];
+  const { albumParaAluno } = await import("@/lib/data/desbloqueia");
+  const album = await albumParaAluno(aluno, conquistas).catch(() => null);
+  if (!album) return [];
+  const liberada = new Map(album.itens.map((i) => [i.conteudo.id, i.disponivelEm]));
+  return album.progresso.filter((p) => p.resposta).map((p) => ({ conteudo_id: p.conteudo_id, acertou: p.acertou ?? null, em: (p as { updated_at?: string | null }).updated_at ?? p.explorado_em ?? null, liberadaEm: liberada.get(p.conteudo_id) ?? null }));
 }
 
 // ---------------------------------------------------------------------------
