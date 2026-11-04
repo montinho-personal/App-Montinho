@@ -11,6 +11,8 @@
 // ============================================================================
 
 import { moverTreino } from "@/lib/montador/ordem-treinos";
+import { acimaDaMeta, faltandoNaMeta } from "@/lib/montador/falta-meta";
+import { FaltaParaMeta } from "@/components/montador/FaltaParaMeta";
 import { aplicarDescansoPadrao } from "@/lib/tempo/descanso-padrao";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { OrientacoesProntas } from "@/components/montador/OrientacoesProntas";
@@ -876,6 +878,33 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         }),
     [estado.treinos, frequencia, resolver, duracoes],
   );
+  // “🎯 Falta para a meta”: mesmas linhas da Tabela de Volume (04/11/2026).
+  const faltas = useMemo(() => faltandoNaMeta(volume, estado.programa.prioridades), [volume, estado.programa.prioridades]);
+  const acima = useMemo(() => acimaDaMeta(volume), [volume]);
+  const treinosEncaixe = useMemo(
+    () =>
+      estado.treinos.map((t) => {
+        const cheias = t.rows.filter((r) => r.nome.trim());
+        return { key: t.key, letra: t.letra, nome: t.nome, ativo: t.ativo, series: cheias.reduce((s, r) => s + Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento), 0), grupos: cheias.map((r) => resolver(r).grupo as GrupoMuscular), nomes: cheias.map((r) => r.nome), foco: focoEstrategia[t.letra] ?? null };
+      }),
+    [estado.treinos, resolver, focoEstrategia],
+  );
+  const idsNoTreino = (tk: string) => new Set(estado.treinos.find((t) => t.key === tk)?.rows.map((r) => itemDaLinha(r)?.id).filter((x): x is string => !!x) ?? []);
+  const adicionarParaMeta = (tk: string, item: ItemBiblioteca, series: number) => {
+    const t = estado.treinos.find((x) => x.key === tk);
+    commit((e) => ({
+      ...e,
+      treinos: e.treinos.map((x) => {
+        if (x.key !== tk) return x;
+        const nova: Row = { ...emptyRow(), nome: item.nome, bibliotecaId: item.id, contaVolume: item.contaVolume, seriesConfig: configIgual(series, "10-12", null) };
+        // A última linha vazia (o “exercício N…” em branco) dá lugar ao novo.
+        const rows = x.rows.length && !x.rows[x.rows.length - 1].nome.trim() ? [...x.rows.slice(0, -1), nova] : [...x.rows, nova];
+        return { ...x, rows };
+      }),
+    }));
+    setFechados((f) => { const n = new Set(f); n.delete(tk); return n; });
+    toast.success(`${item.nome} (${series} séries) no treino ${t?.letra ?? ""}. Confira e salve.`);
+  };
   const abrirNoMapa = (key: string) => {
     setFechados(new Set(estado.treinos.filter((x) => x.key !== key).map((x) => x.key)));
     requestAnimationFrame(() => document.getElementById(`treino-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -1145,6 +1174,17 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             </ul>
             <p className="mt-2 text-[11px] text-fg-subtle">Só um guia: dá para salvar a qualquer momento. Nada aqui avalia a qualidade da prescrição.</p>
           </details>
+          <FaltaParaMeta
+            faltas={faltas}
+            acima={acima}
+            temMetas={volume.linhas.some((l) => l.meta)}
+            treinos={treinosEncaixe}
+            itens={itensBiblioteca}
+            favoritos={favoritosSet}
+            uso={usoMap}
+            idsNoTreino={idsNoTreino}
+            onAdicionar={adicionarParaMeta}
+          />
           {estado.treinos.length > 1 ? (
             <div className="flex justify-end gap-3 text-xs font-semibold text-fg-muted">
               <button type="button" onClick={() => setFechados(new Set())} className="hover:text-accent">Abrir todos</button>

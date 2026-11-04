@@ -19,7 +19,7 @@ import { Icon } from "@/components/ui/Icon";
 import { lerFaixa, textoFaixa } from "@/lib/volume/faixa";
 
 type Filtro = "todos" | "superiores" | "inferiores";
-type Ordem = "padrao" | "volume" | "prioridade";
+type Ordem = "padrao" | "volume" | "prioridade" | "falta";
 
 type Props = {
   /** Botão extra na barra fixa do celular (ex.: Salvar), sempre à mão. */
@@ -76,6 +76,12 @@ export function TabelaVolume(props: Props) {
             </span>
             <span className="min-w-0 text-right text-xs text-fg-muted">
               {numBR(props.resultado.subtotais.total)} séries · {numBR(props.resultado.sessoesSemana)} sessões/sem
+              {(() => {
+                const abaixo = props.resultado.linhas.filter((l) => l.status === "abaixo").length;
+                const comMeta = props.resultado.linhas.some((l) => l.meta);
+                if (!comMeta) return null;
+                return abaixo ? <span className="block font-bold text-info">🎯 {abaixo} abaixo da meta</span> : <span className="block font-bold text-success">✓ tudo na meta</span>;
+              })()}
             </span>
           </button>
           {props.acao ?? null}
@@ -117,6 +123,10 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
     if (filtro === "superiores") l = l.filter((x) => x.superior);
     if (filtro === "inferiores") l = l.filter((x) => x.inferior);
     if (ordem === "volume") l = [...l].sort((a, b) => b.total - a.total);
+    if (ordem === "falta") {
+      const pct = (x: LinhaVolume) => (x.status === "abaixo" && x.meta ? (x.meta.min + (x.diferenca ?? 0)) / x.meta.min : x.status === "sem_meta" ? 3 : 2);
+      l = [...l].sort((a, b) => pct(a) - pct(b));
+    }
     if (ordem === "prioridade") l = [...l].sort((a, b) => Number(prioridades.includes(b.grupo)) - Number(prioridades.includes(a.grupo)) || b.total - a.total);
     return partesJuntoDoTotal(l);
   }, [resultado, filtro, ordem, prioridades]);
@@ -169,6 +179,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
           <option value="padrao">Ordem padrão</option>
           <option value="volume">Maior volume</option>
           <option value="prioridade">Prioridade</option>
+          <option value="falta">Falta mais para a meta</option>
         </select>
         <label className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-fg-muted">
           <input type="checkbox" checked={compacto} onChange={(e) => setCompacto(e.target.checked)} /> compacto
@@ -266,6 +277,8 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                             .join(" · ")}
                         </span>
                       ) : null}
+                      {compacto && l.status === "abaixo" && l.diferenca ? <span className="block text-[10px] font-semibold text-info">🎯 faltam {numBR(-l.diferenca)}</span> : null}
+                      {compacto && l.status === "acima" && l.diferenca ? <span className="block text-[10px] text-warning">passou {numBR(l.diferenca)}</span> : null}
                       {!compacto && l.status !== "sem_meta" ? <span className={`block text-[10px] ${STATUS_COR[l.status]}`}>{STATUS_META_LABEL[l.status]}{l.diferenca ? ` (${l.diferenca > 0 ? "+" : ""}${numBR(l.diferenca)})` : ""}</span> : null}
                     </td>
                     {!compacto ? letras.map((x) => (
