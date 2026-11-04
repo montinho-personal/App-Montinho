@@ -95,7 +95,10 @@ export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | nu
   const porId = new Map(biblioteca.map((b) => [b.id, b]));
   const porNome = new Map(biblioteca.map((b) => [normalizarNome(b.nome), b]));
   const secDe = (e: { biblioteca_id: string | null; nome: string }) => (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined)?.pesosSecundarios ?? porNome.get(normalizarNome(e.nome))?.pesosSecundarios ?? null;
-  const series = (lista: typeof sessoes) => lista.flatMap((s) => s.exercicios.flatMap((e) => { const sec = secDe(e); return e.series.map((x) => ({ grupo: e.grupo_muscular, tipo: x.tipo, secundarios: sec })); }));
+  // Músculo pela biblioteca de HOJE (04/11/2026, caso da rosca inversa que virou só antebraço): o treino
+  // antigo guardou o músculo da época; vale a classificação atual quando o exercício é da biblioteca.
+  const grupoDe = (e: { biblioteca_id: string | null; grupo_muscular: GrupoMuscular | null }) => (e.biblioteca_id ? porId.get(e.biblioteca_id)?.grupo : undefined) ?? e.grupo_muscular;
+  const series = (lista: typeof sessoes) => lista.flatMap((s) => s.exercicios.flatMap((e) => { const sec = secDe(e); const grupo = grupoDe(e); return e.series.map((x) => ({ grupo, tipo: x.tipo, secundarios: sec })); }));
   const daSemana = sessoes.filter((s) => dataLocal(s.iniciado_em) >= inicio);
   const feitas = ombrosNoGeral(volumeDaSemana(series(daSemana), agruparOmbros), metas);
   const atual = sessoes.find((s) => s.id === sessaoAtualId);
