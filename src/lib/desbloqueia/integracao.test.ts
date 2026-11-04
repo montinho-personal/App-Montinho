@@ -45,7 +45,7 @@ describe("álbum, anúncio e jornada", () => {
     hoje: "2026-10-20",
   });
   it("quem nunca explorou recebe o convite mesmo sem item recente", () => {
-    const antigo = albumDoAluno({ conteudos: base, progresso: [], conquistas: [], inicio: "2025-01-01", hoje: "2026-10-20" });
+    const antigo = albumDoAluno({ conteudos: base, progresso: [], conquistas: [], inicio: "2024-01-01", hoje: "2026-10-20" });
     expect(antigo.some((i) => i.novo === "disponivel")).toBe(false);
     expect(candidatasAnuncio(antigo).length).toBeGreaterThan(0);
   });
