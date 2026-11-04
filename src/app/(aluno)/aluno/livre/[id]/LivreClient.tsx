@@ -107,6 +107,39 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       return { ...e, series: [...e.series, { key: novaChave(), serie: e.series.length + 1, tipo: ult && ult.tipo !== "aquecimento" && !registraEmBlocos(ult.tipo) ? ult.tipo : "valida", carga: ult?.carga ?? "", reps: "", salva: false }] };
     })
   );
+  // Rascunho no aparelho (05/11/2026, caso do Montinho: séries anotadas e ainda não salvas sumiam quando a
+  // tela recarregava — app atualizado, celular que fecha a aba). Guarda o que foi DIGITADO e não salvo; ao
+  // abrir de novo, volta para o mesmo exercício. As salvas sempre vêm do servidor.
+  const chaveRascunho = `montinho-livre-rascunho:${sessaoId}`;
+  const rascunhoLido = useRef(false);
+  useEffect(() => {
+    if (rascunhoLido.current) return;
+    rascunhoLido.current = true;
+    try {
+      const salvo = JSON.parse(localStorage.getItem(chaveRascunho) ?? "null") as Record<string, SerieTela[]> | null;
+      if (!salvo) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- o rascunho só existe no aparelho
+      setExs((lista) => lista.map((e) => {
+        const pendentes = (salvo[e.seId] ?? []).filter((r) => !e.series.some((x) => x.key === r.key));
+        if (!pendentes.length) return e;
+        // Tira as linhas vazias que a tela abriu sozinha e põe as anotadas no lugar.
+        const base = e.series.filter((x) => x.salva || x.carga.trim() || x.reps.trim() || (x.blocos ?? []).some((b) => b.reps.trim() || b.carga.trim()));
+        return { ...e, series: [...base, ...pendentes.map((r) => ({ ...r, salva: false }))].map((y, k) => ({ ...y, serie: k + 1 })) };
+      }));
+    } catch {}
+  }, [chaveRascunho]);
+  useEffect(() => {
+    if (!rascunhoLido.current) return;
+    try {
+      const pend: Record<string, SerieTela[]> = {};
+      for (const e of exs) {
+        const p = e.series.filter((x) => !x.salva && (x.carga.trim() || x.reps.trim() || (x.blocos ?? []).some((b) => b.reps.trim() || b.carga.trim())));
+        if (p.length) pend[e.seId] = p;
+      }
+      if (Object.keys(pend).length) localStorage.setItem(chaveRascunho, JSON.stringify(pend));
+      else localStorage.removeItem(chaveRascunho);
+    } catch {}
+  }, [exs, chaveRascunho]);
   const [aberto, setAberto] = useState<string | null>(inicial.find((e) => !e.series.length)?.seId ?? inicial.at(-1)?.seId ?? null);
   const [buscando, setBuscando] = useState(inicial.length === 0);
   const [erro, setErro] = useState<string | null>(null);
