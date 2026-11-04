@@ -2,11 +2,13 @@
 // (regras puras em src/lib/relatorios/painel-aluno.ts).
 import Link from "next/link";
 import type { PainelEvolucao, Tom } from "@/lib/relatorios/painel-aluno";
+import type { CardRelatorio } from "@/lib/relatorios/card-relatorio";
+import { CompartilharCardRelatorio } from "./CompartilharCardRelatorio";
 
 const COR_TOM: Record<Tom, string> = { alta: "text-success", baixa: "text-fg-subtle", igual: "text-fg-subtle", novo: "text-accent" };
 const COR_DESTAQUE = { ouro: "border-accent/60 bg-[linear-gradient(160deg,#2a2415_0%,#171717_80%)]", verde: "border-success/40 bg-card", neutro: "border-border bg-card", recuperar: "border-dashed border-warning/60 bg-card" } as const;
 
-export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior }: { p: PainelEvolucao; dias: number; periodos: readonly number[]; basePath: string; anterior: string }) {
+export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior, card }: { p: PainelEvolucao; dias: number; periodos: readonly number[]; basePath: string; anterior: string; /** Card para compartilhar a evolução do período. */ card?: CardRelatorio | null }) {
   return (
     <div className="space-y-4">
       <div className="flex gap-2" role="group" aria-label="Período">
@@ -32,7 +34,10 @@ export function PainelEvolucaoAluno({ p, dias, periodos, basePath, anterior }: {
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-fg-subtle">Comparado com {anterior}.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-fg-subtle">Comparado com {anterior}.</p>
+          <CompartilharCardRelatorio card={card ?? null} rotulo="📲 Compartilhar minha evolução" className="touch inline-flex items-center justify-center rounded-xl bg-accent px-4 text-sm font-bold text-bg disabled:opacity-60" />
+        </div>
       </section>
 
       {p.destaques.length ? (

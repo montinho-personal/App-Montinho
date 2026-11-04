@@ -19,6 +19,8 @@ import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
 import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
 import { EnviarRelatorioAvaliacao } from "@/components/medidas/EnviarRelatorioAvaliacao";
+import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharCardRelatorio";
+import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
 
 export const metadata = { title: "Relatório da avaliação física", robots: { index: false } };
 
@@ -107,6 +109,7 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
         <div className="flex flex-wrap items-center gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
           <BaixarPdf />
+          <CompartilharCardRelatorio card={cardDaAvaliacao({ rel, nome })} registrar={!doPersonal} rotulo={doPersonal ? "📲 Card para o aluno" : "📲 Compartilhar"} className="inline-flex h-10 items-center rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold" />
           {doPersonal ? <EnviarRelatorioAvaliacao id={rel.id} nome={nome} telefone={aluno.telefone ?? null} data={rel.data} /> : null}
         </div>
       </div>

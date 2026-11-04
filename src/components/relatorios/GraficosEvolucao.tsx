@@ -3,6 +3,8 @@
 // Gráficos fáceis da Evolução (pedido do Montinho, 29/10/2026): treino a
 // treino (tudo somado), exercício a exercício e peso — tocar para ver o número.
 // Contas em src/lib/relatorios/graficos-aluno.ts.
+import type { CardRelatorio } from "@/lib/relatorios/card-relatorio";
+import { CompartilharCardRelatorio } from "./CompartilharCardRelatorio";
 import { useState } from "react";
 import Link from "next/link";
 import { REGRAS_CONQUISTAS } from "@/lib/conquistas/regras";
@@ -73,7 +75,7 @@ function rotuloDoChip(l: string, treinos: BarraTreino[]): string {
   return `${base} · ${resto.length > 16 ? `${resto.slice(0, 15)}…` : resto}`;
 }
 
-export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioHref }: { treinos: BarraTreino[]; exercicios: Array<{ chave: string; nome: string; vezes: number }>; pontos: Record<string, PontoExercicio[]>; peso: Array<{ data: string; kg: number }>; relatorioHref: string }) {
+export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioHref, cardPeso }: { treinos: BarraTreino[]; exercicios: Array<{ chave: string; nome: string; vezes: number }>; pontos: Record<string, PontoExercicio[]>; peso: Array<{ data: string; kg: number }>; relatorioHref: string; /** Card do peso para compartilhar. */ cardPeso?: CardRelatorio | null }) {
   const abas: Array<[Aba, string]> = [["treinos", "🏋️ Treinos"], ["exercicios", "💪 Exercícios"], ...(peso.length >= 2 ? ([["peso", "⚖️ Peso"]] as Array<[Aba, string]>) : [])];
   const [aba, setAba] = useState<Aba>("treinos");
   const letras = [...new Set(treinos.map((t) => t.rotulo))].sort((a, b) => a.length - b.length || a.localeCompare(b));
@@ -218,6 +220,7 @@ export function GraficosEvolucao({ treinos, exercicios, pontos, peso, relatorioH
           </div>
           <Linha valores={peso.map((p) => p.kg)} datas={peso.map((p) => p.data)} rotulo={(n) => `${fmt(n)} kg`} cor="#a1a1aa" />
           <p className="text-[11px] text-fg-subtle">O peso sozinho não conta a história toda: músculo e gordura mudam juntos. Veja também as medidas.</p>
+          <CompartilharCardRelatorio card={cardPeso ?? null} rotulo="📲 Compartilhar meu peso" />
         </div>
       ) : null}
 

@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import type { Evolucao } from "@/lib/supabase/types";
 import { dataBR } from "@/lib/format";
 import { antesDepois, type LinhaAntesDepois } from "@/lib/medidas/leitura";
+import { cardDasMedidas } from "@/lib/relatorios/card-relatorio";
+import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharCardRelatorio";
 
 const br = (v: number, casas = 1) => v.toLocaleString("pt-BR", { maximumFractionDigits: casas });
 const GRUPOS: Array<[LinhaAntesDepois["grupo"], string]> = [
@@ -21,7 +23,7 @@ const textoDif = (l: LinhaAntesDepois) =>
  * diminuir cintura é o objetivo de cada aluno — quem interpreta é o Montinho
  * (regra de rótulos neutros). Inclui as medidas extras lidas do laudo (0125).
  */
-export function ComparadorMedidas({ evolucao, titulo }: { evolucao: Evolucao[]; titulo?: string }) {
+export function ComparadorMedidas({ evolucao, titulo, compartilhar }: { evolucao: Evolucao[]; titulo?: string; /** Botão “Compartilhar” com o card antes × depois (só o primeiro nome). `personal`: baixar para mandar ao aluno, sem contar como compartilhamento dele. */ compartilhar?: { nome: string; hoje: string; personal?: boolean } }) {
   const ordenados = useMemo(() => [...evolucao].sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : a.created_at < b.created_at ? -1 : 1)), [evolucao]);
   const [aId, setAId] = useState(ordenados[0]?.id ?? "");
   const [bId, setBId] = useState(ordenados.at(-1)?.id ?? "");
@@ -29,6 +31,7 @@ export function ComparadorMedidas({ evolucao, titulo }: { evolucao: Evolucao[]; 
   const a = ordenados.find((x) => x.id === aId);
   const b = ordenados.find((x) => x.id === bId);
   const linhas = useMemo(() => antesDepois(a, b), [a, b]);
+  const card = compartilhar && a && b ? cardDasMedidas({ linhas, antes: a.data, depois: b.data, nome: compartilhar.nome, hoje: compartilhar.hoje }) : null;
 
   if (ordenados.length < 2) {
     return (
@@ -125,6 +128,7 @@ export function ComparadorMedidas({ evolucao, titulo }: { evolucao: Evolucao[]; 
           </tbody>
         </table>
       )}
+      {card ? <CompartilharCardRelatorio card={card} registrar={!compartilhar?.personal} rotulo={compartilhar?.personal ? "📲 Card antes × depois (para mandar)" : "📲 Compartilhar minhas medidas"} /> : null}
       <p className="text-xs text-fg-subtle">A seta mostra só se a medida subiu ou desceu. Se isso é bom depende do objetivo, e quem interpreta é o personal.</p>
     </div>
   );

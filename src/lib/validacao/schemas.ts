@@ -437,7 +437,7 @@ export const eventoChalalaSchema = z
     ref: z.string().regex(/^[A-Za-z0-9_:-]{1,80}$/).nullable().optional(),
     modelo: z.string().regex(/^[A-Za-z0-9-]{1,20}$/).nullable().optional(),
     formato: z.enum(["stories", "feed", "quadrado"]).nullable().optional(),
-    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade", "ranking", "recordes"]).nullable().optional(),
+    origem: z.enum(["conclusao", "historico", "mensal", "reconhecimento", "vitrine", "colecao", "medalha", "album", "biblioteca", "treino", "fim_treino", "inicio", "conquistas", "personal", "contexto", "tribo", "mobilidade", "ranking", "recordes", "relatorio"]).nullable().optional(),
   })
   .strict();
 export const reconhecimentoSchema = z.object({

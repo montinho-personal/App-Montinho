@@ -27,6 +27,7 @@ import { AtalhosEvolucao, PainelEvolucaoAluno } from "@/components/relatorios/Pa
 import { Acordeao } from "@/components/relatorios/Acordeao";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
 import { painelEvolucao } from "@/lib/relatorios/painel-aluno";
+import { cardDaEvolucao, cardDoPeso } from "@/lib/relatorios/card-relatorio";
 import { exerciciosComCarga, totaisPorTreino } from "@/lib/relatorios/graficos-aluno";
 import { evolucaoExercicio } from "@/lib/relatorios/calcular";
 import { GraficosEvolucao, type PontoExercicio } from "@/components/relatorios/GraficosEvolucao";
@@ -63,12 +64,17 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
   const hoje = dataLocal(new Date());
   const inicio = aluno ? (aluno.data_inicio ?? aluno.created_at.slice(0, 10)) : null;
   const invisivel = evolucaoInvisivel({ sessoes: sessoes.map(sessaoParaConquista), aderencia, dias, hoje, inicioAcompanhamento: inicio ?? sessoes.map((x) => dataLocal(x.iniciado_em)).sort()[0] ?? hoje });
-  const painel = painelEvolucao({ sessoes, dias, emAlta: cargasEmAlta(sessoes, historicoResumo, 3), paraRecuperar: cargasParaRecuperar(sessoes, 3), invisivel, medidas: evolucao, sequencia: aderencia?.sequencia.atual ?? 0 });
+  const emAlta = cargasEmAlta(sessoes, historicoResumo, 3);
+  const painel = painelEvolucao({ sessoes, dias, emAlta, paraRecuperar: cargasParaRecuperar(sessoes, 3), invisivel, medidas: evolucao, sequencia: aderencia?.sequencia.atual ?? 0 });
 
   // Gráficos fáceis (antes do relatório completo): treino a treino, exercício a exercício e peso.
   const exerciciosGrafico = exerciciosComCarga(sessoes).slice(0, 25);
   const pontosGrafico: Record<string, PontoExercicio[]> = Object.fromEntries(exerciciosGrafico.map((e) => [e.chave, evolucaoExercicio(sessoes, e.chave, historicoResumo).map((p) => ({ data: p.data, carga: p.cargaMax, volume: p.tonelagem, media: p.cargaMedia ?? null, forca: p.e1rmMax, repsPorCarga: p.repsPorCarga }))]));
   const pesoGrafico = evolucao.filter((m) => m.peso_kg != null).map((m) => ({ data: m.data, kg: Number(m.peso_kg) }));
+  // Cards para compartilhar (pedido do Montinho, 04/11/2026): só o primeiro nome.
+  const nomeAluno = aluno?.profile?.nome ?? "";
+  const cardEvolucao = cardDaEvolucao({ painel, emAlta, dias, nome: nomeAluno, hoje });
+  const cardPeso = cardDoPeso({ pesos: pesoGrafico, nome: nomeAluno, hoje });
 
   return (
     <div className="space-y-6">
@@ -79,7 +85,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
       <RegistrarRelatorio />
       <SincronizarCardios />
 
-      <PainelEvolucaoAluno p={painel} dias={dias} periodos={[7, 30, 90]} basePath="/aluno/evolucao" anterior={dias === 7 ? "os 7 dias anteriores" : `os ${dias} dias anteriores`} />
+      <PainelEvolucaoAluno p={painel} dias={dias} periodos={[7, 30, 90]} basePath="/aluno/evolucao" anterior={dias === 7 ? "os 7 dias anteriores" : `os ${dias} dias anteriores`} card={cardEvolucao} />
 
       {comentario ? (
         <blockquote className="rounded-2xl border-l-4 border-accent bg-card px-4 py-3 text-sm">
@@ -100,7 +106,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         </section>
       ) : null}
 
-      <GraficosEvolucao treinos={totaisPorTreino(sessoes)} exercicios={exerciciosGrafico} pontos={pontosGrafico} peso={pesoGrafico} relatorioHref={`/relatorio/${sessao.alunoId}`} />
+      <GraficosEvolucao treinos={totaisPorTreino(sessoes)} exercicios={exerciciosGrafico} pontos={pontosGrafico} peso={pesoGrafico} cardPeso={cardPeso} relatorioHref={`/relatorio/${sessao.alunoId}`} />
       <AtalhosEvolucao recordes={FEATURES.multimodalidade} />
       <ChamadaTrofeu acao="relatorio" />
 
@@ -137,7 +143,7 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         </Acordeao>
       ) : null}
       {cardios.length ? <CardiosStrava cardios={cardios} hoje={hoje} titulo="Seus cardios (Strava)" /> : null}
-      {evolucao.length >= 2 ? <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" /> : null}
+      {evolucao.length >= 2 ? <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" compartilhar={{ nome: nomeAluno, hoje }} /> : null}
     </div>
   );
 }

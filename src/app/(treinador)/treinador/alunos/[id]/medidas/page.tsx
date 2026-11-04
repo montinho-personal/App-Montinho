@@ -7,6 +7,7 @@ import { listarAvaliacoes } from "@/lib/data/medidas";
 import { isDemoMode } from "@/lib/env";
 import { MedidasAvaliacoes } from "@/components/medidas/MedidasAvaliacoes";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 export const metadata = { title: "Medidas e avaliações" };
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function MedidasDoAlunoPage({ params }: { params: Promise<{
         <h1 className="text-2xl font-bold">Medidas e avaliações</h1>
         <p className="mt-1 text-sm text-fg-muted">O que você ou o aluno registrarem aqui aparece na Evolução dele, no comparador e no relatório. Arquivos (PDF, foto, print) ficam guardados só para vocês dois. Em cada arquivo, “✨ Puxar as medidas” lê os números de todas as datas do laudo.</p>
       </header>
-      {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} /> : null}
+      {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} compartilhar={{ nome, hoje: dataLocal(new Date()), personal: true }} /> : null}
       <MedidasAvaliacoes alunoId={id} medidas={medidas} arquivos={arquivos} nome={nome.split(" ")[0]} demo={isDemoMode()} doPersonal sexo={aluno.sexo === "M" || aluno.sexo === "F" ? aluno.sexo : null} nascimento={aluno.data_nascimento ?? null} />
     </div>
   );

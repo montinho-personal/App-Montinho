@@ -6,6 +6,7 @@ import { listarAvaliacoes } from "@/lib/data/medidas";
 import { isDemoMode } from "@/lib/env";
 import { MedidasAvaliacoes } from "@/components/medidas/MedidasAvaliacoes";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
+import { dataLocal } from "@/lib/aderencia/calcular";
 
 export const metadata = { title: "Minhas medidas e avaliações" };
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function MedidasPage() {
         <p className="text-sm text-fg-muted">Tudo o que você registrar aqui aparece na sua Evolução, no comparador “antes × depois” e no relatório completo.</p>
       )}
       <MedidasAvaliacoes alunoId={sessao.alunoId} medidas={medidas} arquivos={arquivos} nome={sessao.nome.split(" ")[0]} demo={isDemoMode()} />
-      {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} /> : null}
+      {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} compartilhar={{ nome: sessao.nome, hoje: dataLocal(new Date()) }} /> : null}
     </div>
   );
 }
