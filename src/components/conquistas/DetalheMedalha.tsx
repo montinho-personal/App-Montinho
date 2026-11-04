@@ -28,9 +28,10 @@ function baixarArquivo(f: File) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 import { BRAND } from "@/config/brand";
+import { TELA_COMO_FILMAR } from "@/lib/montinho/como-filmar";
 
-/** Vídeo do canal do Montinho: de lado, câmera na altura da articulação, corpo inteiro, série completa. */
-const GUIA_FILMAGEM_URL = "https://www.youtube.com/shorts/L5w4DBU2la8";
+/** Tela do app com o vídeo do canal do Montinho e as 4 regras (src/lib/montinho/como-filmar.ts). */
+const GUIA_FILMAGEM_URL = TELA_COMO_FILMAR;
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -97,7 +98,7 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
         <p className="text-xs text-fg-muted">{m.falta}</p>
       ) : null}
       {!m.conquistada && ehAluno && m.codigo === "olhar_de_aguia" ? (
-        <a href={GUIA_FILMAGEM_URL} target="_blank" rel="noopener noreferrer" className="touch flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold">
+        <a href={GUIA_FILMAGEM_URL} className="touch flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold">
           ▶ Antes de gravar: como filmar (2 min)
         </a>
       ) : null}

@@ -2037,6 +2037,11 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                             🎥 Enviar minha execução ao {BRAND.name}
                           </a>
                         ) : null}
+                        {!presencial ? (
+                          <Link href="/aluno/como-filmar" className="block text-center text-xs font-semibold text-fg-muted underline underline-offset-2">
+                            ▶ Como filmar o exercício (2 min)
+                          </Link>
+                        ) : null}
                         <div className="flex flex-wrap gap-2 pt-1">
                           {podeTrocar ? (
                             <button type="button" onClick={() => { const abrir = trocaAberta !== se.id; setTrocaAberta(abrir ? se.id : null); if (abrir) requestAnimationFrame(() => document.getElementById(`troca-${se.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} aria-expanded={trocaAberta === se.id} className="touch rounded-md border border-border px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">
