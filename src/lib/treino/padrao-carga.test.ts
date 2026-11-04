@@ -30,3 +30,13 @@ describe("padrão de carga", () => {
     expect(anotaCarga(["peso_corporal", "anilha"])).toBe(true);
   });
 });
+
+describe("instrução à vista (04/11/2026)", () => {
+  it("frase curta para cada escolha", async () => {
+    const { instrucaoPadrao } = await import("./padrao-carga");
+    expect(instrucaoPadrao("anilhas", "total")).toBe("Anote a soma dos dois lados");
+    expect(instrucaoPadrao("anilhas", "por_lado")).toBe("Anote só um lado");
+    expect(instrucaoPadrao("halteres", "total")).toBe("Anote os dois halteres somados");
+    expect(instrucaoPadrao("halteres", "por_lado")).toBe("Anote o peso de um halter");
+  });
+});

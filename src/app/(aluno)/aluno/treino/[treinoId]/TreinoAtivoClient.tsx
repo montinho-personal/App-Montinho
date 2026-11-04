@@ -92,7 +92,7 @@ import { TrofeusDoTreino } from "@/components/conquistas/TrofeusDoTreino";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 import { PRAZO_LEITURA_MS, fetchComPrazo } from "@/lib/sync/rede";
-import { PADRAO_CARGA_VAZIO, anotaCarga, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
+import { PADRAO_CARGA_VAZIO, anotaCarga, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
 import { EscolherPadraoCarga, LembreteAparelho, salvarPadraoCarga } from "@/components/treinos/PadraoCarga";
 import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
 import { ehExercicioExtra, exercicioDoExtra, extrasQueCabem } from "@/lib/treino/exercicio-extra";
@@ -1813,6 +1813,15 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                     ) : null}
                     {/* “Anote sempre no mesmo aparelho”: à vista no 1º exercício (e quando marcado); nos outros, no ⋯ Mais. */}
                     {!ehPorTempo(ex) && anotaCarga(equipamento) && (outro || idx === 0) ? <LembreteAparelho outro={outro} onOutro={(v) => marcarOutroAparelho(se.id, v)} /> : null}
+                    {/* Como anotar o peso, à vista em todo exercício de anilhas/halteres (pedido do Montinho, 04/11/2026). */}
+                    {tipoPeso && modoPeso && trocandoPadrao !== tipoPeso && !outro ? (
+                      <p className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-xs text-fg-muted">
+                        ⚖️ <span className="font-semibold text-fg">{instrucaoPadrao(tipoPeso, modoPeso)}</span> ({resumoPadrao(tipoPeso, modoPeso)}) ·{" "}
+                        <button type="button" onClick={() => setTrocandoPadrao(tipoPeso)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
+                          mudar
+                        </button>
+                      </p>
+                    ) : null}
                     <div className="space-y-2">
                       <div className={`grid ${colunas} gap-2 text-[10px] uppercase tracking-wider text-fg-subtle font-semibold px-1`}>
                         <span>#</span>
@@ -2003,14 +2012,6 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                           <button type="button" onClick={() => abrirLeitura(desbloqueia.repsAltas)} className="alvo text-left text-xs font-semibold text-accent underline-offset-2 hover:underline">
                             Por que {repsPrescritas(ex.reps)} repetições? →
                           </button>
-                        ) : null}
-                        {tipoPeso && modoPeso && trocandoPadrao !== tipoPeso ? (
-                          <p className="text-xs text-fg-subtle">
-                            ⚖️ Seu jeito de anotar: {resumoPadrao(tipoPeso, modoPeso)} ·{" "}
-                            <button type="button" onClick={() => setTrocandoPadrao(tipoPeso)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
-                              mudar
-                            </button>
-                          </p>
                         ) : null}
                         {!ehPorTempo(ex) && anotaCarga(equipamento) && !(outro || idx === 0) ? <LembreteAparelho outro={outro} onOutro={(v) => marcarOutroAparelho(se.id, v)} /> : null}
                         <AnotacaoExercicio

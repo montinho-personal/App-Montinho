@@ -1,6 +1,8 @@
 // Treino livre (freestyle) do visitante: em andamento ou o resumo do fim.
 export const dynamic = "force-dynamic";
 
+import { getPadraoCarga } from "@/lib/data/padrao-carga";
+import { tipoDePeso } from "@/lib/treino/padrao-carga";
 import { notFound, redirect } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { ehVisitante } from "@/lib/auth/guards";
@@ -40,7 +42,7 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     return <FimLivreClient avaliacao={avaliacao} base={base} nome={sessao.nome.split(" ")[0]} resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={duracaoMin} dor={s.feedback_percepcao === "dor" || s.checkin_pre === "desconforto"} />;
   }
 
-  const [biblioteca, metas, ultimas] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id, { qualquerPlano: true }).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>)]);
+  const [biblioteca, metas, ultimas, padraoCarga] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id, { qualquerPlano: true }).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>), getPadraoCarga(sessao.alunoId).catch(() => ({ anilhas: null, halteres: null }))]);
   const itens = biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento, video: Boolean(i.midia?.verificada), midia: i.midia?.verificada ? { provider: i.midia.provider, id: i.midia.id } : null, passos: i.execucao.slice(0, 3) }));
   // Retomar: as séries já salvas voltam marcadas (a chave “livre:<key>” vem do aparelho).
   const presc = (p: unknown) => (p ?? {}) as { tecnica_config?: ConfigTecnica | null; bloco?: string | null };
@@ -49,6 +51,8 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     seId: e.id,
     nome: e.nome,
     grupo: e.grupo_muscular,
+    // Anilhas/halteres: a tela mostra como anotar o peso (padrão do Perfil).
+    tipoPeso: tipoDePeso({ nome: e.nome, equipamento: itens.find((i) => i.id === e.biblioteca_id)?.equipamento ?? [] }),
     tecnica: tecnicaDe(e.prescricao),
     config: presc(e.prescricao).tecnica_config ?? null,
     bloco: presc(e.prescricao).bloco ?? null,
@@ -56,5 +60,5 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     ultima: textoUltimaVez(ultimas[e.id]),
     series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: txt(x.carga_kg), reps: x.reps != null ? String(x.reps) : "", salva: true, ...(x.blocos?.length ? { blocos: x.blocos.map((b) => ({ carga: txt(b.carga), reps: b.reps != null ? String(b.reps) : "" })) } : {}) })),
   })));
-  return <LivreClient sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} metas={metas?.placar.length ? { placar: metas.placar, hoje: dataLocal(new Date()), recentes: metas.recentes } : null} />;
+  return <LivreClient padraoCarga={padraoCarga} sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} metas={metas?.placar.length ? { placar: metas.placar, hoje: dataLocal(new Date()), recentes: metas.recentes } : null} />;
 }

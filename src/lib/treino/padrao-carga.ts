@@ -51,6 +51,12 @@ export function resumoPadrao(tipo: TipoPeso, modo: ModoCarga): string {
   return OPCOES_CARGA[tipo][modo].exemplo;
 }
 
+/** Instrução curta e à vista no exercício: “Anote a soma dos dois lados”. */
+export function instrucaoPadrao(tipo: TipoPeso, modo: ModoCarga): string {
+  if (tipo === "anilhas") return modo === "total" ? "Anote a soma dos dois lados" : "Anote só um lado";
+  return modo === "total" ? "Anote os dois halteres somados" : "Anote o peso de um halter";
+}
+
 export const LEMBRETE_APARELHO = {
   titulo: "Anote sempre no mesmo aparelho",
   texto: "Máquina de outra marca ou outra academia muda o peso, mesmo sendo o mesmo exercício. Hoje em outro aparelho? Marque “Outro aparelho hoje”: você registra as repetições e a sua carga de referência continua a mesma.",

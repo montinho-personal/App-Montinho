@@ -3,6 +3,8 @@
 // Treino livre em andamento: a pessoa escolhe o exercício na hora, anota as
 // séries (carga × repetições, normal/aquecimento/técnica), a técnica do
 // exercício e uma anotação. Cada série é gravada ao tocar no ✓.
+import Link from "next/link";
+import { PADRAO_CARGA_VAZIO, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
 import { useEffect, useRef, useState } from "react";
@@ -27,7 +29,7 @@ import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 import { avisoDaSerie, contaNoPlacar, linhaDoGrupo, somarNoPlacar, sugestaoDeAgora, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
 export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: BlocoDigitado[]; /** Técnica só desta série (ex.: pirâmide e, na última, um drop-set). */ tec?: { tecnica: string; config: ConfigTecnica | null } };
-export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[] };
+export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; /** Anilhas/halteres (como anotar o peso). */ tipoPeso?: TipoPeso | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[] };
 
 /** Técnicas que dá para pôr numa série só (“⚡ Série com técnica”). */
 const TECNICAS_DA_SERIE = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"] as const;
@@ -90,7 +92,7 @@ async function chamar(url: string, metodo: string, corpo: unknown): Promise<{ ok
   }
 }
 
-export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas }: { sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
+export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas, padraoCarga = PADRAO_CARGA_VAZIO }: { /** Como a pessoa anota o peso (Perfil). */ padraoCarga?: PadraoCarga; sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
   const router = useRouter();
   // Ao abrir (ou voltar), todo exercício já tem onde anotar: as séries da técnica que faltam ou uma série vazia.
   const [exs, setExs] = useState<ExercicioTela[]>(() =>
@@ -175,7 +177,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       return setErro(String(r.json.error ?? "Não foi possível adicionar agora."));
     }
     const seId = String(r.json.id);
-    setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tecnica: "normal", config: null, bloco: null, observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
+    setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tipoPeso: tipoDePeso({ nome: String(r.json.nome), equipamento: itens.find((i) => i.id === corpo.biblioteca_id)?.equipamento ?? [] }), tecnica: "normal", config: null, bloco: null, observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
     setBuscando(false);
     // Bi-set/tri-set esperando este exercício: entra junto.
     if (aJuntar) {
@@ -390,9 +392,15 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                     </button>
                   ) : null}
 
+                  {e.tipoPeso ? (
+                    <p className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-xs text-fg-muted">
+                      ⚖️ {padraoCarga[e.tipoPeso] ? <><span className="font-semibold text-fg">{instrucaoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}</span> ({resumoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}) · </> : "Como você anota o peso? "}
+                      <Link href="/aluno/perfil" className="font-semibold text-accent underline-offset-2 hover:underline">{padraoCarga[e.tipoPeso] ? "mudar no Perfil" : "Escolher no Perfil"}</Link>
+                    </p>
+                  ) : null}
                   <div className="space-y-2">
                     <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem_2.25rem] items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
-                      <span>Série</span><span>Carga (kg)</span><span>Reps</span><span className="sr-only">Salvar</span><span className="sr-only">Apagar</span>
+                      <span>Série</span><span>{rotuloColunaCarga(e.tipoPeso ?? null, e.tipoPeso ? padraoCarga[e.tipoPeso] : null)}</span><span>Reps</span><span className="sr-only">Salvar</span><span className="sr-only">Apagar</span>
                     </div>
                     {e.series.map((s) => { const t = tecDaSerie(e, s); return t ? (
                       <SerieEmBlocos
