@@ -55,7 +55,7 @@ export const BIBLIOTECA: Record<string, Lib> = {
   "Remada sentada na polia pegada supinada": { id: "4758918a-0043-4f14-b7da-0396bb585791", nome: "Remada sentada na polia pegada supinada", grupo: "costas" },
   "Face pull": { id: "fb2e0476-069a-4d41-b929-0eb1186c423d", nome: "Face pull", grupo: "ombro_posterior" },
   "Rosca inclinada com halteres": { id: "d4b90aa6-1dd4-4fef-8970-efffaf143b1d", nome: "Rosca inclinada com halteres", grupo: "biceps" },
-  "Rosca inversa na polia com barra W": { id: "76ffc05a-adb1-46fd-b97b-864e9023834b", nome: "Rosca inversa na polia com barra W", grupo: "biceps" },
+  "Rosca inversa na polia com barra W": { id: "76ffc05a-adb1-46fd-b97b-864e9023834b", nome: "Rosca inversa na polia com barra W", grupo: "antebraco" },
   "Abdominal remador": { id: "ad5e0a1b-8712-4327-b218-3eab38afa918", nome: "Abdominal remador", grupo: "abdomen" },
 };
 
