@@ -461,6 +461,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Use a série extra quando estiver bem; nos dias puxados, o planejado já basta.",
     fontes: ["sdt2025"],
   },
+  exercicio_extra: {
+    categoria: "alem",
+    resumo: "Um exercício a mais no treino.",
+    mensagem: "Exercício bônus! Sobrou energia e você foi além do treino.",
+    comoConquistar: "Durante qualquer treino, toque em “＋ Exercício extra” (embaixo da lista), escolha um exercício e faça pelo menos 1 série. Vale ao concluir o treino.",
+    significado: "Você aproveitou um dia bom para fazer um pouco mais do que o previsto.",
+    importancia: "Um exercício a mais, nos dias em que você está bem, soma volume para o músculo que você quer destacar sem mudar o seu protocolo.",
+    explicacao: "O exercício extra não muda a ficha montada pelo personal: ele entra só naquele treino, com 3 séries de 10–12 como ponto de partida, e as séries feitas contam no volume da semana.",
+    proximoPasso: "Use o exercício extra nos dias em que estiver bem; com dor ou cansaço, o planejado já basta.",
+    fontes: ["sdt2025"],
+  },
   primeira_tecnica: {
     categoria: "tecnicas",
     resumo: "A primeira série com técnica avançada.",

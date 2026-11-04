@@ -94,6 +94,8 @@ import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 import { PRAZO_LEITURA_MS, fetchComPrazo } from "@/lib/sync/rede";
 import { PADRAO_CARGA_VAZIO, anotaCarga, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
 import { EscolherPadraoCarga, LembreteAparelho, salvarPadraoCarga } from "@/components/treinos/PadraoCarga";
+import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
+import { ehExercicioExtra, exercicioDoExtra, extrasQueCabem } from "@/lib/treino/exercicio-extra";
 
 const CHAVE_OUTRO_APARELHO = "montinho:outro-aparelho";
 
@@ -105,6 +107,8 @@ type ExercicioView = ExercicioPrescrito & { video: VideoSource | null; instrucoe
 type Props = {
   treino: { id: string; letra: string; nome: string; observacoes: string | null; tempos: Partial<ParametrosTempo>; /** 0133: blocos do WOD/HYROX/circuito (multimodalidade ligada). */ blocos?: BlocoTreino[] };
   exercicios: ExercicioView[];
+  /** Biblioteca para o “＋ Exercício extra” (busca igual à do treino livre). */
+  itensExtra?: ItemBusca[];
   /** Horário do servidor na renderização (corrige relógio do aparelho). */
   agoraServidor: number;
   ultimas: Record<string, UltimaExecucao | null>;
@@ -229,7 +233,7 @@ function blocosDaSerie(ex: ExercicioPrescrito, s: SerieLocal, lista: SerieLocal[
 const blocosDoSalvo = (b: SessionSet["blocos"] | undefined): BlocoDigitado[] | undefined =>
   Array.isArray(b) && b.length ? b.map((x) => ({ carga: x.carga != null ? String(x.carga).replace(".", ",") : "", reps: x.reps != null ? String(x.reps) : "" })) : undefined;
 
-export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, indicacao = null, padraoCarga, alcance = null, pulso = null }: Props) {
+export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas: ultimasPlano, itensExtra = [], perdidas = {}, presencial = null, trocas = {}, ultimasTroca = {}, sessaoInicial, outraSessao, sessaoConcluida, agoraServidor, nomeAluno = "", versaoReduzida = { permitida: false, prioridades: [] }, extra = null, historico = {}, configEvolucao, desbloqueia, progressoesRecentes = [], confianca = null, campanha = null, indicacao = null, padraoCarga, alcance = null, pulso = null }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [prefsEvo] = usePrefsEvolucao();
@@ -250,6 +254,16 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
   const [sugestaoDescanso, setSugestaoDescanso] = useState<{ id: string; chamada: string } | null>(null);
   const [leitura, setLeitura] = useState<ItemRapido | null>(null);
   const [sessao, setSessao] = useState<SessaoCompleta | null>(sessaoInicial);
+  // “＋ Exercício extra” (04/11/2026): os exercícios a mais da sessão viram “exercícios do plano”
+  // só nesta tela (id = o da linha da sessão); a ficha do personal não muda.
+  const [ultimasExtras, setUltimasExtras] = useState<Record<string, UltimaExecucao | null>>({});
+  const [buscandoExtra, setBuscandoExtra] = useState(false);
+  const [adicionandoExtra, setAdicionandoExtra] = useState(false);
+  const exercicios = useMemo<ExercicioView[]>(() => {
+    const extras = (sessao ?? sessaoConcluida)?.exercicios.filter((se) => ehExercicioExtra(se) && !exerciciosPlano.some((e) => e.id === se.id)) ?? [];
+    return extras.length ? [...exerciciosPlano, ...extras.map((se) => exercicioDoExtra(se, treino.id) as unknown as ExercicioView)] : exerciciosPlano;
+  }, [exerciciosPlano, sessao, sessaoConcluida, treino.id]);
+  const ultimas = useMemo(() => ({ ...ultimasPlano, ...ultimasExtras }), [ultimasPlano, ultimasExtras]);
   const [iniciando, setIniciando] = useState(false);
   const [series, setSeries] = useState<Record<string, SerieLocal[]>>({}); // session_exercise_id → séries
   const [aberto, setAberto] = useState<string | null>(() => sessaoInicial?.exercicios.find((e) => e.status === "pendente")?.id ?? sessaoInicial?.exercicios[0]?.id ?? null);
@@ -374,7 +388,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       for (const [idx, se] of s.exercicios.entries()) {
         // O que o aluno fez da última vez aparece apagadinho no campo (não precisa apagar para digitar);
         // tocar no ✓ sem digitar usa esse valor.
-        const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[idx];
+        const exDoPlano = exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? exercicios[idx];
         const anterior = se.substituido_de && se.biblioteca_id ? (ultimasTroca[se.biblioteca_id] ?? null) : exDoPlano ? ultimas[exDoPlano.id] : null;
         // Série a série do último treino: 1ª com a 1ª, 2ª com a 2ª… (aquecimentos fora); série a mais repete a última.
         const validasAntes = anterior?.series.filter((u) => u.tipo !== "aquecimento").sort((a, b) => a.serie - b.serie) ?? [];
@@ -460,7 +474,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!sessao || sessao.status !== "em_andamento" || presencial || !aberto || progressaoChalala[aberto]) return;
     const i = sessao.exercicios.findIndex((x) => x.id === aberto);
     const se = sessao.exercicios[i];
-    const ex = se ? (exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[i]) : undefined;
+    const ex = se ? (exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? exercicios[i]) : undefined;
     if (!se || !ex || trocaAtiva(se) || (series[aberto] ?? []).some((x) => x.tipo === "valida" && x.concluida)) return;
     const ref = ex.biblioteca_id || ex.id;
     if (!podeIntervir(lerChalala(), "progressao", ex.nome)) return;
@@ -657,7 +671,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!sessao) return [];
     return juntarBlocosAdjacentes(
       sessao.exercicios.map((se, i) => {
-        const e = exercicios.find((x) => x.id === se.exercicio_id) ?? exercicios[i];
+        const e = exercicios.find((x) => x.id === (se.exercicio_id ?? se.id)) ?? exercicios[i];
         const doAluno = blocoDoAluno(se);
         return doAluno ? { id: se.id, bloco: doAluno, tecnica: "biset" } : { id: se.id, bloco: e?.bloco ?? null, tecnica: e?.tecnica ?? null };
       })
@@ -839,7 +853,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       return;
     }
     setTrocando(true);
-    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ biblioteca_id: bibliotecaId, original: { nome: se.substituido_de?.nome ?? exercicios.find((e) => e.id === se.exercicio_id)?.nome ?? se.nome, biblioteca_id: se.substituido_de ? se.substituido_de.biblioteca_id : (exercicios.find((e) => e.id === se.exercicio_id)?.biblioteca_id ?? null) } }) }).catch(() => null);
+    const res = await fetch(`/api/sessoes/${sessao.id}/exercicios/${se.id}/trocar`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ biblioteca_id: bibliotecaId, original: { nome: se.substituido_de?.nome ?? exercicios.find((e) => e.id === (se.exercicio_id ?? se.id))?.nome ?? se.nome, biblioteca_id: se.substituido_de ? se.substituido_de.biblioteca_id : (exercicios.find((e) => e.id === (se.exercicio_id ?? se.id))?.biblioteca_id ?? null) } }) }).catch(() => null);
     setTrocando(false);
     const corpo = res ? await res.json().catch(() => ({})) : {};
     if (!res?.ok) {
@@ -860,7 +874,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     }
     setTrocadoLocal((cur) => ({ ...cur, [se.id]: bibliotecaId }));
     setTrocaAberta(null);
-    const exDoPlano = exercicios.find((e) => e.id === se.exercicio_id);
+    const exDoPlano = exercicios.find((e) => e.id === (se.exercicio_id ?? se.id));
     const anterior = bibliotecaId ? ultimasTroca[bibliotecaId] : exDoPlano ? ultimas[exDoPlano.id] : null;
     const validasAntes = anterior?.series.filter((u) => u.tipo !== "aquecimento").sort((a, b) => a.serie - b.serie) ?? [];
     setSeries((cur) => {
@@ -996,6 +1010,28 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     setSugestaoAviso(d.tipo.startsWith("recorde") ? proporSugestao("recorde") : d.tipo === "mais_reps" ? proporSugestao("mais_reps") : null);
     if (prefsEvo.sons) bipe();
     return true;
+  }
+
+  /** “＋ Exercício extra”: entra um exercício da biblioteca no fim do treino (3 séries de 10–12). */
+  async function adicionarExercicioExtra(it: ItemBusca) {
+    if (!sessao || adicionandoExtra) return;
+    setAdicionandoExtra(true);
+    setBuscandoExtra(false);
+    try {
+      const r = await fetch(`/api/sessoes/${sessao.id}/exercicios`, { method: "POST", headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify({ client_key: gerarClientKey("x"), biblioteca_id: it.id }) });
+      const j = (await r.json().catch(() => ({}))) as { exercicio?: SessaoCompleta["exercicios"][number]; ultima?: UltimaExecucao | null; error?: string };
+      if (!r.ok || !j.exercicio) {
+        toast.error(j.error ?? "Não foi possível adicionar agora. Confira a internet e tente de novo.");
+        return;
+      }
+      const novo = { ...j.exercicio, series: j.exercicio.series ?? [] };
+      setUltimasExtras((cur) => ({ ...cur, [novo.id]: j.ultima ?? null }));
+      setSessao((cur) => (cur && !cur.exercicios.some((x) => x.id === novo.id) ? { ...cur, exercicios: [...cur.exercicios, novo] } : cur));
+      setAberto(novo.id);
+      toast.success(`${novo.nome} entrou no treino. Bom bônus! 💪`);
+    } finally {
+      setAdicionandoExtra(false);
+    }
   }
 
   function adicionarSerieExtra(seId: string) {
@@ -1154,7 +1190,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     setPausas((p) => (p.desde ? { totalMs: p.totalMs + Math.max(0, agora - p.desde), desde: null } : p));
   }
   const pendencias = useMemo(
-    () => (sessao ? verificarPendencias(sessao.exercicios.map((se, i) => ({ seId: se.id, nome: (exercicios.find((e) => e.id === se.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício", status: statusEx[se.id] ?? se.status })), series) : []),
+    () => (sessao ? verificarPendencias(sessao.exercicios.map((se, i) => ({ seId: se.id, nome: (exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? exercicios[i])?.nome ?? "Exercício", status: statusEx[se.id] ?? se.status })), series) : []),
     [sessao, exercicios, series, statusEx]
   );
   const totalPreenchidas = pendencias.reduce((n, p) => n + p.preenchidas.length, 0);
@@ -1176,7 +1212,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
     if (!sessao) return;
     for (const p of pendencias) {
       const se = sessao.exercicios.find((x) => x.id === p.seId);
-      const ex = se ? exercicios.find((e) => e.id === se.exercicio_id) : undefined;
+      const ex = se ? exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) : undefined;
       if (!ex) continue;
       for (const n of p.preenchidas) {
         const idx = (series[p.seId] ?? []).findIndex((x) => x.serie === n);
@@ -1546,7 +1582,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
       {aviso ? <AvisoEvolucao d={aviso} chalala={chalalaAviso} animar={prefsEvo.animacoes} onFechar={() => { setAviso(null); setChalalaAviso(null); }} sugestao={sugestaoAviso ? { chamada: sugestaoAviso.chamada, onAbrir: () => abrirLeitura(sugestaoAviso.id) } : null} /> : null}
       {trofeusAgora ? <TrofeusDoTreino itens={trofeusAgora} onFechar={() => setTrofeusAgora(null)} /> : null}
       {leitura ? <LeituraRapida item={leitura} onFechar={() => setLeitura(null)} /> : null}
-      {perguntandoEsforco ? <PerguntaEsforco nome={(() => { const i = sessao.exercicios.findIndex((x) => x.id === perguntandoEsforco); const se = sessao.exercicios[i]; return (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome ?? "Exercício"; })()} onEscolher={(p) => finalizarExercicio(perguntandoEsforco, p)} onFechar={() => setPerguntandoEsforco(null)} /> : null}
+      {perguntandoEsforco ? <PerguntaEsforco nome={(() => { const i = sessao.exercicios.findIndex((x) => x.id === perguntandoEsforco); const se = sessao.exercicios[i]; return (exercicios.find((e) => e.id === (se?.exercicio_id ?? se?.id)) ?? exercicios[i])?.nome ?? "Exercício"; })()} onEscolher={(p) => finalizarExercicio(perguntandoEsforco, p)} onFechar={() => setPerguntandoEsforco(null)} /> : null}
 
       {timer ? (
         // Flutua na parte de baixo da tela (perto do polegar), acima do menu do
@@ -1570,7 +1606,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         const nome = (id: string) => {
           const i = sessao.exercicios.findIndex((x) => x.id === id);
           const se = sessao.exercicios[i];
-          return (trocaAtiva(se)?.nome ?? (exercicios.find((e) => e.id === se?.exercicio_id) ?? exercicios[i])?.nome) || "Exercício";
+          return (trocaAtiva(se)?.nome ?? (exercicios.find((e) => e.id === (se?.exercicio_id ?? se?.id)) ?? exercicios[i])?.nome) || "Exercício";
         };
         return (
           <div role="status" className="space-y-2 rounded-2xl border-2 border-[#a78bfa]/70 bg-[#a78bfa]/10 p-3">
@@ -1586,7 +1622,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         const grupos = gruposDoTreino(itensDoTreino());
         const rotulos = rotulosDosExercicios(grupos);
         const cartao = (se: (typeof sessao.exercicios)[number], idx: number) => {
-          const exPlano = exercicios.find((e) => e.id === se.exercicio_id) ?? (exercicios[idx] as ExercicioView | undefined);
+          const exPlano = exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? (exercicios[idx] as ExercicioView | undefined);
           if (!exPlano) return null;
           const troca = trocaAtiva(se);
           const ex: ExercicioView = troca ? { ...exPlano, nome: troca.nome, biblioteca_id: troca.id, grupo_muscular: troca.grupo, video: troca.video ? { provider: troca.video.provider as VideoSource["provider"], id: troca.video.id } : null, instrucoes: [], trocado: true } : exPlano;
@@ -2021,7 +2057,7 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         const porId = new Map(sessao.exercicios.map((se, idx) => [se.id, { se, idx }]));
         const nomeDe = (id: string) => {
           const x = porId.get(id);
-          const e = x ? (exercicios.find((y) => y.id === x.se.exercicio_id) ?? exercicios[x.idx]) : null;
+          const e = x ? (exercicios.find((y) => y.id === (x.se.exercicio_id ?? x.se.id)) ?? exercicios[x.idx]) : null;
           return trocaAtiva(x?.se as (typeof sessao.exercicios)[number])?.nome ?? e?.nome ?? "";
         };
         const cont = contagemSeries();
@@ -2073,6 +2109,18 @@ export function TreinoAtivoClient({ treino, exercicios, ultimas, perdidas = {}, 
         });
         })()}
       </div>
+
+      {/* “＋ Exercício extra” (pedido do Montinho, 04/11/2026): como a “+ Série extra”, para qualquer treino. */}
+      {sessao.status === "em_andamento" && !presencial?.previa && itensExtra.length && extrasQueCabem(sessao.exercicios) ? (
+        buscandoExtra ? (
+          <EscolherExercicio itens={itensExtra} onEscolher={(it) => void adicionarExercicioExtra(it)} onFechar={() => setBuscandoExtra(false)} />
+        ) : (
+          <button type="button" disabled={adicionandoExtra} onClick={() => setBuscandoExtra(true)} className="touch flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-accent/60 px-4 py-3 text-sm font-bold text-accent disabled:opacity-60">
+            {adicionandoExtra ? "Adicionando…" : "＋ Exercício extra"}
+            <span className="text-xs font-normal text-fg-muted">· sobrou energia? faça um a mais</span>
+          </button>
+        )
+      ) : null}
 
       <Card className={conferindo && pendencias.length ? "border-warning" : "border-success/30"}>
         <CardBody className="space-y-3">

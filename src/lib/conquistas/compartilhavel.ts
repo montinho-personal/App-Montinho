@@ -65,6 +65,7 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   milha_extra: { frase: "Eu vou além do combinado.", porque: "Pequenos acréscimos, semana após semana, fazem diferença." },
   sempre_um_a_mais: { frase: "Sempre um a mais.", porque: "Ir além, com equilíbrio e acompanhamento, virou parte da minha rotina." },
   uma_a_mais: { frase: "Sobrou gás? Uma a mais.", porque: "Aproveitar os dias bons ajuda a completar o volume planejado da semana." },
+  exercicio_extra: { frase: "Sobrou energia? Exercício bônus.", porque: "Fazer um pouco a mais nos dias bons soma volume para o que você quer destacar." },
   primeira_tecnica: { frase: "Subi de nível no treino.", porque: "Experimentar uma técnica avançada, com orientação, deixa o treino mais desafiador." },
   tecnicas_2: { frase: "Duas técnicas no repertório.", porque: "Mais técnicas, mais formas de desafiar o músculo." },
   tecnicas_3: { frase: "Três técnicas. Pegando o jeito.", porque: "Cada técnica nova é um jeito diferente de evoluir." },

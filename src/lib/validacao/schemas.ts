@@ -842,6 +842,8 @@ export const livreIniciarSchema = z.object({
   /** Treino livre como treino extra (dor forte não entra: o extra pede conversa com o Montinho). */
   extra: z.object({ corpo: z.enum(["bem", "cansado", "dor_leve", "dor_moderada", "dor"]) }).nullable().optional(),
 });
+/** “＋ Exercício extra” no treino da ficha: só da biblioteca (nome, músculo e vídeo vêm do servidor). */
+export const exercicioExtraSchema = z.object({ client_key: z.string().min(4).max(80), biblioteca_id: z.string().min(1).max(80) }).strict();
 export const livreExercicioSchema = z
   .object({
     client_key: z.string().min(4).max(80),

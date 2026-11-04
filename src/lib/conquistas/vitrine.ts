@@ -101,6 +101,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "fiz_o_necessario", selo: "Feito" },
   { codigo: "fui_alem", selo: "+1" },
   { codigo: "uma_a_mais", selo: "+10" },
+  { codigo: "exercicio_extra", selo: "+1" },
   { codigo: "nunca_deixei_pra_depois", selo: "5×" },
   { codigo: "milha_extra", selo: "5+" },
   { codigo: "sempre_um_a_mais", selo: "15+" },
@@ -564,6 +565,8 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         return { atual: null, alvo: null, falta: "Só acontece no começo: se nos primeiros 30 dias você ficar de 7 a 13 dias sem treinar, volte e conclua um treino.", disponivel: false };
       case "uma_a_mais":
         return { atual: Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), alvo: LIMITES_ALEM.seriesExtras, falta: `${faltaN(LIMITES_ALEM.seriesExtras - Math.min(seriesExtras, LIMITES_ALEM.seriesExtras), "série extra", "séries extras")}. Use “+ Série extra” quando o app convidar e você estiver bem.`, disponivel: seriesExtras > 0 };
+      case "exercicio_extra":
+        return { atual: null, alvo: null, falta: "Em qualquer treino, toque em “＋ Exercício extra” (embaixo da lista), escolha um exercício, faça pelo menos 1 série e conclua o treino.", disponivel: true };
       case "primeiro_wod":
         return { atual: null, alvo: null, falta: "Faça um treino de Cross Training pelo app (da ficha ou o WOD do dia em Treinar), anote o resultado de um bloco e termine.", disponivel: true };
       case "primeira_hyrox":

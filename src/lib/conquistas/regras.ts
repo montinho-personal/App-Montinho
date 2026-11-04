@@ -11,6 +11,7 @@
 //   sessão com dor relatada não vira recorde.
 // ============================================================================
 
+import { trofeuExercicioExtra } from "@/lib/treino/exercicio-extra";
 import { LIMITES_COMPARTILHAR, trofeusCompartilharMais, type CodigoCompartilharMais, type EventoCompartilhar, type MarcosCompartilhar } from "./compartilhar";
 import { trofeusDeTempo, type CodigoAcompanhamento } from "./acompanhamento";
 import { trofeusDoQuiz, type CodigoQuiz, type RespostaQuiz } from "./quiz";
@@ -94,6 +95,7 @@ export type CodigoConquista =
   | "milha_extra"
   | "sempre_um_a_mais"
   | "uma_a_mais"
+  | "exercicio_extra"
   // Técnicas avançadas (quantos tipos diferentes já fez)
   | "primeira_tecnica"
   | "tecnicas_2"
@@ -154,6 +156,8 @@ export type CodigoConquista =
 
 /** Medalhas “Além do necessário” (0037): gravadas à parte para nunca travar as antigas se o banco ainda não as aceitar. */
 export const CODIGOS_ALEM: CodigoConquista[] = ["fiz_o_necessario", "nunca_deixei_pra_depois", "fui_alem", "milha_extra", "sempre_um_a_mais", "uma_a_mais"];
+/** “＋ Exercício extra” (0144), gravado à parte: sem a migração, os outros continuam. */
+export const CODIGOS_BONUS: CodigoConquista[] = ["exercicio_extra"];
 export const LIMITES_ALEM = { curtos: 5, extras: 5, extrasMuitos: 15, seriesExtras: 10 } as const;
 
 /**
@@ -297,6 +301,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   milha_extra: { titulo: "Milha extra", criterio: `Concluir ${LIMITES_ALEM.extras} treinos extras liberados pelo personal.`, repete: false },
   sempre_um_a_mais: { titulo: "Sempre um a mais", criterio: `Concluir ${LIMITES_ALEM.extrasMuitos} treinos extras liberados pelo personal.`, repete: false },
   uma_a_mais: { titulo: "Uma a mais", criterio: `Somar ${LIMITES_ALEM.seriesExtras} séries além das prescritas (“+ Série extra”) em treinos concluídos.`, repete: false },
+  exercicio_extra: { titulo: "Exercício Bônus", criterio: "Fazer um exercício a mais (“＋ Exercício extra”) num treino concluído, com pelo menos 1 série feita.", repete: false },
   primeira_tecnica: { titulo: "Primeira técnica", criterio: "Fazer pelo menos uma série de uma técnica avançada (drop-set, rest-pause, bi-set, pirâmide…) num treino concluído.", repete: false },
   tecnicas_2: { titulo: "Duas técnicas", criterio: "Já ter feito pelo menos uma série de 2 técnicas avançadas diferentes.", repete: false },
   tecnicas_3: { titulo: "Três técnicas", criterio: "Já ter feito pelo menos uma série de 3 técnicas avançadas diferentes.", repete: false },
@@ -508,7 +513,7 @@ export type SessaoConquista = SessaoAderencia & {
   checkin_pre?: string | null;
   /** false = histórico importado: serve de base para recordes, mas não gera conquistas. */
   conta_aderencia?: boolean;
-  exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null }>;
+  exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null; /** “＋ Exercício extra” posto pela pessoa no dia. */ extra?: boolean }>;
   /** "app" ou "importado" (histórico de outro app). */
   origem?: string | null;
   /** Fase do protocolo no dia (snapshot da sessão). */
@@ -771,6 +776,10 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
       break;
     }
   }
+
+  // “＋ Exercício extra” (04/11/2026): 1º treino que vale com uma série feita num exercício a mais.
+  const bonus = trofeuExercicioExtra(ordenadas, (s) => { const c = classificarSessao(s); return c === "concluida" || c === "extra"; });
+  if (bonus) out.push(nova("exercicio_extra", "1", bonus.iniciado_em, bonus.id, "Você foi além do treino e fez um exercício a mais."));
 
   // Fases do protocolo: chegou na intensificação; completou cada fase (N treinos nela e depois outra fase).
   for (const f of fasesConquistadas(e.sessoes)) out.push(nova(f.codigo, "1", f.data, f.sessaoId, f.texto));

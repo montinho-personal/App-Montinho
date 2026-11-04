@@ -187,6 +187,14 @@ describe("conquistas — além do necessário", () => {
     // extra não conta como treino da ficha
     expect(codigos(detectar(extras(5)))).not.toContain("primeiro_treino");
   });
+  it("exercício extra: troféu no 1º treino que vale com série feita nele", () => {
+    const ex = (extra: boolean, series: number) => ({ exercicio_id: null, nome: "Elevação lateral", ...(extra ? { extra: true } : {}), series: Array.from({ length: series }, () => ({ tipo: "valida" as const, carga_kg: 8, reps: 12 })) });
+    expect(codigos(detectar([s("2026-10-01", { exercicios: [ex(true, 0)] })]))).not.toContain("exercicio_extra");
+    expect(codigos(detectar([s("2026-10-01", { exercicios: [ex(false, 3)] })]))).not.toContain("exercicio_extra");
+    const r = detectar([s("2026-10-01"), s("2026-10-03", { exercicios: [ex(true, 1)] })]);
+    expect(r.find((x) => x.codigo === "exercicio_extra")?.data.slice(0, 10)).toBe("2026-10-03");
+    expect(codigos(detectar([s("2026-10-01", { exercicios: [ex(true, 2)], conta_aderencia: false })]))).not.toContain("exercicio_extra");
+  });
   it("séries além das prescritas somam até 10", () => {
     const com = (d: string, extras: number) => s(d, { series_planejadas: 10, series_concluidas: 10 + extras });
     expect(codigos(detectar([com("2026-10-01", 4), com("2026-10-03", 5)]))).not.toContain("uma_a_mais");

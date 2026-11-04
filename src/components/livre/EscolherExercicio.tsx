@@ -35,7 +35,7 @@ function seloDaMeta(placar: LinhaPlacar[] | undefined, grupo: GrupoMuscular) {
   return <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold">faltam {l.faltam}</span>;
 }
 
-export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, placar }: { itens: ItemBusca[]; onEscolher: (i: ItemBusca) => void; onMeuNome: (nome: string) => void; onFechar: () => void; /** Protocolo livre (por metas): o que mais falta primeiro, os do limite por último. */ placar?: LinhaPlacar[] }) {
+export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, placar }: { itens: ItemBusca[]; onEscolher: (i: ItemBusca) => void; /** Sem ela (exercício extra do treino da ficha), não aparece o “usar o meu nome”. */ onMeuNome?: (nome: string) => void; onFechar: () => void; /** Protocolo livre (por metas): o que mais falta primeiro, os do limite por último. */ placar?: LinhaPlacar[] }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<string | null>(null);
   const resultados = useMemo(() => {
@@ -84,13 +84,13 @@ export function EscolherExercicio({ itens, onEscolher, onMeuNome, onFechar, plac
         ))}
         {resultados.length === 0 ? <li className="py-3 text-center text-sm text-fg-muted">Nada encontrado com esse nome.</li> : null}
       </ul>
-      <button type="button" disabled={meuNome.length < 2} onClick={() => onMeuNome(meuNome)} className="alvo flex w-full items-start gap-3 rounded-xl border border-dashed border-accent/60 px-3 py-3 text-left disabled:opacity-50">
+      {onMeuNome ? <button type="button" disabled={meuNome.length < 2} onClick={() => onMeuNome(meuNome)} className="alvo flex w-full items-start gap-3 rounded-xl border border-dashed border-accent/60 px-3 py-3 text-left disabled:opacity-50">
         <Icon name="plus" size={18} className="mt-0.5 shrink-0 text-accent" />
         <span>
           <span className="block text-sm font-semibold text-accent">{meuNome.length >= 2 ? `Usar “${meuNome}” com esse nome` : "Não achou? Escreva o nome que você usa"}</span>
           <span className="block text-xs text-fg-muted">Fica salvo para acompanhar sua evolução nesse exercício.</span>
         </span>
-      </button>
+      </button> : null}
     </>
   );
 

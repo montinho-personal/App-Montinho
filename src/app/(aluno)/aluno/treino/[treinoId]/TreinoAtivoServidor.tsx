@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlanoAtivo, getTreinoComExercicios } from "@/lib/data/programas";
 import { listarExtras } from "@/lib/data/extras";
+import { ehExercicioExtra } from "@/lib/treino/exercicio-extra";
 import { getSessao, getSessaoEmAndamento, seriesPerdidasRecentes, ultimasExecucoes } from "@/lib/data/sessoes";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
@@ -121,12 +122,18 @@ export async function TreinoAtivoServidor({ alunoId, nomeAluno, treinoId, sessao
   const sessaoAtiva = real && real.treino_id === treino.id && real.status === "em_andamento" ? real : null;
   const outraSessao = real && real.treino_id !== treino.id && real.status === "em_andamento" ? real : null;
 
+  // “＋ Exercício extra”: a busca da biblioteca e a última vez dos extras já postos (ao voltar à tela).
+  const itensExtra = presencial?.previa ? [] : biblioteca.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, sinonimos: i.sinonimos, equipamento: i.equipamento as string[], video: Boolean(i.midia?.verificada), midia: i.midia?.verificada ? { provider: i.midia.provider, id: i.midia.id } : null, passos: i.execucao.slice(0, 3) }));
+  const extrasDaSessao = (sessaoAtiva?.exercicios ?? []).filter(ehExercicioExtra);
+  const ultimasExtras = extrasDaSessao.length ? await ultimasExecucoes(alunoId, extrasDaSessao.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id ?? null }))).catch(() => ({})) : {};
+
   return (
     <TreinoAtivoClient
+      itensExtra={itensExtra}
       treino={{ id: treino.id, letra: treino.letra, nome: treino.nome, observacoes: treino.observacoes, tempos: ((treino.tempos_efetivos ?? treino.tempos ?? {}) as Partial<ParametrosTempo>), ...(FEATURES.multimodalidade && treino.modalidade && treino.modalidade !== "musculacao" ? { blocos: treino.blocos ?? [] } : {}) }}
       agoraServidor={agoraServidorMs()}
       exercicios={exercicios}
-      ultimas={ultimas}
+      ultimas={{ ...ultimas, ...ultimasExtras }}
       perdidas={perdidas}
       trocas={trocas}
       ultimasTroca={ultimasTroca}
