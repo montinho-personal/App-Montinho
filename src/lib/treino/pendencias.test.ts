@@ -30,3 +30,13 @@ describe("conferência ao concluir o treino", () => {
     expect(listarSeries([2, 3, 4])).toBe("séries 2, 3 e 4");
   });
 });
+
+describe("série extra não feita não é pendência (04/11/2026)", () => {
+  it("acima do previsto e sem ✓ fica de fora; dentro do previsto continua", () => {
+    const s = (serie: number, concluida: boolean) => ({ serie, tipo: "valida", concluida, carga: "", reps: "" });
+    const p = verificarPendencias([{ seId: "a", nome: "Elevação" }], { a: [s(1, true), s(2, true), s(3, true), s(4, true), s(5, false), s(6, false)] }, { a: 4 });
+    expect(p).toEqual([]);
+    const q = verificarPendencias([{ seId: "a", nome: "Elevação" }], { a: [s(1, true), s(2, false), s(5, false)] }, { a: 4 });
+    expect(q[0].faltam).toEqual([2]);
+  });
+});

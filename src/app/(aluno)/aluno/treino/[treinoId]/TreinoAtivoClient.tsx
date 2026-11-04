@@ -1034,6 +1034,17 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
     }
   }
 
+  /** Tira uma série extra ainda não feita (tocou em “+ Série extra” sem querer). */
+  function removerSerieExtra(seId: string, idx: number) {
+    setSeries((cur) => {
+      const lista = cur[seId] ?? [];
+      if (!lista[idx] || lista[idx].concluida) return cur;
+      const depois = lista.slice(idx + 1);
+      const renumerar = !depois.some((x) => x.concluida);
+      return { ...cur, [seId]: [...lista.slice(0, idx), ...depois.map((x) => (renumerar ? { ...x, serie: x.serie - 1 } : x))] };
+    });
+  }
+
   function adicionarSerieExtra(seId: string) {
     const sufixo = gerarClientKey("x").slice(2, 8); // gerado fora do updater (updater precisa ser puro)
     setSeries((cur) => {
@@ -1163,7 +1174,18 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
   // Exercício pulado ou "não consegui" sai da conta de séries: senão o
   // "X séries ainda sem marcar" não mudava depois de pular.
   const fora = (seId: string) => { const st = statusEx[seId] ?? sessao?.exercicios.find((x) => x.id === seId)?.status; return st === "pulado" || st === "nao_consegui"; };
-  const seriesContadas = Object.entries(series).filter(([id]) => !fora(id)).flatMap(([, l]) => l);
+  // Série extra (“+ Série extra” ou exercício extra) ainda não feita é opcional: não entra
+  // na conta nem fica “faltando” (pedido do Montinho, 04/11/2026). Limite = séries previstas.
+  const limites: Record<string, number> = {};
+  for (const [i, se] of (sessao?.exercicios ?? []).entries()) {
+    if (ehExercicioExtra(se)) { limites[se.id] = 0; continue; }
+    const exDo = exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? exercicios[i];
+    const aquecSe = (se.prescricao as { series_aquecimento?: number } | null)?.series_aquecimento ?? 0;
+    const fin = exDo && !se.substituido_de ? seriesDeFinalizacao(exDo.tecnica, exDo.tecnica_config) : 0;
+    limites[se.id] = Math.max(1, se.series_planejadas + aquecSe) + fin;
+  }
+  const ehExtraAberta = (seId: string, s: { serie: number; concluida: boolean }) => !s.concluida && s.serie > (limites[seId] ?? Infinity);
+  const seriesContadas = Object.entries(series).filter(([id]) => !fora(id)).flatMap(([id, l]) => l.filter((s) => !ehExtraAberta(id, s)));
   const totalPlanejado = seriesContadas.filter((s) => s.tipo === "valida").length;
   const totalFeito = seriesContadas.filter((s) => s.tipo === "valida" && s.concluida).length;
   // Plano de tempo congelado no início da sessão (snapshot); sem snapshot, usa o treino atual.
@@ -1177,7 +1199,7 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
     ? sessao.exercicios.filter((se) => {
         const st = statusEx[se.id] ?? se.status;
         if (st === "pulado" || st === "nao_consegui") return true;
-        const l = (series[se.id] ?? []).filter((x) => x.tipo === "valida");
+        const l = (series[se.id] ?? []).filter((x) => x.tipo === "valida" && !(ehExercicioExtra(se) && !x.concluida) && !(x.serie > (limites[se.id] ?? Infinity) && !x.concluida));
         return l.length > 0 && l.every((x) => x.concluida);
       }).length
     : 0;
@@ -1190,7 +1212,8 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
     setPausas((p) => (p.desde ? { totalMs: p.totalMs + Math.max(0, agora - p.desde), desde: null } : p));
   }
   const pendencias = useMemo(
-    () => (sessao ? verificarPendencias(sessao.exercicios.map((se, i) => ({ seId: se.id, nome: (exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? exercicios[i])?.nome ?? "Exercício", status: statusEx[se.id] ?? se.status })), series) : []),
+    () => (sessao ? verificarPendencias(sessao.exercicios.map((se, i) => ({ seId: se.id, nome: (exercicios.find((e) => e.id === (se.exercicio_id ?? se.id)) ?? exercicios[i])?.nome ?? "Exercício", status: statusEx[se.id] ?? se.status })), series, limites) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- limites sai de sessao/exercicios
     [sessao, exercicios, series, statusEx]
   );
   const totalPreenchidas = pendencias.reduce((n, p) => n + p.preenchidas.length, 0);
@@ -1631,7 +1654,7 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
           const tempoCurto = !!sessao.tempo_disponivel_min;
           const lista = series[se.id] ?? [];
           const feitas = lista.filter((s) => s.tipo === "valida" && s.concluida).length;
-          const planejadas = lista.filter((s) => s.tipo === "valida").length;
+          const planejadas = lista.filter((s) => s.tipo === "valida" && !ehExtraAberta(se.id, s)).length;
           // Séries de finalização também precisam ser feitas para o exercício ficar completo.
           const finPendentes = lista.some((s) => s.tipo !== "valida" && s.tipo !== "aquecimento" && !s.concluida);
           const completo = planejadas > 0 && feitas >= planejadas && !finPendentes;
@@ -1876,6 +1899,11 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                             >
                               <Icon name="check" size={18} />
                             </button>
+                            {ehExtraAberta(se.id, s) && !ehExercicioExtra(se) ? (
+                              <button type="button" onClick={() => removerSerieExtra(se.id, i)} className="col-span-full -mt-1 justify-self-end text-xs font-semibold text-fg-muted underline underline-offset-2 hover:text-fg">
+                                ✕ Tirar a série extra {s.serie}
+                              </button>
+                            ) : null}
                             {ehPorTempo(ex) && !s.concluida && lista.findIndex((x) => !x.concluida) === i ? (
                               <CronometroSerie alvoSeg={segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps)} onParar={(seg) => atualizar(se.id, i, { reps: String(seg), concluida: false, sincronizada: false })} />
                             ) : null}

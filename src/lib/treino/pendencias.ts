@@ -1,7 +1,8 @@
 // ============================================================================
 // Conferência antes de concluir o treino: quais séries válidas ficaram sem
 // marcar. Exercícios pulados ou "não consegui" não contam como pendência;
-// aquecimento também não.
+// aquecimento também não, nem série extra (“+ Série extra” ou exercício extra)
+// que ainda não foi feita: ela é opcional (pedido do Montinho, 04/11/2026).
 // ============================================================================
 
 export type StatusExercicioSessao = "pendente" | "concluido" | "pulado" | "nao_consegui" | string;
@@ -19,12 +20,15 @@ export type Pendencia = {
 
 export function verificarPendencias(
   exercicios: Array<{ seId: string; nome: string; status?: StatusExercicioSessao | null }>,
-  series: Record<string, SerieConferida[]>
+  series: Record<string, SerieConferida[]>,
+  /** Séries previstas por exercício: a série extra ainda não feita (acima disso) não é pendência. */
+  limites?: Record<string, number>,
 ): Pendencia[] {
   const out: Pendencia[] = [];
   for (const ex of exercicios) {
     if (ex.status === "pulado" || ex.status === "nao_consegui") continue;
-    const abertas = (series[ex.seId] ?? []).filter((s) => s.tipo === "valida" && !s.concluida);
+    const limite = limites?.[ex.seId] ?? Infinity;
+    const abertas = (series[ex.seId] ?? []).filter((s) => s.tipo === "valida" && !s.concluida && s.serie <= limite);
     if (!abertas.length) continue;
     out.push({
       seId: ex.seId,
