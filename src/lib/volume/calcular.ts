@@ -21,7 +21,7 @@ import {
   GRUPOS_SUPERIORES,
   SUBGRUPOS_OMBRO,
   PARTES_ABDOMEN,
-  parteDoAbdomen,
+  partesDoAbdomen,
   type Confianca,
 } from "@/lib/grupos";
 import { bonusTecnica, EXTRAS_PADRAO, fatorRir, REGRAS_TECNICAS, temExtras, type RegraTecnicas } from "./tecnicas";
@@ -307,13 +307,13 @@ export function calcularVolumeSemanal(dias: DiaVolume[], opcoes: OpcoesVolume): 
       if (vezes > 0) tocados.add(g);
       // Abdômen supra/infra (pedido do Montinho, 30/10/2026): a linha “Abdômen” é o total;
       // a parte (pelo nome do exercício) aparece embaixo, sem somar de novo.
-      const parte = g === "abdomen" ? parteDoAbdomen(ex.nome) : null;
-      if (parte) {
+      // Remador conta meio a meio em supra e infra (04/11/2026).
+      for (const { parte, peso } of g === "abdomen" ? partesDoAbdomen(ex.nome) : []) {
         const lp = getLinha(parte);
-        lp.porDia[dia.letra] = (lp.porDia[dia.letra] ?? 0) + validas;
-        lp.total += semana;
-        lp.deTecnicas += tec.bonus * fator * vezes;
-        if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) lp.tecnicas[ex.tecnica] = (lp.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes;
+        lp.porDia[dia.letra] = (lp.porDia[dia.letra] ?? 0) + validas * peso;
+        lp.total += semana * peso;
+        lp.deTecnicas += tec.bonus * fator * vezes * peso;
+        if (ex.tecnica && ex.tecnica !== "normal" && vezes > 0) lp.tecnicas[ex.tecnica] = (lp.tecnicas[ex.tecnica] ?? 0) + tec.bonus * fator * vezes * peso;
         if (vezes > 0) tocados.add(parte);
       }
       if (!agruparOmbros && doOmbro(g)) {

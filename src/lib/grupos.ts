@@ -183,7 +183,7 @@ export const SUBGRUPOS_OMBRO: GrupoMuscular[] = ["ombro_anterior", "ombro_latera
 /**
  * Partes do abdômen (pedido do Montinho, 30/10/2026: “a mesma divisão do
  * ombro”). Não são escolhidas no exercício: saem do NOME (supra × infra) e
- * aparecem na Tabela de Volume embaixo de “Abdômen (total)”. Remador,
+ * aparecem na Tabela de Volume embaixo de “Abdômen (total)”. Remador = meio a meio (partesDoAbdomen);
  * canivete, oblíquos, roda e afins contam só no total.
  */
 export const PARTES_ABDOMEN: GrupoMuscular[] = ["abdomen_supra", "abdomen_infra"];
@@ -194,6 +194,17 @@ export function parteDoAbdomen(nome: string | null | undefined): GrupoMuscular |
   if (/\binfra\b|elevacao de (pernas|joelhos)|pernas estendidas|abdominal invertido|reverse crunch|leg raise|knee raise/.test(n)) return "abdomen_infra";
   if (/\bsupra\b|crunch|abdominal (na )?(polia|maquina)/.test(n)) return "abdomen_supra";
   return null;
+}
+
+/**
+ * Quanto cada série conta em supra e infra. O abdominal remador sobe o tronco E
+ * as pernas: conta meio a meio (pedido do Montinho, 04/11/2026). Prancha,
+ * canivete, oblíquos e afins: nenhuma parte (só o total; a prancha é “Core”).
+ */
+export function partesDoAbdomen(nome: string | null | undefined): Array<{ parte: GrupoMuscular; peso: number }> {
+  if (/\bremador\b/.test(normalizarNome(nome ?? ""))) return [{ parte: "abdomen_supra", peso: 0.5 }, { parte: "abdomen_infra", peso: 0.5 }];
+  const p = parteDoAbdomen(nome);
+  return p ? [{ parte: p, peso: 1 }] : [];
 }
 
 /** Grupos que podem ter meta de volume (os do exercício + as partes do abdômen). */

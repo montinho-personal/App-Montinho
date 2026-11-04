@@ -8,7 +8,7 @@
 //    o mais leve) e quais exercícios sugerir (favoritos e mais usados primeiro).
 // Só orienta: o personal decide; nada é colocado sem o toque dele.
 // ============================================================================
-import { parteDoAbdomen } from "@/lib/grupos";
+import { partesDoAbdomen } from "@/lib/grupos";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
 import type { LinhaVolume, ResultadoVolume } from "@/lib/volume/calcular";
 
@@ -58,7 +58,7 @@ export function acimaDaMeta(resultado: ResultadoVolume): Array<{ grupo: GrupoMus
 /** O exercício (pelo grupo principal e nome) trabalha este músculo/linha da tabela? */
 export function serveAoGrupo(grupoDoExercicio: GrupoMuscular | null | undefined, nome: string, alvo: GrupoMuscular): boolean {
   if (!grupoDoExercicio) return false;
-  if (alvo === "abdomen_supra" || alvo === "abdomen_infra") return grupoDoExercicio === "abdomen" && parteDoAbdomen(nome) === alvo;
+  if (alvo === "abdomen_supra" || alvo === "abdomen_infra") return grupoDoExercicio === "abdomen" && partesDoAbdomen(nome).some((p) => p.parte === alvo);
   if (alvo === "ombros") return grupoDoExercicio === "ombros" || grupoDoExercicio.startsWith("ombro_");
   return grupoDoExercicio === alvo;
 }

@@ -370,7 +370,8 @@ describe("abdômen supra e infra (pela divisão do ombro)", () => {
       { frequencia: { A: 2 } },
     );
     const t = (g: string) => r.linhas.find((l) => l.grupo === g)?.total;
-    expect([t("abdomen"), t("abdomen_supra"), t("abdomen_infra")]).toEqual([18, 6, 8]);
+    // Remador (2 séries × 2/sem) conta meio a meio: +2 em supra e +2 em infra.
+    expect([t("abdomen"), t("abdomen_supra"), t("abdomen_infra")]).toEqual([18, 8, 10]);
     expect(r.linhas.find((l) => l.grupo === "abdomen_infra")?.parteDe).toBe("abdomen");
     expect(r.subtotais.total).toBe(26);
   });

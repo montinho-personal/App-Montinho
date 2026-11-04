@@ -42,3 +42,11 @@ describe("encaixe", () => {
     expect([seriesSugeridas(0.5), seriesSugeridas(3), seriesSugeridas(9)]).toEqual([2, 3, 4]);
   });
 });
+
+describe("remador meio a meio", () => {
+  it("serve para supra e infra; prancha para nenhum", () => {
+    expect(serveAoGrupo("abdomen", "Abdominal remador no banco", "abdomen_supra")).toBe(true);
+    expect(serveAoGrupo("abdomen", "Abdominal remador", "abdomen_infra")).toBe(true);
+    expect(serveAoGrupo("core", "Prancha frontal", "abdomen_infra")).toBe(false);
+  });
+});
