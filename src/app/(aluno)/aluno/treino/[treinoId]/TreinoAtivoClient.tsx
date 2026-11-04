@@ -1858,6 +1858,7 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                                 onChange={(v) => atualizar(se.id, i, { blocos: v, carga: v[0]?.carga ?? "", concluida: false, sincronizada: false })}
                                 onConcluir={() => concluirSerie(se.id, i, ex)}
                                 onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim: new Date().getTime() + seg * 1000 }))}
+                                chavePausa={ex.tecnica ?? undefined}
                               />
                             </div>
                           );

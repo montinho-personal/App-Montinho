@@ -423,6 +423,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                         onChange={(v) => mudarSerie(e.seId, s.key, { blocos: v, carga: v[0]?.carga ?? s.carga, salva: false })}
                         onConcluir={() => void salvarSerie(e, s)}
                         onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim: Date.now() + seg * 1000 }))}
+                        chavePausa={t.tecnica}
                       />
                     ) : (
                       <div key={s.key} className="space-y-1">

@@ -3,7 +3,7 @@
 // Série registrada em pedaços (rest-pause, drop-set, myo-reps, cluster, 3/7):
 // o aluno anota cada bloco, vê o total contra a meta e dispara a pausa curta.
 // Pode pôr ou tirar um drop, uma mini-série ou um bloco na hora.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { arredondarCarga, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 
@@ -14,6 +14,20 @@ const num = (v: string | undefined) => {
   return String(v ?? "").trim() !== "" && Number.isFinite(n) ? n : null;
 };
 const kg = (n: number) => String(n).replace(".", ",");
+
+/** Pausa entre os blocos escolhida pela pessoa (05/11/2026, pedido do Montinho: “tem gente que só quer 10, 15, 20 s”). Fica no aparelho, por técnica. */
+export const PAUSAS_RAPIDAS = [10, 15, 20, 30] as const;
+const LIMITE_PAUSA: [number, number] = [5, 120];
+const chaveLS = (c: string) => `montinho-pausa-blocos:${c}`;
+function lerPausa(c: string | undefined): number | null {
+  if (!c) return null;
+  try {
+    const v = Number(localStorage.getItem(chaveLS(c)));
+    return Number.isFinite(v) && v >= LIMITE_PAUSA[0] && v <= LIMITE_PAUSA[1] ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 export function SerieEmBlocos({
   rotulo,
@@ -31,7 +45,10 @@ export function SerieEmBlocos({
   onChange,
   onConcluir,
   onPausa,
+  chavePausa,
 }: {
+  /** Técnica (rest_pause, cluster…): guarda no aparelho a pausa que a pessoa escolheu. */
+  chavePausa?: string;
   rotulo: string;
   titulo: string;
   cor: string;
@@ -66,6 +83,21 @@ export function SerieEmBlocos({
   const carga0 = num(linhas[0]?.carga) ?? num(cargaRef ?? undefined);
   const mudar = (i: number, patch: Partial<BlocoDigitado>) => onChange(linhas.map((l, k) => (k === i ? { ...l, ...patch } : l)));
   const bateuMeta = alvoTotal != null && total >= alvoTotal;
+  // Pausa entre os blocos: a do plano, ou a que a pessoa escolheu (−5/+5 ou 10/15/20/30 s).
+  const pausaPlano = plano.find((p, i) => i > 0 && p.pausaAntesSeg > 0)?.pausaAntesSeg ?? 0;
+  const [pausaEscolhida, setPausaEscolhida] = useState<number | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- o aparelho só existe no navegador
+    setPausaEscolhida(lerPausa(chavePausa));
+  }, [chavePausa]);
+  const pausa = pausaEscolhida ?? pausaPlano;
+  const mudarPausa = (seg: number) => {
+    const v = Math.min(LIMITE_PAUSA[1], Math.max(LIMITE_PAUSA[0], seg));
+    setPausaEscolhida(v);
+    try {
+      if (chavePausa) localStorage.setItem(chaveLS(chavePausa), String(v));
+    } catch {}
+  };
 
   return (
     <div className="space-y-2 rounded-lg border-l-4 bg-bg/60 p-2.5" style={{ borderLeftColor: cor }}>
@@ -98,6 +130,20 @@ export function SerieEmBlocos({
         </label>
       ) : null}
 
+      {pausaPlano > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-bg/40 px-2 py-1.5 text-[11px]">
+          <span className="font-semibold text-fg-muted"><Icon name="timer" size={12} className="mr-0.5 inline" />Pausa entre blocos:</span>
+          <button type="button" onClick={() => mudarPausa(pausa - 5)} aria-label="Diminuir a pausa em 5 segundos" className="grid h-7 w-7 place-items-center rounded-md border border-border font-bold">−</button>
+          <span className="min-w-[2.5rem] text-center font-mono text-sm font-bold" aria-live="polite">{pausa} s</span>
+          <button type="button" onClick={() => mudarPausa(pausa + 5)} aria-label="Aumentar a pausa em 5 segundos" className="grid h-7 w-7 place-items-center rounded-md border border-border font-bold">+</button>
+          <span className="flex gap-1">
+            {PAUSAS_RAPIDAS.map((v) => (
+              <button key={v} type="button" onClick={() => mudarPausa(v)} aria-pressed={pausa === v} className={`h-7 rounded-full border px-2 font-semibold ${pausa === v ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>{v}s</button>
+            ))}
+          </span>
+        </div>
+      ) : null}
+
       <ol className="space-y-1.5">
         {linhas.map((l, i) => {
           const p = plano[i] ?? plano.at(-1) ?? { rotulo: `Mini ${i}`, meta: "o máx.", pausaAntesSeg: plano.at(-1)?.pausaAntesSeg ?? 15, fracaoCarga: 1 };
@@ -106,8 +152,8 @@ export function SerieEmBlocos({
           return (
             <li key={i} className="space-y-1">
               {i > 0 && p.pausaAntesSeg > 0 ? (
-                <button type="button" onClick={() => onPausa(p.pausaAntesSeg)} className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border py-1 text-[11px] font-semibold text-fg-muted hover:text-fg">
-                  <Icon name="timer" size={12} /> pausa de {p.pausaAntesSeg} s
+                <button type="button" onClick={() => onPausa(pausa)} className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border py-1 text-[11px] font-semibold text-fg-muted hover:text-fg">
+                  <Icon name="timer" size={12} /> pausa de {pausa} s
                 </button>
               ) : i > 0 && cargaPorBloco ? (
                 <p className="text-center text-[10px] text-fg-subtle">↓ tira o peso e continua, sem descanso</p>
