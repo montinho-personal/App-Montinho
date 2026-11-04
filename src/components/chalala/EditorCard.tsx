@@ -11,6 +11,8 @@ import { CelebracaoMedalha, type ConquistaCelebravel } from "./CelebracaoMedalha
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
 import { carregarSvg, desenhar, paraBlob, prepararFoto, type Ativos } from "./desenhar";
 import { enviarEvento, enviarEventoComTrofeus, marcarVistas } from "./evento";
+import { abrirVideo, gravacaoSuportada, gravarVideoCard, type VideoAberto } from "./videoCard";
+import { segundosTexto, trechoDoVideo } from "@/lib/chalala/video";
 
 type Origem = "conclusao" | "historico" | "mensal" | "reconhecimento";
 
@@ -66,6 +68,56 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
   const [trofeus, setTrofeus] = useState<Array<ConquistaCelebravel & { id: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fotoRef = useRef<HTMLInputElement>(null);
+  // Card com vídeo (04/11/2026): só no “Treino pago”; tudo no aparelho.
+  const videoRef = useRef<HTMLInputElement>(null);
+  const [video, setVideo] = useState<(VideoAberto & { inicio: number; comSom: boolean }) | null>(null);
+  const [progresso, setProgresso] = useState<number | null>(null);
+  // O vídeo leva alguns segundos para montar; o celular só deixa compartilhar logo depois de um toque,
+  // então primeiro “Montar o vídeo” e depois “Compartilhar” com o arquivo pronto.
+  const [videoPronto, setVideoPronto] = useState<File | null>(null);
+  const [podeVideo, setPodeVideo] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- capacidade do navegador só existe no cliente
+    setPodeVideo(gravacaoSuportada());
+  }, []);
+  const trecho = video ? trechoDoVideo(video.total, video.inicio) : null;
+  const cfgAtual = useRef(cfg);
+  const ativosAtual = useRef(ativos);
+  const videoEl = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    cfgAtual.current = cfg;
+    ativosAtual.current = ativos;
+    videoEl.current = video?.el ?? null;
+  }, [cfg, ativos, video]);
+  // Prévia do vídeo: toca mudo, em loop, só no trecho escolhido, e redesenha o card ~15×/s.
+  useEffect(() => {
+    const v = videoEl.current;
+    if (!v || !trecho) return;
+    v.muted = true;
+    v.currentTime = trecho.inicio;
+    void v.play().catch(() => undefined);
+    let vivo = true;
+    let ultimo = 0;
+    const passo = (t: number) => {
+      if (!vivo) return;
+      if (v.currentTime >= trecho.inicio + trecho.duracao || v.currentTime < trecho.inicio - 0.5) v.currentTime = trecho.inicio;
+      if (t - ultimo > 66 && canvasRef.current) {
+        ultimo = t;
+        desenhar(canvasRef.current, cfgAtual.current, dados, ativosAtual.current);
+      }
+      requestAnimationFrame(passo);
+    };
+    requestAnimationFrame(passo);
+    return () => {
+      vivo = false;
+      v.pause();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video?.url, trecho?.inicio, trecho?.duracao]);
+  useEffect(() => () => {
+    if (video) URL.revokeObjectURL(video.url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video?.url]);
   const dialogoRef = useRef<HTMLDivElement>(null);
   const ev = (e: Parameters<typeof enviarEvento>[0]) => registrarEventos && enviarEvento({ origem, ...e });
   // Código opaco do link (Inspiração da Galera): quem abre não vê quem compartilhou.
@@ -101,6 +153,11 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mudou o card ou o trecho: o vídeo montado antes fica velho.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- invalida o arquivo montado
+    setVideoPronto(null);
+  }, [cfg, video?.url, video?.inicio, video?.comSom]);
   // Prévia = a mesma rotina da exportação, no tamanho final (o CSS só reduz).
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -135,6 +192,7 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     setOcupado(true);
     try {
       const p = await prepararFoto(f);
+      setVideo(null);
       setAtivos((a) => ({ ...a, foto: p.imagem, fotoW: p.w, fotoH: p.h }));
       mudar({ fundo: "foto", foto: { ...AJUSTE_FOTO_PADRAO } });
     } catch (e) {
@@ -145,11 +203,39 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     }
   }
   function removerFoto() {
+    setVideo(null);
     setAtivos((a) => ({ ...a, foto: null, fotoW: 0, fotoH: 0 }));
     mudar({ fundo: "gradiente" });
   }
+  async function escolherVideo(f: File | undefined) {
+    if (!f) return;
+    setAviso(null);
+    setOcupado(true);
+    try {
+      const v = await abrirVideo(f);
+      setVideo({ ...v, inicio: 0, comSom: true });
+      setAtivos((a) => ({ ...a, foto: v.el, fotoW: v.w, fotoH: v.h }));
+      mudar({ fundo: "foto", foto: { ...AJUSTE_FOTO_PADRAO } });
+    } catch (e) {
+      setAviso({ texto: e instanceof Error ? e.message : "Não foi possível abrir o vídeo.", tipo: "erro" });
+    } finally {
+      setOcupado(false);
+      if (videoRef.current) videoRef.current.value = "";
+    }
+  }
 
   async function gerarArquivo(): Promise<File> {
+    if (video && trecho && cfg.fundo === "foto") {
+      setProgresso(0);
+      try {
+        const f = await gravarVideoCard({ url: video.url, inicio: trecho.inicio, duracao: trecho.duracao, comSom: video.comSom, cfg, dados, ativos, nomeBase: nomeArquivo(cfg, dados).replace(/\.png$/, ""), onProgresso: setProgresso });
+        ev({ tipo: "card_gerado", modelo: cfg.modelo, formato: cfg.formato });
+        return f;
+      } finally {
+        setProgresso(null);
+        void video.el.play().catch(() => undefined);
+      }
+    }
     // Renderiza num canvas novo no tamanho final (independe do zoom da prévia).
     const c = document.createElement("canvas");
     desenhar(c, cfg, dados, ativos);
@@ -167,12 +253,25 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
+  const modoVideo = !!video && cfg.fundo === "foto";
+  async function montarVideo() {
+    setOcupado(true);
+    setAviso(null);
+    try {
+      setVideoPronto(await gerarArquivo());
+      setAviso({ texto: "🎬 Vídeo pronto! Agora toque em Compartilhar ou Baixar.", tipo: "ok" });
+    } catch (e) {
+      setAviso({ texto: e instanceof Error ? e.message : "Não foi possível montar o vídeo agora. Tente de novo ou use uma foto.", tipo: "erro" });
+    } finally {
+      setOcupado(false);
+    }
+  }
   async function acao(tipo: "compartilhar" | "baixar") {
     setOcupado(true);
     setAviso(null);
     let r: ResultadoCompartilhar;
     try {
-      const f = await gerarArquivo();
+      const f = modoVideo && videoPronto ? videoPronto : await gerarArquivo();
       if (tipo === "baixar") {
         baixar(f);
         r = "baixado";
@@ -189,7 +288,8 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
       if (registrarEventos) void enviarEventoComTrofeus(e).then((novas) => novas.length && setTrofeus(novas as Array<ConquistaCelebravel & { id: string }>));
     }
     if (r === "cancelado") ev({ tipo: "compartilhar_cancelado", modelo: cfg.modelo, formato: cfg.formato });
-    setAviso({ texto: MENSAGEM_RESULTADO[r], tipo: r === "erro" ? "erro" : "ok" });
+    const ehVideo = !!video && cfg.fundo === "foto";
+    setAviso({ texto: ehVideo && r === "baixado" ? "Vídeo salvo no aparelho. No Instagram: Story → galeria → escolha o vídeo. No WhatsApp: Status ou conversa → anexar." : ehVideo && r === "erro" ? "Não foi possível montar o vídeo agora. Deixe o app aberto na tela até terminar e tente de novo, ou use uma foto." : MENSAGEM_RESULTADO[r], tipo: r === "erro" ? "erro" : "ok" });
     setOcupado(false);
   }
 
@@ -278,7 +378,7 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
 
             <div className="space-y-2 rounded-lg border border-border p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">Minha foto</p>
+                <p className="font-semibold">{video ? "Ajustar o vídeo" : "Minha foto"}</p>
                 {ativos.foto ? (
                   <span className="flex items-center gap-3">
                     <button type="button" disabled={ocupado} onClick={() => fotoRef.current?.click()} className="alvo rounded-full border border-accent/60 px-3 py-1 text-xs font-semibold text-accent disabled:opacity-60">
@@ -335,6 +435,44 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
                 </div>
               )}
             </div>
+
+            {/* Card com vídeo: só no Treino pago, por enquanto (04/11/2026). */}
+            {cfg.modelo === "A" && podeVideo ? (
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">🎬 Meu vídeo</p>
+                  {video ? (
+                    <span className="flex items-center gap-3">
+                      <button type="button" disabled={ocupado} onClick={() => videoRef.current?.click()} className="alvo rounded-full border border-accent/60 px-3 py-1 text-xs font-semibold text-accent disabled:opacity-60">🔄 Trocar vídeo</button>
+                      <button type="button" disabled={ocupado} onClick={removerFoto} className="alvo text-xs text-fg-muted underline-offset-2 hover:underline">Remover</button>
+                    </span>
+                  ) : null}
+                </div>
+                <input ref={videoRef} type="file" accept="video/*" className="sr-only" aria-label="Escolher vídeo do aparelho" onChange={(e) => void escolherVideo(e.target.files?.[0])} />
+                {!video ? (
+                  <>
+                    <button type="button" disabled={ocupado} onClick={() => videoRef.current?.click()} className="touch w-full rounded-md border border-accent/60 px-3 py-2 font-semibold text-accent disabled:opacity-60">
+                      Adicionar um vídeo (até 15 s)
+                    </button>
+                    <p className="text-xs text-fg-subtle">O card vai por cima do seu vídeo. É montado aqui no celular; nada é enviado ao servidor.</p>
+                  </>
+                ) : trecho ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 text-xs text-fg-muted">Começa em</span>
+                      <button type="button" aria-label="Começar 1 segundo antes" disabled={ocupado || trecho.inicio <= 0} onClick={() => setVideo((v) => (v ? { ...v, inicio: Math.max(0, trechoDoVideo(v.total, v.inicio).inicio - 1) } : v))} className="touch h-10 w-10 rounded-full border border-border font-bold disabled:opacity-30">−</button>
+                      <span className="w-12 text-center font-mono text-xs">{segundosTexto(trecho.inicio)}</span>
+                      <button type="button" aria-label="Começar 1 segundo depois" disabled={ocupado || trecho.inicio + 1 >= video.total} onClick={() => setVideo((v) => (v ? { ...v, inicio: trechoDoVideo(v.total, v.inicio + 1).inicio } : v))} className="touch h-10 w-10 rounded-full border border-border font-bold disabled:opacity-30">+</button>
+                    </div>
+                    <p className="text-xs text-fg-subtle">Trecho: {segundosTexto(trecho.inicio)} até {segundosTexto(trecho.inicio + trecho.duracao)} ({Math.round(trecho.duracao)} s){video.total > 15 ? " · o card usa até 15 s" : ""}</p>
+                    <label className="flex items-center justify-between gap-2 text-xs">
+                      <span>Manter o som do vídeo</span>
+                      <input type="checkbox" checked={video.comSom} disabled={ocupado} onChange={(e) => setVideo((v) => (v ? { ...v, comSom: e.target.checked } : v))} className="h-5 w-5 accent-[var(--color-accent)]" />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {cfg.modelo === "A" ? (
               <fieldset className="space-y-1.5">
@@ -432,14 +570,21 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
               {aviso.texto}
             </p>
           ) : null}
+          {modoVideo && !videoPronto ? (
+            <button type="button" disabled={ocupado} onClick={() => void montarVideo()} className="touch w-full rounded-lg bg-accent px-4 py-3 font-bold text-bg disabled:opacity-60">
+              {progresso != null ? `🎬 Montando o vídeo… ${Math.round(progresso * 100)}%` : `🎬 Montar o vídeo (${segundosTexto(trecho?.duracao ?? 0)})`}
+            </button>
+          ) : (
           <div className="grid grid-cols-2 gap-2">
             <button type="button" disabled={ocupado} onClick={() => void acao("compartilhar")} className="touch rounded-lg bg-accent px-4 py-3 font-bold text-bg disabled:opacity-60">
               {ocupado ? "Gerando…" : "Compartilhar"}
             </button>
             <button type="button" disabled={ocupado} onClick={() => void acao("baixar")} className="touch rounded-lg border border-border px-4 py-3 font-semibold text-fg-muted hover:text-fg disabled:opacity-60">
-              Baixar imagem
+              {modoVideo ? "Baixar vídeo" : "Baixar imagem"}
             </button>
           </div>
+          )}
+          {progresso != null ? <p className="text-center text-[11px] text-fg-subtle">Deixe o app aberto nesta tela até terminar.</p> : null}
         </div>
       </div>
       {trofeus.length ? (
