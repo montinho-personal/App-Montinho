@@ -21,6 +21,8 @@ import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
 import { EnviarRelatorioAvaliacao } from "@/components/medidas/EnviarRelatorioAvaliacao";
 import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharCardRelatorio";
 import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
+import { evolucaoDoRelatorio, focoDoObjetivo } from "@/lib/medidas/evolucao-avaliacao";
+import { ParabensAvaliacao } from "@/components/medidas/ParabensAvaliacao";
 
 export const metadata = { title: "Relatório da avaliação física", robots: { index: false } };
 
@@ -97,6 +99,8 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
   if (!rel) notFound();
   const nome = aluno.profile?.nome ?? "Aluno";
   const doPersonal = sessao.role === "treinador";
+  const evolucao = evolucaoDoRelatorio(rel, focoDoObjetivo(aluno.objetivo));
+  const card = cardDaAvaliacao({ rel, nome, evolucao });
   const voltar = doPersonal ? `/treinador/alunos/${aluno.id}/medidas` : "/aluno/medidas";
   const p = rel.principais;
   const comAnterior = !!rel.anterior;
@@ -109,9 +113,10 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
         <div className="flex flex-wrap items-center gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
           <BaixarPdf />
-          <CompartilharCardRelatorio card={cardDaAvaliacao({ rel, nome })} registrar={!doPersonal} rotulo={doPersonal ? "📲 Card para o aluno" : "📲 Compartilhar"} className="inline-flex h-10 items-center rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold" />
+          <CompartilharCardRelatorio card={card} registrar={!doPersonal} rotulo={doPersonal ? "📲 Card para o aluno" : "📲 Compartilhar"} className="inline-flex h-10 items-center rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold" />
           {doPersonal ? <EnviarRelatorioAvaliacao id={rel.id} nome={nome} telefone={aluno.telefone ?? null} data={rel.data} /> : null}
         </div>
+        {evolucao?.evoluiu ? <div className="mt-2"><ParabensAvaliacao e={evolucao} card={card} personal={doPersonal} claro /></div> : null}
       </div>
 
       <section className="folha">

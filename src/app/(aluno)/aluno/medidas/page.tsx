@@ -7,6 +7,11 @@ import { isDemoMode } from "@/lib/env";
 import { MedidasAvaliacoes } from "@/components/medidas/MedidasAvaliacoes";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 import { dataLocal } from "@/lib/aderencia/calcular";
+import { getAluno } from "@/lib/db";
+import { evolucaoDaAvaliacao } from "@/lib/medidas/evolucao-avaliacao";
+import { relatorioAvaliacao } from "@/lib/medidas/relatorio-avaliacao";
+import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
+import { ParabensAvaliacao } from "@/components/medidas/ParabensAvaliacao";
 
 export const metadata = { title: "Minhas medidas e avaliações" };
 export const dynamic = "force-dynamic";
@@ -15,12 +20,18 @@ export default async function MedidasPage() {
   const sessao = await requireAlunoPage();
   const { medidas, arquivos } = await listarAvaliacoes(sessao.alunoId);
   const primeiro = medidas.length === 0 && arquivos.length === 0;
+  // Evolução na avaliação de 7 dobras mais recente (parabéns + compartilhar).
+  const aluno = await getAluno(sessao.alunoId);
+  const evolucao = evolucaoDaAvaliacao(medidas, aluno?.objetivo ?? null);
+  const relEv = evolucao?.evoluiu ? relatorioAvaliacao(medidas, evolucao.id, aluno?.altura_cm ?? null) : null;
+  const cardEv = relEv ? cardDaAvaliacao({ rel: relEv, nome: sessao.nome, evolucao }) : null;
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Medidas e avaliações</h1>
         <Link href="/aluno/evolucao" className="alvo text-sm text-fg-muted hover:text-fg">← Evolução</Link>
       </div>
+      {evolucao?.evoluiu ? <ParabensAvaliacao e={evolucao} card={cardEv} verHref={`/avaliacao/${evolucao.id}`} /> : null}
       {primeiro ? (
         <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
           <p className="font-bold text-accent">🏁 Seu Ponto de Partida</p>

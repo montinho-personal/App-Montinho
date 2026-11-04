@@ -11,6 +11,9 @@ import { minhasCutucadasRanking } from "@/lib/data/ranking";
 import { conquistasTribo } from "@/lib/data/tribo";
 import { progressoDoAluno } from "@/lib/data/desbloqueia";
 import { getDb } from "@/lib/supabase/rls";
+import { listarAvaliacoes } from "@/lib/data/medidas";
+import { getAluno } from "@/lib/db";
+import { evolucaoDaAvaliacao } from "@/lib/medidas/evolucao-avaliacao";
 import { FEATURES, isDemoMode } from "@/lib/env";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { nomeDaConquistaTribo } from "@/lib/tribo/regras";
@@ -110,6 +113,18 @@ export async function centralDoAluno(s: { alunoId: string; userId: string }): Pr
     const href = a.url && a.url.startsWith("/aluno") ? a.url : "/aluno";
     itens.push({ id: `push:${a.id}`, tipo: "lembrete", emoji: "🔔", titulo: curto(a.titulo, 80), texto: curto(a.corpo), href, quando: a.enviada_em });
   }
+
+  // Evolução na avaliação física de 7 dobras (pedido do Montinho, 04/11/2026): parabéns + compartilhar.
+  const ev = await seguro(
+    (async () => {
+      const [{ medidas }, aluno] = await Promise.all([listarAvaliacoes(s.alunoId), getAluno(s.alunoId)]);
+      const e = evolucaoDaAvaliacao(medidas, aluno?.objetivo ?? null);
+      const reg = e?.evoluiu ? medidas.find((m) => m.id === e.id) : null;
+      return e && reg && reg.created_at >= desde ? { e, quando: reg.created_at } : null;
+    })(),
+    null,
+  );
+  if (ev) itens.push({ id: `avaliacao:${ev.e.id}`, tipo: "trofeu", emoji: "🎉", titulo: `Você evoluiu na avaliação física! ${ev.e.manchete}`, texto: "Toque para ver o que melhorou e compartilhar.", href: "/aluno/medidas", quando: ev.quando });
 
   // Feriado que vale troféu (desde 3 dias antes até o dia).
   const fer = proximoFeriado(hoje);

@@ -1,5 +1,6 @@
 // Medidas e avaliações (0078): o aluno (as próprias) ou o personal (de qualquer aluno).
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { avisarEvolucaoAvaliacao } from "@/lib/data/evolucao-avaliacao";
 import { requireAcessoAlunoApi } from "@/lib/auth/session";
 import { salvarMedidas } from "@/lib/data/medidas";
 import { sincronizarConquistas } from "@/lib/data/conquistas";
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
       const aluno = await getAluno(aluno_id);
       if (aluno) novas = (await sincronizarConquistas(aluno).catch(() => ({ novas: [] }))).novas;
     }
+    // Evoluiu na avaliação de 7 dobras lançada pelo personal: parabéns no celular do aluno.
+    if (sessao.role === "treinador") after(() => avisarEvolucaoAvaliacao(aluno_id, registro.id).catch(() => undefined));
     return NextResponse.json({ ok: true, registro, novas }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível salvar";

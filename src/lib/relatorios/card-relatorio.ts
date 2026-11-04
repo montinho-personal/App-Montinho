@@ -11,6 +11,7 @@ import type { CargaEmAlta } from "@/lib/relatorios/cargas-em-alta";
 import type { PainelEvolucao } from "@/lib/relatorios/painel-aluno";
 import type { LinhaAntesDepois } from "@/lib/medidas/leitura";
 import type { RelatorioAvaliacao } from "@/lib/medidas/relatorio-avaliacao";
+import type { EvolucaoAvaliacao } from "@/lib/medidas/evolucao-avaliacao";
 
 export type NumeroCard = { valor: string; rotulo: string; detalhe?: string };
 export type LinhaCard = { titulo: string; valor: string; detalhe?: string };
@@ -127,7 +128,7 @@ export function cardDasMedidas(o: { linhas: LinhaAntesDepois[]; antes: string; d
 }
 
 /** Avaliação física de 7 dobras: % de gordura, massa magra e peso (+ comparação com a anterior). */
-export function cardDaAvaliacao(o: { rel: RelatorioAvaliacao; nome: string }): CardRelatorio | null {
+export function cardDaAvaliacao(o: { rel: RelatorioAvaliacao; nome: string; /** Evoluiu (evolucao-avaliacao.ts): o card vira “EU EVOLUÍ!”. */ evolucao?: EvolucaoAvaliacao | null }): CardRelatorio | null {
   const p = o.rel.principais;
   const comp = new Map(o.rel.comparacao.map((l) => [l.rotulo, l]));
   const num = (v: number | null, unidade: string, rotulo: string, chave: string, unDif: string): NumeroCard | null => {
@@ -149,8 +150,8 @@ export function cardDaAvaliacao(o: { rel: RelatorioAvaliacao; nome: string }): C
     : [];
   return {
     tipo: "avaliacao",
-    chamada: "AVALIAÇÃO FÍSICA",
-    titulo: o.rel.anterior ? "MINHA EVOLUÇÃO" : "MINHA AVALIAÇÃO",
+    chamada: o.evolucao?.evoluiu ? "EVOLUÇÃO NA AVALIAÇÃO FÍSICA" : "AVALIAÇÃO FÍSICA",
+    titulo: o.evolucao?.evoluiu ? "EU EVOLUÍ!" : o.rel.anterior ? "MINHA EVOLUÇÃO" : "MINHA AVALIAÇÃO",
     sub: o.rel.anterior ? `${ddmmaa(o.rel.anterior.data)} → ${ddmmaa(o.rel.data)}` : `7 dobras · ${ddmmaa(o.rel.data)}`,
     numeros,
     linhas,
