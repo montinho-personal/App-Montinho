@@ -564,7 +564,10 @@ export async function trocarExercicioSessao(alunoId: string, sessionId: string, 
     return { ...alvo };
   }
   const db = await getDb();
-  const { data, error } = await db.from("session_exercises").update(patch).eq("id", sessionExerciseId).eq("session_id", sessionId).select("*").maybeSingle();
+  // `nome_normalizado` é coluna gerada pelo banco: não pode ir no update.
+  const { nome_normalizado: _n, ...patchDb } = patch as typeof patch & { nome_normalizado?: string };
+  void _n;
+  const { data, error } = await db.from("session_exercises").update(patchDb).eq("id", sessionExerciseId).eq("session_id", sessionId).select("*").maybeSingle();
   if (error) throw new Error(/substituido_de/i.test(error.message) ? "A troca de exercício ainda não foi ativada no banco (migração 0032)." : error.message);
   if (!data) throw new Error("Exercício da sessão não encontrado");
   return data as SessionExercise;
