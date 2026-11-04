@@ -359,6 +359,20 @@ export async function salvarPlano(alunoId: string, autorId: string, input: Salva
     programa = data as Programa;
   }
 
+  // Treinos que trocaram de letra (▲▼ no montador): saem de cena antes, senão o
+  // “B” que vira “A” bate no índice único com o “A” que ainda não virou “B”.
+  // O loop abaixo grava cada um com a letra nova e `ativo` de volta.
+  const comId = input.treinos.filter((t) => t.id && t.ativo);
+  if (comId.length) {
+    const { data: atuais } = await db.from("treinos").select("id, letra").eq("aluno_id", alunoId).in("id", comId.map((t) => t.id!));
+    const letraAntes = new Map((atuais ?? []).map((r) => [r.id as string, r.letra as string]));
+    const mudaram = comId.filter((t) => letraAntes.has(t.id!) && letraAntes.get(t.id!) !== t.letra).map((t) => t.id!);
+    if (mudaram.length) {
+      const { error } = await db.from("treinos").update({ ativo: false }).in("id", mudaram).eq("aluno_id", alunoId);
+      if (error) throw new Error(`Falha ao reorganizar os treinos: ${error.message}`);
+    }
+  }
+
   // Arquiva primeiro: só pode haver um treino ativo por letra (idx_treinos_aluno_letra_ativo_unique),
   // então o “A” antigo precisa sair de cena antes de o “A” novo ser criado.
   for (const t of input.treinos) {

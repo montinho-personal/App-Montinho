@@ -10,6 +10,7 @@
 //    desfazer/refazer; campos avançados só quando o treinador quiser.
 // ============================================================================
 
+import { moverTreino } from "@/lib/montador/ordem-treinos";
 import { aplicarDescansoPadrao } from "@/lib/tempo/descanso-padrao";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { OrientacoesProntas } from "@/components/montador/OrientacoesProntas";
@@ -603,6 +604,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         return { ...t, rows };
       }),
     }));
+  const moverDia = (tk: string, dir: -1 | 1) => commit((e) => ({ ...e, treinos: moverTreino(e.treinos, tk, dir) }));
   const proximaLetraLivre = (treinos: TreinoVM[]): TreinoLetra | null => LETRAS_TREINO.find((l) => !treinos.some((t) => t.letra === l)) ?? null;
   const addDia = () =>
     commit((e) => {
@@ -1149,7 +1151,13 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
               <button type="button" onClick={() => setFechados(new Set(estado.treinos.map((x) => x.key)))} className="hover:text-accent">Fechar todos</button>
             </div>
           ) : null}
-          {estado.treinos.map((t) => {
+          {estado.treinos.map((t, idxT) => {
+            const setas = estado.treinos.length > 1 ? (
+              <span className="flex shrink-0 flex-col gap-0.5">
+                <button type="button" disabled={idxT === 0} onClick={() => moverDia(t.key, -1)} aria-label={`Subir o treino ${t.letra}`} title="Subir (troca a letra com o de cima)" className="flex h-7 w-8 items-center justify-center rounded-md border border-border text-xs text-fg-muted hover:text-accent disabled:opacity-30">▲</button>
+                <button type="button" disabled={idxT === estado.treinos.length - 1} onClick={() => moverDia(t.key, 1)} aria-label={`Descer o treino ${t.letra}`} title="Descer (troca a letra com o de baixo)" className="flex h-7 w-8 items-center justify-center rounded-md border border-border text-xs text-fg-muted hover:text-accent disabled:opacity-30">▼</button>
+              </span>
+            ) : null;
             const fechado = fechados.has(t.key);
             const totalT = t.rows.reduce((s, r) => s + (r.nome.trim() ? Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento) : 0), 0);
             return (
@@ -1158,7 +1166,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   <p className="border-b border-border bg-bg/40 px-3 py-1.5 text-[11px] text-fg-muted"><span className="font-semibold text-fg">Foco da estratégia:</span> {focoEstrategia[t.letra]}</p>
                 ) : null}
                 {fechado ? (
-                  <button type="button" onClick={() => alternarTreino(t.key)} aria-expanded={false} aria-label={`Abrir treino ${t.letra}`} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-surface">
+                  <div className="flex items-center gap-1 pr-2">
+                  <button type="button" onClick={() => alternarTreino(t.key)} aria-expanded={false} aria-label={`Abrir treino ${t.letra}`} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left hover:bg-surface">
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/30 text-lg font-black text-accent shrink-0" aria-hidden>{t.letra}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold">{t.nome || `Treino ${t.letra}`}</span>
@@ -1168,6 +1177,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                     </span>
                     <Icon name="chevron" size={18} className="rotate-90 text-fg-subtle shrink-0" />
                   </button>
+                  {setas}
+                  </div>
                 ) : null}
                 {fechado ? null : (<>
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 flex-wrap">
@@ -1175,6 +1186,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                     {t.letra}
                     <Icon name="chevron" size={16} className="-rotate-90" />
                   </button>
+                  {setas}
                   <input value={t.nome} onChange={(e) => updTreino(t.key, { nome: e.target.value })} className="min-h-7 min-w-[140px] flex-1 bg-transparent text-sm font-bold outline-none border-b border-transparent focus:border-border-strong" aria-label={`Nome do treino ${t.letra}`} />
                   <span className={`text-[11px] font-mono shrink-0 ${t.ativo && !(frequencia[t.letra] ?? 0) ? "text-warning" : "text-fg-subtle"}`} title={t.ativo && !(frequencia[t.letra] ?? 0) ? "Este treino não está na semana/ciclo: não entra no volume semanal" : undefined}>{totalT} séries válidas · ×{frequencia[t.letra] ?? 0}/sem{t.ativo && !(frequencia[t.letra] ?? 0) ? " (fora da semana)" : ""}</span>
                   <label className="inline-flex items-center gap-1 text-[11px] text-fg-muted"><input type="checkbox" checked={t.ativo} onChange={(e) => updTreino(t.key, { ativo: e.target.checked })} /> ativo</label>
