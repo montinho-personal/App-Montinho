@@ -2,7 +2,7 @@
 // vai por cima, quadro a quadro, num <canvas> gravado pelo próprio navegador
 // (MediaRecorder). Nada sai do aparelho.
 import type { ConfigCard, DadosCard, Op } from "@/lib/chalala/card";
-import { MAX_MB_VIDEO, tamanhoGravacao, tipoDeGravacao } from "@/lib/chalala/video";
+import { corrigirDuracaoMp4, corrigirDuracaoWebm, MAX_MB_VIDEO, tamanhoGravacao, tipoDeGravacao } from "@/lib/chalala/video";
 import { desenhar, desenharFundoFoto, type Ativos } from "./desenhar";
 
 export type VideoAberto = { el: HTMLVideoElement; url: string; w: number; h: number; total: number };
@@ -106,7 +106,10 @@ export async function gravarVideoCard(o: { url: string; inicio: number; duracao:
   const gravador = new MediaRecorder(stream, { mimeType: tipo.mime, videoBitsPerSecond: 6_000_000 });
   gravador.ondataavailable = (e) => e.data.size && pedacos.push(e.data);
   const parou = new Promise<void>((ok) => (gravador.onstop = () => ok()));
-  gravador.start(250);
+  // SEM fatias (timeslice): com start(250) o iPhone gera um MP4 “em pedaços”
+  // e o Instagram só lia o começo — o Story saía curtinho (04/11/2026).
+  gravador.start();
+  const comeco = performance.now();
   await v.play();
   const fim = o.inicio + o.duracao;
   await new Promise<void>((ok) => {
@@ -121,11 +124,18 @@ export async function gravarVideoCard(o: { url: string; inicio: number; duracao:
   v.pause();
   gravador.stop();
   await parou;
+  const duracaoMs = performance.now() - comeco;
   stream.getTracks().forEach((t) => t.stop());
   await audio?.close().catch(() => undefined);
   v.removeAttribute("src");
   v.load();
-  const blob = new Blob(pedacos, { type: tipo.mime.split(";")[0] });
+  let blob = new Blob(pedacos, { type: tipo.mime.split(";")[0] });
+  if (blob.size) {
+    // Duração certa no cabeçalho (sem ela o Instagram lê o vídeo como curtinho).
+    const bruto = new Uint8Array(await blob.arrayBuffer());
+    const bytes = tipo.ext === "webm" ? corrigirDuracaoWebm(bruto, duracaoMs) : corrigirDuracaoMp4(bruto, duracaoMs);
+    blob = new Blob([bytes as BlobPart], { type: blob.type });
+  }
   if (!blob.size) throw new Error("O vídeo saiu vazio. Tente de novo com o app aberto na tela até terminar.");
   return new File([blob], `${o.nomeBase}.${tipo.ext}`, { type: blob.type });
 }

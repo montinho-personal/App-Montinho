@@ -126,7 +126,7 @@ describe("mensal e reconhecimento", () => {
 describe("evolução de um treino para o outro no card", () => {
   const rel = (volumePct: number | null, melhorou = 0, comparaveis = 0, recordes: Array<{ exercicio: string; carga: number }> = []) => ({ anterior: volumePct == null ? null : { volumePct }, exercicios: { melhorou, comparaveis }, recordesVida: recordes });
   it("só o que melhorou, no máximo 2 linhas", () => {
-    expect(evolucaoParaCard(rel(12, 3, 5), "A")).toEqual(["+12% de carga total vs o último treino A", "3 de 5 exercícios evoluíram desde a última vez"]);
+    expect(evolucaoParaCard(rel(12, 3, 5), "A")).toEqual(["+12% de carga total vs o último treino A", "3 de 5 exercícios repetidos evoluíram"]);
     expect(evolucaoParaCard(rel(8, 2, 4, [{ exercicio: "Supino reto", carga: 42.5 }]), "B")).toEqual(["+8% de carga total vs o último treino B", "Recorde: Supino reto com 42,5 kg"]);
   });
   it("caiu, igual ou comparação estranha: não aparece", () => {

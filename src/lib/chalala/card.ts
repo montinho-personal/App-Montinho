@@ -156,7 +156,11 @@ export function evolucaoParaCard(r: RelatorioLike | null | undefined, letra?: st
   if (rec) out.push(`Recorde: ${rec.exercicio} com ${fmtNum(rec.carga)} kg`);
   if (out.length < 2 && r.exercicios.comparaveis > 0 && r.exercicios.melhorou > 0) {
     const n = r.exercicios.melhorou;
-    out.push(`${n} de ${r.exercicios.comparaveis} ${r.exercicios.comparaveis === 1 ? "exercício evoluiu" : "exercícios evoluíram"} desde a última vez`);
+    const c = r.exercicios.comparaveis;
+    // Só entram na conta os exercícios que já tinham sido feitos antes (dá para comparar).
+    // “2 de 2” confundia (pedido do Montinho, 04/11/2026): agora fala o que é.
+    if (n >= c) out.push(n === 1 ? "1 exercício evoluiu desde a última vez" : `${n} exercícios evoluíram desde a última vez`);
+    else out.push(`${n} de ${c} exercícios repetidos evoluíram`);
   }
   return out.slice(0, 2);
 }
