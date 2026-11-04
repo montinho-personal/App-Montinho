@@ -1157,7 +1157,7 @@ export const CATALOGO: ExercicioCatalogo[] = [
   }),
   ex("rosca-inversa", "Rosca inversa (pegada pronada)", "antebraco", {
     s: ["rosca pronada", "reverse curl", "rosca inversa", "rosca inversa na barra", "rosca inversa barra reta"],
-    p: { biceps: 0.5 }, pad: "flexao_cotovelo", art: ["cotovelo", "punho"], t: "mono", eq: ["barra", "barra_w"],
+    pad: "flexao_cotovelo", art: ["cotovelo", "punho"], t: "mono", eq: ["barra", "barra_w"],
     exe: ["Pegada pronada na largura dos ombros.", "Flexione os cotovelos mantendo os punhos firmes.", "Desça controlando."],
     err: ["Punhos dobrando.", "Balançar.", "Cotovelos à frente."],
     sub: ["rosca-martelo", "extensao-punho"], est: ["cotovelo_punho"],
