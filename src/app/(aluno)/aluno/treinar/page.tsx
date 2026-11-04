@@ -108,6 +108,18 @@ export default async function TreinarPage() {
         </Link>
       ) : null}
 
+      {/* Atalho para a vitrine (04/11/2026, pedido do Montinho): antes só se chegava por Meus treinos. */}
+      {podeMontar ? (
+        <Link href="/aluno/treinos-prontos" className={`flex items-center gap-3 rounded-xl border bg-card px-4 py-3 hover:border-accent/60 ${treinos.length ? "border-border" : "border-accent"}`}>
+          <span className="text-2xl" aria-hidden>🔥</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">Treinos prontos do Montinho</span>
+            <span className="block text-xs text-fg-muted">Escolha um, toque em “Começar” e ele entra nos seus treinos. Cada um vem com um desafio.</span>
+          </span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
+
       {podeMontar ? (
         <Link href={treinos.length ? "/aluno/meus-treinos" : "/aluno/meus-treinos/novo"} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-accent/50 px-4 text-sm font-semibold text-accent">
           <Icon name="plus" size={18} /> {treinos.length ? "Montar ou editar meus treinos" : "Montar meu primeiro treino"}
@@ -116,7 +128,7 @@ export default async function TreinarPage() {
 
       {treinos.length === 0 ? (
         <Card className="border-dashed">
-          <CardBody className="text-center py-8 text-sm text-fg-muted">{visitante ? "Você ainda não tem treinos. Monte o primeiro no botão acima." : `Nenhum treino liberado ainda. Fale com o ${BRAND.name}.`}</CardBody>
+          <CardBody className="text-center py-8 text-sm text-fg-muted">{visitante ? "Você ainda não tem treinos. Escolha um pronto ou monte o seu nos botões acima." : `Nenhum treino liberado ainda. Fale com o ${BRAND.name}.`}</CardBody>
         </Card>
       ) : (
         <ul className="space-y-3">
