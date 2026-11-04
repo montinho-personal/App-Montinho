@@ -295,7 +295,8 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
 
   // Evolução do treino tem a sua própria chave, em destaque (a pessoa escolhe se mostra).
   const temEvolucao = cfg.modelo !== "mensal" && !!dados.evolucaoTreino?.length && metricasDisponiveis(cfg.modelo, dados).includes("evolucao");
-  const metricas = metricasDisponiveis(cfg.modelo, dados).filter((k) => cfg.modelo === "mensal" || k !== "evolucao");
+  const temLista = cfg.modelo === "A" && !!dados.listaTreino?.length && metricasDisponiveis(cfg.modelo, dados).includes("lista");
+  const metricas = metricasDisponiveis(cfg.modelo, dados).filter((k) => (cfg.modelo === "mensal" || k !== "evolucao") && k !== "lista");
   const { w, h } = FORMATOS[cfg.formato];
   const fundoXadrez = cfg.fundo === "transparente" ? { backgroundImage: "repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%)", backgroundSize: "24px 24px" } : undefined;
 
@@ -335,6 +336,16 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
                   <span className="block text-xs text-fg-muted">{(dados.evolucaoTreino ?? []).join(" · ")}</span>
                 </span>
                 <input type="checkbox" role="switch" checked={!!cfg.metricas.evolucao} onChange={(e) => mudar({ metricas: { ...cfg.metricas, evolucao: e.target.checked } })} aria-label="Mostrar no card quanto eu evoluí desde o último treino" className="h-6 w-6 shrink-0 accent-[var(--color-accent)]" />
+              </label>
+            ) : null}
+
+            {temLista ? (
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/5 p-3">
+                <span>
+                  <span className="block font-semibold">📋 Mostrar os exercícios que fiz</span>
+                  <span className="block text-xs text-fg-muted">Na ordem, com séries × repetições e a técnica ({dados.listaTreino!.length} {dados.listaTreino!.length === 1 ? "exercício" : "exercícios"})</span>
+                </span>
+                <input type="checkbox" role="switch" checked={!!cfg.metricas.lista} onChange={(e) => mudar({ metricas: { ...cfg.metricas, lista: e.target.checked } })} aria-label="Mostrar no card os exercícios que fiz" className="h-6 w-6 shrink-0 accent-[var(--color-accent)]" />
               </label>
             ) : null}
 

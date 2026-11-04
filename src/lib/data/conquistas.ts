@@ -5,6 +5,7 @@
 // reconhecimentos. Inserção idempotente (aluno, código, referência).
 // ============================================================================
 
+import { listaDoTreino, type ItemListaTreino } from "@/lib/chalala/card";
 import { primeiraAvaliacao, registrosDeAvaliacao } from "@/lib/data/medidas";
 import { entradaCardio } from "@/lib/data/cardio";
 import { statusStrava } from "@/lib/data/strava";
@@ -262,6 +263,8 @@ export type ResumoChalala = {
   destaques: string[];
   /** Relatório curto: completou tudo, volume vs anterior/média, recordes da vida. */
   relatorio: RelatorioConclusao;
+  /** Exercícios feitos para o card (ordem, séries × reps, técnica). */
+  listaTreino?: ItemListaTreino[];
   /**
    * O que comemorar ao abrir a tela do fim do treino: as conquistas deste treino
    * e as que saíram desde o começo dele sem ligação com a sessão (cardio, semana,
@@ -307,6 +310,7 @@ export async function resumoChalala(aluno: AlunoBase, sessaoId: string): Promise
     modeloSugerido: msg.modeloSugerido,
     evolucao,
     relatorio: relatorioDaConclusao(s, historicoSessoes, resumoImportado.filter((r) => (r.carga_max_kg ?? 0) > 0).map((r) => ({ nome: r.exercicio_nome, bibliotecaId: r.biblioteca_id, carga: Number(r.carga_max_kg), data: r.data }))),
+    listaTreino: listaDoTreino(s.exercicios),
     destaques: destaquesDaConclusao({ evolucao, conquistas: daSessao, meta: semana?.meta ?? null, pontosSemana, metaCumpridaAgora: msg.metaCumpridaAgora, extra: classificarSessao(sc) === "extra" }),
   };
 }

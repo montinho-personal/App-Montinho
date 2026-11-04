@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tituloDoTreino, ajustarTexto, configPadrao, destaqueRecorde, enquadrarFoto, evolucaoParaCard, FORMATOS, layoutCard, metricasDisponiveis, modelosDisponiveis, nomeArquivo, type DadosCard, type Op, type OpTexto, type Medir } from "./card";
+import { tituloDoTreino, ajustarTexto, configPadrao, destaqueRecorde, enquadrarFoto, evolucaoParaCard, FORMATOS, listaDoTreino, layoutCard, metricasDisponiveis, modelosDisponiveis, nomeArquivo, type DadosCard, type Op, type OpTexto, type Medir } from "./card";
 
 // Medição aproximada (largura média de glifo ~0,6 × tamanho; negrito um pouco maior).
 const medir: Medir = (t, tam, peso) => [...t].length * tam * (peso >= 700 ? 0.62 : 0.55);
@@ -147,5 +147,41 @@ describe("título do card do treino", () => {
     expect(tituloDoTreino("tá pago!")).toBe("TÁ PAGO!");
     expect(tituloDoTreino("   ")).toBe("TREINO PAGO!");
     expect(tituloDoTreino("x".repeat(40))).toHaveLength(22);
+  });
+});
+
+describe("lista do treino no card", () => {
+  const v = (reps: number, tipo = "valida") => ({ tipo, reps });
+  it("ordem, séries × reps, técnica e sem aquecimento", () => {
+    const lista = listaDoTreino([
+      { nome: "Supino reto", series: [v(15, "aquecimento"), v(10), v(10), v(10), v(10)] },
+      { nome: "Crucifixo", prescricao: { tecnica: "dropset" }, series: [v(12), v(10), { tipo: "dropset", reps: 8 }] },
+      { nome: "Pulldown", series: [{ tipo: "rest_pause", reps: 10, blocos: [{ reps: 10 }, { reps: 4 }, { reps: 3 }] }] },
+      { nome: "Tríceps corda", prescricao: { bloco_aluno: "X1" }, series: [v(12), v(12)] },
+      { nome: "Pulado", series: [] },
+    ]);
+    expect(lista).toEqual([
+      { nome: "Supino reto", series: "4 × 10", tecnica: null },
+      { nome: "Crucifixo", series: "12 · 10 · 8", tecnica: "Drop-set" },
+      { nome: "Pulldown", series: "1 × 10+4+3", tecnica: "Rest-pause" },
+      { nome: "Tríceps corda", series: "2 × 12", tecnica: "Bi-set" },
+    ]);
+  });
+  it("opcional (começa desligada) e, ligada, cabe na arte mesmo com foto e muitos exercícios", () => {
+    const lista = Array.from({ length: 13 }, (_, i) => ({ nome: `Exercício com nome comprido número ${i + 1}`, series: "4 × 12", tecnica: i % 3 ? null : "Drop-set" }));
+    const d = { ...dados, listaTreino: lista };
+    const cfg = configPadrao("A", d, "Aline");
+    expect(cfg.metricas.lista).toBe(false);
+    expect(tudo(layoutCard(cfg, d, medir).ops)).not.toContain("MEU TREINO");
+    for (const fundo of ["gradiente", "foto"] as const) {
+      for (const formato of ["stories", "feed", "quadrado"] as const) {
+        const r = layoutCard({ ...cfg, fundo, formato, metricas: { ...cfg.metricas, lista: true } }, d, medir);
+        const t = tudo(r.ops);
+        expect(t).toContain("MEU TREINO");
+        expect(t).toContain("1. Exercício");
+        expect(t).toContain("+ 3 exercícios");
+        dentroDosLimites(r.ops, r.w, r.h);
+      }
+    }
   });
 });

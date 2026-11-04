@@ -31,7 +31,7 @@ const dataBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4
 
 export type BaseConclusao = { sessaoId: string; status: "concluida" | "abandonada"; nomeTreino: string | null; series: number; seriesPlanejadas: number; duracaoMin: number | null; data: string };
 
-export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "duracaoMin" | "exercicios" | "series" | "meta" | "pontosSemana" | "metaCumprida" | "recordes" | "retomada" | "conquistas"> & { evolucao?: ResumoChalala["evolucao"]; relatorio?: ResumoChalala["relatorio"]; letra?: ResumoChalala["letra"] }): DadosCard {
+export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "duracaoMin" | "exercicios" | "series" | "meta" | "pontosSemana" | "metaCumprida" | "recordes" | "retomada" | "conquistas"> & { listaTreino?: ResumoChalala["listaTreino"]; evolucao?: ResumoChalala["evolucao"]; relatorio?: ResumoChalala["relatorio"]; letra?: ResumoChalala["letra"] }): DadosCard {
   const outra = r.conquistas.find((c) => c.codigo !== "recorde" && c.codigo !== "eu_voltei" && c.codigo !== "relatorio_mensal");
   return {
     nomeTreino: r.nomeTreino,
@@ -47,6 +47,7 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
     conquistaFrase: !outra && r.evolucao && !r.recordes.length ? `${String(r.evolucao.atual.carga).replace(".", ",")} kg × ${r.evolucao.atual.reps}${r.evolucao.anterior ? ` (antes ${String(r.evolucao.anterior.carga).replace(".", ",")} kg × ${r.evolucao.anterior.reps})` : ""}` : null,
     retomada: r.retomada,
     evolucaoTreino: evolucaoParaCard(r.relatorio, r.letra),
+    listaTreino: r.listaTreino ?? null,
   };
 }
 

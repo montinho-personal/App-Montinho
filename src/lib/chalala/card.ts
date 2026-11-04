@@ -45,7 +45,7 @@ export const tituloDoTreino = (t?: string | null) => (t ?? "").replace(/\s+/g, "
 
 export const ASSINATURA = { linha: "Montinho Personal Trainer · @montinho_personal", slogan: "Seu shape merece um chalalá." };
 
-export type MetricaChave = "duracao" | "exercicios" | "series" | "treino" | "treinos" | "aderencia" | "tempoTotal" | "metas" | "evolucao" | "conquista";
+export type MetricaChave = "duracao" | "exercicios" | "series" | "treino" | "treinos" | "aderencia" | "tempoTotal" | "metas" | "evolucao" | "conquista" | "lista";
 export const ROTULO_METRICA: Record<MetricaChave, string> = {
   duracao: "Tempo de treino",
   exercicios: "Exercícios",
@@ -57,6 +57,7 @@ export const ROTULO_METRICA: Record<MetricaChave, string> = {
   metas: "Metas semanais cumpridas",
   evolucao: "Evolução de desempenho",
   conquista: "Conquista",
+  lista: "Exercícios do treino",
 };
 
 export type DadosCard = {
@@ -78,9 +79,58 @@ export type DadosCard = {
   retomada?: boolean;
   /** Resumo curto da evolução vs o último treino (só o que melhorou; texto pronto). */
   evolucaoTreino?: string[] | null;
+  /** Exercícios feitos, na ordem, com séries × reps e a técnica (a pessoa escolhe se mostra). */
+  listaTreino?: ItemListaTreino[] | null;
   mensal?: { rotuloPeriodo: string; treinos?: number | null; aderenciaPct?: number | null; tempoTotalMin?: number | null; metasCumpridas?: number | null; evolucao?: string | null; conquista?: string | null };
   reconhecimento?: { mensagem: string; autor: string; conquista?: string | null };
 };
+
+export type ItemListaTreino = { nome: string; series: string; tecnica: string | null };
+
+/** Técnicas que aparecem no card (mesmos nomes do app). */
+const ROTULO_TECNICA_CARD: Record<string, string> = {
+  dropset: "Drop-set", rest_pause: "Rest-pause", myo_reps: "Myo-reps", cluster: "Cluster", tres_sete: "3/7",
+  piramide: "Pirâmide", piramide_decrescente: "Pirâmide", biset: "Bi-set", triset: "Tri-set", superset: "Super-set",
+  combinado: "Combinado", pre_exaustao: "Pré-exaustão", super_slow: "Super slow", negativo: "Negativo", isometria: "Isometria",
+};
+/** Até quantos exercícios entram no card (o resto vira “+ N exercícios”). */
+export const MAX_LISTA_CARD = 10;
+
+type ExercicioParaLista = { nome: string; prescricao?: unknown; series: Array<{ tipo: string; reps: number | null; tempo_seg?: number | null; blocos?: Array<{ reps: number | null }> | null }> };
+
+/**
+ * Lista do treino para o card (pedido do Montinho, 04/11/2026: “colocar os
+ * exercícios que fez, a ordem, com as séries e repetições, e se teve técnica”).
+ * Só exercícios com série feita (sem aquecimento). Reps iguais → “4 × 10”;
+ * diferentes → “12 · 10 · 8”; série em blocos → “10+4+3”.
+ */
+export function listaDoTreino(exs: ExercicioParaLista[]): ItemListaTreino[] {
+  const out: ItemListaTreino[] = [];
+  for (const e of exs) {
+    const feitas = e.series.filter((x) => x.tipo !== "aquecimento");
+    if (!feitas.length) continue;
+    const reps = feitas.map((x) => {
+      const bl = (x.blocos ?? []).map((b) => b.reps).filter((r): r is number => r != null && r > 0);
+      if (bl.length > 1) return bl.join("+");
+      if (x.reps != null && x.reps > 0) return String(x.reps);
+      if (x.tempo_seg) return `${x.tempo_seg}s`;
+      return "—";
+    });
+    const series = reps.every((r) => r === reps[0]) ? `${reps.length} × ${reps[0]}` : reps.join(" · ");
+    const pr = (e.prescricao ?? {}) as { tecnica?: string | null; bloco_aluno?: string | null; tecnica_config?: { tecnica?: string | null } | null };
+    const tecnicas: string[] = [];
+    const add = (t?: string | null) => {
+      const r = t ? ROTULO_TECNICA_CARD[t] : undefined;
+      if (r && !tecnicas.includes(r)) tecnicas.push(r);
+    };
+    add(pr.tecnica);
+    add(pr.tecnica_config?.tecnica);
+    for (const x of feitas) add(x.tipo);
+    if (pr.bloco_aluno && !tecnicas.some((t) => ["Bi-set", "Tri-set", "Super-set", "Combinado", "Pré-exaustão"].includes(t))) tecnicas.unshift("Bi-set");
+    out.push({ nome: e.nome.trim(), series, tecnica: tecnicas.length ? tecnicas.join(" + ") : null });
+  }
+  return out;
+}
 
 export type AjusteFoto = { x: number; y: number; zoom: number; escurecer: number };
 
@@ -134,6 +184,7 @@ export function metricasDisponiveis(modelo: ModeloId, d: DadosCard): MetricaChav
   if (d.series) out.push("series");
   if (d.nomeTreino) out.push("treino");
   if (d.evolucaoTreino?.length) out.push("evolucao");
+  if (d.listaTreino?.length) out.push("lista");
   return out;
 }
 
@@ -167,7 +218,8 @@ export function evolucaoParaCard(r: RelatorioLike | null | undefined, letra?: st
 
 export function configPadrao(modelo: ModeloId, d: DadosCard, nome: string): ConfigCard {
   const metricas: ConfigCard["metricas"] = {};
-  for (const k of metricasDisponiveis(modelo, d)) metricas[k] = true;
+  // A lista dos exercícios é opcional: começa desligada (a pessoa liga no editor).
+  for (const k of metricasDisponiveis(modelo, d)) metricas[k] = k !== "lista";
   return { modelo, formato: "stories", fundo: "gradiente", variacao: "dourado", frase: FRASES[modelo][0], nome, mostrarNome: false, mostrarData: true, metricas, foto: { ...AJUSTE_FOTO_PADRAO } };
 }
 
@@ -286,6 +338,17 @@ function blocosDoModelo(cfg: ConfigCard, d: DadosCard, p: Paleta): Bloco[] {
         b.push({ k: "texto", texto: "EVOLUÇÃO", max: 28, min: 22, peso: 700, cor: p.destaque, maxLinhas: 1, depois: 10 });
         for (const linha of d.evolucaoTreino) sub(linha, 36, 2, p.texto);
       }
+      if (on("lista") && d.listaTreino?.length) {
+        b.push({ k: "texto", texto: "MEU TREINO", max: 28, min: 20, peso: 700, cor: p.destaque, maxLinhas: 1, depois: 12 });
+        const lista = d.listaTreino.slice(0, MAX_LISTA_CARD);
+        lista.forEach((it, i) => {
+          b.push({ k: "texto", texto: `${i + 1}. ${it.nome} · ${it.series}`, max: 32, min: 18, peso: 600, cor: p.texto, maxLinhas: 2, depois: it.tecnica ? 2 : 8 });
+          if (it.tecnica) b.push({ k: "texto", texto: `⚡ ${it.tecnica}`, max: 26, min: 16, peso: 700, cor: p.destaque, maxLinhas: 1, depois: 8 });
+        });
+        const resto = d.listaTreino.length - lista.length;
+        if (resto > 0) sub(`+ ${resto} ${resto === 1 ? "exercício" : "exercícios"}`, 26, 1);
+        b.push({ k: "linha", cor: p.destaque, depois: 18 });
+      }
       break;
     }
     case "B": {
@@ -386,7 +449,9 @@ export function layoutCard(cfg: ConfigCard, d: DadosCard, medir: Medir): Resulta
   const yAss = base - altAss;
 
   // Com foto, os textos ficam só na faixa de baixo (até ~40% da altura), encostados na assinatura.
-  const regiaoTopo = comFoto ? Math.round(h * (cfg.formato === "stories" ? 0.56 : 0.5)) : topo + logoH + Math.round(h * 0.05);
+  // Com a lista do treino ligada, a faixa de texto sobe para caber os exercícios.
+  const comLista = cfg.modelo === "A" && !!cfg.metricas.lista && !!d.listaTreino?.length;
+  const regiaoTopo = comFoto ? Math.round(h * (comLista ? (cfg.formato === "stories" ? 0.36 : 0.3) : cfg.formato === "stories" ? 0.56 : 0.5)) : topo + logoH + Math.round(h * 0.05);
   const regiaoBase = yAss - Math.round(h * (comFoto ? 0.02 : 0.03));
   const blocos = blocosDoModelo(cfg, d, p);
 
