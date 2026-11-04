@@ -41,6 +41,6 @@ describe("prescrição Missão Mr. Bellagio (Denis) — conforme a ficha do pers
   it("volume semanal direto por músculo (séries válidas, 1×/semana cada treino)", () => {
     const v: Record<string, number> = {};
     for (const t of PRESCRICAO.treinos) for (const e of t.exercicios) v[e.grupo_muscular!] = (v[e.grupo_muscular!] ?? 0) + e.series;
-    expect(v).toEqual({ peito: 20, ombro_lateral: 8, triceps: 8, abdomen: 12, core: 6, costas: 20, ombro_posterior: 8, biceps: 20, gluteo: 8, quadriceps: 8, posteriores: 4, panturrilha: 4, ombro_anterior: 4 });
+    expect(v).toEqual({ peito: 20, ombro_lateral: 8, triceps: 8, abdomen: 12, core: 6, costas: 20, ombro_posterior: 8, biceps: 16, antebraco: 4, gluteo: 8, quadriceps: 8, posteriores: 4, panturrilha: 4, ombro_anterior: 4 });
   });
 });
