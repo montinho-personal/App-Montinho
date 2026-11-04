@@ -11,6 +11,7 @@ import { GRUPO_COR, GRUPO_LABEL } from "@/lib/grupos";
 import { buscarExercicios } from "@/lib/biblioteca/busca";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { VerExercicio } from "@/components/ui/VerExercicio";
+import { FotoDoAparelho } from "@/components/exercicios/FotoDoAparelho";
 
 type Props = {
   valor: string;
@@ -27,9 +28,11 @@ type Props = {
   onMover: (dir: -1 | 1) => void;
   placeholder: string;
   ariaLabel: string;
+  /** 📷 ao lado do campo: foto do aparelho → exercícios da biblioteca (padrão: ligado). */
+  foto?: boolean;
 };
 
-export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favoritos, uso, onTexto, onEscolher, onEnterLivre, onMover, placeholder, ariaLabel }: Props) {
+export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favoritos, uso, onTexto, onEscolher, onEnterLivre, onMover, placeholder, ariaLabel, foto = true }: Props) {
   const [aberto, setAberto] = useState(false);
   const [destaque, setDestaque] = useState(0);
   // Ao tocar num exercício já escolhido (sem digitar), a lista mostra trocas do mesmo músculo.
@@ -82,8 +85,10 @@ export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favorito
     inputRef.current?.blur();
   }
 
+  const itensFoto = useMemo(() => itens.map((i) => ({ id: i.id, nome: i.nome, grupo: i.grupo, midia: i.midia?.verificada ? i.midia : null, passos: i.execucao.slice(0, 3) })), [itens]);
+
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-1">
       <input
         value={valor}
         role="combobox"
@@ -133,8 +138,19 @@ export function SeletorExercicio({ valor, bibliotecaId, ocultas, itens, favorito
         }}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className="w-full bg-transparent px-2 py-2.5 text-[13px] font-medium outline-none focus:bg-accent/5"
+        className="min-w-0 w-full flex-1 bg-transparent px-2 py-2.5 text-[13px] font-medium outline-none focus:bg-accent/5"
       />
+      {foto ? (
+        <FotoDoAparelho
+          variante="botao"
+          itens={itensFoto}
+          rotuloAcao="Toque no exercício para colocar nesta linha:"
+          onEscolher={(i) => {
+            const item = itens.find((x) => x.id === i.id);
+            if (item) escolher(item);
+          }}
+        />
+      ) : null}
       {mostrar && rect && typeof document !== "undefined" ? createPortal(
         <ul id={listaId} role="listbox" style={{ position: "fixed", left: rect.left, top: rect.top, width: rect.width }} className="z-[75] max-h-[50vh] overflow-auto rounded-lg border border-accent/40 bg-surface shadow-2xl">
           {modoTroca && atual ? <li className="sticky top-0 border-b border-border bg-surface px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-accent">⇄ Trocar por — {GRUPO_LABEL[atual.grupo]} (ou digite para buscar)</li> : null}

@@ -1,17 +1,24 @@
-// POST /api/livre/reconhecer — foto do aparelho → até 3 exercícios da biblioteca
+// POST /api/livre/reconhecer — foto do aparelho → até 4 exercícios da biblioteca
 // que combinam (a pessoa escolhe). Sem IA ligada: { ia: false } e segue pela busca.
+// Vale em todo lugar que escolhe exercício (04/11/2026): aluno/visitante com o
+// acesso em dia e o personal (montador, extras prontos, aula presencial).
 import { NextResponse } from "next/server";
 import { FEATURES, isDemoMode } from "@/lib/env";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { reconhecerAparelho } from "@/lib/ia/reconhecer-aparelho";
+import { getSessao } from "@/lib/auth/session";
 import { requireAlunoTreinoLivreApi } from "@/lib/treino/livre-guarda";
 import { lerJson, livreFotoAparelhoSchema } from "@/lib/validacao/schemas";
 
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  const { error } = await requireAlunoTreinoLivreApi();
-  if (error) return error;
+  const s = await getSessao();
+  if (!s) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (s.role !== "treinador") {
+    const { error } = await requireAlunoTreinoLivreApi();
+    if (error) return error;
+  }
   const { data, error: vErr } = await lerJson(request, livreFotoAparelhoSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   const biblioteca = await listarBiblioteca();
@@ -21,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ia: true, exemplo: true, aparelho: "Cadeira extensora", opcoes: ids.map((id) => ({ id })) });
   }
   if (!FEATURES.iaMemoria) return NextResponse.json({ ia: false });
-  const r = await reconhecerAparelho(data.base64, biblioteca.map((i) => ({ id: i.id, nome: i.nome, sinonimos: i.sinonimos })));
+  const r = await reconhecerAparelho(data.base64, biblioteca.map((i) => ({ id: i.id, nome: i.nome, sinonimos: i.sinonimos, grupo: i.grupo, equipamento: i.equipamento })));
   if (!r) return NextResponse.json({ ia: true, aparelho: null, opcoes: [] });
   return NextResponse.json({ ia: true, aparelho: r.aparelho, opcoes: r.ids.map((id) => ({ id })) });
 }

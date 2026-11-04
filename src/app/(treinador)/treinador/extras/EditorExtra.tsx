@@ -3,6 +3,7 @@
 // Editor de um treino extra pronto: título, exercícios (trocar, tirar, pôr),
 // séries e repetições. Usado nas opções sugeridas e nos extras já aprovados.
 
+import { FotoDoAparelho } from "@/components/exercicios/FotoDoAparelho";
 import { useMemo, useState } from "react";
 import { normalizarNome } from "@/lib/grupos";
 import { LIMITES_OPCOES, duracaoEstimada, seriesTotais } from "@/lib/treino/extra-opcoes";
@@ -112,6 +113,7 @@ export function EditorExtra({ tituloInicial, itensIniciais, biblioteca, faixas =
       {buscando !== null ? (
         <div className="space-y-1 rounded-md border border-accent/40 p-2">
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={buscando === -1 ? "Buscar exercício para adicionar…" : `Trocar “${itens[buscando]?.nome}” por…`} aria-label="Buscar exercício na biblioteca" className={`${inp} w-full`} />
+          <FotoDoAparelho itens={biblioteca} rotuloAcao="Toque no exercício para colocar no extra:" onEscolher={(i) => { const b = biblioteca.find((x) => x.id === i.id); if (b) escolher(b); }} />
           {achados.map((b) => (
             <button key={b.id} type="button" onClick={() => escolher(b)} className="alvo block w-full rounded px-2 py-1 text-left text-sm hover:bg-accent/10">
               {b.nome} <span className="text-[11px] text-fg-subtle">· {b.grupo.replace(/_/g, " ")}</span>

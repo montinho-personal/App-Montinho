@@ -1,5 +1,6 @@
 "use client";
 
+import { FotoDoAparelho } from "@/components/exercicios/FotoDoAparelho";
 import { useMemo, useState } from "react";
 import { Voltar } from "@/components/ui/Voltar";
 import { Button } from "@/components/ui/Button";
@@ -289,6 +290,7 @@ export function MontadorVisitante({ itens, inicial, iniciante, copia = false, de
               <Icon name="x" size={16} />
             </button>
           </div>
+          <FotoDoAparelho itens={itens} rotuloAcao="Toque no exercício para colocar no treino:" onEscolher={(i) => { const it = porId.get(i.id); if (it) adicionar(it); }} />
           <div className="flex flex-wrap gap-2">
             {filtros.map((f) => (
               <button key={f.valor} type="button" onClick={() => { setFiltro(filtro === f.valor ? null : f.valor); setBusca(""); }} aria-pressed={filtro === f.valor} className={`min-h-9 rounded-full border px-3 text-xs ${filtro === f.valor ? "border-accent bg-accent-soft text-fg" : "border-border text-fg-muted"}`}>

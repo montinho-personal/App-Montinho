@@ -1,5 +1,6 @@
 "use client";
 
+import { FotoDoAparelho } from "@/components/exercicios/FotoDoAparelho";
 import { useState } from "react";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useRouter } from "next/navigation";
@@ -180,7 +181,12 @@ export function NovoDesafioClient({ hoje, maximo, primeiroNome, pessoas, bibliot
                   ))}
                 </ol>
               ) : null}
-              {exercicios.length < 10 ? <input value={buscaEx} onChange={(e) => setBuscaEx(e.target.value)} placeholder="Buscar exercício (ex.: agachamento)" aria-label="Buscar exercício" className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm" /> : null}
+              {exercicios.length < 10 ? (
+                <div className="flex items-center gap-2">
+                  <input value={buscaEx} onChange={(e) => setBuscaEx(e.target.value)} placeholder="Buscar exercício (ex.: agachamento)" aria-label="Buscar exercício" className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm" />
+                  <FotoDoAparelho variante="botao" itens={biblioteca} rotuloAcao="Toque no exercício para pôr no desafio:" onEscolher={(i) => { if (!exercicios.some((e) => e.id === i.id)) setExercicios((x) => [...x, { id: i.id, nome: i.nome }]); }} />
+                </div>
+              ) : null}
               {sugestoesEx.length ? (
                 <ul className="space-y-1">
                   {sugestoesEx.map((b) => (
