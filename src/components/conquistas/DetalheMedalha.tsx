@@ -29,6 +29,9 @@ function baixarArquivo(f: File) {
 }
 import { BRAND } from "@/config/brand";
 
+/** Vídeo do canal do Montinho: de lado, câmera na altura da articulação, corpo inteiro, série completa. */
+const GUIA_FILMAGEM_URL = "https://www.youtube.com/shorts/L5w4DBU2la8";
+
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
 export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno, onFechar, rotuloEntender = "Entenda por que isso é importante", rotuloCard = "Gerar card desta medalha", className = "" }: { m: Medalha; reconhecimento?: { mensagem: string; data: string } | null; onGerarCard?: () => void; /** Personal: abre a comemoração (toque para abrir) como o aluno a vê. */ onVerComoAluno?: () => void; onFechar?: () => void; rotuloEntender?: string; rotuloCard?: string; className?: string }) {
@@ -92,6 +95,11 @@ export function DetalheMedalha({ m, reconhecimento, onGerarCard, onVerComoAluno,
         </div>
       ) : !m.conquistada && m.falta ? (
         <p className="text-xs text-fg-muted">{m.falta}</p>
+      ) : null}
+      {!m.conquistada && ehAluno && m.codigo === "olhar_de_aguia" ? (
+        <a href={GUIA_FILMAGEM_URL} target="_blank" rel="noopener noreferrer" className="touch flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold">
+          ▶ Antes de gravar: como filmar (2 min)
+        </a>
       ) : null}
       {!m.conquistada && ehAluno && m.codigo === "olhar_de_aguia" ? (
         <a href={`https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent("Olá, Montinho! Quero o Olhar de Águia: segue o vídeo de um exercício para você avaliar a minha execução.")}`} target="_blank" rel="noopener noreferrer" className="touch flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-bold text-black">
