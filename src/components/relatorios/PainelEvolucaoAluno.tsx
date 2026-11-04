@@ -72,7 +72,7 @@ export function AtalhosEvolucao({ recordes = false }: { recordes?: boolean } = {
     { href: "/aluno/conquistas", emoji: "🏆", titulo: "Conquistas", texto: "Troféus e carimbos" },
     { href: "/aluno/vitorias", emoji: "🌟", titulo: "Vitórias da semana", texto: "O que melhorou" },
     { href: "/aluno/cardio", emoji: "❤️‍🔥", titulo: "Cardio", texto: "Semana e histórico" },
-    { href: "/aluno/medidas", emoji: "📏", titulo: "Medidas", texto: "Peso, medidas, avaliação" },
+    { href: "/aluno/medidas", emoji: "📏", titulo: "Avaliação física", texto: "Peso, medidas, % de gordura" },
   ];
   return (
     <nav aria-label="Atalhos" className="grid grid-cols-2 gap-2">
