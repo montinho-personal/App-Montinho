@@ -86,6 +86,17 @@ export default async function TreinarPage() {
 
       {livreMetas ? <LivreMetasCard p={livreMetas} /> : null}
 
+      {sessao.comoPersonal && !emAndamento ? (
+        <Link href="/aluno/escolher-treino" className="flex items-center gap-3 rounded-2xl border-2 border-accent/50 bg-accent/10 p-4 hover:bg-accent/15">
+          <span className="text-3xl" aria-hidden>📋</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-black">Escolher um treino para hoje</span>
+            <span className="block text-xs text-fg-muted">Treinos prontos (Rainha do Agachamento…) ou o protocolo de um aluno</span>
+          </span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
+
       <Link href="/aluno/cardio" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
         <span className="text-2xl" aria-hidden>❤️‍🔥</span>
         <span><span className="block font-bold">Montinho Cardio</span><span className="block text-xs text-fg-muted">Caminhada, esteira, bike… veja o prescrito e registre em segundos.</span></span>

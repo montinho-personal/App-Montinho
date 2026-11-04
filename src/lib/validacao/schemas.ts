@@ -837,6 +837,8 @@ export const ditadoIASchema = z.object({ fala: z.string().trim().min(3).max(4000
 
 // Treino livre (freestyle) do visitante: exercícios entram na hora.
 const TECNICAS_LIVRE_IDS = ["normal", "dropset", "rest_pause", "biset", "triset", "superset", "piramide", "piramide_decrescente", "myo_reps", "cluster", "tres_sete", "negativo", "super_slow", "isometria", "unilateral"] as const;
+/** Meu treino do personal: começa um treino livre já com um treino pronto ou de um aluno (chave remontada no servidor). */
+export const comecarComBaseSchema = z.object({ chave: z.string().regex(/^(pronto:[a-z0-9-]{2,80}:[A-H]|aluno:[0-9A-Za-z-]{4,64})$/), client_key: z.string().min(4).max(80) }).strict();
 export const livreIniciarSchema = z.object({
   client_key: z.string().min(4).max(80),
   /** Treino livre como treino extra (dor forte não entra: o extra pede conversa com o Montinho). */

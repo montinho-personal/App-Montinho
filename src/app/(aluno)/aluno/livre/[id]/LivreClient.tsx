@@ -29,7 +29,7 @@ import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 import { avisoDaSerie, contaNoPlacar, linhaDoGrupo, somarNoPlacar, sugestaoDeAgora, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
 export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: BlocoDigitado[]; /** Técnica só desta série (ex.: pirâmide e, na última, um drop-set). */ tec?: { tecnica: string; config: ConfigTecnica | null } };
-export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; /** Anilhas/halteres (como anotar o peso). */ tipoPeso?: TipoPeso | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[] };
+export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; /** Anilhas/halteres (como anotar o peso). */ tipoPeso?: TipoPeso | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[]; /** Meta do treino escolhido como base (Meu treino do personal). */ meta?: { series: number; reps: string | null } | null };
 
 /** Técnicas que dá para pôr numa série só (“⚡ Série com técnica”). */
 const TECNICAS_DA_SERIE = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"] as const;
@@ -92,7 +92,7 @@ async function chamar(url: string, metodo: string, corpo: unknown): Promise<{ ok
   }
 }
 
-export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas, padraoCarga = PADRAO_CARGA_VAZIO }: { /** Como a pessoa anota o peso (Perfil). */ padraoCarga?: PadraoCarga; sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
+export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas, padraoCarga = PADRAO_CARGA_VAZIO, titulo = null }: { /** Treino escolhido como base (Meu treino): o nome dele no lugar de “Decida na hora”. */ titulo?: string | null; /** Como a pessoa anota o peso (Perfil). */ padraoCarga?: PadraoCarga; sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
   const router = useRouter();
   // Ao abrir (ou voltar), todo exercício já tem onde anotar: as séries da técnica que faltam ou uma série vazia.
   const [exs, setExs] = useState<ExercicioTela[]>(() =>
@@ -102,10 +102,12 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       const feitasTec = e.series.filter((x) => x.tipo === tipoTec).length;
       if (e.config && tipoTec && registraEmBlocos(tipoTec) && feitasTec < seriesComTecnica(e.tecnica, e.config)) return { ...e, series: seriesParaTecnica(e, e.tecnica, e.config, novaChave).slice(0, e.series.length + seriesComTecnica(e.tecnica, e.config) - feitasTec + (e.series.some((x) => x.tipo === "valida") ? 0 : 1)) };
       const ult = e.series.at(-1);
+      // Treino escolhido como base: já abre com as séries da meta.
+      if (!e.series.length && e.meta && e.meta.series > 1) return { ...e, series: Array.from({ length: Math.min(10, e.meta.series) }, (_, k) => ({ key: novaChave(), serie: k + 1, tipo: "valida" as SerieTipo, carga: "", reps: "", salva: false })) };
       return { ...e, series: [...e.series, { key: novaChave(), serie: e.series.length + 1, tipo: ult && ult.tipo !== "aquecimento" && !registraEmBlocos(ult.tipo) ? ult.tipo : "valida", carga: ult?.carga ?? "", reps: "", salva: false }] };
     })
   );
-  const [aberto, setAberto] = useState<string | null>(inicial.at(-1)?.seId ?? null);
+  const [aberto, setAberto] = useState<string | null>(inicial.find((e) => !e.series.length)?.seId ?? inicial.at(-1)?.seId ?? null);
   const [buscando, setBuscando] = useState(inicial.length === 0);
   const [erro, setErro] = useState<string | null>(null);
   // Erro de um exercício aparece dentro do cartão dele (perto do botão tocado), não lá no topo.
@@ -381,6 +383,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
               {erroEx?.seId === e.seId ? <p role="alert" className="mx-4 mb-3 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{erroEx.texto}</p> : null}
               {abertoAqui ? (
                 <div className="space-y-3 border-t border-border px-4 py-3">
+                  {e.meta?.series ? <p className="text-xs font-semibold text-accent">🎯 Meta: {e.meta.series} × {(e.meta.reps ?? "").replace("-", "–") || "—"}</p> : null}
                   {e.ultima ? <p className="text-xs text-fg-muted">📌 {e.ultima}</p> : null}
                   {!e.bloco ? (
                     <button type="button" onClick={() => setTecnicaDe(e.seId)} className="alvo flex w-full items-center gap-3 rounded-lg border border-border border-l-4 bg-bg px-3 py-2 text-left" style={{ borderLeftColor: (COR_TECNICA[e.tecnica as Tecnica] ?? null) || "var(--color-border)" }}>
@@ -518,7 +521,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">🎲 {extra ? "Treino extra · livre" : "Treino livre"}</p>
-          <h1 className="text-2xl font-bold leading-tight">Decida na hora</h1>
+          <h1 className="text-2xl font-bold leading-tight">{titulo ?? "Decida na hora"}</h1>
           <p className="text-sm text-fg-muted">Escolha o exercício, anote as séries e siga para o próximo.{extra ? " Como extra, fica registrado à parte e não conta na meta semanal." : ""}</p>
         </div>
         <div className="shrink-0 rounded-xl border border-border bg-card px-3 py-2 text-right">

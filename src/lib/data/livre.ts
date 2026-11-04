@@ -20,7 +20,7 @@ import { getSessao, getSessaoEmAndamento, gravarSessaoNova, type SessaoCompleta 
 /** Como treino extra: registrado à parte (não conta na meta semanal), com o “como está o corpo” do extra. */
 export type ExtraLivre = { corpo: "bem" | "cansado" | "dor_leve" | "dor_moderada" };
 
-export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opts: { extra?: ExtraLivre | null } = {}): Promise<SessaoCompleta> {
+export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opts: { extra?: ExtraLivre | null; /** Treino escolhido como base (Meu treino do personal). */ nome?: string | null } = {}): Promise<SessaoCompleta> {
   const atual = await getSessaoEmAndamento(alunoId);
   if (atual) {
     if (ehSessaoLivre(atual)) return atual;
@@ -33,7 +33,7 @@ export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opt
     treino_id: null,
     programa_versao_id: null,
     letra: null,
-    nome_treino: opts.extra ? `Extra · ${NOME_TREINO_LIVRE}` : NOME_TREINO_LIVRE,
+    nome_treino: opts.extra ? `Extra · ${NOME_TREINO_LIVRE}` : opts.nome?.trim().slice(0, 120) || NOME_TREINO_LIVRE,
     client_key: clientKey,
     status: "em_andamento",
     iniciado_em: agora,
@@ -66,7 +66,7 @@ async function exigirLivreEmAndamento(alunoId: string, sessionId: string): Promi
 }
 
 /** Entra um exercício no treino livre: da biblioteca (nome e músculo vêm dela) ou com o nome da pessoa. */
-export async function adicionarExercicioLivre(alunoId: string, sessionId: string, input: { clientKey: string; item: ItemBiblioteca | null; nomeLivre: string | null; tecnica: Tecnica }): Promise<SessionExercise> {
+export async function adicionarExercicioLivre(alunoId: string, sessionId: string, input: { clientKey: string; item: ItemBiblioteca | null; nomeLivre: string | null; tecnica: Tecnica; /** Meta do treino escolhido como base: a tela já abre com essas séries. */ meta?: { series: number; reps: string } | null }): Promise<SessionExercise> {
   const s = await exigirLivreEmAndamento(alunoId, sessionId);
   const chave = `livre:${input.clientKey}`;
   const repetido = s.exercicios.find((e) => e.client_key === chave);
@@ -87,7 +87,7 @@ export async function adicionarExercicioLivre(alunoId: string, sessionId: string
     nome_normalizado: normalizarNome(nome),
     grupo_muscular: input.item?.grupo ?? null,
     series_planejadas: 0,
-    prescricao: { livre: true, series: 0, reps: null, descanso_seg: null, tecnica: input.tecnica, observacoes: null },
+    prescricao: { livre: true, series: input.meta?.series ?? 0, reps: input.meta?.reps ?? null, descanso_seg: null, tecnica: input.tecnica, observacoes: null },
     status: "pendente",
     observacao_aluno: null,
     created_at: agora,

@@ -58,7 +58,8 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     bloco: presc(e.prescricao).bloco ?? null,
     observacao: e.observacao_aluno ?? "",
     ultima: textoUltimaVez(ultimas[e.id]),
+    meta: (() => { const p = (e.prescricao ?? {}) as { series?: number; reps?: string | null }; return p.series ? { series: p.series, reps: p.reps ?? null } : null; })(),
     series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: txt(x.carga_kg), reps: x.reps != null ? String(x.reps) : "", salva: true, ...(x.blocos?.length ? { blocos: x.blocos.map((b) => ({ carga: txt(b.carga), reps: b.reps != null ? String(b.reps) : "" })) } : {}) })),
   })));
-  return <LivreClient padraoCarga={padraoCarga} sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} metas={metas?.placar.length ? { placar: metas.placar, hoje: dataLocal(new Date()), recentes: metas.recentes } : null} />;
+  return <LivreClient titulo={s.nome_treino && !/^(Extra · )?Treino livre$/.test(s.nome_treino) ? s.nome_treino : null} padraoCarga={padraoCarga} sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} extra={s.modo === "extra"} voltar={visitante ? "/aluno/meus-treinos" : "/aluno/treinar"} metas={metas?.placar.length ? { placar: metas.placar, hoje: dataLocal(new Date()), recentes: metas.recentes } : null} />;
 }
