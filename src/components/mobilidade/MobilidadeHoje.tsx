@@ -15,7 +15,7 @@ export function MobilidadeHoje({ dados, hoje, trofeus, compacto = false }: { dad
     if (compacto) return null;
     return (
       <div className="flex items-center justify-between gap-3 rounded-xl border border-success/40 bg-card px-4 py-3">
-        <p className="text-sm"><span aria-hidden>✅</span> <span className="font-bold">{s.feitaHoje ? "Mobilidade feita hoje." : "Mobilidade da semana cumprida!"}</span> <span className="text-fg-muted">{s.diasNaSemana} de {m.diasSemana >= 7 ? 7 : m.diasSemana} nesta semana.</span></p>
+        <p className="text-sm"><span aria-hidden>✅</span> <span className="font-bold">{s.feitaHoje ? "Mobilidade feita hoje." : "Mobilidade da semana cumprida!"}</span> <span className="text-fg-muted">{m.protocolos.map((x) => `${nomeCurto(x)} ${s.porProtocolo[x] ?? 0} de ${m.diasSemana >= 7 ? 7 : m.diasSemana}`).join(" · ")} nesta semana.</span></p>
         <Link href="/aluno/mobilidade" className="shrink-0 text-xs font-semibold text-accent">Ver →</Link>
       </div>
     );
@@ -27,7 +27,11 @@ export function MobilidadeHoje({ dados, hoje, trofeus, compacto = false }: { dad
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua mobilidade de hoje</p>
           <h2 className="font-black leading-tight">{p.nome} · ~{p.minutos} min</h2>
-          <p className="text-xs text-fg-muted">{m.motivo} · {textoDias(m.diasSemana)}{m.diasSemana < 7 ? ` · ${s.diasNaSemana} de ${m.diasSemana} nesta semana` : ""}</p>
+          <p className="text-xs text-fg-muted">{m.motivo}</p>
+          <p className="text-xs text-fg-muted">
+            {m.protocolos.map((x) => `${nomeCurto(x)}: ${textoDias(m.diasSemana)}${m.diasSemana < 7 ? ` (${s.porProtocolo[x] ?? 0} de ${m.diasSemana} nesta semana)` : ""}`).join(" · ")}
+          </p>
+          {m.observacao ? <p className="mt-1 text-xs"><span aria-hidden>📝</span> <span className="font-semibold">Recado do Montinho:</span> {m.observacao}</p> : null}
         </div>
       </div>
       <p className="text-sm leading-relaxed">{beneficioDoDia(hoje)}</p>

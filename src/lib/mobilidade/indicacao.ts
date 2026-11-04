@@ -53,7 +53,8 @@ export function indicacaoDaAnamnese(a: TextoAnamnese | null | undefined): Indica
   return { protocolos: (["superiores", "inferiores"] as const).filter((p) => protocolos.has(p)), regioes };
 }
 
-export type PrescricaoMobilidade = { protocolos: SlugMobilidade[]; dias_semana: number; motivo: string | null; ativo: boolean; criado_em: string };
+/** `dias_semana` vale para CADA protocolo (0145: 2× = 2 dias de superiores e 2 de inferiores). */
+export type PrescricaoMobilidade = { protocolos: SlugMobilidade[]; dias_semana: number; motivo: string | null; observacao?: string | null; ativo: boolean; criado_em: string };
 
 export type MobilidadeDoAluno = {
   protocolos: SlugMobilidade[];
@@ -61,6 +62,8 @@ export type MobilidadeDoAluno = {
   origem: "personal" | "anamnese";
   /** Por quê (para o aluno e o personal): “Anamnese: ombro e joelho” ou o motivo escrito. */
   motivo: string;
+  /** Recado do personal (0145). */
+  observacao: string | null;
   regioes: string[];
 };
 
@@ -71,10 +74,10 @@ export function mobilidadeDoAluno(p: PrescricaoMobilidade | null, anamnese: Text
   const ind = indicacaoDaAnamnese(anamnese);
   if (p) {
     if (!p.ativo || !p.protocolos.length) return null;
-    return { protocolos: p.protocolos, diasSemana: Math.min(7, Math.max(1, p.dias_semana)), origem: "personal", motivo: p.motivo?.trim() || (ind.regioes.length ? `Pela sua anamnese: ${listaPt(ind.regioes).toLowerCase()}` : "Indicada pelo Montinho"), regioes: ind.regioes };
+    return { protocolos: p.protocolos, diasSemana: Math.min(7, Math.max(1, p.dias_semana)), origem: "personal", motivo: p.motivo?.trim() || (ind.regioes.length ? `Pela sua anamnese: ${listaPt(ind.regioes).toLowerCase()}` : "Indicada pelo Montinho"), observacao: p.observacao?.trim() || null, regioes: ind.regioes };
   }
   if (!ind.protocolos.length) return null;
-  return { protocolos: ind.protocolos, diasSemana: 7, origem: "anamnese", motivo: `Pela sua anamnese: ${listaPt(ind.regioes).toLowerCase()}`, regioes: ind.regioes };
+  return { protocolos: ind.protocolos, diasSemana: 7, origem: "anamnese", motivo: `Pela sua anamnese: ${listaPt(ind.regioes).toLowerCase()}`, observacao: null, regioes: ind.regioes };
 }
 
 // ---------------------------------------------------------------------------
@@ -93,7 +96,11 @@ export type SituacaoMobilidade = {
   feitaHoje: boolean;
   /** Dias diferentes da semana (seg–dom) com uma mobilidade indicada concluída. */
   diasNaSemana: number;
+  /** Dias diferentes da semana com cada protocolo indicado (a meta é POR protocolo, 0145). */
+  porProtocolo: Partial<Record<SlugMobilidade, number>>;
+  /** Dias por semana de CADA protocolo. */
   meta: number;
+  /** Todos os protocolos indicados chegaram nos dias da semana. */
   metaBatida: boolean;
   /** Qual fazer hoje: a indicada feita há mais tempo (ou nunca). */
   hoje: SlugMobilidade;
@@ -105,9 +112,13 @@ export function situacaoMobilidade(m: MobilidadeDoAluno, sessoes: SessaoMobilida
   const seg = segundaDe(hoje);
   const diasSemana = new Set(validas.map((s) => diaBR(s.iniciado_em)).filter((d) => d >= seg && d <= hoje));
   const ultimaDe = (p: SlugMobilidade) => validas.filter((s) => s.protocolo === p).map((s) => s.concluido_em!).sort().at(-1) ?? "";
-  const hojeQual = [...m.protocolos].sort((a, b) => (ultimaDe(a) < ultimaDe(b) ? -1 : ultimaDe(a) > ultimaDe(b) ? 1 : 0))[0];
+  const porProtocolo: Partial<Record<SlugMobilidade, number>> = {};
+  for (const p of m.protocolos) porProtocolo[p] = new Set(validas.filter((s) => s.protocolo === p).map((s) => diaBR(s.iniciado_em)).filter((d) => d >= seg && d <= hoje)).size;
+  // Hoje: o mais atrasado na semana; empatados, o feito há mais tempo (ou nunca).
+  const hojeQual = [...m.protocolos].sort((a, b) => (porProtocolo[a] ?? 0) - (porProtocolo[b] ?? 0) || (ultimaDe(a) < ultimaDe(b) ? -1 : ultimaDe(a) > ultimaDe(b) ? 1 : 0))[0];
   const ultimaEm = validas.map((s) => s.concluido_em!).sort().at(-1) ?? null;
-  return { feitaHoje: diasSemana.has(hoje), diasNaSemana: diasSemana.size, meta: m.diasSemana, metaBatida: diasSemana.size >= m.diasSemana, hoje: hojeQual, ultimaEm };
+  const metaBatida = m.protocolos.every((p) => (porProtocolo[p] ?? 0) >= m.diasSemana);
+  return { feitaHoje: diasSemana.has(hoje), diasNaSemana: diasSemana.size, porProtocolo, meta: m.diasSemana, metaBatida, hoje: hojeQual, ultimaEm };
 }
 
 /** Lembrete de hoje: aparece se não fez hoje e a meta da semana ainda está aberta (com 7 dias, todo dia). */
@@ -130,3 +141,5 @@ export function beneficioDoDia(hoje: string): string {
 
 export const nomeCurto = (p: SlugMobilidade) => PROTOCOLOS[p].nome.replace("Mobilidade de ", "");
 export const textoDias = (n: number) => (n >= 7 ? "todos os dias" : `${n}× por semana`);
+/** “Superiores 2×/semana + Inferiores 2×/semana” (cada protocolo com os seus dias). */
+export const resumoProtocolos = (protocolos: SlugMobilidade[], dias: number) => protocolos.map((p) => `${nomeCurto(p)} ${dias >= 7 ? "todo dia" : `${dias}×/semana`}`).join(" + ");

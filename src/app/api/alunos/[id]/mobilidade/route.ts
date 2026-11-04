@@ -16,8 +16,8 @@ export async function POST(request: Request, { params }: Ctx) {
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   if (!(await getAluno(id))) return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404 });
   try {
-    await salvarPrescricaoMobilidade(id, { protocolos: [...new Set(data.protocolos)], dias_semana: data.dias_semana, motivo: data.motivo?.trim() || null, ativo: data.ativo });
-    return NextResponse.json({ ok: true });
+    const salvo = await salvarPrescricaoMobilidade(id, { protocolos: [...new Set(data.protocolos)], dias_semana: data.dias_semana, motivo: data.motivo?.trim() || null, observacao: data.observacao?.trim() || null, ativo: data.ativo });
+    return NextResponse.json({ ok: true, salvo: { protocolos: salvo.protocolos, dias_semana: salvo.dias_semana, motivo: salvo.motivo, observacao: salvo.observacao ?? null, ativo: salvo.ativo } });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Não foi possível salvar" }, { status: 400 });
   }

@@ -19,24 +19,30 @@ const demo = () => (g.__demoPrescMob ??= new Map());
 export async function prescricaoMobilidade(alunoId: string): Promise<PrescricaoMobilidade | null> {
   if (isDemoMode()) return demo().get(alunoId) ?? null;
   const db = await getDb();
-  const { data, error } = await db.from("mobilidade_prescricoes").select("aluno_id, protocolos, dias_semana, motivo, ativo, criado_em").eq("aluno_id", alunoId).is("desativado_em", null).maybeSingle();
+  let { data, error } = await db.from("mobilidade_prescricoes").select("aluno_id, protocolos, dias_semana, motivo, observacao, ativo, criado_em").eq("aluno_id", alunoId).is("desativado_em", null).maybeSingle();
+  // Sem a 0145 no banco (coluna observacao), lê como antes.
+  if (error && /observacao/i.test(error.message)) ({ data, error } = await db.from("mobilidade_prescricoes").select("aluno_id, protocolos, dias_semana, motivo, ativo, criado_em").eq("aluno_id", alunoId).is("desativado_em", null).maybeSingle());
   if (error) return null;
   return (data as PrescricaoMobilidade | null) ?? null;
 }
 
 /** Personal: troca a prescrição (desativa a vigente e cria outra). `ativo=false` = desligar. */
-export async function salvarPrescricaoMobilidade(alunoId: string, p: { protocolos: SlugMobilidade[]; dias_semana: number; motivo: string | null; ativo: boolean }): Promise<void> {
-  const linha: Linha = { aluno_id: alunoId, protocolos: p.ativo ? p.protocolos : [], dias_semana: p.dias_semana, motivo: p.motivo, ativo: p.ativo && p.protocolos.length > 0, criado_em: new Date().toISOString() };
+export async function salvarPrescricaoMobilidade(alunoId: string, p: { protocolos: SlugMobilidade[]; dias_semana: number; motivo: string | null; observacao?: string | null; ativo: boolean }): Promise<PrescricaoMobilidade> {
+  const linha: Linha = { aluno_id: alunoId, protocolos: p.ativo ? p.protocolos : [], dias_semana: p.dias_semana, motivo: p.motivo, observacao: p.observacao ?? null, ativo: p.ativo && p.protocolos.length > 0, criado_em: new Date().toISOString() };
   if (isDemoMode()) {
     demo().set(alunoId, linha);
-    return;
+    return linha;
   }
   const db = await getDb();
   const agora = new Date().toISOString();
   const { error: e1 } = await db.from("mobilidade_prescricoes").update({ desativado_em: agora }).eq("aluno_id", alunoId).is("desativado_em", null);
   if (e1) throw new Error(e1.message.includes("mobilidade_prescricoes") ? "A mobilidade no protocolo está sendo ativada. Tente de novo daqui a pouco." : e1.message);
-  const { error } = await db.from("mobilidade_prescricoes").insert({ aluno_id: alunoId, protocolos: linha.protocolos, dias_semana: linha.dias_semana, motivo: linha.motivo, ativo: linha.ativo });
+  const base = { aluno_id: alunoId, protocolos: linha.protocolos, dias_semana: linha.dias_semana, motivo: linha.motivo, ativo: linha.ativo };
+  let { error } = await db.from("mobilidade_prescricoes").insert({ ...base, observacao: linha.observacao });
+  if (error && /observacao/i.test(error.message)) ({ error } = await db.from("mobilidade_prescricoes").insert(base));
   if (error) throw new Error(error.message);
+  // Confere o que ficou gravado (a tela mostra exatamente isso).
+  return (await prescricaoMobilidade(alunoId)) ?? linha;
 }
 
 export type MobilidadeIndicada = { m: MobilidadeDoAluno; s: SituacaoMobilidade };
@@ -80,7 +86,7 @@ export async function mobilidadeDeTodos(): Promise<LinhaMobilidadePersonal[]> {
     const desde = new Date(Date.now() - 21 * 86_400_000).toISOString();
     const [a, p, s] = await Promise.all([
       db.from("anamnese").select("aluno_id, lesoes, dores_atuais, cirurgias, doencas_cronicas").in("aluno_id", ids),
-      db.from("mobilidade_prescricoes").select("aluno_id, protocolos, dias_semana, motivo, ativo, criado_em").in("aluno_id", ids).is("desativado_em", null),
+      db.from("mobilidade_prescricoes").select("*").in("aluno_id", ids).is("desativado_em", null),
       db.from("mobilidade_sessoes").select("*").in("aluno_id", ids).gte("iniciado_em", desde).limit(1000),
     ]);
     anamneses = (a.data ?? []) as typeof anamneses;
@@ -126,6 +132,8 @@ export function estadoParaPainel(x: { prescricao: PrescricaoMobilidade | null; i
     protocolos: x.m?.protocolos ?? (x.indicacao.protocolos.length ? x.indicacao.protocolos : (["superiores"] as SlugMobilidade[])),
     diasSemana: x.m?.diasSemana ?? 7,
     motivo: x.prescricao?.motivo ?? "",
+    observacao: x.prescricao?.observacao ?? "",
+    porProtocolo: x.s?.porProtocolo ?? {},
     ativo: !desligada && !!x.m,
     origem: x.m?.origem ?? (desligada ? ("personal" as const) : null),
     regioesAnamnese: x.indicacao.regioes,

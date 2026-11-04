@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { indicacaoDaAnamnese, lembrarHoje, mobilidadeDoAluno, segundaDe, situacaoMobilidade } from "./indicacao";
+import { indicacaoDaAnamnese, resumoProtocolos, lembrarHoje, mobilidadeDoAluno, segundaDe, situacaoMobilidade } from "./indicacao";
 import type { SessaoMobilidade } from "./regras";
 
 const ses = (protocolo: "superiores" | "inferiores", inicio: string): SessaoMobilidade => ({ id: inicio, protocolo, status: "concluida", iniciado_em: inicio, concluido_em: new Date(Date.parse(inicio) + 20 * 60_000).toISOString(), nota_antes: 5, nota_depois: 3 });
@@ -31,7 +31,7 @@ describe("mobilidadeDoAluno", () => {
 });
 
 describe("situacaoMobilidade", () => {
-  const m = { protocolos: ["superiores", "inferiores"] as ("superiores" | "inferiores")[], diasSemana: 3, origem: "personal" as const, motivo: "", regioes: [] };
+  const m = { protocolos: ["superiores", "inferiores"] as ("superiores" | "inferiores")[], diasSemana: 3, origem: "personal" as const, motivo: "", observacao: null, regioes: [] };
   it("conta dias diferentes da semana e sugere a feita há mais tempo", () => {
     expect(segundaDe("2026-10-29")).toBe("2026-10-26");
     const s = situacaoMobilidade(m, [ses("superiores", "2026-10-27T12:00:00Z"), ses("superiores", "2026-10-28T12:00:00Z")], "2026-10-29");
@@ -42,5 +42,17 @@ describe("situacaoMobilidade", () => {
     const s = situacaoMobilidade(m, [ses("inferiores", "2026-10-29T12:00:00Z")], "2026-10-29");
     expect(s.feitaHoje).toBe(true);
     expect(lembrarHoje(s)).toBe(false);
+  });
+  it("2× por semana vale para CADA protocolo (0145)", () => {
+    const m2 = { ...m, diasSemana: 2 };
+    // 2 dias de superiores e 1 de inferiores: ainda falta inferiores.
+    const s = situacaoMobilidade(m2, [ses("superiores", "2026-10-26T12:00:00Z"), ses("superiores", "2026-10-27T12:00:00Z"), ses("inferiores", "2026-10-28T12:00:00Z")], "2026-10-29");
+    expect(s.porProtocolo).toEqual({ superiores: 2, inferiores: 1 });
+    expect(s.metaBatida).toBe(false);
+    expect(s.hoje).toBe("inferiores");
+    expect(lembrarHoje(s)).toBe(true);
+    const s2 = situacaoMobilidade(m2, [ses("superiores", "2026-10-26T12:00:00Z"), ses("superiores", "2026-10-27T12:00:00Z"), ses("inferiores", "2026-10-28T12:00:00Z"), ses("inferiores", "2026-10-29T12:00:00Z")], "2026-10-30");
+    expect(s2.metaBatida).toBe(true);
+    expect(resumoProtocolos(["superiores", "inferiores"], 2)).toBe("Superiores 2×/semana + Inferiores 2×/semana");
   });
 });

@@ -39,7 +39,7 @@ export default async function MobilidadeTreinadorPage() {
                 alunoId={l.alunoId}
                 nome={l.nome}
                 telefone={l.telefone}
-                e={{ protocolos: l.m?.protocolos ?? ["superiores"], diasSemana: l.m?.diasSemana ?? 7, motivo: l.m?.origem === "personal" ? l.m.motivo : "", ativo: !!l.m, origem: l.m?.origem ?? (l.desligada ? "personal" : null), regioesAnamnese: l.regioesAnamnese, diasFeitos: l.s?.diasNaSemana ?? null, feitaHoje: !!l.s?.feitaHoje }}
+                e={{ protocolos: l.m?.protocolos ?? ["superiores"], diasSemana: l.m?.diasSemana ?? 7, motivo: l.m?.origem === "personal" ? l.m.motivo : "", observacao: l.m?.observacao ?? "", porProtocolo: l.s?.porProtocolo ?? {}, ativo: !!l.m, origem: l.m?.origem ?? (l.desligada ? "personal" : null), regioesAnamnese: l.regioesAnamnese, diasFeitos: l.s?.diasNaSemana ?? null, feitaHoje: !!l.s?.feitaHoje }}
               />
             </div>
           ))

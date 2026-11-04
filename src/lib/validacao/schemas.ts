@@ -1044,6 +1044,7 @@ export const mobilidadePrescreverSchema = z
     protocolos: z.array(z.enum(["superiores", "inferiores"])).max(2),
     dias_semana: z.number().int().min(1).max(7),
     motivo: z.string().trim().max(200).nullable().optional(),
+    observacao: z.string().trim().max(500).nullable().optional(),
     ativo: z.boolean(),
   })
   .strict();
