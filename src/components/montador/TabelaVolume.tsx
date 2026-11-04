@@ -18,7 +18,7 @@ import { AVISO_REFERENCIA, aplicarPrioridades, referenciasPorNivel, type NivelRe
 import { Icon } from "@/components/ui/Icon";
 import { lerFaixa, textoFaixa } from "@/lib/volume/faixa";
 
-type Filtro = "todos" | "superiores" | "inferiores";
+type Filtro = "todos" | "superiores" | "inferiores" | "prioritarios";
 type Ordem = "padrao" | "volume" | "prioridade" | "falta";
 
 type Props = {
@@ -122,6 +122,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
     let l = resultado.linhas.filter((x) => x.total > 0 || x.meta || x.secundario > 0 || x.exerciciosRevisar > 0);
     if (filtro === "superiores") l = l.filter((x) => x.superior);
     if (filtro === "inferiores") l = l.filter((x) => x.inferior);
+    if (filtro === "prioritarios") l = l.filter((x) => prioridades.includes(x.grupo));
     if (ordem === "volume") l = [...l].sort((a, b) => b.total - a.total);
     if (ordem === "falta") {
       const pct = (x: LinhaVolume) => (x.status === "abaixo" && x.meta ? (x.meta.min + (x.diferenca ?? 0)) / x.meta.min : x.status === "sem_meta" ? 3 : 2);
@@ -175,6 +176,11 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
             {f === "todos" ? "Todos" : f === "superiores" ? "Superiores" : "Inferiores"}
           </button>
         ))}
+        {prioridades.length ? (
+          <button type="button" onClick={() => setFiltro("prioritarios")} aria-pressed={filtro === "prioritarios"} className={`rounded-full border px-2.5 py-1 font-semibold ${filtro === "prioritarios" ? "border-accent text-accent bg-accent/10" : "border-border text-fg-muted"}`}>
+            ★ Prioritários ({prioridades.length})
+          </button>
+        ) : null}
         <select aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} className="rounded-full border border-border bg-bg px-2 py-1 text-[11px]">
           <option value="padrao">Ordem padrão</option>
           <option value="volume">Maior volume</option>
@@ -229,6 +235,14 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
         </div>
       ) : null}
 
+      {onPrioridades ? (
+        <p className="text-[10.5px] text-fg-subtle">
+          <span className="font-bold text-accent">★ Prioridade</span> = músculo prioritário do protocolo (linha destacada). Toque no nome do músculo para marcar ou desmarcar.
+        </p>
+      ) : prioridades.length ? (
+        <p className="text-[10.5px] text-fg-subtle"><span className="font-bold text-accent">★ Prioridade</span> = músculo prioritário do protocolo.</p>
+      ) : null}
+
       {linhas.length === 0 ? (
         <p className="py-6 text-center text-xs text-fg-subtle">Digite os exercícios: o volume aparece aqui na hora.</p>
       ) : (
@@ -261,12 +275,16 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                 const abdomenTotal = l.grupo === "abdomen" && resultado.linhas.some((x) => x.parteDe === "abdomen");
                 const rotulo = l.somaDasPartes ? "Ombros (total)" : abdomenTotal ? "Abdômen (total)" : parteAbdomen ? `↳ ${l.label.replace("Abdômen s", "S").replace("Abdômen i", "I")}` : parteOmbro ? `↳ ${l.label.replace("Ombro a", "A").replace("Ombro l", "L").replace("Ombro p", "P")}` : l.label;
                 return (
-                  <tr key={l.grupo} className="border-t border-border">
+                  <tr key={l.grupo} className={`border-t border-border ${prioritario ? "bg-accent/10 shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}>
                     <td className={`px-1 py-1.5 ${parteOmbro ? "pl-4" : ""}`}>
                       <button type="button" onClick={() => togglePrioridade(l.grupo)} disabled={!onPrioridades} className="inline-flex min-h-6 items-center gap-1.5 text-left disabled:cursor-default" title={!onPrioridades ? (prioritario ? "Prioritário" : undefined) : prioritario ? "Prioritário (clique para remover)" : "Marcar como prioritário"}>
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: GRUPO_COR[l.grupo] }} aria-hidden />
                         <span className={`${parteOmbro ? "font-medium text-fg-muted" : "font-semibold"} ${l.grupo === "nao_classificado" || l.grupo === "pernas" ? "text-warning" : ""}`}>{rotulo}</span>
-                        {prioritario ? <Icon name="star" size={11} className="text-accent" label="prioritário" /> : null}
+                        {prioritario ? (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-1.5 py-px text-[9px] font-black uppercase tracking-wide text-bg">
+                            <Icon name="star" size={9} label="prioritário" /> Prioridade
+                          </span>
+                        ) : null}
                       </button>
                       {l.somaDasPartes ? <span className="block text-[10px] text-fg-subtle leading-snug">anterior + lateral + posterior</span> : null}
                       {abdomenTotal ? <span className="block text-[10px] text-fg-subtle leading-snug">todos os abdominais (supra e infra pelo nome)</span> : null}
