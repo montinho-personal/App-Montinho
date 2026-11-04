@@ -588,7 +588,7 @@ export const conteudoConhecimentoSchema = z
   .object({
     id: idConhecimento,
     numero: z.number().int().min(1).max(999),
-    categoria: z.enum(["musculacao", "emagrecimento", "nutricao", "recuperacao", "consistencia"]),
+    categoria: z.enum(["musculacao", "emagrecimento", "nutricao", "recuperacao", "consistencia", "execucao"]),
     titulo: z.string().trim().min(2, "Escreva o título").max(80),
     pergunta: z.string().trim().min(5, "Escreva a pergunta").max(200),
     tipo: z.enum(["mito_verdade", "mito_verdade_depende", "multipla"]),

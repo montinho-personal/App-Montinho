@@ -1,12 +1,13 @@
 // Montinho Desbloqueia — tipos do conteúdo educativo.
 
-export type CategoriaConhecimento = "musculacao" | "emagrecimento" | "nutricao" | "recuperacao" | "consistencia";
+export type CategoriaConhecimento = "musculacao" | "emagrecimento" | "nutricao" | "recuperacao" | "consistencia" | "execucao";
 export const CATEGORIAS: Array<{ id: CategoriaConhecimento; rotulo: string; cor: string }> = [
   { id: "musculacao", rotulo: "Musculação", cor: "#ba9e50" },
   { id: "emagrecimento", rotulo: "Emagrecimento", cor: "#c9785a" },
   { id: "nutricao", rotulo: "Nutrição", cor: "#7aa36a" },
   { id: "recuperacao", rotulo: "Recuperação", cor: "#6f8fb3" },
   { id: "consistencia", rotulo: "Consistência", cor: "#a58bc4" },
+  { id: "execucao", rotulo: "Execução e dor", cor: "#4fa3a0" },
 ];
 
 export type TipoQuiz = "mito_verdade" | "mito_verdade_depende" | "multipla";
