@@ -37,3 +37,25 @@ describe("conferência de marcação", () => {
     expect(conferirSerie({ carga: null, reps: 60, repsPrescritas: "30", cargasReferencia: [], emSegundos: true })).toBeNull();
   });
 });
+
+describe("anilhas/halteres: dobro, metade e bem acima (04/11/2026)", () => {
+  const anilhaPorLado = { tipo: "anilhas" as const, modo: "por_lado" as const };
+  it("dobro do normal pergunta se anotou a soma e sugere a metade", () => {
+    const a = conferirSerie({ carga: 80, reps: 10, cargasReferencia: [40, 40], padrao: anilhaPorLado });
+    expect(a?.mensagem).toMatch(/dobro.*Você anota só um lado.*a soma dos dois lados/);
+    expect(a?.sugestao).toEqual({ carga: 40, rotulo: "Era 40 kg" });
+  });
+  it("metade do normal com quem anota a soma", () => {
+    const a = conferirSerie({ carga: 20, reps: 10, cargasReferencia: [40], padrao: { tipo: "halteres", modo: "total" } });
+    expect(a?.mensagem).toMatch(/metade.*os dois halteres somados.*o peso de um halter/);
+    expect(a?.sugestao?.carga).toBe(40);
+  });
+  it("bem acima do normal (sem ser o dobro) só pergunta", () => {
+    const a = conferirSerie({ carga: 70, reps: 10, cargasReferencia: [40] });
+    expect(a).toEqual({ mensagem: expect.stringMatching(/bem acima/), sugestao: null });
+  });
+  it("progressão normal não pergunta", () => {
+    expect(conferirSerie({ carga: 45, reps: 10, cargasReferencia: [40], padrao: anilhaPorLado })).toBeNull();
+    expect(conferirSerie({ carga: 6, reps: 12, cargasReferencia: [3], padrao: anilhaPorLado })).toBeNull(); // 3 → 6 kg: diferença pequena
+  });
+});

@@ -755,7 +755,8 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
     if (!silencioso && !confirmado && s.tipo === "valida" && !emBlocos && !outro) {
       const hoje = series[seId].filter((x, k) => k !== idx && x.concluida && x.tipo === "valida").map((x) => Number(x.carga.replace(",", ".")));
       const ult = ex.trocado ? [] : (ultimas[ex.id]?.series ?? []).filter((x) => x.tipo === "valida").map((x) => x.carga_kg ?? 0);
-      const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ehPorTempo(ex) });
+      const tp = ehPorTempo(ex) ? null : tipoDePeso({ nome: ex.nome, equipamento: ex.trocado ? [] : (ex.equipamento ?? []), unilateral: ex.unilateral });
+      const alerta = conferirSerie({ carga, reps, repsPrescritas: repsDaSerie(ex, s.serie) || ex.reps, cargasReferencia: [...hoje, ...ult], grupo: ex.grupo_muscular ?? null, emSegundos: ehPorTempo(ex), padrao: tp ? { tipo: tp, modo: padrao[tp] } : null });
       if (alerta) {
         setConferenciaSerie({ seId, idx, alerta });
         requestAnimationFrame(() => document.getElementById(`confere-${seId}-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));

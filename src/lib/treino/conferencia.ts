@@ -6,6 +6,9 @@
 //  • Sem histórico: carga acima do esperado para o grupo muscular.
 //  • Repetições muito acima do prescrito (100 em vez de 10).
 //  • Carga e repetições trocadas de campo.
+//  • Anilhas/halteres (04/11/2026, pedido do Montinho): exatamente o DOBRO (ou a
+//    metade) do normal → provável troca entre “soma dos lados” e “um lado”;
+//    e carga bem acima do normal (60%+ e 10 kg+) → pergunta se anotou certo.
 // Erra para o lado de perguntar pouco: só valores bem fora do padrão.
 // ============================================================================
 
@@ -23,7 +26,15 @@ export type EntradaConferencia = {
   grupo?: GrupoMuscular | null;
   /** Isometria/tempo: “reps” são segundos — não confere repetições. */
   emSegundos?: boolean;
+  /** Anilhas/halteres e o jeito que a pessoa anota (Perfil). */
+  padrao?: { tipo: "anilhas" | "halteres"; modo: "total" | "por_lado" | null } | null;
 };
+
+/** “a soma dos dois lados”, “um lado só”… (para o recado da conferência). */
+function jeito(p: NonNullable<EntradaConferencia["padrao"]>, modo: "total" | "por_lado"): string {
+  if (p.tipo === "anilhas") return modo === "total" ? "a soma dos dois lados" : "só um lado";
+  return modo === "total" ? "os dois halteres somados" : "o peso de um halter";
+}
 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
@@ -53,12 +64,36 @@ export function conferirSerie(e: EntradaConferencia): Alerta | null {
     return { mensagem: `Parece que carga e repetições ficaram trocadas: ${fmt(e.carga)} kg × ${e.reps} repetições. Confere?`, sugestao: { carga: e.reps, reps: e.carga, rotulo: `Trocar: ${fmt(e.reps)} kg × ${e.carga}` } };
   }
 
-  // 2) Carga fora da referência do próprio aluno.
+  // 2) Anilhas/halteres: o dobro ou a metade exata do normal = provável troca de jeito de anotar.
+  if (e.padrao && e.carga != null && e.carga > 0 && ref && ref >= 2) {
+    const r = e.carga / ref;
+    const comoAnota = e.padrao.modo ? ` Você anota ${jeito(e.padrao, e.padrao.modo)}.` : "";
+    if (r >= 1.85 && r <= 2.15 && e.carga - ref >= 4) {
+      const outro = e.padrao.modo === "total" ? null : jeito(e.padrao, "total");
+      return {
+        mensagem: `${fmt(e.carga)} kg é o dobro do seu normal neste exercício (${fmt(ref)} kg).${comoAnota} ${outro ? `Será que anotou ${outro}?` : "Anotou certo?"}`,
+        sugestao: { carga: e.carga / 2, rotulo: `Era ${fmt(e.carga / 2)} kg` },
+      };
+    }
+    if (r >= 0.45 && r <= 0.55 && ref - e.carga >= 4) {
+      const outro = e.padrao.modo === "por_lado" ? null : jeito(e.padrao, "por_lado");
+      return {
+        mensagem: `${fmt(e.carga)} kg é a metade do seu normal neste exercício (${fmt(ref)} kg).${comoAnota} ${outro ? `Será que anotou ${outro}?` : "Anotou certo?"}`,
+        sugestao: { carga: e.carga * 2, rotulo: `Era ${fmt(e.carga * 2)} kg` },
+      };
+    }
+  }
+
+  // 3) Carga fora da referência do próprio aluno.
   if (e.carga != null && e.carga > 0 && ref && ref >= 2) {
     if (e.carga >= ref * 2.5 && e.carga - ref >= 15) {
       const dez = e.carga / 10;
       const sugestao = perto(dez, ref) ? { carga: dez, rotulo: `Era ${fmt(dez)} kg` } : null;
       return { mensagem: `${fmt(e.carga)} kg é bem mais que o seu normal neste exercício (${fmt(ref)} kg). Confere?`, sugestao };
+    }
+    // Bem acima do normal (mas não absurdo): só pergunta, sem sugerir número.
+    if (e.carga >= ref * 1.6 && e.carga - ref >= 10) {
+      return { mensagem: `${fmt(e.carga)} kg é bem acima do que você costuma pegar neste exercício (${fmt(ref)} kg). Anotou certo?`, sugestao: null };
     }
     if (e.carga <= ref * 0.3 && ref - e.carga >= 10) {
       const dez = e.carga * 10;
@@ -67,7 +102,7 @@ export function conferirSerie(e: EntradaConferencia): Alerta | null {
     }
   }
 
-  // 3) Sem histórico: carga improvável.
+  // 4) Sem histórico: carga improvável.
   if (e.carga != null && !ref) {
     const limite = e.grupo && GRUPOS_LEVES.has(e.grupo) ? 100 : 300;
     if (e.carga > limite) {
@@ -76,7 +111,7 @@ export function conferirSerie(e: EntradaConferencia): Alerta | null {
     }
   }
 
-  // 4) Repetições muito acima do prescrito.
+  // 5) Repetições muito acima do prescrito.
   if (!e.emSegundos && e.reps != null) {
     if (max && e.reps >= Math.max(30, max * 3)) {
       const dez = Math.round(e.reps / 10);
