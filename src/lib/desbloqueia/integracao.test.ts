@@ -20,7 +20,7 @@ describe("Desbloqueia no treino", () => {
     expect(Object.keys(p.itens).sort()).toEqual([...new Set([...Object.values(p.porContexto), "d01"])].sort());
     const depois = pacoteDoTreino(base, ["d03", "d01"], CONTEXTOS);
     expect(depois.porContexto.recorde).toBeUndefined();
-    expect(depois.porContexto.reps_altas).toBeUndefined();
+    expect(depois.porContexto.reps_altas).toBe("d65"); // 04/11/2026: “Peso leve também faz crescer?” é a próxima sobre reps altas
     expect(depois.repsAltas).toBe("d01");
   });
   it("lê a prescrição de repetições", () => {
