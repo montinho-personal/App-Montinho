@@ -6,7 +6,7 @@ import { useState } from "react";
 import { gerarCardRelatorio } from "./cardRelatorio";
 import { enviarEvento } from "@/components/chalala/evento";
 import { compartilharArquivo, MENSAGEM_RESULTADO, type ResultadoCompartilhar } from "@/lib/chalala/compartilhar";
-import type { CardRelatorio } from "@/lib/relatorios/card-relatorio";
+import { cardDoPersonal, type CardRelatorio } from "@/lib/relatorios/card-relatorio";
 
 function baixar(f: File) {
   const url = URL.createObjectURL(f);
@@ -23,7 +23,8 @@ export function CompartilharCardRelatorio({ card, rotulo = "📲 Compartilhar", 
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   if (!card) return null;
-  const c = card;
+  // Personal baixando o card de um aluno: o nome do aluno no lugar de “minha evolução”.
+  const c = registrar ? card : cardDoPersonal(card);
   async function compartilhar() {
     setEnviando(true);
     setAviso(null);

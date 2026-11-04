@@ -162,3 +162,18 @@ export function cardDaAvaliacao(o: { rel: RelatorioAvaliacao; nome: string; /** 
     ref: `relatorio:avaliacao:${o.rel.id}`,
   };
 }
+
+/**
+ * O personal compartilhando o card de um aluno (pedido do Montinho, 04/11/2026:
+ * “sou eu compartilhando, apareça o nome dela ao invés de ‘minha evolução’”).
+ * Troca o “meu/minha/eu” pelo primeiro nome do aluno (sem pronome de gênero).
+ */
+export function cardDoPersonal(card: CardRelatorio): CardRelatorio {
+  const nome = card.nome.trim();
+  if (!nome) return card;
+  const NOME = nome.toLocaleUpperCase("pt-BR");
+  const chamada =
+    card.chamada === "MINHA EVOLUÇÃO" ? `EVOLUÇÃO · ${NOME}` : card.chamada === "EVOLUÇÃO NA AVALIAÇÃO FÍSICA" || card.chamada === "AVALIAÇÃO FÍSICA" ? `AVALIAÇÃO FÍSICA · ${NOME}` : `${card.chamada} · ${NOME}`;
+  const titulo = card.titulo === "EU EVOLUÍ!" ? `${NOME} EVOLUIU!` : card.titulo === "MINHA EVOLUÇÃO" ? "EVOLUÇÃO" : card.titulo === "MINHA AVALIAÇÃO" ? "AVALIAÇÃO FÍSICA" : card.titulo;
+  return { ...card, chamada, titulo, legenda: `Evolução de ${nome}, registrada no app do Montinho Personal Trainer 💪 @montinho_personal` };
+}

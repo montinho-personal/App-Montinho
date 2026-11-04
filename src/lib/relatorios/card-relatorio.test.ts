@@ -68,3 +68,15 @@ describe("cards dos relatórios", () => {
     expect(primeira.numeros[0].detalhe).toBeUndefined();
   });
 });
+
+describe("card compartilhado pelo personal", () => {
+  it("troca “minha/eu” pelo nome do aluno", async () => {
+    const { cardDoPersonal } = await import("./card-relatorio");
+    const base = cardDoPeso({ pesos: [{ data: "2026-04-29", kg: 59.9 }, { data: "2026-10-02", kg: 57.4 }], nome: "Natalia Cristina", hoje: "2026-11-04" })!;
+    const p = cardDoPersonal(base);
+    expect(p.chamada).toBe("EVOLUÇÃO · NATALIA");
+    expect(p.legenda).toMatch(/^Evolução de Natalia/);
+    const av = cardDoPersonal({ ...base, chamada: "EVOLUÇÃO NA AVALIAÇÃO FÍSICA", titulo: "EU EVOLUÍ!" });
+    expect([av.chamada, av.titulo]).toEqual(["AVALIAÇÃO FÍSICA · NATALIA", "NATALIA EVOLUIU!"]);
+  });
+});
