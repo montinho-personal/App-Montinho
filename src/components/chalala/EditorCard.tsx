@@ -280,9 +280,14 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">Minha foto</p>
                 {ativos.foto ? (
-                  <button type="button" onClick={removerFoto} className="alvo text-xs text-fg-muted underline-offset-2 hover:underline">
-                    Remover foto
-                  </button>
+                  <span className="flex items-center gap-3">
+                    <button type="button" disabled={ocupado} onClick={() => fotoRef.current?.click()} className="alvo rounded-full border border-accent/60 px-3 py-1 text-xs font-semibold text-accent disabled:opacity-60">
+                      🔄 Trocar foto
+                    </button>
+                    <button type="button" onClick={removerFoto} className="alvo text-xs text-fg-muted underline-offset-2 hover:underline">
+                      Remover
+                    </button>
+                  </span>
                 ) : null}
               </div>
               {!ativos.foto ? (
@@ -294,19 +299,34 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
                 </>
               ) : (
                 <div className="space-y-2">
+                  {/* Botões − / + no lugar das barrinhas (04/11/2026, pedido do Montinho: “a foto dá zoom sozinha”):
+                      no celular, rolar a tela passando o dedo por cima da barra mudava o zoom sem querer. */}
                   {(
                     [
-                      ["zoom", "Zoom", 1, 3, 0.05],
-                      ["x", "Posição horizontal", -1, 1, 0.02],
-                      ["y", "Posição vertical", -1, 1, 0.02],
-                      ["escurecer", "Escurecer", 0, 0.8, 0.05],
+                      ["zoom", "Zoom", 1, 3, 0.1, "−", "+", false],
+                      // Setas = para onde a FOTO anda (subir o valor mostra mais da direita/de baixo, a foto vai para a esquerda/para cima).
+                      ["x", "Mover a foto", -1, 1, 0.05, "⬅", "➡", true],
+                      ["y", "Mover a foto", -1, 1, 0.05, "⬆", "⬇", true],
+                      ["escurecer", "Escurecer", 0, 0.8, 0.1, "−", "+", false],
                     ] as const
-                  ).map(([k, rotulo, min, max, passo]) => (
-                    <label key={k} className="block space-y-0.5">
-                      <span className="text-xs text-fg-muted">{rotulo}</span>
-                      <input type="range" min={min} max={max} step={passo} value={cfg.foto[k]} onChange={(e) => setCfg((c) => ({ ...c, fundo: "foto", foto: { ...c.foto, [k]: Number(e.target.value) } }))} onPointerDown={() => setHistorico((hs) => [...hs.slice(-29), cfg])} className="w-full accent-[var(--color-accent)]" />
-                    </label>
-                  ))}
+                  ).map(([k, rotulo, min, max, passo0, menos, mais, inverte]) => {
+                    const passo = inverte ? -passo0 : passo0;
+                    const v = cfg.foto[k];
+                    const ajustar = (d: number) => {
+                      setHistorico((hs) => [...hs.slice(-29), cfg]);
+                      setCfg((c) => ({ ...c, fundo: "foto", foto: { ...c.foto, [k]: Math.round(Math.min(max, Math.max(min, c.foto[k] + d)) * 100) / 100 } }));
+                    };
+                    const pct = Math.round(((v - min) / (max - min)) * 100);
+                    return (
+                      <div key={k} className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 text-xs text-fg-muted">{rotulo}</span>
+                        <button type="button" aria-label={`${rotulo}: ${menos}`} disabled={inverte ? v >= max : v <= min} onClick={() => ajustar(-passo)} className="touch h-10 w-10 rounded-full border border-border text-base font-bold disabled:opacity-30">{menos}</button>
+                        <span className="w-10 text-center font-mono text-xs text-fg-muted">{k === "zoom" ? `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}×` : k === "escurecer" ? `${pct}%` : ""}</span>
+                        <button type="button" aria-label={`${rotulo}: ${mais}`} disabled={inverte ? v <= min : v >= max} onClick={() => ajustar(passo)} className="touch h-10 w-10 rounded-full border border-border text-base font-bold disabled:opacity-30">{mais}</button>
+                      </div>
+                    );
+                  })}
+                  <button type="button" onClick={() => mudar({ fundo: "foto", foto: { ...AJUSTE_FOTO_PADRAO } })} className="text-xs text-fg-muted underline-offset-2 hover:underline">↺ Voltar a foto ao normal</button>
                   {cfg.fundo !== "foto" ? (
                     <button type="button" onClick={() => mudar({ fundo: "foto" })} className="text-xs text-accent underline-offset-2 hover:underline">
                       Usar a foto como fundo
