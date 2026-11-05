@@ -5,6 +5,8 @@
 export const VIDEO_COMO_FILMAR_ID = "L5w4DBU2la8";
 export const VIDEO_COMO_FILMAR_URL = `https://www.youtube.com/shorts/${VIDEO_COMO_FILMAR_ID}`;
 export const VIDEO_COMO_FILMAR_EMBED = `https://www.youtube.com/embed/${VIDEO_COMO_FILMAR_ID}?rel=0&modestbranding=1&playsinline=1`;
+/** A capa do vídeo, a mesma do YouTube e do site (public/videos). */
+export const VIDEO_COMO_FILMAR_CAPA = "/videos/como-filmar-capa.jpg";
 /** Tela do app com o vídeo e as regras. */
 export const TELA_COMO_FILMAR = "/aluno/como-filmar";
 

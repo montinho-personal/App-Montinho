@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { Voltar } from "@/components/ui/Voltar";
 import { BRAND } from "@/config/brand";
-import { DICAS_FILMAR, O_QUE_O_MONTINHO_OLHA, REGRAS_FILMAR, VIDEO_COMO_FILMAR_EMBED } from "@/lib/montinho/como-filmar";
+import { DICAS_FILMAR, O_QUE_O_MONTINHO_OLHA, REGRAS_FILMAR, VIDEO_COMO_FILMAR_CAPA, VIDEO_COMO_FILMAR_EMBED } from "@/lib/montinho/como-filmar";
+import { VideoVerticalComCapa } from "@/components/ui/VideoVerticalComCapa";
 
 export const metadata = { title: "Como filmar o seu exercício" };
 
@@ -18,9 +19,7 @@ export default async function ComoFilmarPage() {
         <p className="mt-1 text-sm text-fg-muted">Para o {BRAND.name} corrigir a sua execução. Não depende de câmera boa: depende de onde o celular fica.</p>
       </header>
 
-      <div className="mx-auto aspect-[9/16] w-full max-w-xs overflow-hidden rounded-2xl border border-border bg-black">
-        <iframe src={VIDEO_COMO_FILMAR_EMBED} title="Como filmar o seu exercício" className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" />
-      </div>
+      <VideoVerticalComCapa embed={VIDEO_COMO_FILMAR_EMBED} capa={VIDEO_COMO_FILMAR_CAPA} titulo="Como filmar o seu exercício" className="mx-auto w-full max-w-xs rounded-2xl border border-border" />
 
       <section className="space-y-2">
         <h2 className="text-base font-bold">As 4 regras</h2>
