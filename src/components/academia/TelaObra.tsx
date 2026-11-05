@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AcademiaIlustracao } from "./AcademiaIlustracao";
 import { BarraObra } from "./BarraObra";
-import { conversao, duracaoTexto, ETAPAS, etapaDe, frasesDaObra, infoModelo, materiaisDesbloqueados, pctDaObra, previsaoDaObra, proximoMarco, REFERENCIAS_OBRA, toneladas, VOCE_SABIA, type DadosObra } from "@/lib/academia/regras";
+import { conversao, duracaoTexto, ETAPAS, etapaDe, frasesDaObra, infoModelo, materiaisDesbloqueados, pctDaObra, previsaoDaObra, proximoMarco, REFERENCIAS_OBRA, textoMateriais, toneladas, VOCE_SABIA, type DadosObra } from "@/lib/academia/regras";
 import type { Participante } from "@/lib/data/academia";
 
 const dataBR = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" });
@@ -68,7 +68,7 @@ export function TelaObra({ d, participantes, personal = false }: { d: DadosObra;
 
       <div className="grid grid-cols-2 gap-2">
         <Numero valor={`${toneladas(d.total_kg)} t`} rotulo={`movimentadas pela tribo, de ${toneladas(d.meta_kg)} t`} destaque />
-        <Numero valor={`${Math.round(mat).toLocaleString("pt-BR")} t`} rotulo={`de materiais na obra, de ${d.materiais_t.toLocaleString("pt-BR")} t`} />
+        <Numero valor={textoMateriais(mat)} rotulo={`de materiais na obra, de ${d.materiais_t.toLocaleString("pt-BR")} t`} />
         {prox ? <Numero valor={`${toneladas(prox.faltaKg)} t`} rotulo={`para ${prox.etapa.nome.toLowerCase()}`} /> : null}
         {concluida && d.ativada_em && d.concluida_em ? (
           <Numero valor={duracaoTexto(d.ativada_em, d.concluida_em)} rotulo={`de obra · ${dataBR(d.ativada_em)} a ${dataBR(d.concluida_em)}`} />

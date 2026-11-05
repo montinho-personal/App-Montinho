@@ -81,6 +81,11 @@ export function kgDaSerie(s: SerieObra): number {
   return (s.carga_kg ?? 0) * (s.reps ?? 0);
 }
 
+/** Exercício feito um lado de cada vez: 1 série anotada = os dois lados (pedido do Montinho, 05/11/2026). */
+const NOME_UNILATERAL = /unilateral|serrote|concentrad|bulgar/;
+export const ehUnilateral = (e: Pick<ExercicioObra, "nome" | "unilateral">) =>
+  !!e.unilateral || NOME_UNILATERAL.test(e.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+
 export const serieForaDoLimite = (s: SerieObra) => (s.carga_kg ?? 0) > CARGA_MAX_KG || (s.reps ?? 0) > REPS_MAX;
 
 /** Toneladas (em kg) de um treino + quantas séries ficaram para o personal conferir. */
@@ -89,7 +94,7 @@ export function kgDaSessao(exs: ExercicioObra[], padrao: PadraoCarga, liberadas:
   let conferir = 0;
   for (const e of exs) {
     const tipo = tipoDePeso(e);
-    const dobro = tipo && padrao[tipo] === "por_lado" ? 2 : 1;
+    const dobro = (tipo && padrao[tipo] === "por_lado" ? 2 : 1) * (ehUnilateral(e) ? 2 : 1);
     for (const s of e.series) {
       if (s.tipo === "aquecimento") continue;
       if (serieForaDoLimite(s) && !(s.id && liberadas.has(s.id))) {
@@ -207,6 +212,10 @@ export function destaqueNaHome(obras: Obra[], agora: Date): DestaqueHome {
 // ---------------------------------------------------------------------------
 // Textos (sempre com os números reais; nada inventado)
 // ---------------------------------------------------------------------------
+/** Materiais na obra: em kg enquanto não chega a 1 t (para não mostrar “0 t” no começo). */
+export const textoMateriais = (t: number) =>
+  t < 1 ? `${Math.floor(t * 1000).toLocaleString("pt-BR")} kg` : `${(t < 10 ? Math.floor(t * 10) / 10 : Math.floor(t)).toLocaleString("pt-BR")} t`;
+
 export const toneladas = (kg: number) => {
   const t = kg / 1000;
   return t >= 100 ? Math.round(t).toLocaleString("pt-BR") : t.toLocaleString("pt-BR", { maximumFractionDigits: 1 });

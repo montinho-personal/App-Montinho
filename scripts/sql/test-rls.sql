@@ -2861,3 +2861,20 @@ do $$ declare n int; begin
   perform public.obra_notificacoes_devidas('chave-teste');
 end $$;
 \echo 'T93 OK: avisos da Academia no canal próprio'
+
+-- T94 — 0148: exercício unilateral conta os dois lados (1 série anotada = direito + esquerdo)
+insert into training_sessions (id, aluno_id, client_key, nome_treino, iniciado_em, status, finalizado_em, series_planejadas, series_concluidas, modo)
+values ('94940000-0000-0000-0000-00000000000a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't94', 'Uni', now(), 'concluida', now(), 3, 3, 'normal');
+insert into session_exercises (id, session_id, client_key, nome, ordem, prescricao)
+values ('94940000-0000-0000-0000-0000000000e1', '94940000-0000-0000-0000-00000000000a', 't94-1', 'Remada unilateral com halter (serrote)', 0, '{}'),
+       ('94940000-0000-0000-0000-0000000000e2', '94940000-0000-0000-0000-00000000000a', 't94-2', 'Cadeira extensora', 1, '{"unilateral": true}'),
+       ('94940000-0000-0000-0000-0000000000e3', '94940000-0000-0000-0000-00000000000a', 't94-3', 'Supino máquina', 2, '{}');
+insert into session_sets (session_id, session_exercise_id, client_key, serie, tipo, carga_kg, reps, concluida_em)
+values ('94940000-0000-0000-0000-00000000000a', '94940000-0000-0000-0000-0000000000e1', 't94-s1', 1, 'valida', 10, 10, now()),
+       ('94940000-0000-0000-0000-00000000000a', '94940000-0000-0000-0000-0000000000e2', 't94-s2', 1, 'valida', 20, 10, now()),
+       ('94940000-0000-0000-0000-00000000000a', '94940000-0000-0000-0000-0000000000e3', 't94-s3', 1, 'valida', 30, 10, now());
+do $$ declare k numeric; begin
+  select kg into k from public.obra_kg_sessao('94940000-0000-0000-0000-00000000000a');
+  if k <> 200 + 400 + 300 then raise exception 'T94a: unilateral (% kg; esperado 900)', k; end if;
+end $$;
+\echo 'T94 OK: unilateral conta os dois lados'

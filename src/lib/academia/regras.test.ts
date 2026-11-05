@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cenarios, conversao, destaqueNaHome, etapaDe, ETAPAS, frasesDaObra, kgDaSessao, materiaisDesbloqueados, pctDaObra, PRIMEIRA_OBRA, previsaoDaObra, proximoMarco, ritmoRecente, textoInauguracao, treinoEntraNaObra, type Obra } from "./regras";
+import { cenarios, conversao, destaqueNaHome, etapaDe, ETAPAS, frasesDaObra, kgDaSessao, materiaisDesbloqueados, pctDaObra, PRIMEIRA_OBRA, previsaoDaObra, proximoMarco, ritmoRecente, textoInauguracao, textoMateriais, treinoEntraNaObra, type Obra } from "./regras";
 
 const PADRAO_VAZIO = { anilhas: null, halteres: null } as const;
 const obra = (o: Partial<Obra> = {}): Obra => ({ id: "o1", ordem: 1, modelo: "bairro", nome: "Academia de Bairro", narrativa: null, area_m2: 200, materiais_t: 200, meta_kg: 6_000_000, banner_dias: 7, mostrar_contribuicoes: true, estado: "ativa", ativada_em: "2026-11-10T12:00:00Z", concluida_em: null, ...o });
@@ -24,8 +24,22 @@ describe("toneladas do treino (espelho da 0146)", () => {
       { nome: "Rosca concentrada unilateral", equipamento: ["halter"], series: [{ tipo: "valida", carga_kg: 10, reps: 10 }] },
       { nome: "Cadeira extensora", equipamento: ["maquina"], series: [{ tipo: "valida", carga_kg: 40, reps: 10 }] },
     ];
-    expect(kgDaSessao(exs, PADRAO_VAZIO).kg).toBe(500 + 100 + 100 + 400);
-    expect(kgDaSessao(exs, { anilhas: "por_lado", halteres: "por_lado" }).kg).toBe(1000 + 200 + 100 + 400);
+    expect(kgDaSessao(exs, PADRAO_VAZIO).kg).toBe(500 + 100 + 200 + 400);
+    expect(kgDaSessao(exs, { anilhas: "por_lado", halteres: "por_lado" }).kg).toBe(1000 + 200 + 200 + 400);
+  });
+  it("unilateral conta os dois lados (série anotada uma vez)", () => {
+    const serie = [{ tipo: "valida", carga_kg: 10, reps: 10 }];
+    expect(kgDaSessao([{ nome: "Remada unilateral com halter (serrote)", equipamento: ["halter", "banco"], series: serie }], PADRAO_VAZIO).kg).toBe(200);
+    expect(kgDaSessao([{ nome: "Cadeira extensora", equipamento: ["maquina"], unilateral: true, series: serie }], PADRAO_VAZIO).kg).toBe(200);
+    // 2 halteres de 10 kg (anotado um) × 10 reps em cada perna = 20 kg × 20 reps
+    expect(kgDaSessao([{ nome: "Agachamento búlgaro com halteres", equipamento: ["halter"], series: serie }], { anilhas: null, halteres: "por_lado" }).kg).toBe(400);
+    expect(kgDaSessao([{ nome: "Tríceps francês com halter", equipamento: ["halter"], series: serie }], PADRAO_VAZIO).kg).toBe(100);
+  });
+  it("materiais em kg enquanto não chega a 1 t", () => {
+    expect(textoMateriais(0.4825)).toBe("482 kg");
+    expect(textoMateriais(0)).toBe("0 kg");
+    expect(textoMateriais(3.57)).toBe("3,5 t");
+    expect(textoMateriais(116.4)).toBe("116 t");
   });
   it("só treino começado depois da ativação (e criado no servidor depois)", () => {
     const o = obra();
