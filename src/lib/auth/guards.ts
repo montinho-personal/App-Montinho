@@ -34,6 +34,7 @@ const EQUIVALENTE_PERSONAL: Array<[string, string]> = [
   ["/aluno/ranking", "/treinador/ranking"],
   ["/aluno/desafios", "/treinador/desafios"],
   ["/aluno/conquistas/tribo", "/treinador/tribo"],
+  ["/aluno/academia", "/treinador/academia"],
   ["/aluno/conquistas", "/treinador/conquistas"],
 ];
 export function telaDoPersonal(pathname: string): string {

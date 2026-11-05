@@ -130,6 +130,8 @@ export async function POST(req: Request) {
       desafios.falhas += r.falha;
     }
   }
+  // Academia da Tribo (0146): pega treinos feitos sem internet e correções dos últimos 3 dias (sem a 0146, ignora).
+  const { data: obraN, error: e9 } = await db.rpc("obra_sincronizar_agendador", { p_chave: chave });
   // Topo do Ranking (0138): anota o 1º lugar de hoje e concede os troféus (sem a 0138, ignora).
   const { error: e8 } = await db.rpc("registrar_topo_ranking_agendador", { p_chave: chave });
   // 3) CRM do personal (Modo Visitante, 0058): entrega a fila de novidades dos leads.
@@ -143,5 +145,5 @@ export async function POST(req: Request) {
       else crm.falhas++;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, topo: e8 ? "indisponivel" : "ok", crm: e3 ? "indisponivel" : crm });
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, topo: e8 ? "indisponivel" : "ok", academia: e9 ? "indisponivel" : obraN, crm: e3 ? "indisponivel" : crm });
 }

@@ -2734,3 +2734,121 @@ do $$ declare n_func int; n_trof int; begin
 end $$;
 select test_logout();
 \echo 'T90 OK: Quem passou o Montinho'
+
+-- T92 — 0146: Academia da Tribo — começa do zero, só treino depois da ativação,
+-- sem duplicar, só o personal ativa/ajusta, conclusão e avisos uma vez só.
+-- Treino ANTIGO (antes da ativação) da aluna A, já concluído com séries.
+insert into training_sessions (id, aluno_id, client_key, nome_treino, iniciado_em, created_at, status, finalizado_em, series_planejadas, series_concluidas, modo)
+values ('92920000-0000-0000-0000-00000000000a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't92-antigo', 'Antigo', now() - interval '1 day', now() - interval '1 day', 'concluida', now() - interval '23 hours', 2, 2, 'normal');
+insert into session_exercises (id, session_id, client_key, nome, ordem) values ('92920000-0000-0000-0000-0000000000e0', '92920000-0000-0000-0000-00000000000a', 't92-ex0', 'Supino', 0);
+insert into session_sets (session_id, session_exercise_id, client_key, serie, tipo, carga_kg, reps, concluida_em)
+values ('92920000-0000-0000-0000-00000000000a', '92920000-0000-0000-0000-0000000000e0', 't92-s0a', 1, 'valida', 100, 10, now() - interval '23 hours'),
+       ('92920000-0000-0000-0000-00000000000a', '92920000-0000-0000-0000-0000000000e0', 't92-s0b', 2, 'valida', 100, 10, now() - interval '23 hours');
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$ declare ok boolean := false; begin
+  begin
+    insert into obras (ordem, nome, area_m2, materiais_t, meta_kg) values (90, 'Obra do aluno', 200, 200, 10000);
+  exception when insufficient_privilege or others then ok := true; end;
+  if not ok then raise exception 'T92a: aluno criou obra'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+insert into obras (id, ordem, nome, area_m2, materiais_t, meta_kg) values ('92920000-0000-0000-0000-0000000000ab', 1, 'Academia de Bairro', 200, 200, 10000);
+do $$ declare ok boolean := false; begin
+  begin perform public.obra_ativar('92920000-0000-0000-0000-0000000000ab', 'sim'); exception when others then ok := true; end;
+  if not ok then raise exception 'T92b: ativou sem a palavra de confirmação'; end if;
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$ begin
+  if exists (select 1 from obras) then raise exception 'T92c: aluno viu a obra em rascunho'; end if;
+  if public.obra_dados('92920000-0000-0000-0000-0000000000ab') is not null then raise exception 'T92c2: aluno leu os dados do rascunho'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+select public.obra_ativar('92920000-0000-0000-0000-0000000000ab', 'ATIVAR') is not null as ativou;
+do $$ declare ok boolean := false; n int; esperado int; begin
+  begin perform public.obra_ativar('92920000-0000-0000-0000-0000000000ab', 'ATIVAR'); exception when others then ok := true; end;
+  if not ok then raise exception 'T92d: ativou duas vezes'; end if;
+  ok := false;
+  begin update obras set meta_kg = 1000 where id = '92920000-0000-0000-0000-0000000000ab'; exception when others then ok := true; end;
+  if not ok then raise exception 'T92e: mudou a meta depois de ativar'; end if;
+  update obras set banner_dias = 5 where id = '92920000-0000-0000-0000-0000000000ab';
+  if (public.obra_dados('92920000-0000-0000-0000-0000000000ab') ->> 'total_kg')::numeric <> 0 then raise exception 'T92g: obra não começou do zero'; end if;
+  perform public.obra_sincronizar('92920000-0000-0000-0000-00000000000a');
+  if exists (select 1 from obra_contribuicoes) then raise exception 'T92h: treino antigo entrou na obra'; end if;
+end $$;
+select test_logout();
+-- Treino NOVO da aluna A: 2 séries de 100×10, 1 aquecimento, 1 série de 600 kg (fora até liberar)
+-- e o leg press 45° anotado “por lado” (conta em dobro).
+insert into preferencias_carga (aluno_id, anilhas, halteres) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'por_lado', 'total')
+on conflict (aluno_id) do update set anilhas = 'por_lado';
+insert into training_sessions (id, aluno_id, client_key, nome_treino, iniciado_em, status, finalizado_em, series_planejadas, series_concluidas, modo)
+values ('92920000-0000-0000-0000-00000000000b', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 't92-novo', 'Novo', now(), 'concluida', now(), 5, 5, 'normal');
+insert into session_exercises (id, session_id, client_key, nome, ordem)
+values ('92920000-0000-0000-0000-0000000000e1', '92920000-0000-0000-0000-00000000000b', 't92-ex1', 'Supino máquina', 0),
+       ('92920000-0000-0000-0000-0000000000e2', '92920000-0000-0000-0000-00000000000b', 't92-ex2', 'Leg press 45°', 1);
+insert into session_sets (id, session_id, session_exercise_id, client_key, serie, tipo, carga_kg, reps, concluida_em)
+values ('92920000-0000-0000-0000-0000000005a1', '92920000-0000-0000-0000-00000000000b', '92920000-0000-0000-0000-0000000000e1', 't92-s1', 1, 'aquecimento', 50, 10, now()),
+       ('92920000-0000-0000-0000-0000000005a2', '92920000-0000-0000-0000-00000000000b', '92920000-0000-0000-0000-0000000000e1', 't92-s2', 2, 'valida', 100, 10, now()),
+       ('92920000-0000-0000-0000-0000000005a3', '92920000-0000-0000-0000-00000000000b', '92920000-0000-0000-0000-0000000000e1', 't92-s3', 3, 'valida', 100, 10, now()),
+       ('92920000-0000-0000-0000-0000000005a4', '92920000-0000-0000-0000-00000000000b', '92920000-0000-0000-0000-0000000000e1', 't92-s4', 4, 'valida', 600, 5, now()),
+       ('92920000-0000-0000-0000-0000000005a5', '92920000-0000-0000-0000-00000000000b', '92920000-0000-0000-0000-0000000000e2', 't92-s5', 1, 'valida', 50, 10, now());
+select test_login('33333333-3333-3333-3333-333333333333');
+do $$ declare ok boolean := false; begin
+  begin perform public.obra_sincronizar('92920000-0000-0000-0000-00000000000b'); exception when others then ok := true; end;
+  if not ok then raise exception 'T92i: outro aluno sincronizou o treino da aluna A'; end if;
+end $$;
+select test_logout();
+select test_login('22222222-2222-2222-2222-222222222222');
+do $$ declare k numeric; c int; n int; ok boolean := false; begin
+  perform public.obra_sincronizar('92920000-0000-0000-0000-00000000000b');
+  perform public.obra_sincronizar('92920000-0000-0000-0000-00000000000b');
+  select count(*), max(kg), max(series_conferir) into n, k, c from obra_contribuicoes;
+  if n <> 1 then raise exception 'T92j: treino contou % vezes', n; end if;
+  if k <> 3000 then raise exception 'T92k: toneladas erradas (% kg; esperado 2 × 100×10 + leg press 50×10 por lado ×2)', k; end if;
+  if c <> 1 then raise exception 'T92l: a série de 600 kg devia ficar para conferir'; end if;
+  begin
+    insert into obra_contribuicoes (obra_id, session_id, aluno_id, kg, treino_em) values ('92920000-0000-0000-0000-0000000000ab', '92920000-0000-0000-0000-00000000000a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 99999, now());
+  exception when insufficient_privilege or others then ok := true; end;
+  if not ok then raise exception 'T92m: aluno gravou contribuição direto'; end if;
+  if (public.obra_dados() ->> 'meu_kg')::numeric <> 3000 then raise exception 'T92n: obra_dados não mostra a minha parte'; end if;
+end $$;
+select test_logout();
+select test_login('11111111-1111-1111-1111-111111111111');
+do $$ declare k numeric; h int; begin
+  if (select count(*) from public.obra_para_conferir('92920000-0000-0000-0000-0000000000ab')) <> 1 then raise exception 'T92o: lista para conferir'; end if;
+  perform public.obra_liberar_serie('92920000-0000-0000-0000-0000000005a4', 'Leg press de verdade');
+  select kg into k from obra_contribuicoes where session_id = '92920000-0000-0000-0000-00000000000b';
+  if k <> 6000 then raise exception 'T92p: série liberada não entrou (% kg)', k; end if;
+  update session_sets set reps = 12 where id = '92920000-0000-0000-0000-0000000005a2';
+  perform public.obra_sincronizar('92920000-0000-0000-0000-00000000000b');
+  select kg into k from obra_contribuicoes where session_id = '92920000-0000-0000-0000-00000000000b';
+  select count(*) into h from obra_historico where session_id = '92920000-0000-0000-0000-00000000000b';
+  if k <> 6200 or h <> 3 then raise exception 'T92q: correção do treino (kg %, histórico %)', k, h; end if;
+  perform public.obra_ajustar('92920000-0000-0000-0000-0000000000ab', 3800, 'Treino da aula presencial anotado no papel');
+  if (select estado from obras where id = '92920000-0000-0000-0000-0000000000ab') <> 'concluida' then raise exception 'T92r: obra não foi inaugurada ao bater a meta'; end if;
+  if (select participantes_final from obras where id = '92920000-0000-0000-0000-0000000000ab') <> 1 then raise exception 'T92s: participantes da inauguração'; end if;
+end $$;
+do $$ declare ok boolean := false; n int; begin
+  begin perform public.obra_ajustar('92920000-0000-0000-0000-0000000000ab', 10, 'depois de pronta'); exception when others then ok := true; end;
+  if not ok then raise exception 'T92u: ajustou obra já inaugurada'; end if;
+  ok := false;
+  begin delete from obra_participantes; exception when others then null; end;
+  if (select count(*) from obra_participantes) <> 1 then raise exception 'T92v: apagou participante do memorial'; end if;
+  ok := false;
+  begin update obras set total_kg_final = 1 where id = '92920000-0000-0000-0000-0000000000ab'; exception when others then ok := true; end;
+  if not ok or (select total_kg_final from obras where id = '92920000-0000-0000-0000-0000000000ab') = 1 then raise exception 'T92w: mudou o total da obra inaugurada'; end if;
+  update session_sets set reps = 20 where id = '92920000-0000-0000-0000-0000000005a3';
+  perform public.obra_sincronizar('92920000-0000-0000-0000-00000000000b');
+  if (select kg from obra_contribuicoes where session_id = '92920000-0000-0000-0000-00000000000b') <> 6200 then raise exception 'T92x: treino mudou a obra já inaugurada'; end if;
+  select count(*) into n from public.obra_participantes_lista('92920000-0000-0000-0000-0000000000ab');
+  if n <> 1 then raise exception 'T92y: lista de participantes'; end if;
+end $$;
+select test_logout();
+do $$ begin
+  if (select count(*) from notificacoes_envios where dedupe like 'obra:92920000-0000-0000-0000-0000000000ab:inauguracao:%') <> (select count(*) from public.obra_publico()) then raise exception 'T92t: aviso da inauguração'; end if;
+  if has_function_privilege('anon', 'public.obra_dados(uuid)', 'execute') then raise exception 'T92z: anon lê a obra'; end if;
+  if has_function_privilege('authenticated', 'public.obra_registrar_interno(uuid)', 'execute') then raise exception 'T92z2: aluno chama a função interna'; end if;
+end $$;
+\echo 'T92 OK: Academia da Tribo'

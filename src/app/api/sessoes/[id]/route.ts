@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { requireAlunoDoTreinoApi } from "@/lib/auth/session";
 import { finalizarSessao, getSessao } from "@/lib/data/sessoes";
+import { sincronizarObra } from "@/lib/data/academia";
 import { finalizarSessaoSchema, lerJson } from "@/lib/validacao/schemas";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -23,6 +24,8 @@ export async function PATCH(request: Request, { params }: Ctx) {
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
   try {
     const s = await finalizarSessao(sessao.alunoId, id, data);
+    // Academia da Tribo (0146): o banco confere se o treino vale e soma na obra (uma vez só).
+    after(() => sincronizarObra(id).catch(() => undefined));
     return NextResponse.json(s);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao finalizar";

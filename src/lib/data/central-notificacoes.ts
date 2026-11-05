@@ -110,6 +110,8 @@ export async function centralDoAluno(s: { alunoId: string; userId: string }): Pr
 
   // O que foi ao celular (fica guardado aqui, para quem não viu na hora).
   for (const a of avisos) {
+    // Lançamento/inauguração da obra já entram abaixo, guardados (sem repetir).
+    if (a.url?.startsWith("/aluno/academia")) continue;
     const href = a.url && a.url.startsWith("/aluno") ? a.url : "/aluno";
     itens.push({ id: `push:${a.id}`, tipo: "lembrete", emoji: "🔔", titulo: curto(a.titulo, 80), texto: curto(a.corpo), href, quando: a.enviada_em });
   }
@@ -125,6 +127,15 @@ export async function centralDoAluno(s: { alunoId: string; userId: string }): Pr
     null,
   );
   if (ev) itens.push({ id: `avaliacao:${ev.e.id}`, tipo: "trofeu", emoji: "🎉", titulo: `Você evoluiu na avaliação física! ${ev.e.manchete}`, texto: "Toque para ver o que melhorou e compartilhar.", href: "/aluno/medidas", quando: ev.quando });
+
+  // Academia da Tribo (0146): lançamento e inauguração ficam guardados aqui para quem estava sem internet.
+  const obras = await seguro(import("@/lib/data/academia").then((m) => m.listarObras()), []);
+  for (const o of obras) {
+    if (o.estado !== "rascunho" && o.ativada_em && o.ativada_em >= desde)
+      itens.push({ id: `obra:${o.id}:lancamento`, tipo: "aviso", emoji: "🏗️", titulo: "A tribo vai construir uma academia!", texto: `A obra da ${o.nome} começou do zero. Cada tonelada na musculação ajuda a construir.`, href: "/aluno/academia", quando: o.ativada_em });
+    if (o.estado === "concluida" && o.concluida_em && o.concluida_em >= desde)
+      itens.push({ id: `obra:${o.id}:inauguracao`, tipo: "trofeu", emoji: "🎉", titulo: `Inauguramos a ${o.nome}!`, texto: "Venha conhecer a obra que a tribo construiu junta.", href: `/aluno/academia/${o.id}`, quando: o.concluida_em });
+  }
 
   // Feriado que vale troféu (desde 3 dias antes até o dia).
   const fer = proximoFeriado(hoje);

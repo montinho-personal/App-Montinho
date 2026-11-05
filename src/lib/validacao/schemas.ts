@@ -1062,3 +1062,27 @@ export const mobilidadeConcluirSchema = z.object({ nota_depois: z.number().int()
 
 // Ranking: cutucar (0117) --------------------------------------------------------
 export const cutucarRankingSchema = z.object({ ref: z.string().min(1).max(64), emoji: z.enum(["🔥", "💪", "😈", "⏰", "👀"]) }).strict();
+
+// Academia da Tribo (0146): só o personal; ativar exige a palavra ATIVAR.
+const idObra = z.string().trim().min(6).max(40).regex(/^[0-9a-z-]+$/i);
+export const obraAcaoSchema = z.discriminatedUnion("acao", [
+  z
+    .object({
+      acao: z.literal("salvar"),
+      id: idObra.nullable().optional(),
+      nome: z.string().trim().min(3, "Dê um nome à academia").max(60),
+      modelo: z.enum(["bairro", "expansao", "moderna", "centro", "premium", "complexo"]),
+      area_m2: z.number().positive().max(1_000_000),
+      materiais_t: z.number().positive().max(10_000_000),
+      meta_t: z.number().min(1, "A meta precisa ser de pelo menos 1 tonelada").max(100_000_000),
+      banner_dias: z.number().int().min(0).max(60),
+      narrativa: z.string().trim().max(600).nullable().optional(),
+      mostrar_contribuicoes: z.boolean(),
+    })
+    .strict(),
+  z.object({ acao: z.literal("apagar"), id: idObra }).strict(),
+  z.object({ acao: z.literal("ativar"), id: idObra, confirmacao: z.string().trim().max(20) }).strict(),
+  z.object({ acao: z.literal("ajustar"), id: idObra, kg: z.number().refine((v) => v !== 0 && Math.abs(v) <= 10_000_000, "Ajuste inválido"), motivo: z.string().trim().min(5, "Explique o motivo (mín. 5 letras)").max(300) }).strict(),
+  z.object({ acao: z.literal("liberar"), set_id: z.string().uuid(), motivo: z.string().trim().min(3).max(300) }).strict(),
+  z.object({ acao: z.literal("exibicao"), id: idObra, banner_dias: z.number().int().min(0).max(60).optional(), mostrar_contribuicoes: z.boolean().optional() }).strict(),
+]);

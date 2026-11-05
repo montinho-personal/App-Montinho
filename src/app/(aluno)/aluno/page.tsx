@@ -76,6 +76,9 @@ import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
 import { MissaoDeHoje } from "@/components/inicio/MissaoDeHoje";
 import { AvisoInstalar } from "@/components/instalar/AvisoInstalar";
 import { TopoDoRanking } from "@/components/ranking/TopoDoRanking";
+import { AcademiaNaHome } from "@/components/academia/AcademiaNaHome";
+import { dadosDaObra, listarObras } from "@/lib/data/academia";
+import { destaqueNaHome } from "@/lib/academia/regras";
 import { topoHoje } from "@/lib/data/topo-ranking";
 import { missaoDeHoje } from "@/lib/inicio/missao";
 import { ehDeHoje } from "@/lib/conquistas/ao-alcance";
@@ -167,6 +170,11 @@ export default async function AlunoHomePage() {
   const ativadas = conquistas.filter((c) => !c.vista_em && (CODIGOS_MANUAIS.includes(c.codigo) || (codigosMedalha.has(c.codigo) && c.created_at >= recenteIso))).slice(0, 6);
   // Conquistas da Tribo (0115): concede o que for devido (também o que saiu com o aluno fora do app).
   const tribo = await telaDaTribo(alunoId).catch(() => null);
+  // Academia da Tribo (0146): destaque do lançamento/inauguração e card compacto da obra.
+  const [obrasTribo, obraAtual] = await Promise.all([listarObras().catch(() => []), dadosDaObra().catch(() => null)]);
+  const destaqueObra = destaqueNaHome(obrasTribo, new Date());
+  const obraAtiva = obraAtual?.estado === "ativa" ? obraAtual : null;
+  const obraInaugurada = destaqueObra.inauguracao ? (obraAtual?.id === destaqueObra.inauguracao.id ? obraAtual : await dadosDaObra(destaqueObra.inauguracao.id).catch(() => null)) : null;
   const recadoTribo = tribo?.dados ? mensagensDaTribo(tribo.dados, hojeSP).find((m) => m.includes("hoje")) ?? null : null;
 
   // Missão de Hoje (Fase 1): só reorganiza o que o Início já sabe; nunca inventa prescrição.
@@ -211,6 +219,8 @@ export default async function AlunoHomePage() {
         const fer = destaqueFeriado(hojeSP);
         return fer ? <FeriadoDestaque d={fer} conquistas={conquistas} /> : null;
       })()}
+
+      <AcademiaNaHome modo="destaque" ativa={obraAtiva} inaugurada={obraInaugurada} destaque={destaqueObra} />
 
       <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
 
@@ -300,6 +310,7 @@ export default async function AlunoHomePage() {
 
       {mobIndicada ? <MobilidadeHoje dados={mobIndicada} hoje={hojeSP} trofeus={conquistas.map((c) => c.codigo as string)} compacto /> : null}
       <TrofeusHojeEProximos itens={aoAlcance} />
+      <AcademiaNaHome modo="compacto" ativa={obraAtiva} inaugurada={null} destaque={destaqueObra} />
       {(() => {
         const r = resumoRevisao(album.progresso, new Date().toISOString(), new Set(album.itens.map((i) => i.conteudo.id)));
         return <RevisarConhecimento agora={r.agora} primeira={r.primeira} aprendidas={r.aprendidas} compacto />;
