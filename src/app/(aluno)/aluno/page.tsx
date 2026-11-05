@@ -77,6 +77,7 @@ import { MissaoDeHoje } from "@/components/inicio/MissaoDeHoje";
 import { AvisoInstalar } from "@/components/instalar/AvisoInstalar";
 import { TopoDoRanking } from "@/components/ranking/TopoDoRanking";
 import { AcademiaNaHome } from "@/components/academia/AcademiaNaHome";
+import { NovidadeAcademia } from "@/components/academia/NovidadeAcademia";
 import { dadosDaObra, listarObras } from "@/lib/data/academia";
 import { destaqueNaHome } from "@/lib/academia/regras";
 import { topoHoje } from "@/lib/data/topo-ranking";
@@ -214,13 +215,15 @@ export default async function AlunoHomePage() {
         </h1>
       </header>
 
+      {/* Academia da Tribo: a novidade vem PRIMEIRO (pedido do Montinho, 05/11/2026) + janela 1× por aparelho. */}
+      <AcademiaNaHome modo="destaque" ativa={obraAtiva} inaugurada={obraInaugurada} destaque={destaqueObra} />
+      <NovidadeAcademia ativa={obraAtiva} inaugurada={obraInaugurada} destaque={destaqueObra} />
+
       {/* Feriado: em destaque desde a véspera (troféus com o nome do feriado). */}
       {(() => {
         const fer = destaqueFeriado(hojeSP);
         return fer ? <FeriadoDestaque d={fer} conquistas={conquistas} /> : null;
       })()}
-
-      <AcademiaNaHome modo="destaque" ativa={obraAtiva} inaugurada={obraInaugurada} destaque={destaqueObra} />
 
       <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
 
@@ -308,9 +311,10 @@ export default async function AlunoHomePage() {
         )
       )}
 
+      {/* A obra da tribo logo depois do treino de hoje (o card fica sempre à vista enquanto a obra anda). */}
+      <AcademiaNaHome modo="compacto" ativa={obraAtiva} inaugurada={null} destaque={destaqueObra} />
       {mobIndicada ? <MobilidadeHoje dados={mobIndicada} hoje={hojeSP} trofeus={conquistas.map((c) => c.codigo as string)} compacto /> : null}
       <TrofeusHojeEProximos itens={aoAlcance} />
-      <AcademiaNaHome modo="compacto" ativa={obraAtiva} inaugurada={null} destaque={destaqueObra} />
       {(() => {
         const r = resumoRevisao(album.progresso, new Date().toISOString(), new Set(album.itens.map((i) => i.conteudo.id)));
         return <RevisarConhecimento agora={r.agora} primeira={r.primeira} aprendidas={r.aprendidas} compacto />;

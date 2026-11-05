@@ -2852,3 +2852,12 @@ do $$ begin
   if has_function_privilege('authenticated', 'public.obra_registrar_interno(uuid)', 'execute') then raise exception 'T92z2: aluno chama a função interna'; end if;
 end $$;
 \echo 'T92 OK: Academia da Tribo'
+
+-- T93 — 0147: avisos da obra no canal próprio 'obra' (não no dos desafios) e entrega pela chave do agendador
+do $$ declare n int; begin
+  select count(*) into n from notificacoes_envios where dedupe like 'obra:%' and categoria <> 'obra';
+  if n > 0 then raise exception 'T93a: aviso da obra fora do canal próprio (%)', n; end if;
+  if has_function_privilege('authenticated', 'public.obra_notificacoes_devidas(text)', 'execute') then raise exception 'T93b: aluno chama a entrega dos avisos'; end if;
+  perform public.obra_notificacoes_devidas('chave-teste');
+end $$;
+\echo 'T93 OK: avisos da Academia no canal próprio'

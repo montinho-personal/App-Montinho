@@ -246,8 +246,8 @@ export function AcademiaAdmin({ obras, ativa, rascunho, ritmo, ritmoAtualKg, con
                   <p className="font-bold">🚀 Ativar oficialmente</p>
                   <ul className="list-disc space-y-0.5 pl-5 text-xs text-fg-muted">
                     <li>A obra começa do zero, agora. Só contam treinos começados depois deste momento.</li>
-                    <li>Todo mundo (alunos e visitantes em dia) recebe o aviso no celular e no 🔔.</li>
-                    <li>O Início mostra o destaque por {f.banner_dias} dias.</li>
+                    <li>Todo mundo (alunos e visitantes em dia) recebe o aviso no celular na hora (fora do horário de silêncio de cada um) e no 🔔 do app.</li>
+                    <li>Ao abrir o app, cada pessoa vê uma janela “✨ NOVIDADE” (1 vez) e o Início mostra o destaque no topo por {f.banner_dias} dias; depois fica o cartão da obra logo abaixo do treino.</li>
                     <li>Depois de ativar, a meta não muda mais. Salve o rascunho antes, se mexeu em algo.</li>
                   </ul>
                   <input value={palavra} onChange={(e) => setPalavra(e.target.value)} placeholder="Digite ATIVAR" className="w-full rounded-lg border border-border bg-bg px-2 py-2 uppercase" aria-label="Digite ATIVAR para confirmar" />

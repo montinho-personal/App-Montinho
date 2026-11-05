@@ -130,6 +130,24 @@ export async function POST(req: Request) {
       desafios.falhas += r.falha;
     }
   }
+  // Academia da Tribo (0147): avisos do lançamento e da inauguração, canal próprio (1 por pessoa por aviso).
+  const academiaAvisos = { enviados: 0, falhas: 0 };
+  const { data: devObra, error: e10 } = await db.rpc("obra_notificacoes_devidas", { p_chave: chave });
+  if (!e10) {
+    const porEnvio = new Map<string, { titulo: string; corpo: string; url: string; aparelhos: Array<{ endpoint: string; p256dh: string; auth: string }> }>();
+    for (const r of (devObra ?? []) as Array<{ envio_id: string; titulo: string; corpo: string; url: string; endpoint: string; p256dh: string; auth: string }>) {
+      const x = porEnvio.get(r.envio_id) ?? { titulo: r.titulo, corpo: r.corpo, url: r.url, aparelhos: [] };
+      x.aparelhos.push({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth });
+      porEnvio.set(r.envio_id, x);
+    }
+    for (const [id, env] of porEnvio) {
+      const r = await enviarAosAparelhos(env.aparelhos, { id, titulo: env.titulo, corpo: env.corpo, url: env.url, tag: "obra" }, { ttl: 24 * 60 * 60, topic: topicoDoEnvio(id) });
+      await desativar(r.expirados);
+      await db.rpc("chalala_notificacao_resultado", { p_chave: chave, p_id: id, p_titulo: env.titulo, p_corpo: env.corpo, p_url: env.url, p_ok: r.ok, p_falha: r.falha });
+      academiaAvisos.enviados += r.ok;
+      academiaAvisos.falhas += r.falha;
+    }
+  }
   // Academia da Tribo (0146): pega treinos feitos sem internet e correções dos últimos 3 dias (sem a 0146, ignora).
   const { data: obraN, error: e9 } = await db.rpc("obra_sincronizar_agendador", { p_chave: chave });
   // Topo do Ranking (0138): anota o 1º lugar de hoje e concede os troféus (sem a 0138, ignora).
@@ -145,5 +163,5 @@ export async function POST(req: Request) {
       else crm.falhas++;
     }
   }
-  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, topo: e8 ? "indisponivel" : "ok", academia: e9 ? "indisponivel" : obraN, crm: e3 ? "indisponivel" : crm });
+  return NextResponse.json({ ok: true, enviados, falhas, chalala: e2 ? "indisponivel" : chalala, desafios: e4 ? "indisponivel" : desafios, cardio: e5 ? "indisponivel" : cardio, mobilidade: e6 ? "indisponivel" : mobilidade, feriado: e7 ? "indisponivel" : feriado, topo: e8 ? "indisponivel" : "ok", academia: e9 ? "indisponivel" : obraN, academiaAvisos: e10 ? "indisponivel" : academiaAvisos, crm: e3 ? "indisponivel" : crm });
 }

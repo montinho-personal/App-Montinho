@@ -27,8 +27,11 @@ export function AcademiaNaHome({ ativa, inaugurada, destaque, modo }: { ativa: D
           </section>
         ) : null}
         {destaque.lancamento && ativa ? (
-          <section className="overflow-hidden rounded-2xl border-2 border-accent bg-gradient-to-b from-accent/15 to-surface">
-            <AcademiaIlustracao etapa={etapaDe(pctDaObra(ativa.total_kg, ativa.meta_kg)).n} pavimentos={infoModelo(ativa.modelo).pavimentos} className="block h-auto w-full" titulo={ativa.nome} />
+          <section className="overflow-hidden rounded-2xl border-2 border-accent bg-gradient-to-b from-accent/15 to-surface shadow-[0_0_24px_rgba(186,158,80,0.35)]">
+            <div className="relative">
+              <AcademiaIlustracao etapa={etapaDe(pctDaObra(ativa.total_kg, ativa.meta_kg)).n} pavimentos={infoModelo(ativa.modelo).pavimentos} className="block h-auto w-full" titulo={ativa.nome} />
+              <span className="absolute left-3 top-3 rounded-full bg-accent px-3 py-1 text-xs font-black text-bg shadow motion-safe:animate-pulse">✨ NOVIDADE</span>
+            </div>
             <div className="space-y-2 p-4">
               <p className="text-lg font-black leading-tight">🏗️ ESTAMOS CONSTRUINDO {ativa.ordem === 1 ? "NOSSA PRIMEIRA ACADEMIA!" : "MAIS UMA ACADEMIA!"}</p>
               <p className="text-sm">“A obra começou do zero. Cada tonelada que a tribo movimentar a partir de agora ajuda a transformar esse terreno em uma academia de verdade!”</p>
@@ -50,11 +53,12 @@ export function AcademiaNaHome({ ativa, inaugurada, destaque, modo }: { ativa: D
   const etapa = etapaDe(pct);
   const prox = proximoMarco(ativa.total_kg, ativa.meta_kg);
   return (
-    <Link href="/aluno/academia" className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3 hover:border-accent/60">
-      <div className="w-24 shrink-0 overflow-hidden rounded-xl border border-border">
+    <Link href="/aluno/academia" className="flex items-center gap-3 rounded-2xl border-2 border-accent/60 bg-gradient-to-r from-accent/10 to-surface p-3 hover:border-accent">
+      <div className="w-28 shrink-0 overflow-hidden rounded-xl border border-border">
         <AcademiaIlustracao etapa={etapa.n} pavimentos={infoModelo(ativa.modelo).pavimentos} animar={false} className="block h-auto w-full" titulo={ativa.nome} />
       </div>
       <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-accent">Obra da tribo · em construção</p>
         <p className="truncate text-sm font-bold">🏗️ {ativa.nome}</p>
         <BarraObra pct={pct} pequena />
         <p className="text-xs text-fg-muted">
