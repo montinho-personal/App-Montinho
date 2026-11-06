@@ -72,7 +72,7 @@ describe("etapas e progresso", () => {
 describe("previsão e simulador", () => {
   const agora = new Date("2026-11-24T12:00:00Z");
   it("com pouco dado não inventa: “calculando o ritmo”", () => {
-    expect(previsaoDaObra({ total_kg: 100_000, meta_kg: 6_000_000, treinos: 3, ativada_em: "2026-11-20T12:00:00Z", estado: "ativa", por_dia: [] }, agora)).toEqual({ tipo: "calculando" });
+    expect(previsaoDaObra({ total_kg: 100_000, meta_kg: 6_000_000, treinos: 3, ativada_em: "2026-11-20T12:00:00Z", estado: "ativa", por_dia: [] }, agora)).toMatchObject({ tipo: "calculando", faltamTreinos: 2, aPartirDe: "2026-11-27T12:00:00.000Z" });
   });
   it("média móvel de 14 dias", () => {
     const por_dia = Array.from({ length: 14 }, (_, i) => ({ dia: new Date(agora.getTime() - i * 86_400_000).toISOString().slice(0, 10), kg: 50_000 }));

@@ -159,13 +159,19 @@ export const conversao = (o: Pick<Obra, "meta_kg" | "materiais_t">) => o.meta_kg
 const DIA = 86_400_000;
 export const PREVISAO = { janelaDias: 14, minDias: 7, minTreinos: 5 } as const;
 
-export type Previsao = { tipo: "calculando" } | { tipo: "pronta" } | { tipo: "data"; data: string; kgPorSemana: number; semanas: number };
+/** “calculando”: quando a previsão sai (`aPartirDe`, 7 dias depois da ativação) e quantos treinos ainda faltam. */
+export type Previsao = { tipo: "calculando"; aPartirDe?: string; faltamTreinos?: number } | { tipo: "pronta" } | { tipo: "data"; data: string; kgPorSemana: number; semanas: number };
 
 export function previsaoDaObra(d: Pick<DadosObra, "total_kg" | "meta_kg" | "treinos" | "ativada_em" | "estado" | "por_dia">, agora: Date): Previsao {
   if (d.estado === "concluida" || d.total_kg >= d.meta_kg) return { tipo: "pronta" };
   if (!d.ativada_em) return { tipo: "calculando" };
   const dias = (agora.getTime() - Date.parse(d.ativada_em)) / DIA;
-  if (dias < PREVISAO.minDias || d.treinos < PREVISAO.minTreinos) return { tipo: "calculando" };
+  if (dias < PREVISAO.minDias || d.treinos < PREVISAO.minTreinos) {
+    const out: Previsao = { tipo: "calculando" };
+    if (dias < PREVISAO.minDias) out.aPartirDe = new Date(Date.parse(d.ativada_em) + PREVISAO.minDias * DIA).toISOString();
+    if (d.treinos < PREVISAO.minTreinos) out.faltamTreinos = PREVISAO.minTreinos - d.treinos;
+    return out;
+  }
   const janela = Math.min(PREVISAO.janelaDias, dias);
   const desde = agora.getTime() - janela * DIA;
   const kg = d.por_dia.filter((p) => Date.parse(`${p.dia}T12:00:00-03:00`) >= desde - DIA / 2).reduce((t, p) => t + p.kg, 0);

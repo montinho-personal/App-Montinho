@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AcademiaIlustracao } from "./AcademiaIlustracao";
 import { BarraObra } from "./BarraObra";
-import { conversao, duracaoTexto, ETAPAS, etapaDe, frasesDaObra, infoModelo, materiaisDesbloqueados, pctDaObra, previsaoDaObra, proximoMarco, REFERENCIAS_OBRA, textoMateriais, toneladas, VOCE_SABIA, type DadosObra } from "@/lib/academia/regras";
+import { conversao, duracaoTexto, ETAPAS, etapaDe, frasesDaObra, infoModelo, materiaisDesbloqueados, pctDaObra, PREVISAO, previsaoDaObra, proximoMarco, REFERENCIAS_OBRA, textoMateriais, toneladas, VOCE_SABIA, type DadosObra } from "@/lib/academia/regras";
 import type { Participante } from "@/lib/data/academia";
 
 const dataBR = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" });
@@ -75,7 +75,16 @@ export function TelaObra({ d, participantes, personal = false }: { d: DadosObra;
         ) : prev.tipo === "data" ? (
           <Numero valor={mesAno(prev.data)} rotulo={`previsão no ritmo dos últimos 14 dias (~${toneladas(prev.kgPorSemana)} t por semana)`} />
         ) : (
-          <Numero valor="Calculando…" rotulo="o ritmo da tribo ainda está sendo calculado" />
+          <Numero
+            valor={prev.tipo === "calculando" && prev.aPartirDe ? `Em ${dataBR(prev.aPartirDe).slice(0, 5)}` : "Calculando…"}
+            rotulo={
+              prev.tipo === "calculando" && prev.aPartirDe
+                ? `sai a previsão da inauguração: com ${PREVISAO.minDias} dias de obra, pelo ritmo real da tribo`
+                : prev.tipo === "calculando" && prev.faltamTreinos
+                  ? `a previsão sai com mais ${prev.faltamTreinos} ${prev.faltamTreinos === 1 ? "treino" : "treinos"} na obra`
+                  : "o ritmo da tribo ainda está sendo calculado"
+            }
+          />
         )}
       </div>
 
