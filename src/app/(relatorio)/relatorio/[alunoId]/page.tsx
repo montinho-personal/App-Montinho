@@ -45,7 +45,7 @@ const CSS = `
 .eyebrow{font-size:8.5pt;letter-spacing:.32em;text-transform:uppercase;color:#ba9e50;font-weight:700}
 .titulo{font-size:20pt;font-weight:800;line-height:1.1;letter-spacing:-.01em}
 .num{font-variant-numeric:tabular-nums}
-@media screen and (max-width:820px){.folha{width:100%;min-height:auto;padding:24px 18px;margin-bottom:16px}}
+@media screen and (max-width:820px){.folha{width:100%;min-height:auto;padding:24px 18px;margin-bottom:16px}.col-larga{display:none}.rolar{overflow-x:auto;-webkit-overflow-scrolling:touch}}
 @page{size:A4;margin:0}
 @media print{html,body{background:#fff!important}.folha{margin:0;box-shadow:none;width:210mm;height:297mm;min-height:297mm}.so-tela{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 `;
@@ -251,7 +251,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
         <section className="folha">
           <Secao eyebrow="Evolução geral" titulo="Treino a treino">
             <p className="text-[9.5pt] text-[#625c4f]">Para cada treino do plano: volume (carga × repetições) das primeiras vezes × das últimas vezes no período, e a variação típica da carga dos exercícios que se repetiram entre a primeira e a última vez.</p>
-            <table className="w-full border-collapse text-[9.5pt]">
+            <div className="rolar"><table className="w-full border-collapse text-[9.5pt]">
               <thead>
                 <tr className="text-left text-[7.5pt] uppercase tracking-[0.12em] text-[#8a8273]">
                   <th className="py-1.5 font-bold">Treino</th>
@@ -259,7 +259,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
                   <th className="px-2 py-1.5 text-right font-bold">Volume</th>
                   <th className="px-2 py-1.5 text-right font-bold">Variação</th>
                   <th className="px-2 py-1.5 text-right font-bold">Carga</th>
-                  <th className="py-1.5 pl-3 font-bold">Tendência</th>
+                  <th className="col-larga py-1.5 pl-3 font-bold">Tendência</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,14 +267,14 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
                   <tr key={t.letra} className="border-t border-[#e4dfd3]">
                     <td className="py-2.5 pr-2"><span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#ba9e50] text-[10pt] font-extrabold text-[#0a0a0a]">{t.letra}</span><b>{t.nome}</b></td>
                     <td className="num px-2 py-2.5 text-right">{t.sessoes.length}</td>
-                    <td className="num px-2 py-2.5 text-right whitespace-nowrap">{t.volumeInicial != null ? <>{br(t.volumeInicial / 1000)} t → <b>{br(t.volumeAtual! / 1000)} t</b></> : "—"}</td>
+                    <td className="num px-2 py-2.5 text-right">{t.volumeInicial != null ? <><span className="whitespace-nowrap">{br(t.volumeInicial / 1000)} t →</span> <b className="whitespace-nowrap">{br(t.volumeAtual! / 1000)} t</b></> : "—"}</td>
                     <td className={`num px-2 py-2.5 text-right font-bold ${(t.volumePct ?? 0) > 0 ? "text-[#8a6f25]" : "text-[#625c4f]"}`}>{pctTxt(t.volumePct)}</td>
                     <td className="num px-2 py-2.5 text-right">{pctTxt(t.cargaPct)}{t.exerciciosComparaveis ? <span className="block text-[7.5pt] text-[#8a8273]">subiu em {t.exerciciosSubiram} de {t.exerciciosComparaveis}</span> : null}</td>
-                    <td className="py-2.5 pl-3">{t.sessoes.length >= 2 ? <MiniLinha pontos={t.sessoes.map((x) => ({ data: x.data, cargaMax: x.tonelagem, e1rmMax: null, tonelagem: x.tonelagem, series: x.series, fonte: "app" as const }))} /> : null}</td>
+                    <td className="col-larga py-2.5 pl-3">{t.sessoes.length >= 2 ? <MiniLinha pontos={t.sessoes.map((x) => ({ data: x.data, cargaMax: x.tonelagem, e1rmMax: null, tonelagem: x.tonelagem, series: x.series, fonte: "app" as const }))} /> : null}</td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <p className="text-[8.5pt] text-[#8a8273]">Com 4 ou mais vezes no período, compara a média das 2 primeiras com a das 2 últimas; com menos, a primeira com a última. Treino extra fica fora.</p>
           </Secao>
           <Rodape n={prox()} total={total} nome={nome} />
@@ -317,16 +317,16 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
         <section key={`g${fi}`} className="folha">
           <Secao eyebrow="Evolução de carga" titulo={fi === 0 ? "Músculo a músculo" : "Músculo a músculo (continuação)"}>
             {fi === 0 ? <p className="text-[9.5pt] text-[#625c4f]">Para cada exercício: a maior carga do primeiro treino do período, a do treino mais recente e a maior de todas. A força estimada (fórmula de Epley, até 12 repetições) junta carga e repetições num número só.</p> : null}
-            <table className="w-full border-collapse text-[9pt]">
+            <div className="rolar"><table className="w-full border-collapse text-[9pt]">
               <thead>
                 <tr className="text-left text-[7.5pt] uppercase tracking-[0.12em] text-[#8a8273]">
                   <th className="py-1.5 font-bold">Exercício</th>
                   <th className="py-1.5 text-right font-bold">Início</th>
                   <th className="py-1.5 text-right font-bold">Atual</th>
-                  <th className="py-1.5 text-right font-bold">Maior</th>
+                  <th className="col-larga py-1.5 text-right font-bold">Maior</th>
                   <th className="py-1.5 text-right font-bold">Variação</th>
                   <th className="py-1.5 text-right font-bold">Força est.</th>
-                  <th className="py-1.5 pl-3 font-bold">Tendência</th>
+                  <th className="col-larga py-1.5 pl-3 font-bold">Tendência</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,15 +343,15 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
                       <td className="py-1.5 pr-2 font-semibold">{l.e.nome}<span className="block text-[7.5pt] font-normal text-[#8a8273]">{l.e.dias} treinos · {dataBR(l.e.inicial.data).slice(0, 5)} a {dataBR(l.e.atual.data).slice(0, 5)}</span></td>
                       <td className="num py-1.5 text-right">{kgTxt(l.e.inicial.carga)}</td>
                       <td className="num py-1.5 text-right font-bold">{kgTxt(l.e.atual.carga)}</td>
-                      <td className="num py-1.5 text-right">{kgTxt(l.e.melhor.carga)}</td>
+                      <td className="col-larga num py-1.5 text-right">{kgTxt(l.e.melhor.carga)}</td>
                       <td className={`num py-1.5 text-right font-bold ${l.e.deltaKg > 0 ? "text-[#8a6f25]" : "text-[#625c4f]"}`}>{l.e.deltaKg === 0 ? "igual" : `${sinal(l.e.deltaKg)}${br(Math.abs(l.e.deltaKg))} kg`}<span className="block text-[7.5pt] font-normal">{pctTxt(l.e.deltaPct)}</span></td>
                       <td className="num py-1.5 text-right">{l.e.e1rmAtual != null ? `${br(l.e.e1rmAtual)} kg` : "—"}<span className="block text-[7.5pt] text-[#8a8273]">{l.e.e1rmDeltaPct != null ? pctTxt(l.e.e1rmDeltaPct) : ""}</span></td>
-                      <td className="py-1.5 pl-3"><MiniLinha pontos={l.e.pontos} /></td>
+                      <td className="col-larga py-1.5 pl-3"><MiniLinha pontos={l.e.pontos} /></td>
                     </tr>
                   )
                 )}
               </tbody>
-            </table>
+            </table></div>
           </Secao>
           <Rodape n={prox()} total={total} nome={nome} />
         </section>
