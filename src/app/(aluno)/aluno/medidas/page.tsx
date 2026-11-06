@@ -14,6 +14,7 @@ import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
 import { ParabensAvaliacao } from "@/components/medidas/ParabensAvaliacao";
 import { avaliacaoEmDestaque, resumoDaAvaliacao } from "@/lib/medidas/resumo-avaliacao";
 import { PainelAvaliacao } from "@/components/medidas/PainelAvaliacao";
+import { GraficoMedidas } from "@/components/medidas/GraficoMedidas";
 
 export const metadata = { title: "Minhas medidas e avaliações" };
 export const dynamic = "force-dynamic";
@@ -46,6 +47,7 @@ export default async function MedidasPage() {
       )}
       {resumo ? <PainelAvaliacao r={resumo} relatorioHref={`/avaliacao/${resumo.id}`} titulo="🩺 Minha última avaliação" /> : null}
       <MedidasAvaliacoes alunoId={sessao.alunoId} medidas={medidas} arquivos={arquivos} nome={sessao.nome.split(" ")[0]} demo={isDemoMode()} />
+      {medidas.length >= 2 ? <GraficoMedidas medidas={medidas} /> : null}
       {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} compartilhar={{ nome: sessao.nome, hoje: dataLocal(new Date()) }} /> : null}
     </div>
   );
