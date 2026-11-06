@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calcularPollock, extrasDoPollock } from "./pollock";
-import { ehAvaliacao7Dobras, imcDe, lerObservacao, mensagemRelatorio, relatorioAvaliacao, textoDiferenca } from "./relatorio-avaliacao";
+import { avaliacoesParaComparar, ehAvaliacao7Dobras, imcDe, lerObservacao, mensagemRelatorio, relatorioAvaliacao, textoDiferenca } from "./relatorio-avaliacao";
 import type { Evolucao } from "@/lib/supabase/types";
 
 const vazio = { peso_kg: null, gordura_pct: null, cintura_cm: null, quadril_cm: null, braco_cm: null, coxa_cm: null, peito_cm: null } as const;
@@ -27,6 +27,20 @@ describe("Relatório da avaliação de 7 dobras", () => {
     expect(r.comparacao).toEqual([]);
     expect(r.anterior).toBeNull();
     expect(r.observacao).toBe("Adipômetro Cescorf");
+  });
+
+  it("escolhe com qual avaliação anterior comparar (ex.: a primeira)", () => {
+    const a1 = avaliacao("x1", "2021-11-16", 30, 98, { cintura_cm: 96 });
+    const a2 = avaliacao("x2", "2025-11-01", 10, 84, { cintura_cm: 81 });
+    const a3 = avaliacao("x3", "2026-02-14", 9, 81, { cintura_cm: 79.5 });
+    expect(avaliacoesParaComparar([a1, a2, a3], "x3").map((x) => x.id)).toEqual(["x2", "x1"]);
+    expect(relatorioAvaliacao([a1, a2, a3], "x3")!.anterior?.id).toBe("x2");
+    const r = relatorioAvaliacao([a1, a2, a3], "x3", null, "x1")!;
+    expect(r.anterior?.id).toBe("x1");
+    expect(r.dobras[0]).toMatchObject({ atual: 9, anterior: 30 });
+    expect(r.circunferencias[0]).toMatchObject({ rotulo: "Cintura", anterior: 96 });
+    // id inválido ou posterior: volta para a anterior.
+    expect(relatorioAvaliacao([a1, a2, a3], "x2", null, "x3")!.anterior?.id).toBe("x1");
   });
 
   it("compara só com a avaliação de 7 dobras anterior (bioimpedância no meio fica fora)", () => {

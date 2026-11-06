@@ -62,13 +62,24 @@ export const imcDe = (pesoKg: number | null, alturaCm: number | null) => (pesoKg
  * Monta o relatório da avaliação `id`. `alturaCadastro` entra quando a altura
  * não foi anotada na avaliação. Devolve null se a linha não for de 7 dobras.
  */
-export function relatorioAvaliacao(medidas: Evolucao[], id: string, alturaCadastro: number | null = null): RelatorioAvaliacao | null {
+/** Avaliações de 7 dobras ANTERIORES à `id` (mais recente primeiro), para escolher com qual comparar. */
+export function avaliacoesParaComparar(medidas: Evolucao[], id: string): Array<{ id: string; data: string; gordura_pct: number | null }> {
+  const atual = medidas.find((m) => m.id === id);
+  if (!atual) return [];
+  return [...medidas].sort(ordem).filter((m) => m.data < atual.data && ehAvaliacao7Dobras(m)).reverse().map((m) => ({ id: m.id, data: m.data, gordura_pct: m.gordura_pct ?? null }));
+}
+
+export function relatorioAvaliacao(medidas: Evolucao[], id: string, alturaCadastro: number | null = null, comId: string | null = null): RelatorioAvaliacao | null {
   const todas = [...medidas].sort(ordem);
   const atual = todas.find((m) => m.id === id);
   if (!atual || !ehAvaliacao7Dobras(atual)) return null;
   // Só datas ANTERIORES: avaliação refeita no mesmo dia (correção) não vira “anterior”.
-  const antes = todas.filter((m) => m.data < atual.data);
-  const anterior = [...antes].reverse().find(ehAvaliacao7Dobras) ?? null;
+  let antes = todas.filter((m) => m.data < atual.data);
+  // `comId` (06/11/2026, pedido do Montinho: “comparar entre elas”): escolher QUALQUER avaliação de 7 dobras
+  // anterior para comparar; sem ela (ou inválida), vale a imediatamente anterior.
+  const escolhida = comId ? antes.find((m) => m.id === comId && ehAvaliacao7Dobras(m)) ?? null : null;
+  if (escolhida) antes = antes.filter((m) => m.data <= escolhida.data);
+  const anterior = escolhida ?? [...antes].reverse().find(ehAvaliacao7Dobras) ?? null;
   const obs = lerObservacao(atual.observacoes);
 
   const alturaCm = atual.altura_cm ?? alturaCadastro ?? null;

@@ -13,13 +13,14 @@ import { getSessao } from "@/lib/auth/session";
 import { podeAcessarAluno } from "@/lib/auth/guards";
 import { getAluno } from "@/lib/db";
 import { listarAvaliacoes, medidaPorId } from "@/lib/data/medidas";
-import { ERRO_TIPICO_PCT, relatorioAvaliacao, textoDiferenca, type Linha } from "@/lib/medidas/relatorio-avaliacao";
+import { avaliacoesParaComparar, ERRO_TIPICO_PCT, relatorioAvaliacao, textoDiferenca, type Linha } from "@/lib/medidas/relatorio-avaliacao";
 import { PONTOS_7_DOBRAS } from "@/lib/medidas/pollock";
 import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
 import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
 import { nomeDoArquivo } from "@/lib/relatorios/nome-arquivo";
 import { EnviarRelatorioAvaliacao } from "@/components/medidas/EnviarRelatorioAvaliacao";
+import { EscolherComparacao } from "@/components/medidas/EscolherComparacao";
 import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharCardRelatorio";
 import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
 import { evolucaoDoRelatorio, focoDoObjetivo } from "@/lib/medidas/evolucao-avaliacao";
@@ -88,8 +89,10 @@ function TabelaComparada({ linhas, comAnterior, primeira = "Medida" }: { linhas:
   );
 }
 
-export default async function RelatorioAvaliacaoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RelatorioAvaliacaoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ com?: string }> }) {
   const { id } = await params;
+  const { com } = await searchParams;
+  const comId = com && /^[\w-]{1,64}$/.test(com) ? com : null;
   if (!/^[\w-]{1,64}$/.test(id)) notFound();
   const sessao = await getSessao();
   if (!sessao) redirect(`/login?next=/avaliacao/${id}`);
@@ -97,7 +100,8 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
   if (!linha || !podeAcessarAluno(sessao, linha.aluno_id)) notFound();
   const [aluno, { medidas }] = await Promise.all([getAluno(linha.aluno_id), listarAvaliacoes(linha.aluno_id)]);
   if (!aluno) notFound();
-  const rel = relatorioAvaliacao(medidas, id, aluno.altura_cm ?? null);
+  const rel = relatorioAvaliacao(medidas, id, aluno.altura_cm ?? null, comId);
+  const paraComparar = avaliacoesParaComparar(medidas, id);
   const nome = aluno.profile?.nome ?? "Aluno";
   const doPersonal = sessao.role === "treinador";
   if (!rel) {
@@ -123,6 +127,7 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
           <CompartilharCardRelatorio card={card} registrar={!doPersonal} rotulo={doPersonal ? "📲 Card para o aluno" : "📲 Compartilhar"} className="inline-flex h-10 items-center rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold" />
           {doPersonal ? <EnviarRelatorioAvaliacao id={rel.id} nome={nome} telefone={aluno.telefone ?? null} data={rel.data} /> : null}
         </div>
+        {paraComparar.length >= 2 ? <div className="mt-2"><EscolherComparacao id={rel.id} opcoes={paraComparar} atual={rel.anterior?.id ?? null} /></div> : null}
         {evolucao?.evoluiu ? <div className="mt-2"><ParabensAvaliacao e={evolucao} card={card} personal={doPersonal} claro /></div> : null}
       </div>
 
