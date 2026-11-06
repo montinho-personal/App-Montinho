@@ -23,6 +23,8 @@ import { compararMeses } from "@/lib/visitante/evolucao";
 import { MesContraMes } from "@/components/visitante/MesContraMes";
 import { CtaVisitante } from "@/components/visitante/CtaVisitante";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
+import { avaliacaoEmDestaque, resumoDaAvaliacao } from "@/lib/medidas/resumo-avaliacao";
+import { PainelAvaliacao } from "@/components/medidas/PainelAvaliacao";
 import { AtalhosEvolucao, PainelEvolucaoAluno } from "@/components/relatorios/PainelEvolucaoAluno";
 import { Acordeao } from "@/components/relatorios/Acordeao";
 import { ChamadaTrofeu } from "@/components/conquistas/ChamadaTrofeu";
@@ -143,6 +145,11 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         </Acordeao>
       ) : null}
       {cardios.length ? <CardiosStrava cardios={cardios} hoje={hoje} titulo="Seus cardios (Strava)" /> : null}
+      {(() => {
+        const d = avaliacaoEmDestaque(evolucao);
+        const r = d ? resumoDaAvaliacao(evolucao, d.id, aluno?.altura_cm ?? null) : null;
+        return r ? <PainelAvaliacao r={r} compacto relatorioHref={`/avaliacao/${r.id}`} medidasHref="/aluno/medidas" titulo="🩺 Minha avaliação física" /> : null;
+      })()}
       {evolucao.length >= 2 ? <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" compartilhar={{ nome: nomeAluno, hoje }} /> : null}
     </div>
   );

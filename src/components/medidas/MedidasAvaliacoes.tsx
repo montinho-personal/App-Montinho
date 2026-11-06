@@ -232,9 +232,7 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
                   <p className="mt-0.5 text-xs text-fg-muted">{itens.length ? itens.map((c) => `${c.rotulo} ${br(m[c.chave] as number)} ${c.unidade}`).join(" · ") : extras.length ? "" : "Sem números"}</p>
                   {extras.length ? <p className="mt-0.5 text-xs text-fg-subtle">{extras.map((e) => `${e.nome} ${e.unidade === "g/mL" ? e.valor.toLocaleString("pt-BR", { maximumFractionDigits: 4 }) : br(e.valor)} ${e.unidade}`).join(" · ")}</p> : null}
                   {m.observacoes ? <p className="mt-0.5 text-xs text-fg-subtle">{m.observacoes}</p> : null}
-                  {ehAvaliacao7Dobras(m) ? (
-                    <a href={`/avaliacao/${m.id}`} className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-lg border border-accent/60 px-3 text-xs font-bold text-accent">📄 Relatório da avaliação{doPersonal ? " · enviar ao aluno" : ""}</a>
-                  ) : null}
+                  <a href={`/avaliacao/${m.id}`} className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-lg border border-accent/60 px-3 text-xs font-bold text-accent">📄 {ehAvaliacao7Dobras(m) || itens.length + extras.length >= 4 ? "Relatório da avaliação" : "Ver em relatório"}{doPersonal ? " · enviar ao aluno" : ""}</a>
                 </li>
               );
             })}

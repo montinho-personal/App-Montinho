@@ -18,6 +18,8 @@ import { listarHistoricoResumo } from "@/lib/data/historico";
 import { dataLocal } from "@/lib/aderencia/calcular";
 import { aderenciaDaJanela } from "@/lib/relatorios/calcular";
 import { evolucaoPorMusculo, evolucaoPorTreino } from "@/lib/relatorios/evolucao-geral";
+import { avaliacaoEmDestaque, resumoDaAvaliacao, ROTULO_METODO } from "@/lib/medidas/resumo-avaliacao";
+import { textoDiferenca } from "@/lib/medidas/relatorio-avaliacao";
 import { inicioDoPeriodo, PERIODOS_PREMIUM, relatorioPremium, type ExercicioPremium, type PeriodoPremium } from "@/lib/relatorios/premium";
 import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
@@ -114,6 +116,9 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   const janela = periodo === "tudo" ? null : aderenciaDaJanela(aderencia, Number(periodo));
   const aderenciaPct = consist?.pct ?? janela?.pct ?? null;
   const medidas = (evolucao as Evolucao[]).filter((e) => e.data.slice(0, 10) >= inicio).sort((a, b) => (a.data < b.data ? -1 : 1));
+  // Avaliação física mais recente (qualquer data, qualquer método) — 06/11/2026, caso da Michelle.
+  const avD = avaliacaoEmDestaque(evolucao as Evolucao[]);
+  const av = avD ? resumoDaAvaliacao(evolucao as Evolucao[], avD.id, aluno.altura_cm ?? null) : null;
   const mPrim = medidas[0];
   const mUlt = medidas.length >= 2 ? medidas.at(-1) : undefined;
   const mensagem = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem" || i.tipo === "revisao_treino"));
@@ -412,6 +417,26 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
       {/* 6 — Fechamento */}
       <section className="folha">
         <Secao eyebrow="Fechamento" titulo="Corpo, método e próximos passos">
+          {av && av.principais.length ? (
+            <div className="rounded-lg border border-[#e4dfd3] bg-white p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-[10pt] font-bold">Avaliação física · {ROTULO_METODO[av.metodo]} · {dataBR(av.data)}</p>
+                <Link href={`/avaliacao/${av.id}`} className="so-tela text-[9pt] font-semibold text-[#8f762f] underline">Ver o relatório completo da avaliação →</Link>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4 print:grid-cols-4">
+                {av.principais.slice(0, 8).map((l) => (
+                  <div key={l.rotulo} className="rounded-md border border-[#e4dfd3] px-2.5 py-2">
+                    <p className="text-[7pt] font-bold uppercase tracking-[0.12em] text-[#8a8273]">{l.rotulo}</p>
+                    <p className="num text-[13pt] font-extrabold">{br(l.atual ?? 0)}{l.unidade === "%" ? "%" : l.unidade ? ` ${l.unidade}` : ""}</p>
+                    {l.diferenca != null ? <p className="num text-[7.5pt] text-[#625c4f]">{textoDiferenca(l)}</p> : null}
+                  </div>
+                ))}
+              </div>
+              {av.segmentos.length ? <p className="mt-2 text-[8.5pt] text-[#625c4f]">Massa magra por parte: {av.segmentos.filter((s) => s.magra != null).map((s) => `${s.rotulo.toLowerCase()} ${br(s.magra!)} kg`).join(" · ")}.</p> : null}
+              <p className="mt-1 text-[8pt] text-[#8a8273]">{av.anterior ? `Diferença em relação à avaliação de ${dataBR(av.anterior.data)} (mesmo método).` : "Primeira avaliação deste tipo no app: o ponto de partida."} Setas neutras: quem interpreta é o {BRAND.name}.</p>
+            </div>
+          ) : null}
+
           {mPrim && mUlt ? (
             <div className="rounded-lg border border-[#e4dfd3] bg-white p-4">
               <p className="text-[10pt] font-bold">Medidas: {dataBR(mPrim.data)} × {dataBR(mUlt.data)}</p>

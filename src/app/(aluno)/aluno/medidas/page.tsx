@@ -12,6 +12,8 @@ import { evolucaoDaAvaliacao } from "@/lib/medidas/evolucao-avaliacao";
 import { relatorioAvaliacao } from "@/lib/medidas/relatorio-avaliacao";
 import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
 import { ParabensAvaliacao } from "@/components/medidas/ParabensAvaliacao";
+import { avaliacaoEmDestaque, resumoDaAvaliacao } from "@/lib/medidas/resumo-avaliacao";
+import { PainelAvaliacao } from "@/components/medidas/PainelAvaliacao";
 
 export const metadata = { title: "Minhas medidas e avaliações" };
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ export default async function MedidasPage() {
   const evolucao = evolucaoDaAvaliacao(medidas, aluno?.objetivo ?? null);
   const relEv = evolucao?.evoluiu ? relatorioAvaliacao(medidas, evolucao.id, aluno?.altura_cm ?? null) : null;
   const cardEv = relEv ? cardDaAvaliacao({ rel: relEv, nome: sessao.nome, evolucao }) : null;
+  const destaque = avaliacaoEmDestaque(medidas);
+  const resumo = destaque ? resumoDaAvaliacao(medidas, destaque.id, aluno?.altura_cm ?? null) : null;
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
@@ -40,6 +44,7 @@ export default async function MedidasPage() {
       ) : (
         <p className="text-sm text-fg-muted">Tudo o que você registrar aqui aparece na sua Evolução, no comparador “antes × depois” e no relatório completo.</p>
       )}
+      {resumo ? <PainelAvaliacao r={resumo} relatorioHref={`/avaliacao/${resumo.id}`} titulo="🩺 Minha última avaliação" /> : null}
       <MedidasAvaliacoes alunoId={sessao.alunoId} medidas={medidas} arquivos={arquivos} nome={sessao.nome.split(" ")[0]} demo={isDemoMode()} />
       {medidas.length >= 2 ? <ComparadorMedidas evolucao={medidas} compartilhar={{ nome: sessao.nome, hoje: dataLocal(new Date()) }} /> : null}
     </div>

@@ -23,6 +23,7 @@ import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharC
 import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
 import { evolucaoDoRelatorio, focoDoObjetivo } from "@/lib/medidas/evolucao-avaliacao";
 import { ParabensAvaliacao } from "@/components/medidas/ParabensAvaliacao";
+import { resumoDaAvaliacao, ROTULO_METODO, type ResumoAvaliacao } from "@/lib/medidas/resumo-avaliacao";
 
 export const metadata = { title: "Relatório da avaliação física", robots: { index: false } };
 
@@ -96,9 +97,14 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
   const [aluno, { medidas }] = await Promise.all([getAluno(linha.aluno_id), listarAvaliacoes(linha.aluno_id)]);
   if (!aluno) notFound();
   const rel = relatorioAvaliacao(medidas, id, aluno.altura_cm ?? null);
-  if (!rel) notFound();
   const nome = aluno.profile?.nome ?? "Aluno";
   const doPersonal = sessao.role === "treinador";
+  if (!rel) {
+    // Bioimpedância e medidas também têm relatório (06/11/2026, caso da Michelle).
+    const resumo = resumoDaAvaliacao(medidas, id, aluno.altura_cm ?? null);
+    if (!resumo) notFound();
+    return <RelatorioGeral r={resumo} nome={nome} doPersonal={doPersonal} alunoId={aluno.id} telefone={aluno.telefone ?? null} alturaCm={(linha.altura_cm ?? aluno.altura_cm) ?? null} />;
+  }
   const evolucao = evolucaoDoRelatorio(rel, focoDoObjetivo(aluno.objetivo));
   const card = cardDaAvaliacao({ rel, nome, evolucao });
   const voltar = doPersonal ? `/treinador/alunos/${aluno.id}/medidas` : "/aluno/medidas";
@@ -204,6 +210,136 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
           <span>{dataBR(rel.data)} · 2 / 2</span>
         </div>
       </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Relatório de bioimpedância / medidas (qualquer avaliação que não seja de 7 dobras)
+// ---------------------------------------------------------------------------
+const valorL = (l: Linha) => `${br(l.atual, l.unidade === "" ? 2 : 1)}${l.unidade === "%" ? "%" : l.unidade ? ` ${l.unidade}` : ""}`;
+
+function RelatorioGeral({ r, nome, doPersonal, alunoId, telefone, alturaCm }: { r: ResumoAvaliacao; nome: string; doPersonal: boolean; alunoId: string; telefone: string | null; alturaCm: number | null }) {
+  const voltar = doPersonal ? `/treinador/alunos/${alunoId}/medidas` : "/aluno/medidas";
+  const comAnterior = !!r.anterior;
+  const [p1, p2, ...resto] = r.principais;
+  const seg = (k: string) => r.segmentos.find((s) => s.parte === k);
+  const todos = [...r.outros, ...r.tecnicos];
+  const temFolha2 = r.circunferencias.length > 0 || todos.length > 0 || !!r.observacao;
+  const eyebrow = `Avaliação física · ${ROTULO_METODO[r.metodo]}`;
+  return (
+    <div className="py-4 md:py-8 print:py-0">
+      <style>{CSS}</style>
+      <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
+          <BaixarPdf />
+          {doPersonal ? <EnviarRelatorioAvaliacao id={r.id} nome={nome} telefone={telefone} data={r.data} metodo={r.metodo} /> : null}
+        </div>
+      </div>
+
+      <section className="folha">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1 className="mt-1 text-[20pt] font-extrabold leading-tight">{nome}</h1>
+            <p className="mt-1 text-[10pt] text-[#5c564b]">{dataBR(r.data)}{alturaCm ? ` · ${br(alturaCm, 0)} cm` : ""}</p>
+          </div>
+          <div className="rounded-lg bg-[#0a0a0a] px-3 py-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo oficial completo, também no PDF */}
+            <img src={BRAND.logo.full} alt={BRAND.fullName} style={{ height: 52, width: "auto" }} />
+          </div>
+        </div>
+        <div className="mt-3 h-[2px] w-14 bg-[#ba9e50]" />
+
+        <Titulo eyebrow="Resultado" titulo={r.metodo === "medidas" ? "Suas medidas" : "Composição corporal"} />
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {p1 ? <Numero rotulo={p1.rotulo} valor={valorL(p1)} detalhe={p1.diferenca != null ? `${textoDiferenca(p1)} desde a anterior` : undefined} destaque /> : null}
+          {p2 ? <Numero rotulo={p2.rotulo} valor={valorL(p2)} detalhe={p2.diferenca != null ? `${textoDiferenca(p2)} desde a anterior` : undefined} destaque /> : null}
+          {resto.map((l) => <Numero key={l.rotulo} rotulo={l.rotulo} valor={valorL(l)} detalhe={l.diferenca != null ? textoDiferenca(l) : undefined} />)}
+        </div>
+
+        {comAnterior ? (
+          <>
+            <Titulo eyebrow="Comparação" titulo={`Em relação à avaliação de ${dataBR(r.anterior!.data)}`} />
+            <TabelaComparada linhas={r.principais} comAnterior />
+            <p className="mt-1.5 text-[8pt] text-[#8a8273]">Comparação só com a avaliação anterior do mesmo método ({ROTULO_METODO[r.metodo].toLowerCase()}). Métodos diferentes dão números diferentes e não entram aqui.</p>
+          </>
+        ) : r.metodo !== "medidas" ? (
+          <p className="mt-4 rounded-lg border border-[#e4dfd3] bg-white px-3 py-2 text-[9.5pt] text-[#5c564b]">🏁 Esta é a primeira avaliação de {ROTULO_METODO[r.metodo].toLowerCase()} no app: ela é o ponto de partida. Na próxima, este relatório mostra a comparação lado a lado.</p>
+        ) : null}
+
+        {r.segmentos.length ? (
+          <>
+            <Titulo eyebrow="Segmentar" titulo="Corpo por partes" />
+            <table className="tab">
+              <thead><tr><th>Parte</th><th style={{ textAlign: "right" }}>Massa magra</th><th style={{ textAlign: "right" }}>Gordura</th></tr></thead>
+              <tbody>
+                {["braco_d", "braco_e", "tronco", "perna_d", "perna_e"].map((k) => seg(k)).filter(Boolean).map((s) => (
+                  <tr key={s!.parte}>
+                    <td className="font-semibold">{s!.rotulo}</td>
+                    <td className="n font-bold">{s!.magra != null ? `${br(s!.magra, 2)} kg` : "—"}</td>
+                    <td className="n">{s!.gordura != null ? `${br(s!.gordura, 2)} kg` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ) : null}
+
+        <div className="rodape">
+          <span>{BRAND.fullName} · Avaliação física · {nome}</span>
+          <span>{dataBR(r.data)}{temFolha2 ? " · 1 / 2" : ""}</span>
+        </div>
+      </section>
+
+      {temFolha2 ? (
+        <section className="folha">
+          <div className="flex items-center justify-between gap-3">
+            <p className="eyebrow">{eyebrow} · {nome} · {dataBR(r.data)}</p>
+            <div className="rounded-md bg-[#0a0a0a] px-2 py-1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- logo oficial completo, também no PDF */}
+              <img src={BRAND.logo.full} alt={BRAND.fullName} style={{ height: 32, width: "auto" }} />
+            </div>
+          </div>
+          {r.circunferencias.length ? (
+            <>
+              <Titulo eyebrow="Fita métrica" titulo="Circunferências" />
+              <TabelaComparada linhas={r.circunferencias} comAnterior={r.circunferencias.some((l) => l.anterior != null)} />
+            </>
+          ) : null}
+          {todos.length ? (
+            <>
+              <Titulo eyebrow="Laudo completo" titulo="Todos os dados da avaliação" />
+              <table className="tab">
+                <tbody>
+                  {todos.map((e) => (
+                    <tr key={e.nome}>
+                      <td>{e.nome}</td>
+                      <td className="n font-semibold">{br(e.valor, 2)} {e.unidade}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : null}
+          {r.observacao ? <p className="mt-4 rounded-lg border-l-4 border-[#ba9e50] bg-white px-3 py-2 text-[9.5pt]"><strong>Observação:</strong> {r.observacao}</p> : null}
+          {r.metodo === "bioimpedancia" ? (
+            <>
+              <Titulo eyebrow="Como ler" titulo="Como esta avaliação funciona" />
+              <ul className="list-disc space-y-1 pl-5 text-[9pt] leading-snug text-[#3d382f]">
+                <li>A bioimpedância estima a composição do corpo pela passagem de uma corrente elétrica fraca: água, músculo e gordura conduzem de jeitos diferentes.</li>
+                <li>O resultado muda com hidratação, refeição, treino e horário. Para comparar, repita no mesmo aparelho e nas mesmas condições (de manhã, em jejum, sem treinar antes, bexiga vazia).</li>
+                <li>O mais importante é a <strong>tendência</strong> de uma avaliação para a outra, não um número isolado. Quem interpreta o que é bom para você é o {BRAND.name}.</li>
+              </ul>
+            </>
+          ) : null}
+          <div className="rodape">
+            <span>{BRAND.fullName} · Avaliação física · {nome}</span>
+            <span>{dataBR(r.data)} · 2 / 2</span>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

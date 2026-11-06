@@ -136,7 +136,7 @@ export function textoDiferenca(l: Linha): string {
 }
 
 /** Mensagem do WhatsApp para mandar o relatório ao aluno (sem pronome). */
-export function mensagemRelatorio(nome: string, data: string, url: string): string {
+export function mensagemRelatorio(nome: string, data: string, url: string, metodo: "7_dobras" | "bioimpedancia" | "medidas" = "7_dobras"): string {
   const primeiro = nome.trim().split(/\s+/)[0] || "";
   const [a, m, d] = data.split("-");
   return [
@@ -145,7 +145,11 @@ export function mensagemRelatorio(nome: string, data: string, url: string): stri
     `O relatório da sua avaliação física de ${d}/${m}/${a} já está no app:`,
     url,
     "",
-    "Lá tem o resultado de cada dobra, o % de gordura, a massa magra e, a partir da segunda avaliação, a comparação com a anterior. Dá para baixar em PDF também.",
+    metodo === "7_dobras"
+      ? "Lá tem o resultado de cada dobra, o % de gordura, a massa magra e, a partir da segunda avaliação, a comparação com a anterior. Dá para baixar em PDF também."
+      : metodo === "bioimpedancia"
+        ? "Lá tem o % de gordura, a massa muscular, a massa magra, o corpo por partes e todos os dados do laudo. A partir da segunda avaliação, aparece a comparação com a anterior. Dá para baixar em PDF também."
+        : "Lá estão todas as suas medidas e, a partir do segundo registro, a comparação com o anterior. Dá para baixar em PDF também.",
     "",
     "Qualquer dúvida, me chama aqui. Chalalá! 🔥",
   ].join("\n");

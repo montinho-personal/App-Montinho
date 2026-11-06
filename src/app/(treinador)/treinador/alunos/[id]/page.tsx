@@ -63,6 +63,8 @@ import { PrescreverMobilidade } from "@/components/mobilidade/PrescreverMobilida
 import { estadoParaPainel, mobilidadeDoAlunoPersonal } from "@/lib/data/mobilidade-indicada";
 import { exerciciosForaDoPadrao } from "@/lib/prescricoes/regras";
 import { paraTreinoInput } from "@/lib/prescricoes/converter";
+import { avaliacaoEmDestaque, resumoDaAvaliacao } from "@/lib/medidas/resumo-avaliacao";
+import { PainelAvaliacao } from "@/components/medidas/PainelAvaliacao";
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ dias?: string }> };
 
@@ -144,6 +146,9 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
   const frequencia = Object.keys(freqCal).length ? freqCal : plano.programa?.frequencia ?? {};
   const diasAcesso = diasAte(aluno.acesso_ate);
   const ultimoPeso = (evolucao as Evolucao[]).at(-1)?.peso_kg ?? null;
+  // Avaliação física à vista na ficha (06/11/2026, caso da Michelle: “não achava nada visual”).
+  const avDestaque = avaliacaoEmDestaque(evolucao as Evolucao[]);
+  const avResumo = avDestaque ? resumoDaAvaliacao(evolucao as Evolucao[], avDestaque.id, aluno.altura_cm ?? null) : null;
   const a = anamnese as Anamnese | null;
 
   return (
@@ -199,6 +204,14 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   </Link>
                 );
               })()}
+              {avResumo ? (
+                <PainelAvaliacao r={avResumo} compacto relatorioHref={`/avaliacao/${avResumo.id}`} medidasHref={`/treinador/alunos/${id}/medidas`} />
+              ) : (
+                <Link href={`/treinador/alunos/${id}/medidas`} className="touch flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-3">
+                  <span><span className="block font-bold">🩺 Avaliação física</span><span className="block text-xs text-fg-muted">Nenhuma avaliação registrada ainda · registrar ou subir o laudo</span></span>
+                  <span aria-hidden>→</span>
+                </Link>
+              )}
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🏆</span>
@@ -388,6 +401,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
             label: "Medidas e fotos",
             content: (
               <div className="space-y-4">
+                {avResumo ? <PainelAvaliacao r={avResumo} relatorioHref={`/avaliacao/${avResumo.id}`} medidasHref={`/treinador/alunos/${id}/medidas`} titulo="🩺 Última avaliação física" /> : null}
                 <ComparadorMedidas evolucao={evolucao as never} />
                 <ComparadorFotos fotos={fotos as never} />
               </div>
