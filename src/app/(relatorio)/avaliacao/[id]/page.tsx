@@ -21,6 +21,8 @@ import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
 import { nomeDoArquivo } from "@/lib/relatorios/nome-arquivo";
 import { EnviarRelatorioAvaliacao } from "@/components/medidas/EnviarRelatorioAvaliacao";
 import { EscolherComparacao } from "@/components/medidas/EscolherComparacao";
+import { EvolucaoNoTempo, seriesDoRelatorio } from "@/components/medidas/EvolucaoNoTempo";
+import type { SerieMedida } from "@/lib/medidas/series-medidas";
 import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharCardRelatorio";
 import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
 import { evolucaoDoRelatorio, focoDoObjetivo } from "@/lib/medidas/evolucao-avaliacao";
@@ -102,13 +104,15 @@ export default async function RelatorioAvaliacaoPage({ params, searchParams }: {
   if (!aluno) notFound();
   const rel = relatorioAvaliacao(medidas, id, aluno.altura_cm ?? null, comId);
   const paraComparar = avaliacoesParaComparar(medidas, id);
+  const seriesEvol = rel ? seriesDoRelatorio(medidas, rel.data) : [];
+  const totalFolhas = 2 + (seriesEvol.length ? 1 : 0);
   const nome = aluno.profile?.nome ?? "Aluno";
   const doPersonal = sessao.role === "treinador";
   if (!rel) {
     // Bioimpedância e medidas também têm relatório (06/11/2026, caso da Michelle).
     const resumo = resumoDaAvaliacao(medidas, id, aluno.altura_cm ?? null);
     if (!resumo) notFound();
-    return <RelatorioGeral r={resumo} nome={nome} doPersonal={doPersonal} alunoId={aluno.id} telefone={aluno.telefone ?? null} alturaCm={(linha.altura_cm ?? aluno.altura_cm) ?? null} />;
+    return <RelatorioGeral r={resumo} series={seriesDoRelatorio(medidas, resumo.data)} nome={nome} doPersonal={doPersonal} alunoId={aluno.id} telefone={aluno.telefone ?? null} alturaCm={(linha.altura_cm ?? aluno.altura_cm) ?? null} />;
   }
   const evolucao = evolucaoDoRelatorio(rel, focoDoObjetivo(aluno.objetivo));
   const card = cardDaAvaliacao({ rel, nome, evolucao });
@@ -179,7 +183,7 @@ export default async function RelatorioAvaliacaoPage({ params, searchParams }: {
 
         <div className="rodape">
           <span>{BRAND.fullName} · Avaliação física · {nome}</span>
-          <span>{dataBR(rel.data)} · 1 / 2</span>
+          <span>{dataBR(rel.data)} · 1 / {totalFolhas}</span>
         </div>
       </section>
 
@@ -213,9 +217,27 @@ export default async function RelatorioAvaliacaoPage({ params, searchParams }: {
 
         <div className="rodape">
           <span>{BRAND.fullName} · Avaliação física · {nome}</span>
-          <span>{dataBR(rel.data)} · 2 / 2</span>
+          <span>{dataBR(rel.data)} · 2 / {totalFolhas}</span>
         </div>
       </section>
+      {seriesEvol.length ? (
+        <section className="folha">
+          <div className="flex items-center justify-between gap-3">
+            <p className="eyebrow">Avaliação física · {nome} · {dataBR(rel.data)}</p>
+            <div className="rounded-md bg-[#0a0a0a] px-2 py-1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- logo oficial completo, também no PDF */}
+              <img src={BRAND.logo.full} alt={BRAND.fullName} style={{ height: 32, width: "auto" }} />
+            </div>
+          </div>
+          <Titulo eyebrow="Linha do tempo" titulo="Evolução ao longo do tempo" />
+          <p className="mb-2 text-[9pt] text-[#625c4f]">Cada ponto é uma avaliação, até {dataBR(rel.data)}. A seta mostra se a medida subiu ou desceu da primeira para a última; quem interpreta é o {BRAND.name}.</p>
+          <EvolucaoNoTempo series={seriesEvol} />
+          <div className="rodape">
+            <span>{BRAND.fullName} · Avaliação física · {nome}</span>
+            <span>{dataBR(rel.data)} · 3 / {totalFolhas}</span>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -225,13 +247,14 @@ export default async function RelatorioAvaliacaoPage({ params, searchParams }: {
 // ---------------------------------------------------------------------------
 const valorL = (l: Linha) => `${br(l.atual, l.unidade === "" ? 2 : 1)}${l.unidade === "%" ? "%" : l.unidade ? ` ${l.unidade}` : ""}`;
 
-function RelatorioGeral({ r, nome, doPersonal, alunoId, telefone, alturaCm }: { r: ResumoAvaliacao; nome: string; doPersonal: boolean; alunoId: string; telefone: string | null; alturaCm: number | null }) {
+function RelatorioGeral({ r, series, nome, doPersonal, alunoId, telefone, alturaCm }: { r: ResumoAvaliacao; series: SerieMedida[]; nome: string; doPersonal: boolean; alunoId: string; telefone: string | null; alturaCm: number | null }) {
   const voltar = doPersonal ? `/treinador/alunos/${alunoId}/medidas` : "/aluno/medidas";
   const comAnterior = !!r.anterior;
   const [p1, p2, ...resto] = r.principais;
   const seg = (k: string) => r.segmentos.find((s) => s.parte === k);
   const todos = [...r.outros, ...r.tecnicos];
   const temFolha2 = r.circunferencias.length > 0 || todos.length > 0 || !!r.observacao;
+  const totalG = 1 + (temFolha2 ? 1 : 0) + (series.length ? 1 : 0);
   const eyebrow = `Avaliação física · ${ROTULO_METODO[r.metodo]}`;
   return (
     <div className="py-4 md:py-8 print:py-0">
@@ -295,7 +318,7 @@ function RelatorioGeral({ r, nome, doPersonal, alunoId, telefone, alturaCm }: { 
 
         <div className="rodape">
           <span>{BRAND.fullName} · Avaliação física · {nome}</span>
-          <span>{dataBR(r.data)}{temFolha2 ? " · 1 / 2" : ""}</span>
+          <span>{dataBR(r.data)}{totalG > 1 ? ` · 1 / ${totalG}` : ""}</span>
         </div>
       </section>
 
@@ -342,7 +365,25 @@ function RelatorioGeral({ r, nome, doPersonal, alunoId, telefone, alturaCm }: { 
           ) : null}
           <div className="rodape">
             <span>{BRAND.fullName} · Avaliação física · {nome}</span>
-            <span>{dataBR(r.data)} · 2 / 2</span>
+            <span>{dataBR(r.data)} · 2 / {totalG}</span>
+          </div>
+        </section>
+      ) : null}
+      {series.length ? (
+        <section className="folha">
+          <div className="flex items-center justify-between gap-3">
+            <p className="eyebrow">Avaliação física · {nome} · {dataBR(r.data)}</p>
+            <div className="rounded-md bg-[#0a0a0a] px-2 py-1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- logo oficial completo, também no PDF */}
+              <img src={BRAND.logo.full} alt={BRAND.fullName} style={{ height: 32, width: "auto" }} />
+            </div>
+          </div>
+          <Titulo eyebrow="Linha do tempo" titulo="Evolução ao longo do tempo" />
+          <p className="mb-2 text-[9pt] text-[#625c4f]">Cada ponto é uma avaliação, até {dataBR(r.data)}. A seta mostra se a medida subiu ou desceu da primeira para a última; quem interpreta é o {BRAND.name}.</p>
+          <EvolucaoNoTempo series={series} />
+          <div className="rodape">
+            <span>{BRAND.fullName} · Avaliação física · {nome}</span>
+            <span>{dataBR(r.data)} · {totalG} / {totalG}</span>
           </div>
         </section>
       ) : null}
