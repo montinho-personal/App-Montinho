@@ -25,6 +25,8 @@ import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
 import { AntesAgora, BarrasSemanas, LinhaCarga, MiniLinha } from "@/components/relatorios/premium/Graficos";
 import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
+import { EnviarRelatorioWhatsApp } from "@/components/relatorios/premium/EnviarRelatorioWhatsApp";
+import { mensagemRelatorioEvolucao } from "@/lib/relatorios/mensagem-relatorio";
 import type { Evolucao } from "@/lib/supabase/types";
 
 export const metadata = { title: "Relatório de evolução", robots: { index: false } };
@@ -171,7 +173,10 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
       <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full space-y-2 bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
         <div className="flex items-center justify-between gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
-          <BaixarPdf />
+          <div className="flex items-center gap-2">
+            {ehPersonal ? <EnviarRelatorioWhatsApp telefone={aluno.telefone ?? null} caminho={`/relatorio/${alunoId}${periodo === "tudo" ? "" : `?periodo=${periodo}`}`} montar={mensagemRelatorioEvolucao({ primeiroNome, r, aderenciaPct, url: "{url}" })} /> : null}
+            <BaixarPdf />
+          </div>
         </div>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Período do relatório">
           {PERIODOS_PREMIUM.map((o) => (
