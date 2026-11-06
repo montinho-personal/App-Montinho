@@ -26,6 +26,7 @@ import { trofeusDoDiaDuplo, type CodigoDiaDuplo } from "./dia-duplo";
 import { trofeusDeFeriado, type CodigoFeriado } from "./feriados";
 import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-seguido";
 import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
+import { trofeusDaPratica, type CodigoPratica } from "./pratica-acumulada";
 import { trofeusDeMonitoramento, type CodigoMonitoramento } from "./monitoramento";
 import { trofeusDeSemanasCompletas, type CodigoSemanasCompletas } from "./semanas-completas";
 import { trofeusMultimodalidade, type CodigoMulti, type ResultadoBenchmarkConquista } from "./multimodalidade";
@@ -37,7 +38,7 @@ export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12, 16, 20, 26, 39, 52] as const;
 /** Treinos concluídos (extras e parciais não entram). 75 em diante = trilha longa (04/11/2026). */
 export const MARCOS_TREINOS = [10, 25, 50, 75, 100, 150, 200, 300, 365, 500] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
-export const LENDARIAS: ReadonlySet<string> = new Set(["semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
+export const LENDARIAS: ReadonlySet<string> = new Set(["reps_100000", "toneladas_1000", "semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
 
 /** Começo (pedido do Montinho, 23/10/2026). */
 export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
@@ -132,6 +133,8 @@ export type CodigoConquista =
   | CodigoCombo
   // Volume total: séries válidas acumuladas (src/lib/conquistas/volume-series.ts)
   | CodigoSeries
+  // Prática acumulada: repetições, toneladas e exercícios diferentes (pratica-acumulada.ts)
+  | CodigoPratica
   // 29/10/2026: acompanhamento em meses + retomada de 1 mês (acompanhamento.ts),
   // autoconhecimento (quiz.ts), mais de compartilhar (compartilhar.ts),
   // cardio por horário/10 km/escada (cardio-horario.ts)
@@ -218,6 +221,8 @@ export { CODIGOS_FERIADO } from "./feriados";
 export { CODIGOS_COMBO } from "./combo-seguido";
 /** Volume total (0111): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_SERIES } from "./volume-series";
+/** Prática acumulada (0150): repetições, toneladas e Explorador, gravados à parte. */
+export { CODIGOS_PRATICA } from "./pratica-acumulada";
 /** Monitoramento (0127): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_MONITORAMENTO } from "./monitoramento";
 /** Semanas completas + Semana Perfeita (0129): gravados à parte, como as outras famílias novas. */
@@ -358,6 +363,20 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   series_1000: { titulo: "1.000 Séries", criterio: "Somar 1.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
   series_2000: { titulo: "2.000 Séries", criterio: "Somar 2.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
   series_5000: { titulo: "5.000 Séries", criterio: "Somar 5.000 séries válidas feitas no app (aquecimento não conta; treino extra e treino que terminou antes do fim contam).", repete: false },
+  reps_1000: { titulo: "Mil Repetições", criterio: "Somar 1.000 repetições feitas no app (aquecimento não conta; exercício unilateral conta os dois lados; treino extra e treino que terminou antes do fim contam).", repete: false },
+  reps_5000: { titulo: "5.000 Repetições", criterio: "Somar 5.000 repetições feitas no app (aquecimento não conta; exercício unilateral conta os dois lados; treino extra e treino que terminou antes do fim contam).", repete: false },
+  reps_10000: { titulo: "10.000 Repetições", criterio: "Somar 10.000 repetições feitas no app (aquecimento não conta; exercício unilateral conta os dois lados; treino extra e treino que terminou antes do fim contam).", repete: false },
+  reps_25000: { titulo: "25.000 Repetições", criterio: "Somar 25.000 repetições feitas no app (aquecimento não conta; exercício unilateral conta os dois lados; treino extra e treino que terminou antes do fim contam).", repete: false },
+  reps_50000: { titulo: "50.000 Repetições", criterio: "Somar 50.000 repetições feitas no app (aquecimento não conta; exercício unilateral conta os dois lados; treino extra e treino que terminou antes do fim contam).", repete: false },
+  reps_100000: { titulo: "Lenda das 100 Mil Repetições", criterio: "Somar 100.000 repetições feitas no app (aquecimento não conta; exercício unilateral conta os dois lados; treino extra e treino que terminou antes do fim contam).", repete: false },
+  toneladas_25: { titulo: "25 Toneladas", criterio: "Somar 25 toneladas levantadas no app: carga × repetições de cada série (aquecimento não conta; exercício unilateral conta os dois lados; vale o peso anotado).", repete: false },
+  toneladas_100: { titulo: "100 Toneladas", criterio: "Somar 100 toneladas levantadas no app: carga × repetições de cada série (aquecimento não conta; exercício unilateral conta os dois lados; vale o peso anotado).", repete: false },
+  toneladas_250: { titulo: "250 Toneladas", criterio: "Somar 250 toneladas levantadas no app: carga × repetições de cada série (aquecimento não conta; exercício unilateral conta os dois lados; vale o peso anotado).", repete: false },
+  toneladas_500: { titulo: "500 Toneladas", criterio: "Somar 500 toneladas levantadas no app: carga × repetições de cada série (aquecimento não conta; exercício unilateral conta os dois lados; vale o peso anotado).", repete: false },
+  toneladas_1000: { titulo: "Mil Toneladas", criterio: "Somar 1.000 toneladas levantadas no app: carga × repetições de cada série (aquecimento não conta; exercício unilateral conta os dois lados; vale o peso anotado).", repete: false },
+  explorador_15: { titulo: "Explorador", criterio: "Fazer 15 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
+  explorador_30: { titulo: "Desbravador", criterio: "Fazer 30 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
+  explorador_50: { titulo: "Mestre Explorador", criterio: "Fazer 50 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
   cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
@@ -421,7 +440,7 @@ export const VERSAO_CRITERIO: Record<CodigoConquista, number> = Object.fromEntri
 
 export const REGRAS_CONQUISTAS = { diasRetomada: 14, registrosParaRecorde: 2, diasPrimeiroMes: 28, treinosPrimeiroMes: 4 };
 
-export type SerieConquista = { tipo: string; carga_kg: number | null; reps: number | null };
+export type SerieConquista = { tipo: string; carga_kg: number | null; reps: number | null; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: Array<{ carga: number | null; reps: number | null }> | null };
 
 const NOME_FASE: Record<string, string> = { adaptacao: "adaptação", intensificacao: "intensificação", consolidacao: "consolidação" };
 
@@ -513,7 +532,7 @@ export type SessaoConquista = SessaoAderencia & {
   checkin_pre?: string | null;
   /** false = histórico importado: serve de base para recordes, mas não gera conquistas. */
   conta_aderencia?: boolean;
-  exercicios?: Array<{ exercicio_id: string | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null; /** “＋ Exercício extra” posto pela pessoa no dia. */ extra?: boolean }>;
+  exercicios?: Array<{ exercicio_id: string | null; /** Exercício da biblioteca (Explorador). */ biblioteca_id?: string | null; /** Feito um lado de cada vez (prescrição). */ unilateral?: boolean | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null; /** “＋ Exercício extra” posto pela pessoa no dia. */ extra?: boolean }>;
   /** "app" ou "importado" (histórico de outro app). */
   origem?: string | null;
   /** Fase do protocolo no dia (snapshot da sessão). */
@@ -670,6 +689,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   for (const t of trofeusDeFeriado(e.sessoes, e.cardio?.feitos ?? [])) out.push({ ...nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, undefined, t.evidencia), titulo: t.titulo });
   for (const t of trofeusDoComboSeguido(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeSeries(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
+  for (const t of trofeusDaPratica(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeTempo(e.sessoes)) out.push(nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, t.codigo === "retomada_30" ? { diasAfastado: Number(t.evidencia.diasAfastado) } : undefined, t.evidencia));
   if (e.quiz) for (const t of trofeusDoQuiz(e.quiz)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.cardio) for (const t of trofeusCardioHorario(e.cardio.feitos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
