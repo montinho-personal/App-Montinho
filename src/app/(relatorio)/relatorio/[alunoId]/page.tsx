@@ -121,7 +121,9 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   const av = avD ? resumoDaAvaliacao(evolucao as Evolucao[], avD.id, aluno.altura_cm ?? null) : null;
   const mPrim = medidas[0];
   const mUlt = medidas.length >= 2 ? medidas.at(-1) : undefined;
-  const mensagem = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem" || i.tipo === "revisao_treino"));
+  // “Palavra do Montinho” = só o que ELE escreveu para o aluno (nota/mensagem). O aviso automático
+  // “Plano salvo (versão N)” que o montador cria ao salvar não é recado (06/11/2026, pedido do Montinho).
+  const mensagem = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem") && !/^plano salvo/i.test(i.titulo ?? ""));
   const maxDestaque = Math.max(1, ...r.destaques.map((d) => d.atual.carga));
   const top = r.exercicios.slice(0, 12);
   const porTreino = evolucaoPorTreino(sessoes, inicio, hoje);
@@ -416,7 +418,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
 
       {/* 6 — Fechamento */}
       <section className="folha">
-        <Secao eyebrow="Fechamento" titulo="Corpo, método e próximos passos">
+        <Secao eyebrow="Fechamento" titulo="Medidas, recado do Montinho e como calculamos">
           {av && av.principais.length ? (
             <div className="rounded-lg border border-[#e4dfd3] bg-white p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
