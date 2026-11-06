@@ -282,6 +282,14 @@ export const intervencaoSchema = z.object({
   visivel_aluno: z.boolean().default(false),
 });
 
+/** Palavra do Montinho no relatório de evolução (06/11/2026): textos editados pelo personal. Vazio = volta o automático. */
+export const palavraRelatorioSchema = z.object({
+  continuar: z.string().trim().max(600).default(""),
+  atencao: z.string().trim().max(600).default(""),
+  missao: z.string().trim().max(300).default(""),
+  frase: z.string().trim().max(400).default(""),
+});
+
 export const memoriaPatchSchema = z.object({
   feedback: z.enum(["util", "nao_util", "usei_adaptei"]).optional(),
   desfazer: z.boolean().optional(),

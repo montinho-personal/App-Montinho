@@ -26,6 +26,12 @@ import { dataBR } from "@/lib/format";
 import { AntesAgora, BarrasSemanas, LinhaCarga, MiniLinha } from "@/components/relatorios/premium/Graficos";
 import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
 import { nomeDoArquivo } from "@/lib/relatorios/nome-arquivo";
+import { destaqueDaCapa, lerPalavraSalva, palavraAutomatica, palavraFinal } from "@/lib/relatorios/palavra";
+import { EditarPalavra } from "@/components/relatorios/premium/EditarPalavra";
+import { listarConquistas } from "@/lib/data/conquistas";
+import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
+import { seloDaConquista } from "@/lib/conquistas/compartilhavel";
+import { LENDARIAS } from "@/lib/conquistas/regras";
 import { EnviarRelatorioWhatsApp } from "@/components/relatorios/premium/EnviarRelatorioWhatsApp";
 import { mensagemRelatorioEvolucao } from "@/lib/relatorios/mensagem-relatorio";
 import type { Evolucao } from "@/lib/supabase/types";
@@ -124,9 +130,14 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   const av = avD ? resumoDaAvaliacao(evolucao as Evolucao[], avD.id, aluno.altura_cm ?? null) : null;
   const mPrim = medidas[0];
   const mUlt = medidas.length >= 2 ? medidas.at(-1) : undefined;
-  // “Palavra do Montinho” = só o que ELE escreveu para o aluno (nota/mensagem). O aviso automático
-  // “Plano salvo (versão N)” que o montador cria ao salvar não é recado (06/11/2026, pedido do Montinho).
-  const mensagem = intervencoes.find((i) => i.visivel_aluno && (i.tipo === "nota" || i.tipo === "mensagem") && !/^plano salvo/i.test(i.titulo ?? ""));
+  // Palavra do Montinho (aprovada em 06/11/2026): 4 partes montadas pelos números + o que o
+  // personal editou nos últimos 30 dias (`EditarPalavra`). O recado do treino ao vivo não entra mais.
+  const autoPalavra = palavraAutomatica({ r, aderenciaPct, ultimas4Pct: aderencia.indices.d28.pct ?? null, metaSemanal: aderencia.metaAtual.meta });
+  const palavra = palavraFinal(autoPalavra, lerPalavraSalva(intervencoes), hoje);
+  const capa = destaqueDaCapa(r, aderenciaPct);
+  const trofeus = (await listarConquistas(alunoId, { desde: inicio })).filter((c) => c.codigo !== "relatorio_mensal" && c.conquistado_em.slice(0, 10) <= hoje);
+  const antesAgora = r.destaques.filter((d) => d.atual.carga > d.inicial.carga).slice(0, 4);
+  const temFolhaConquistas = antesAgora.length > 0 || trofeus.length > 0;
   const maxDestaque = Math.max(1, ...r.destaques.map((d) => d.atual.carga));
   const top = r.exercicios.slice(0, 12);
   const porTreino = evolucaoPorTreino(sessoes, inicio, hoje);
@@ -153,7 +164,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   }
   if (atualFolha.length) folhasGrupo.push(atualFolha);
   const folhasGraf = pedaco(top, 6);
-  const total = 2 + (r.semDados ? 0 : (porTreino.length ? 1 : 0) + (porMusculo.length ? 1 : 0) + folhasGrupo.length + folhasGraf.length) + 2;
+  const total = 2 + (temFolhaConquistas ? 1 : 0) + (r.semDados ? 0 : (porTreino.length ? 1 : 0) + (porMusculo.length ? 1 : 0) + folhasGrupo.length + folhasGraf.length) + 2;
   let n = 0;
   const prox = () => ++n;
 
@@ -204,6 +215,18 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
             <div><p className="eyebrow !text-[#8a8273]">Protocolo</p><p className="mt-1 font-semibold">{programa?.nome ?? "—"}{programa?.fase ? ` · ${FASE[programa.fase] ?? programa.fase}` : ""}</p></div>
             {aluno.objetivo ? <div className="col-span-2"><p className="eyebrow !text-[#8a8273]">Objetivo</p><p className="mt-1 font-semibold">{aluno.objetivo}</p></div> : null}
           </div>
+          {capa ? (
+            <div className="max-w-[160mm] rounded-2xl border border-[#ba9e50] bg-[#15130d] px-6 py-5">
+              <p className="eyebrow" style={{ letterSpacing: ".3em" }}>O destaque do seu período</p>
+              <p className="mt-2 text-[24pt] font-extrabold leading-[1.1] text-[#e0c677]">{capa.titulo}</p>
+              {capa.sub ? <p className="mt-2 text-[11pt] text-[#cfc8b6]">{capa.sub}</p> : null}
+              <div className="mt-4 grid grid-cols-4 gap-2 border-t border-[#ba9e50]/40 pt-3 text-center">
+                {[["Treinos", br(r.treinos, 0)], ["Toneladas", br(r.tonelagem / 1000, 0)], ["Recordes", br(r.marcos.length, 0)], aderenciaPct != null && aderenciaPct >= 60 ? ["Constância", `${aderenciaPct}%`] : ["Horas", br(r.minutos / 60, 0)]].map(([rot, v]) => (
+                  <div key={rot}><p className="num text-[17pt] font-extrabold text-[#f4f1ea]">{v}</p><p className="text-[7pt] font-bold uppercase tracking-[0.14em] text-[#8a8273]">{rot}</p></div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <p className="max-w-[140mm] text-[12pt] italic text-[#c2bba9]">“Cada número deste relatório saiu de um treino que você registrou. É a sua constância, em dados.”</p>
         </div>
         <Rodape n={prox()} total={total} nome={nome} />
@@ -253,6 +276,47 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
         </Secao>
         <Rodape n={prox()} total={total} nome={nome} />
       </section>
+
+      {/* 2a — Antes × agora e troféus do período (06/11/2026) */}
+      {temFolhaConquistas ? (
+        <section className="folha">
+          {antesAgora.length ? (
+            <Secao eyebrow="Você de antes × você de agora" titulo="O primeiro treino e o mais recente, lado a lado">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 print:grid-cols-2">
+                {antesAgora.map((d) => (
+                  <div key={d.chave} className="rounded-xl border border-[#e4dfd3] bg-white p-3">
+                    <p className="text-[10.5pt] font-bold leading-tight">{d.nome} <span className="font-normal text-[#8a8273]">· {d.grupoRotulo}</span></p>
+                    <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
+                      <div className="rounded-lg bg-[#f1ece0] px-2 py-2"><p className="text-[7.5pt] text-[#8a8273]">{dataBR(d.inicial.data)}</p><p className="num text-[16pt] font-extrabold">{kgTxt(d.inicial.carga)}</p><p className="text-[7pt] uppercase tracking-wider text-[#8a8273]">antes</p></div>
+                      <span className="text-[14pt] text-[#ba9e50]">➜</span>
+                      <div className="rounded-lg bg-[#1a1814] px-2 py-2 text-[#e0c677]"><p className="text-[7.5pt] opacity-80">{dataBR(d.atual.data)}</p><p className="num text-[16pt] font-extrabold">{kgTxt(d.atual.carga)}</p><p className="text-[7pt] uppercase tracking-wider opacity-80">agora</p></div>
+                    </div>
+                    <p className="num mt-1.5 text-center text-[9pt] font-bold text-[#8a6f25]">{sinal(d.deltaKg)}{kgTxt(Math.abs(d.deltaKg))} · {pctTxt(d.deltaPct)}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[8.5pt] text-[#8a8273]">Maior carga das séries válidas no primeiro treino do período × no treino mais recente.</p>
+            </Secao>
+          ) : null}
+          {trofeus.length ? (
+            <div className={antesAgora.length ? "mt-6" : ""}>
+              <Secao eyebrow="Troféus do período" titulo={`${trofeus.length} ${trofeus.length === 1 ? "troféu conquistado" : "troféus conquistados"}`}>
+                <div className="grid grid-cols-3 gap-3 md:grid-cols-4 print:grid-cols-4">
+                  {trofeus.slice(0, 12).map((c) => (
+                    <div key={c.id} className="flex flex-col items-center rounded-xl border border-[#e4dfd3] bg-white px-1 py-2 text-center">
+                      <MedalhaIcone selo={seloDaConquista(c.codigo)} conquistada atual={null} alvo={null} tamanho={52} lendaria={LENDARIAS.has(c.codigo)} />
+                      <p className="mt-1 text-[8.5pt] font-bold leading-tight">{c.titulo}</p>
+                      <p className="num text-[7pt] text-[#8a8273]">{dataBR(c.conquistado_em.slice(0, 10))}</p>
+                    </div>
+                  ))}
+                </div>
+                {trofeus.length > 12 ? <p className="text-[8.5pt] text-[#8a8273]">+ {trofeus.length - 12} outros troféus no app, na sala de troféus.</p> : null}
+              </Secao>
+            </div>
+          ) : null}
+          <Rodape n={prox()} total={total} nome={nome} />
+        </section>
+      ) : null}
 
       {/* 2b — Evolução de cada treino */}
       {r.semDados || !porTreino.length ? null : (
@@ -470,14 +534,37 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
             </div>
           ) : null}
 
-          {mensagem ? (
-            <div className="rounded-lg bg-[#0a0a0a] px-5 py-4 text-[#f4f1ea]">
-              <p className="eyebrow">Palavra do {BRAND.name}</p>
-              {mensagem.titulo ? <p className="mt-2 text-[11pt] font-bold">{mensagem.titulo}</p> : null}
-              <p className="mt-1 text-[10.5pt] leading-relaxed">{mensagem.descricao}</p>
-              <p className="mt-2 text-[8.5pt] text-[#8a8273]">{mensagem.autor?.nome ?? BRAND.name} · {dataBR(mensagem.created_at)}</p>
+          <div className="rounded-xl bg-[#0a0a0a] px-5 py-5 text-[#f4f1ea]">
+            <p className="eyebrow">Palavra do {BRAND.name}</p>
+            {([["🔥 Continue assim", palavra.continuar], ["🎯 Atenção para evoluir", palavra.atencao]] as const).map(([t, txt]) => (
+              <div key={t} className="mt-3 border-t border-[#2c2a25] pt-3 first-of-type:border-0">
+                <p className="text-[10.5pt] font-bold text-[#e0c677]">{t}</p>
+                <p className="mt-1 text-[10.5pt] leading-relaxed text-[#e9e4d6]">{txt}</p>
+              </div>
+            ))}
+            <div className="mt-3 border-t border-[#2c2a25] pt-3">
+              <p className="text-[10.5pt] font-bold text-[#e0c677]">🚀 Sua missão para os próximos 30 dias</p>
+              <div className="mt-1.5 rounded-lg border border-[#ba9e50] bg-[#1f1b12] px-4 py-3">
+                <p className="text-[11.5pt] font-extrabold leading-snug text-white">{palavra.missao}</p>
+                <p className="mt-1 text-[8.5pt] text-[#cfc8b6]">No próximo relatório a gente confere junto se deu certo.</p>
+              </div>
             </div>
-          ) : null}
+            {palavra.frase ? (
+              <div className="mt-3 border-t border-[#2c2a25] pt-3">
+                <p className="text-[10.5pt] font-bold text-[#e0c677]">✍️ Do {BRAND.name} para você</p>
+                <p className="mt-1 text-[11pt] italic leading-relaxed text-white">“{palavra.frase}”</p>
+              </div>
+            ) : null}
+            <div className="mt-4 flex items-center gap-3 border-t border-[#2c2a25] pt-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ba9e50] text-[16pt] font-extrabold text-[#0a0a0a]">M</span>
+              <div>
+                <p className="text-[12pt] font-bold italic text-white">{BRAND.name}</p>
+                <p className="text-[8.5pt] text-[#bdb5a3]">Renato Nascimento · {BRAND.fullName}</p>
+                <p className="text-[9pt] font-bold text-[#e0c677]">É impossível dar errado!</p>
+              </div>
+            </div>
+          </div>
+          {ehPersonal ? <EditarPalavra alunoId={alunoId} inicial={{ continuar: palavra.continuar, atencao: palavra.atencao, missao: palavra.missao, frase: palavra.frase ?? "" }} /> : null}
 
           <div className="rounded-lg border border-[#e4dfd3] bg-white p-4 text-[9pt] leading-relaxed text-[#3d3830]">
             <p className="text-[10pt] font-bold text-[#1a1814]">Como este relatório é calculado</p>
