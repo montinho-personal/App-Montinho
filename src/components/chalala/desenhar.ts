@@ -196,6 +196,6 @@ function desenharOp(ctx: CanvasRenderingContext2D, op: Op, l: ResultadoLayout, c
   ctx.restore();
 }
 
-export function paraBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((ok, erro) => canvas.toBlob((b) => (b ? ok(b) : erro(new Error("Falha ao gerar a imagem"))), "image/png"));
+export function paraBlob(canvas: HTMLCanvasElement, tipo: "image/png" | "image/jpeg" = "image/png"): Promise<Blob> {
+  return new Promise((ok, erro) => canvas.toBlob((b) => (b ? ok(b) : erro(new Error("Falha ao gerar a imagem"))), tipo, tipo === "image/jpeg" ? 0.92 : undefined));
 }

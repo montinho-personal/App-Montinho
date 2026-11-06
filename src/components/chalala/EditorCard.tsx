@@ -236,12 +236,20 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
         void video.el.play().catch(() => undefined);
       }
     }
-    // Renderiza num canvas novo no tamanho final (independe do zoom da prévia).
+    const f = await gerarImagem();
+    ev({ tipo: "card_gerado", modelo: cfg.modelo, formato: cfg.formato });
+    return f;
+  }
+  // Renderiza num canvas novo no tamanho final (independe do zoom da prévia).
+  // Com foto vai em JPEG: bem mais leve e rápido de gerar que o PNG (o celular só abre a
+  // lista de apps logo depois do toque — caso do Montinho, 06/11/2026: “só baixava”).
+  async function gerarImagem(): Promise<File> {
     const c = document.createElement("canvas");
     desenhar(c, cfg, dados, ativos);
-    const blob = await paraBlob(c);
-    ev({ tipo: "card_gerado", modelo: cfg.modelo, formato: cfg.formato });
-    return new File([blob], nomeArquivo(cfg, dados), { type: "image/png" });
+    const jpg = cfg.fundo === "foto" && !!ativos.foto;
+    const blob = await paraBlob(c, jpg ? "image/jpeg" : "image/png");
+    const nome = nomeArquivo(cfg, dados);
+    return new File([blob], jpg ? nome.replace(/\.png$/, ".jpg") : nome, { type: jpg ? "image/jpeg" : "image/png" });
   }
   function baixar(f: File) {
     const url = URL.createObjectURL(f);
@@ -254,6 +262,18 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
   const modoVideo = !!video && cfg.fundo === "foto";
+  // Deixa a imagem pronta ~0,5 s depois da última mudança: no toque em Compartilhar ela já existe.
+  const prontaRef = useRef<File | null>(null);
+  useEffect(() => {
+    prontaRef.current = null;
+    if (modoVideo || !ativos.logoClaro) return;
+    let vivo = true;
+    const t = setTimeout(() => {
+      gerarImagem().then((f) => { if (vivo) prontaRef.current = f; }, () => undefined);
+    }, 500);
+    return () => { vivo = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg, dados, ativos, modoVideo]);
   async function montarVideo() {
     setOcupado(true);
     setAviso(null);
@@ -271,13 +291,17 @@ export default function EditorCard({ dados, modeloInicial, nome, origem, registr
     setAviso(null);
     let r: ResultadoCompartilhar;
     try {
-      const f = modoVideo && videoPronto ? videoPronto : await gerarArquivo();
+      // A imagem já pronta (gerada logo depois da última mudança) vai na hora, ainda dentro do toque.
+      const pronta = !modoVideo ? prontaRef.current : null;
+      const f = modoVideo && videoPronto ? videoPronto : pronta ?? (await gerarArquivo());
+      if (pronta) ev({ tipo: "card_gerado", modelo: cfg.modelo, formato: cfg.formato });
       if (tipo === "baixar") {
         baixar(f);
         r = "baixado";
       } else {
         const link = `${window.location.origin}/chalala?origem=card_${cfg.modelo.toLowerCase()}${codigoLink ? `&c=${codigoLink}` : ""}`;
-        r = await compartilharArquivo(navigator, f, `${cfg.frase} @montinho_personal ${link}`, baixar);
+        r = await compartilharArquivo(navigator, f, `${cfg.frase} @montinho_personal ${link}`, baixar, { pedirToque: true });
+        if (r === "precisa_toque" && !modoVideo) prontaRef.current = f;
       }
     } catch {
       r = "erro";

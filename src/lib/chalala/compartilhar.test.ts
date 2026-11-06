@@ -28,6 +28,12 @@ describe("compartilhamento web", () => {
     const baixar = vi.fn();
     expect(await compartilharArquivo({ share: vi.fn().mockRejectedValue(erro), canShare: () => true }, arq, "", baixar)).toBe("baixado");
   });
+  it("gesto expirado com pedirToque: não baixa, pede mais um toque", async () => {
+    const erro = Object.assign(new Error("x"), { name: "NotAllowedError" });
+    const baixar = vi.fn();
+    expect(await compartilharArquivo({ share: vi.fn().mockRejectedValue(erro), canShare: () => true }, arq, "", baixar, { pedirToque: true })).toBe("precisa_toque");
+    expect(baixar).not.toHaveBeenCalled();
+  });
   it("canShare que lança exceção é tratado como sem suporte", () => {
     expect(podeCompartilharArquivo({ share: vi.fn(), canShare: () => { throw new Error("x"); } }, arq)).toBe(false);
   });
