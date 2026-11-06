@@ -39,13 +39,13 @@ function Mini({ s }: { s: SerieMedida }) {
         <p className="text-[9.5pt] font-bold">{s.rotulo}</p>
         <p className="num text-[8.5pt] text-[#625c4f]">{dif === 0 ? "igual" : `${dif > 0 ? "↑ +" : "↓ −"}${br(Math.abs(dif))}${s.unidade === "%" ? " pontos" : un(s.unidade)}`}</p>
       </div>
+      <p className="num text-[9pt] text-[#625c4f]">{br(r.primeiro.valor)}{un(s.unidade)} → <strong className="text-[#1a1814]">{br(r.ultimo.valor)}{un(s.unidade)}</strong></p>
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 w-full" role="img" aria-label={`${s.rotulo}: ${s.pontos.length} avaliações`}>
         <line x1={PX} x2={W - PX} y1={y(min)} y2={y(min)} stroke="#e4dfd3" strokeDasharray="3 4" />
         <line x1={PX} x2={W - PX} y1={y(max)} y2={y(max)} stroke="#e4dfd3" strokeDasharray="3 4" />
         <path d={d} fill="none" stroke="#ba9e50" strokeWidth="2.2" strokeLinejoin="round" />
         {s.pontos.map((p) => <circle key={p.data} cx={x(p.data)} cy={y(p.valor)} r="2.8" fill="#fff" stroke="#8f762f" strokeWidth="1.6" />)}
-        <text x={x(s.pontos[0].data)} y={y(s.pontos[0].valor) - 6} fontSize="10" fill="#625c4f" textAnchor="start">{br(r.primeiro.valor)}</text>
-        <text x={x(r.ultimo.data)} y={y(r.ultimo.valor) - 6} fontSize="10" fontWeight="700" fill="#1a1814" textAnchor="end">{br(r.ultimo.valor)}</text>
+        <circle cx={x(r.ultimo.data)} cy={y(r.ultimo.valor)} r="4.2" fill="#ba9e50" stroke="#8f762f" strokeWidth="1.6" />
       </svg>
       <div className="num flex justify-between text-[7.5pt] text-[#8a8273]">
         <span>{dataBR(r.primeiro.data)}</span>
