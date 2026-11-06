@@ -25,6 +25,7 @@ import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
 import { AntesAgora, BarrasSemanas, LinhaCarga, MiniLinha } from "@/components/relatorios/premium/Graficos";
 import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
+import { nomeDoArquivo } from "@/lib/relatorios/nome-arquivo";
 import { EnviarRelatorioWhatsApp } from "@/components/relatorios/premium/EnviarRelatorioWhatsApp";
 import { mensagemRelatorioEvolucao } from "@/lib/relatorios/mensagem-relatorio";
 import type { Evolucao } from "@/lib/supabase/types";
@@ -175,7 +176,7 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
           <div className="flex items-center gap-2">
             {ehPersonal ? <EnviarRelatorioWhatsApp telefone={aluno.telefone ?? null} caminho={`/relatorio/${alunoId}${periodo === "tudo" ? "" : `?periodo=${periodo}`}`} montar={mensagemRelatorioEvolucao({ primeiroNome, r, aderenciaPct, url: "{url}" })} /> : null}
-            <BaixarPdf />
+            <BaixarPdf arquivo={nomeDoArquivo("Relatório de Evolução", nome, hoje)} />
           </div>
         </div>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Período do relatório">

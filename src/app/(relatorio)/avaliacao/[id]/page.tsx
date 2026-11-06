@@ -18,6 +18,7 @@ import { PONTOS_7_DOBRAS } from "@/lib/medidas/pollock";
 import { BRAND } from "@/config/brand";
 import { dataBR } from "@/lib/format";
 import { BaixarPdf } from "@/components/relatorios/premium/BaixarPdf";
+import { nomeDoArquivo } from "@/lib/relatorios/nome-arquivo";
 import { EnviarRelatorioAvaliacao } from "@/components/medidas/EnviarRelatorioAvaliacao";
 import { CompartilharCardRelatorio } from "@/components/relatorios/CompartilharCardRelatorio";
 import { cardDaAvaliacao } from "@/lib/relatorios/card-relatorio";
@@ -118,7 +119,7 @@ export default async function RelatorioAvaliacaoPage({ params }: { params: Promi
       <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
         <div className="flex flex-wrap items-center gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
-          <BaixarPdf />
+          <BaixarPdf arquivo={nomeDoArquivo("Avaliação Física", nome, rel.data)} />
           <CompartilharCardRelatorio card={card} registrar={!doPersonal} rotulo={doPersonal ? "📲 Card para o aluno" : "📲 Compartilhar"} className="inline-flex h-10 items-center rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold" />
           {doPersonal ? <EnviarRelatorioAvaliacao id={rel.id} nome={nome} telefone={aluno.telefone ?? null} data={rel.data} /> : null}
         </div>
@@ -233,7 +234,7 @@ function RelatorioGeral({ r, nome, doPersonal, alunoId, telefone, alturaCm }: { 
       <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
         <div className="flex flex-wrap items-center gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
-          <BaixarPdf />
+          <BaixarPdf arquivo={nomeDoArquivo("Avaliação Física", nome, r.data)} />
           {doPersonal ? <EnviarRelatorioAvaliacao id={r.id} nome={nome} telefone={telefone} data={r.data} metodo={r.metodo} /> : null}
         </div>
       </div>
