@@ -2878,3 +2878,10 @@ do $$ declare k numeric; begin
   if k <> 200 + 400 + 300 then raise exception 'T94a: unilateral (% kg; esperado 900)', k; end if;
 end $$;
 \echo 'T94 OK: unilateral conta os dois lados'
+
+-- T95 — 0149: nome curto sem o que está entre parênteses
+do $$ begin
+  if public.nome_curto('Carol Zorzi (Carolina)') <> 'Carol Z.' then raise exception 'T95a: %', public.nome_curto('Carol Zorzi (Carolina)'); end if;
+  if public.nome_curto('Montinho') <> 'Montinho' or public.nome_curto('  ') <> 'Aluno' or public.nome_curto('Aline de Souza') <> 'Aline S.' then raise exception 'T95b'; end if;
+end $$;
+\echo 'T95 OK: nome curto'
