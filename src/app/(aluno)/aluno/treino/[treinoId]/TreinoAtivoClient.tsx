@@ -41,6 +41,7 @@ import { GRUPO_LABEL } from "@/lib/grupos";
 import { RitmoTreino } from "@/components/aluno/RitmoTreino";
 import { NotaDoPersonal } from "@/components/aluno/NotaDoPersonal";
 import { estimarPrescricao, descansoAposSerie } from "@/lib/tempo/prescricao";
+import { planoDaSessao } from "@/lib/tempo/plano-sessao";
 import { offsetRelogio } from "@/lib/tempo/ritmo";
 import { descansoDaRodada, mesclarParametros, type ParametrosTempo } from "@/lib/tempo/estimar";
 import { aplicarRascunho, gravarRascunho, lerRascunho, limparRascunho, primeiroPendente, rascunhoDasSeries } from "@/lib/sync/rascunho";
@@ -1194,7 +1195,8 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
   const blocosSessao = (sessao?.snapshot as { blocos?: BlocoTreino[] } | null | undefined)?.blocos ?? [];
   const snapshotSessao = sessao?.snapshot as { treino?: { tempos?: Partial<ParametrosTempo> }; exercicios?: ExercicioPrescrito[] } | null | undefined;
   const temposSessao: Partial<ParametrosTempo> = snapshotSessao?.treino?.tempos ?? treino.tempos ?? {};
-  const plano = estimarPrescricao(snapshotSessao?.exercicios ?? exercicios, temposSessao);
+  // Bi-set montado pelo aluno e “＋ Exercício extra” entram na previsão (planoDaSessao).
+  const plano = estimarPrescricao(planoDaSessao((snapshotSessao?.exercicios ?? exercicios) as ExercicioPrescrito[], sessao?.exercicios, exercicios as unknown as ExercicioPrescrito[]), temposSessao);
   const descansoDoDia = (ex: ExercicioPrescrito) => snapshotSessao?.exercicios?.find((x) => x.id === ex.id)?.descanso_seg ?? ex.descanso_seg;
   const exerciciosFeitos = sessao
     ? sessao.exercicios.filter((se) => {
