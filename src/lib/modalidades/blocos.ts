@@ -164,7 +164,7 @@ export function normalizarBlocos(blocos: BlocoTreino[]): BlocoTreino[] {
       descanso_seg: campos.has("descanso_seg") && typeof b.descanso_seg === "number" && b.descanso_seg >= 0 ? b.descanso_seg : null,
       esquema: b.esquema?.trim() || null,
       texto: b.texto?.trim() || null,
-      benchmark: b.benchmark || null,
+      benchmark: b.benchmark?.trim().slice(0, 60) || null,
       movimentos: (b.movimentos ?? [])
         .filter((m) => m.nome?.trim())
         .slice(0, LIMITES_BLOCOS.maxMovimentos)
@@ -176,6 +176,30 @@ export function normalizarBlocos(blocos: BlocoTreino[]): BlocoTreino[] {
 /** O treino tem algo para o aluno fazer além da força? (bloco com movimento ou texto). */
 export function blocosComConteudo(blocos: BlocoTreino[]): BlocoTreino[] {
   return blocos.filter((b) => b.tipo === "forca" || b.movimentos.length > 0 || !!b.texto?.trim());
+}
+
+/**
+ * Benchmark com qualquer nome (07/11/2026, pedido do Montinho: a aluna fez um
+ * benchmark que não estava na lista). Comparação pela CHAVE (sem acento, minúsculas,
+ * espaços → hífen): “Diane”, “diane” e “DIANE” são o mesmo; os antigos (“fran”) seguem iguais.
+ */
+export function chaveBenchmark(s: string | null | undefined): string | null {
+  const k = (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return k || null;
+}
+/** Nome para mostrar: o de referência (Fran, Grace…) ou o que a pessoa escreveu. */
+export function nomeBenchmark(s: string | null | undefined, nome?: string | null): string {
+  const k = chaveBenchmark(s);
+  const ref = BENCHMARKS_REF.find((b) => b.slug === k);
+  if (ref) return ref.nome;
+  const n = (nome ?? s ?? "").trim();
+  return n && n !== k ? n : (k ?? "").split("-").map((p) => (p ? p[0].toUpperCase() + p.slice(1) : p)).join(" ");
 }
 
 /** Benchmarks de referência (espelho da migração 0133; a definição completa e versionada fica no banco). */

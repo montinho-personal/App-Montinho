@@ -11,6 +11,7 @@ import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { corridaDaSessao, pedeResultado, type ResultadoBloco } from "@/lib/modalidades/resultado";
 import type { BlocoTreino } from "@/lib/modalidades/tipos";
+import { chaveBenchmark, nomeBenchmark } from "@/lib/modalidades/blocos";
 
 export type LinhaBloco = ResultadoBloco & { id: string; session_id: string; aluno_id: string; ordem: number; created_at: string; updated_at: string };
 
@@ -57,9 +58,9 @@ export async function blocosDaSessao(alunoId: string, sessionId: string): Promis
 }
 
 function deLinha(r: Record<string, unknown>): LinhaBloco {
-  const segs = (r.segmentos as Array<{ completo?: boolean; benchmark?: string }> | null) ?? null;
+  const segs = (r.segmentos as Array<{ completo?: boolean; benchmark?: string; benchmark_nome?: string }> | null) ?? null;
   const extra = segs?.[0] ?? {};
-  return { ...(r as unknown as LinhaBloco), carga_kg: r.carga_kg != null ? Number(r.carga_kg) : null, intervalos: (r.intervalos as number[] | null) ?? null, completo: extra.completo ?? null, benchmark: extra.benchmark ?? null };
+  return { ...(r as unknown as LinhaBloco), carga_kg: r.carga_kg != null ? Number(r.carga_kg) : null, intervalos: (r.intervalos as number[] | null) ?? null, completo: extra.completo ?? null, benchmark: chaveBenchmark(extra.benchmark), benchmark_nome: extra.benchmark_nome ?? null };
 }
 
 export type EntradaBloco = Omit<ResultadoBloco, "bloco_id"> & { bloco_id: string; ordem: number; client_key: string };
@@ -86,8 +87,11 @@ export async function salvarBlocoSessao(alunoId: string, sessionId: string, e: E
     esforco: e.esforco ?? null,
     benchmark_versao: e.benchmark_versao ?? null,
   };
-  // O que não tem coluna própria (benchmark por slug, HYROX completo) vai em `segmentos`.
-  const segmentos = e.benchmark || e.completo != null ? [{ ...(e.benchmark ? { benchmark: e.benchmark } : {}), ...(e.completo != null ? { completo: e.completo } : {}) }] : null;
+  // O que não tem coluna própria (benchmark e HYROX completo) vai em `segmentos`.
+  // Benchmark: guarda a CHAVE (para comparar) e o nome como foi escrito.
+  const chave = chaveBenchmark(e.benchmark);
+  const nomeBm = chave ? nomeBenchmark(e.benchmark) : null;
+  const segmentos = chave || e.completo != null ? [{ ...(chave ? { benchmark: chave, benchmark_nome: nomeBm } : {}), ...(e.completo != null ? { completo: e.completo } : {}) }] : null;
 
   if (isDemoMode()) {
     const st = demoStore();
@@ -96,9 +100,9 @@ export async function salvarBlocoSessao(alunoId: string, sessionId: string, e: E
     if (s.status !== "em_andamento") throw new Error("Esse treino já terminou.");
     const lista = demo().linhas;
     let linha = lista.find((l) => l.session_id === sessionId && l.bloco_id === e.bloco_id);
-    if (linha) Object.assign(linha, valores, { benchmark: e.benchmark ?? null, completo: e.completo ?? null, updated_at: agora });
+    if (linha) Object.assign(linha, valores, { benchmark: chave, benchmark_nome: nomeBm, completo: e.completo ?? null, updated_at: agora });
     else {
-      linha = { id: uid(), session_id: sessionId, aluno_id: alunoId, created_at: agora, updated_at: agora, ...valores, benchmark: e.benchmark ?? null, completo: e.completo ?? null } as LinhaBloco;
+      linha = { id: uid(), session_id: sessionId, aluno_id: alunoId, created_at: agora, updated_at: agora, ...valores, benchmark: chave, benchmark_nome: nomeBm, completo: e.completo ?? null } as LinhaBloco;
       lista.push(linha);
     }
     const feitas = st.sessionSets.filter((x) => x.session_id === sessionId && x.tipo !== "aquecimento").length + (await blocosFeitosNaSessao(sessionId));
@@ -127,10 +131,11 @@ export async function salvarBlocoSessao(alunoId: string, sessionId: string, e: E
 
 /** Resultados anteriores do MESMO bloco/benchmark (para comparar com justiça na tela). */
 export async function resultadosAnteriores(alunoId: string, opts: { benchmark?: string | null; treinoBlocoChave?: string | null; antesDe: string }): Promise<LinhaBloco[]> {
-  if (!opts.benchmark) return [];
-  if (isDemoMode()) return demo().linhas.filter((l) => l.aluno_id === alunoId && l.benchmark === opts.benchmark && l.created_at < opts.antesDe);
+  const chaveBm = chaveBenchmark(opts.benchmark);
+  if (!chaveBm) return [];
+  if (isDemoMode()) return demo().linhas.filter((l) => l.aluno_id === alunoId && l.benchmark === chaveBm && l.created_at < opts.antesDe);
   const db = await getDb();
-  const { data } = await db.from("sessao_blocos").select(COLUNAS).eq("aluno_id", alunoId).lt("created_at", opts.antesDe).contains("segmentos", [{ benchmark: opts.benchmark }]).order("created_at", { ascending: false }).limit(20);
+  const { data } = await db.from("sessao_blocos").select(COLUNAS).eq("aluno_id", alunoId).lt("created_at", opts.antesDe).contains("segmentos", [{ benchmark: chaveBm }]).order("created_at", { ascending: false }).limit(20);
   return ((data ?? []) as Array<Record<string, unknown>>).map(deLinha);
 }
 

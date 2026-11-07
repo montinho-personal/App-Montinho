@@ -90,7 +90,7 @@ export const blocoTreinoSchema = z.object({
   esquema: textoOpcional(60),
   movimentos: z.array(movimentoBlocoSchema).max(20).default([]),
   texto: textoOpcional(1500),
-  benchmark: z.string().max(60).regex(/^[a-z0-9-]*$/).nullable().optional(),
+  benchmark: z.string().trim().max(60).regex(/^[\p{L}\p{N} '’.,&\/()+#-]*$/u).nullable().optional(),
 });
 
 /** Resultado de um bloco do WOD/HYROX/circuito (0133, `sessao_blocos`). */
@@ -112,7 +112,7 @@ export const resultadoBlocoSchema = z.object({
   intervalos: z.array(z.coerce.number().int().min(0).max(1000)).max(200).nullable().optional(),
   modificacoes: textoOpcional(500),
   esforco: z.coerce.number().int().min(0).max(10).nullable().optional(),
-  benchmark: z.string().max(60).regex(/^[a-z0-9-]*$/).nullable().optional(),
+  benchmark: z.string().trim().max(60).regex(/^[\p{L}\p{N} '’.,&\/()+#-]*$/u).nullable().optional(),
   benchmark_versao: z.coerce.number().int().min(1).max(100).nullable().optional(),
   completo: z.boolean().nullable().optional(),
 });

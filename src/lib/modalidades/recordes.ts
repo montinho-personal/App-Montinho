@@ -9,6 +9,7 @@
 //  • “Primeiro movimento técnico”: só a lista (registrada pelo personal).
 // ============================================================================
 import { diferenca, pontuacao, textoResultado, type ResultadoBloco } from "./resultado";
+import { chaveBenchmark, nomeBenchmark } from "./blocos";
 
 export const REPS_DO_RM = [1, 2, 3, 5, 10] as const;
 export type Rm = (typeof REPS_DO_RM)[number];
@@ -90,6 +91,8 @@ export function porExercicio(linhas: LinhaRecorde[]): Array<{ chave: string; nom
 export type ResultadoBenchmark = ResultadoBloco & { data: string; benchmark: string; benchmark_versao?: number | null };
 export type LinhaBenchmark = {
   benchmark: string;
+  /** Nome para mostrar (Fran, Grace… ou o que a pessoa escreveu). */
+  nome: string;
   versao: number;
   condicao: "rx" | "scaled";
   melhor: ResultadoBenchmark;
@@ -107,7 +110,7 @@ export function recordesDeBenchmark(resultados: ResultadoBenchmark[]): LinhaBenc
   for (const r of resultados) {
     if (r.condicao !== "rx" && r.condicao !== "scaled") continue;
     if (pontuacao(r) == null) continue;
-    const k = `${r.benchmark}|${r.benchmark_versao ?? 1}|${r.condicao}`;
+    const k = `${chaveBenchmark(r.benchmark)}|${r.benchmark_versao ?? 1}|${r.condicao}`;
     grupos.set(k, [...(grupos.get(k) ?? []), r]);
   }
   const out: LinhaBenchmark[] = [];
@@ -118,6 +121,7 @@ export function recordesDeBenchmark(resultados: ResultadoBenchmark[]): LinhaBenc
     const anterior = lista.length > 1 ? lista[lista.length - 2] : null;
     out.push({
       benchmark: ultimo.benchmark,
+      nome: nomeBenchmark(ultimo.benchmark, [...lista].reverse().find((r) => r.benchmark_nome)?.benchmark_nome),
       versao: ultimo.benchmark_versao ?? 1,
       condicao: ultimo.condicao as "rx" | "scaled",
       melhor,

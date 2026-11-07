@@ -41,3 +41,16 @@ describe("benchmarks: mesma versão e condição", () => {
     expect(linhas.find((l) => l.condicao === "scaled")?.vezes).toBe(1);
   });
 });
+
+describe("benchmark com qualquer nome (07/11/2026)", () => {
+  const r = (data: string, tempo: number, benchmark: string, benchmark_nome?: string): ResultadoBenchmark => ({ bloco_id: "b", tipo: "metcon", formato: "for_time", condicao: "rx", concluido: true, tempo_seg: tempo, data, benchmark, benchmark_nome });
+  it("“Diane”, “diane” e “DIANE ” são o mesmo benchmark e mostram o nome escrito", () => {
+    const l = recordesDeBenchmark([r("2026-10-01", 600, "diane", "Diane"), r("2026-11-01", 540, "DIANE ")]);
+    expect(l).toHaveLength(1);
+    expect(l[0].nome).toBe("Diane");
+    expect(l[0].vezes).toBe(2);
+  });
+  it("os antigos continuam com o nome certo", () => {
+    expect(recordesDeBenchmark([r("2026-10-01", 300, "fran")])[0].nome).toBe("Fran");
+  });
+});

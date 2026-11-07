@@ -5,6 +5,7 @@
 // simulado HYROX parcial nunca com o completo. Adaptado não entra em ranking.
 // ============================================================================
 import { relogioTexto } from "./relogio";
+import { chaveBenchmark } from "./blocos";
 import type { Condicao, Formato, TipoBloco } from "./tipos";
 
 export type ResultadoBloco = {
@@ -24,7 +25,10 @@ export type ResultadoBloco = {
   intervalos?: number[] | null;
   modificacoes?: string | null;
   esforco?: number | null;
+  /** Chave do benchmark (ver `chaveBenchmark`). */
   benchmark?: string | null;
+  /** Como a pessoa escreveu o nome (“Diane”); sem ele, o nome sai da chave. */
+  benchmark_nome?: string | null;
   benchmark_versao?: number | null;
   /** HYROX: simulado completo (8 estações) ou parcial. */
   completo?: boolean | null;
@@ -105,7 +109,7 @@ export function textoResultado(r: ResultadoBloco): string {
 export function comparaveis(a: ResultadoBloco, b: ResultadoBloco): boolean {
   if (!a.condicao || !b.condicao || a.condicao !== b.condicao || a.condicao === "adaptado") return false;
   if ((a.formato ?? null) !== (b.formato ?? null)) return false;
-  if ((a.benchmark ?? null) !== (b.benchmark ?? null)) return false;
+  if (chaveBenchmark(a.benchmark) !== chaveBenchmark(b.benchmark)) return false;
   if (a.benchmark && (a.benchmark_versao ?? 1) !== (b.benchmark_versao ?? 1)) return false;
   if (a.completo != null || b.completo != null) return !!a.completo === !!b.completo;
   return true;

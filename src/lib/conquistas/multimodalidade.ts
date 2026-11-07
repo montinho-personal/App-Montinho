@@ -22,6 +22,7 @@ import { contaCarimbo } from "./carimbos";
 import { pontuacao, type ResultadoBloco } from "@/lib/modalidades/resultado";
 import { recordesDeForca, type SerieForca } from "@/lib/modalidades/recordes";
 import { MODALIDADES_TREINO, type ModalidadeTreino } from "@/lib/modalidades/tipos";
+import { chaveBenchmark, nomeBenchmark } from "@/lib/modalidades/blocos";
 import type { SessaoConquista } from "./regras";
 
 export type CodigoMulti = "primeiro_wod" | "primeiro_benchmark" | "superando_recorde" | "primeira_hyrox" | "primeiro_funcional" | "atleta_versatil" | "semana_multimodalidade" | "evolucao_sem_fronteiras";
@@ -49,7 +50,7 @@ export function primeiroBenchmarkSuperado(resultados: ResultadoBenchmarkConquist
     if (r.condicao !== "rx" && r.condicao !== "scaled") continue;
     const p = pontuacao(r);
     if (p == null) continue;
-    const antes = ordem.slice(0, i).filter((x) => x.benchmark === r.benchmark && (x.benchmark_versao ?? 1) === (r.benchmark_versao ?? 1) && x.condicao === r.condicao && pontuacao(x) != null);
+    const antes = ordem.slice(0, i).filter((x) => chaveBenchmark(x.benchmark) === chaveBenchmark(r.benchmark) && (x.benchmark_versao ?? 1) === (r.benchmark_versao ?? 1) && x.condicao === r.condicao && pontuacao(x) != null);
     if (antes.length && p > Math.max(...antes.map((x) => pontuacao(x)!))) return r;
   }
   return null;
@@ -111,9 +112,9 @@ export function trofeusMultimodalidade(sessoes: SessaoConquista[], benchmarks: R
 
   // Benchmarks.
   const bm = [...benchmarks].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
-  if (bm[0]) out.push({ codigo: "primeiro_benchmark", data: bm[0].created_at, sessaoId: bm[0].session_id ?? null, descricao: `Primeiro benchmark registrado: ${bm[0].benchmark}.`, evidencia: { benchmark: bm[0].benchmark } });
+  if (bm[0]) out.push({ codigo: "primeiro_benchmark", data: bm[0].created_at, sessaoId: bm[0].session_id ?? null, descricao: `Primeiro benchmark registrado: ${nomeBenchmark(bm[0].benchmark, bm[0].benchmark_nome)}.`, evidencia: { benchmark: bm[0].benchmark } });
   const superou = primeiroBenchmarkSuperado(bm);
-  if (superou) out.push({ codigo: "superando_recorde", data: superou.created_at, sessaoId: superou.session_id ?? null, descricao: `${superou.benchmark} (${superou.condicao === "rx" ? "RX" : "Scaled"}): melhor que todas as vezes anteriores.`, evidencia: { benchmark: superou.benchmark, condicao: superou.condicao } });
+  if (superou) out.push({ codigo: "superando_recorde", data: superou.created_at, sessaoId: superou.session_id ?? null, descricao: `${nomeBenchmark(superou.benchmark, superou.benchmark_nome)} (${superou.condicao === "rx" ? "RX" : "Scaled"}): melhor que todas as vezes anteriores.`, evidencia: { benchmark: superou.benchmark, condicao: superou.condicao } });
 
   // Evolução Sem Fronteiras: força (RM exato subiu) + benchmark superado.
   if (superou) {
@@ -127,7 +128,7 @@ export function trofeusMultimodalidade(sessoes: SessaoConquista[], benchmarks: R
       const serie = series.find((x) => x.chave === primeira.l.chave && x.data === primeira.data);
       const emForca = serie?.em ?? `${primeira.data}T12:00:00-03:00`;
       const data = emForca > superou.created_at ? emForca : superou.created_at;
-      out.push({ codigo: "evolucao_sem_fronteiras", data, sessaoId: emForca > superou.created_at ? serie?.sessaoId ?? null : superou.session_id ?? null, descricao: `Força e condicionamento subindo juntos: ${primeira.l.nome} (${primeira.l.rm}RM) e ${superou.benchmark}.`, evidencia: { forca: primeira.l.nome, rm: primeira.l.rm, benchmark: superou.benchmark } });
+      out.push({ codigo: "evolucao_sem_fronteiras", data, sessaoId: emForca > superou.created_at ? serie?.sessaoId ?? null : superou.session_id ?? null, descricao: `Força e condicionamento subindo juntos: ${primeira.l.nome} (${primeira.l.rm}RM) e ${nomeBenchmark(superou.benchmark, superou.benchmark_nome)}.`, evidencia: { forca: primeira.l.nome, rm: primeira.l.rm, benchmark: superou.benchmark } });
     }
   }
   return out;

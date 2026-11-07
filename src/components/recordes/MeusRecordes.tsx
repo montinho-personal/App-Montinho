@@ -11,7 +11,6 @@ import { CampoNumero } from "@/components/ui/CampoNumero";
 import { useToast } from "@/components/ui/Toast";
 import { relogioTexto } from "@/lib/modalidades/relogio";
 import { textoResultado } from "@/lib/modalidades/resultado";
-import { BENCHMARKS_REF } from "@/lib/modalidades/blocos";
 import { rotuloRm, type PontoRecorde } from "@/lib/modalidades/recordes";
 import type { RecordesDoAluno } from "@/lib/data/recordes";
 import { cardRecordeBenchmark, cardRecordeForca } from "@/lib/modalidades/card-recorde";
@@ -20,7 +19,6 @@ import { CompartilharRecorde } from "./CompartilharRecorde";
 type Aba = "forca" | "benchmarks" | "marcas";
 const fmtData = (d: string) => d.split("-").reverse().join("/");
 const kg = (n: number) => `${String(n).replace(".", ",")} kg`;
-const nomeBenchmark = (slug: string) => BENCHMARKS_REF.find((b) => b.slug === slug)?.nome ?? slug;
 
 function Linha({ pontos, invertido = false }: { pontos: PontoRecorde[]; invertido?: boolean }) {
   if (pontos.length < 2) return null;
@@ -103,9 +101,9 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
             {dados.benchmarks.map((b) => (
               <li key={`${b.benchmark}-${b.versao}-${b.condicao}`} className="rounded-2xl border border-border bg-card p-3">
                 <div className="flex items-center gap-2">
-                  <p className="min-w-0 flex-1 font-bold">{nomeBenchmark(b.benchmark)}</p>
+                  <p className="min-w-0 flex-1 font-bold">{b.nome}</p>
                   <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-bold">{b.condicao === "rx" ? "RX" : "Scaled"}</span>
-                  {podeCompartilhar ? <CompartilharRecorde card={cardRecordeBenchmark(b, nomeBenchmark(b.benchmark), nome)} refEvento={`benchmark:${b.benchmark}:${b.condicao}`} destaque={!!hoje && b.melhor.data === hoje} /> : null}
+                  {podeCompartilhar ? <CompartilharRecorde card={cardRecordeBenchmark(b, b.nome, nome)} refEvento={`benchmark:${b.benchmark}:${b.condicao}`} destaque={!!hoje && b.melhor.data === hoje} /> : null}
                 </div>
                 <div className="mt-1 flex items-center gap-3">
                   <span className="min-w-0 flex-1">
@@ -121,7 +119,7 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
             ))}
           </ul>
         ) : (
-          <Vazio texto="Quando o WOD for um benchmark (Fran, Grace, Cindy, Helen, Murph…), o seu resultado aparece aqui. Só se compara com a mesma versão, e RX nunca com Scaled." />
+          <Vazio texto="Quando o WOD for um benchmark (Fran, Grace, Diane… qualquer um), o seu resultado aparece aqui. Só se compara com a mesma versão, e RX nunca com Scaled." />
         )
       ) : null}
 

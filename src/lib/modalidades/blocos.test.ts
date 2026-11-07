@@ -63,3 +63,15 @@ describe("HYROX", () => {
     expect(b[1].movimentos[0].biblioteca_id).toBe("id-ski");
   });
 });
+
+describe("chave e nome do benchmark", () => {
+  it("normaliza acentos, maiúsculas e espaços", async () => {
+    const { chaveBenchmark, nomeBenchmark } = await import("./blocos");
+    expect(chaveBenchmark("  Fight Gone Bad ")).toBe("fight-gone-bad");
+    expect(chaveBenchmark("Fran")).toBe("fran");
+    expect(chaveBenchmark("")).toBeNull();
+    expect(nomeBenchmark("fran")).toBe("Fran");
+    expect(nomeBenchmark("fight-gone-bad")).toBe("Fight Gone Bad");
+    expect(nomeBenchmark("fight-gone-bad", "Fight Gone Bad")).toBe("Fight Gone Bad");
+  });
+});

@@ -4,9 +4,10 @@
 // (Multimodalidade, 0133). A musculação NÃO passa por aqui: o montador de
 // sempre continua igual. O bloco de força usa as linhas de exercício do
 // montador (séries × reps × carga), logo abaixo deste editor.
+import { useState } from "react";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { SeletorExercicio } from "@/components/montador/SeletorExercicio";
-import { BENCHMARKS_REF, novoBloco, resumoBloco, simuladoHyrox, duracaoBlocoSeg } from "@/lib/modalidades/blocos";
+import { BENCHMARKS_REF, nomeBenchmark, novoBloco, resumoBloco, simuladoHyrox, duracaoBlocoSeg } from "@/lib/modalidades/blocos";
 import { FORMATOS, TIPOS_BLOCO, type BlocoTreino, type Formato, type ModalidadeTreino, type MovimentoBloco, type TipoBloco } from "@/lib/modalidades/tipos";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 
@@ -58,6 +59,8 @@ const minutos = (seg: number | null | undefined) => (seg ? Math.round((seg / 60)
 const campo = "h-9 rounded-md border border-border bg-bg px-2 text-sm";
 
 export function EditorBlocos({ modalidade, blocos, onChange, itens, favoritos, uso, semForca = false }: Props) {
+  // “É um benchmark?” Sim/Não + o nome escrito (07/11/2026: qualquer benchmark, não só a lista).
+  const [comBenchmark, setComBenchmark] = useState<Set<string>>(() => new Set(blocos.filter((b) => b.benchmark).map((b) => b.id)));
   const idPorSlug = (slug: string) => itens.find((i) => i.slug === slug)?.id ?? null;
   const upd = (id: string, p: Partial<BlocoTreino>) => onChange(blocos.map((b) => (b.id === id ? { ...b, ...p } : b)));
   const mover = (id: string, dir: -1 | 1) => {
@@ -140,12 +143,25 @@ export function EditorBlocos({ modalidade, blocos, onChange, itens, favoritos, u
                     ) : null}
                   </div>
                   {b.tipo === "metcon" ? (
-                    <label className="flex min-w-0 flex-col gap-1 text-xs">É um benchmark?
-                      <select value={b.benchmark ?? ""} onChange={(e) => upd(b.id, { benchmark: e.target.value || null })} className={`${campo} w-full min-w-0 max-w-full`}>
-                        <option value="">Não</option>
-                        {BENCHMARKS_REF.map((r) => <option key={r.slug} value={r.slug}>{r.nome} · {r.resumo}</option>)}
-                      </select>
-                    </label>
+                    <div className="space-y-1.5 text-xs">
+                      <p>É um benchmark?</p>
+                      <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="É um benchmark?">
+                        {[false, true].map((sim) => {
+                          const ligado = !!b.benchmark || comBenchmark.has(b.id);
+                          return (
+                            <button key={String(sim)} type="button" aria-pressed={ligado === sim} onClick={() => { setComBenchmark((c) => { const n = new Set(c); if (sim) n.add(b.id); else n.delete(b.id); return n; }); if (!sim) upd(b.id, { benchmark: null }); }} className={`rounded-lg border px-2 py-1.5 font-semibold ${ligado === sim ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>
+                              {sim ? "Sim" : "Não"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {b.benchmark || comBenchmark.has(b.id) ? (
+                        <label className="flex min-w-0 flex-col gap-1">Qual benchmark?
+                          <input value={b.benchmark && BENCHMARKS_REF.some((r) => r.slug === b.benchmark) ? nomeBenchmark(b.benchmark) : b.benchmark ?? ""} onChange={(e) => upd(b.id, { benchmark: e.target.value.replace(/[^\p{L}\p{N} '’.,&/()+#-]/gu, "").slice(0, 60) || null })} placeholder="Ex.: Fran, Diane, Fight Gone Bad" maxLength={60} className={`${campo} w-full min-w-0`} aria-label="Nome do benchmark" />
+                          <span className="text-fg-subtle">O resultado só se compara com as vezes em que a pessoa fez o mesmo benchmark (mesmo nome).</span>
+                        </label>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               ) : null}
