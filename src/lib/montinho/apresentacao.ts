@@ -230,3 +230,10 @@ export const COMPARTILHAR: Record<OrigemContato, { url: string; titulo: string; 
   presencial: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Personal presencial com o Montinho", texto: "Personal presencial em Alphaville com o Montinho: ele do seu lado em cada série." },
   pacote: { url: "https://www.montinhopersonal.com.br/personal-trainer-alphaville", titulo: "Pacote Flexível do Montinho", texto: "5 meses de consultoria online + 10 aulas com o Montinho para usar quando você puder, sem horário fixo. Olha que legal:" },
 };
+
+/**
+ * Vídeo do fim das páginas de planos (Consultoria, Presencial e Pacote Flexível;
+ * 08/11/2026, pedido do Montinho). Trocou o vídeo? Mude só o id.
+ */
+export const VIDEO_PLANOS_ID = "DPAQDPVffCg";
+export const VIDEO_PLANOS_EMBED = `https://www.youtube.com/embed/${VIDEO_PLANOS_ID}?rel=0&modestbranding=1&playsinline=1`;

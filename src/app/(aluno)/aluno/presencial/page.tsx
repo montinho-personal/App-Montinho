@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Voltar } from "@/components/ui/Voltar";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
 import { CompartilharPagina } from "@/components/montinho/CompartilharPagina";
+import { VideoDosPlanos } from "@/components/montinho/VideoDosPlanos";
 import { PRESENCIAL } from "@/lib/montinho/apresentacao";
 
 export const metadata = { title: "Personal presencial" };
@@ -66,6 +67,7 @@ export default async function PresencialPage() {
         {botao}
         <p className="text-center text-xs text-fg-subtle">A primeira conversa é gratuita e sem compromisso.</p>
       </section>
+      <VideoDosPlanos />
     </div>
   );
 }

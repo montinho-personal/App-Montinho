@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Voltar } from "@/components/ui/Voltar";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
 import { CompartilharPagina } from "@/components/montinho/CompartilharPagina";
+import { VideoDosPlanos } from "@/components/montinho/VideoDosPlanos";
 import { CONSULTORIA, NUMEROS } from "@/lib/montinho/apresentacao";
 
 export const metadata = { title: "Consultoria" };
@@ -147,6 +148,7 @@ export default async function ConsultoriaPage() {
         <CompartilharPagina origem="consultoria" destaque />
         <Link href="/aluno/historia" className="alvo block text-sm font-semibold text-accent underline underline-offset-4">Conheça a minha história →</Link>
       </section>
+      <VideoDosPlanos />
     </div>
   );
 }

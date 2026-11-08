@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Voltar } from "@/components/ui/Voltar";
 import { FalarComMontinho } from "@/components/montinho/FalarComMontinho";
 import { CompartilharPagina } from "@/components/montinho/CompartilharPagina";
+import { VideoDosPlanos } from "@/components/montinho/VideoDosPlanos";
 import { BarraFixaCta } from "@/components/montinho/BarraFixaCta";
 import { PACOTE_FLEXIVEL as P } from "@/lib/montinho/apresentacao";
 
@@ -110,6 +111,7 @@ export default async function PacoteFlexivelPage() {
         <p className="text-center text-lg font-bold leading-snug">{P.fecho}</p>
         {botao}
       </section>
+      <VideoDosPlanos />
       {whatsapp ? <BarraFixaCta origem="pacote" whatsapp={whatsapp} visitante={visitante} texto={P.barra.texto} detalhe={P.barra.detalhe} botao={P.barra.botao} /> : null}
     </div>
   );
