@@ -70,7 +70,7 @@ import { TrofeusHojeEProximos } from "@/components/conquistas/TrofeusAoAlcance";
 import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
-import { trofeusNoRanking } from "@/lib/ranking/trofeus";
+import { contagemDeTrofeus } from "@/lib/conquistas/contagem";
 import { minutosDeCardio } from "@/lib/conquistas/cardio-minutos";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
@@ -134,7 +134,8 @@ export default async function AlunoHomePage() {
   // Troféus que dá para ganhar hoje e nos próximos dias (treino, cardio, compartilhar, indicar, desafios…).
   const [progressoCardioAluno, acoes, mobIndicada] = await Promise.all([progressoCardio(alunoId).catch(() => null), acoesAlcance(sessao).catch(() => null), mobilidadeIndicada(alunoId).catch(() => null)]);
   const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje: dataLocal(new Date()), cardio: progressoCardioAluno, acoes, tecnicasFeitas: new Set(tecnicasFeitas(sessoes.map(sessaoParaConquista)).map((t) => t.familia)), treinos: plano.treinos.filter((t) => t.ativo).map((t) => ({ letra: t.letra, exercicios: t.exercicios })) });
-  const ganhas = medalhas.filter((m) => m.conquistada).length;
+  const contagem = contagemDeTrofeus(medalhas, conquistas);
+  const ganhas = contagem.ganhos;
 
   const primeiroNome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
   // Dia ainda sem exercícios (ex.: plano criado pela estratégia) não aparece para o aluno.
@@ -245,7 +246,7 @@ export default async function AlunoHomePage() {
 
       {/* 1. Sessão em andamento, dia concluído ou próximo treino — CTA prioritário */}
       {estadoDia !== "a_fazer" && treinoDeHoje ? (
-        <DiaConcluido estado={estadoDia} nome={primeiroNome} treinoHoje={treinoDeHoje.letra ? `Treino ${treinoDeHoje.letra}${treinoDeHoje.nome_treino ? ` · ${treinoDeHoje.nome_treino}` : ""}` : (treinoDeHoje.nome_treino ?? "Treino")} cardioMinHoje={cardioMinHoje} frase={fraseDoDia(hojeSP, estadoDia === "completo" && cardioMinHoje > 0)} trofeus={trofeusNoRanking(conquistas)} carimbos={carimbos} pendentes={cardioPendentes} extraLiberado={!!configExtra?.habilitado} valeDoseDupla={!medalhas.some((m) => m.codigo === "dose_dupla" && m.conquistada)} valeDoisFolegos={cardioMinHoje >= LIMITES_CARDIO.minutosMin && !medalhas.some((m) => m.codigo === "dois_folegos" && m.conquistada)} />
+        <DiaConcluido estado={estadoDia} nome={primeiroNome} treinoHoje={treinoDeHoje.letra ? `Treino ${treinoDeHoje.letra}${treinoDeHoje.nome_treino ? ` · ${treinoDeHoje.nome_treino}` : ""}` : (treinoDeHoje.nome_treino ?? "Treino")} cardioMinHoje={cardioMinHoje} frase={fraseDoDia(hojeSP, estadoDia === "completo" && cardioMinHoje > 0)} trofeus={contagem.ganhos} carimbos={carimbos} pendentes={cardioPendentes} extraLiberado={!!configExtra?.habilitado} valeDoseDupla={!medalhas.some((m) => m.codigo === "dose_dupla" && m.conquistada)} valeDoisFolegos={cardioMinHoje >= LIMITES_CARDIO.minutosMin && !medalhas.some((m) => m.codigo === "dois_folegos" && m.conquistada)} />
       ) : emAndamento ? (
         <Card className="border-accent/50 bg-grain-strong">
           <CardBody className="space-y-3">
@@ -375,7 +376,7 @@ export default async function AlunoHomePage() {
             <CardBody className="flex items-center gap-3 py-3">
               <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} lendaria={LENDARIAS.has(proximaMed.codigo)} />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Sua próxima medalha · {ganhas} de {medalhas.length}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Sua próxima medalha · {ganhas} de {contagem.total}</p>
                 <p className="font-semibold leading-tight">{proximaMed.titulo}</p>
                 {proximaMed.alvo ? (
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>

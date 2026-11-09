@@ -1,5 +1,6 @@
 // Todas as minhas conquistas: a coleção completa das 14 medalhas únicas e as
 // conquistas que se repetem (recordes e retomadas), em seções próprias.
+import { contagemDeTrofeus } from "@/lib/conquistas/contagem";
 import Link from "next/link";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { getAluno } from "@/lib/db";
@@ -41,7 +42,8 @@ export default async function TodasConquistasPage({ searchParams }: { searchPara
   }
   const recordes = conquistas.filter((c) => c.codigo === "recorde");
   const voltas = conquistas.filter((c) => c.codigo === "eu_voltei");
-  const ganhas = medalhas.filter((x) => x.conquistada).length;
+  const contagem = contagemDeTrofeus(medalhas, conquistas);
+  const ganhas = contagem.ganhos;
   const nome = (aluno.profile?.nome ?? sessao.nome).split(" ")[0];
 
   return (
@@ -51,7 +53,7 @@ export default async function TodasConquistasPage({ searchParams }: { searchPara
         <h1 className="text-2xl font-bold">Todas as minhas conquistas</h1>
         <Link href="/aluno/conquistas" className="alvo text-sm text-fg-muted hover:text-fg">← Voltar</Link>
       </div>
-      <p className="text-sm text-fg-muted">A ordem é uma jornada sugerida: cada medalha tem o seu critério e nenhuma depende de outra. <span className="font-semibold text-fg">{ganhas} de {medalhas.length}</span> conquistadas.</p>
+      <p className="text-sm text-fg-muted">A ordem é uma jornada sugerida: cada medalha tem o seu critério e nenhuma depende de outra. <span className="font-semibold text-fg">{ganhas} de {contagem.total}</span> conquistadas{contagem.extras ? " (com os recordes e as voltas, que ficam no fim da página)" : ""}.</p>
 
       <nav className="flex gap-1.5 overflow-x-auto pb-1" aria-label="Organizar troféus">
         {ABAS.map((a) => (

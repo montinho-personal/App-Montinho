@@ -1,5 +1,6 @@
 // Minhas conquistas: histórico permanente, “Minha evolução em 30 dias” e
 // reconhecimentos escritos pelo personal.
+import { contagemDeTrofeus } from "@/lib/conquistas/contagem";
 import Link from "next/link";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { BRAND } from "@/config/brand";
@@ -45,6 +46,7 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
   const album = await albumParaAluno(aluno, conquistas);
   const albumResumo = progressoAlbum(album.itens);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje, cardio, extras });
+  const contagem = contagemDeTrofeus(medalhas, conquistas);
   // Troféus que dá para ganhar nos próximos dias, com o que fazer em cada um.
   const aoAlcance = trofeusNosProximosDias({ medalhas, aderencia, hoje, tecnicasFeitas: new Set(tecnicasFeitas(sessoes).map((t) => t.familia)), treinos: (plano?.treinos ?? []).map((t) => ({ letra: t.letra, exercicios: t.exercicios })), cardio, acoes: await acoesAlcance(sessao).catch(() => null) });
   const titulos = new Map(conquistas.map((c) => [c.id, c.titulo]));
@@ -87,8 +89,9 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
       <AbasConquistas ativa="minhas" />
       <PainelConquistas
         r={{
-          trofeus: medalhas.filter((m) => m.conquistada).length,
-          totalTrofeus: medalhas.length,
+          trofeus: contagem.ganhos,
+          totalTrofeus: contagem.total,
+          foraDoRanking: contagem.foraDoRanking,
           carimbos: totalCarimbos,
           semanasSeguidas: aderencia.sequencia.atual,
           recordes: conquistas.filter((c) => c.codigo === "recorde").reduce((n, c) => n + Math.max(1, c.dados?.recordes?.length ?? 0), 0),
@@ -123,8 +126,8 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
         reconhecimentos={reconhecimentos.map((r) => ({ id: r.id, mensagem: r.mensagem, created_at: r.created_at, conquista: r.conquista_id ? (titulos.get(r.conquista_id) ?? null) : null }))}
         destaque={medalhasEmDestaque(medalhas, hoje)}
         proximas={proximasMedalhas(medalhas, 3)}
-        ganhas={medalhas.filter((m) => m.conquistada).length}
-        total={medalhas.length}
+        ganhas={contagem.ganhos}
+        total={contagem.total}
         novas={novas}
         jornada={mensagemDaJornada(cumpridas)}
         reconhecimentosPorCodigo={reconhecimentosPorCodigo}

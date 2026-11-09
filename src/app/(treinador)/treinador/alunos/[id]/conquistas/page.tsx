@@ -1,6 +1,7 @@
 // Sala de troféus de um aluno, vista pelo personal: as mesmas medalhas que o
 // aluno vê (vitrine), recordes pessoais e a contagem — sem nada além do que o
 // próprio aluno já vê no app dele.
+import { contagemDeTrofeus } from "@/lib/conquistas/contagem";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTreinadorPage } from "@/lib/auth/session";
@@ -26,7 +27,8 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
   if (!aluno) notFound();
   const [{ conquistas, sessoes, aderencia }, reconhecimentos, cardio] = await Promise.all([resumoMensalDoAluno(aluno), listarReconhecimentos(aluno.id), progressoCardio(aluno.id).catch(() => null)]);
   const medalhas = vitrineDeMedalhas({ conquistas, sessoes, aderencia, hoje: dataLocal(new Date()), cardio, extras: { quizTotal: await totalQuizPublicado() } });
-  const ganhas = medalhas.filter((m) => m.conquistada).length;
+  const contagem = contagemDeTrofeus(medalhas, conquistas);
+  const ganhas = contagem.ganhos;
   const recordes = conquistas.filter((c) => c.codigo === "recorde").slice(0, 10);
   const nome = aluno.profile?.nome ?? "Aluno";
   const codigoPorId = new Map(conquistas.map((c) => [c.id, c.codigo]));
@@ -49,9 +51,9 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
           <div className="rounded-lg bg-bg/50 p-2">
             <p className="font-mono text-xl font-bold">
               {ganhas}
-              <span className="text-xs font-normal text-fg-subtle">/{medalhas.length}</span>
+              <span className="text-xs font-normal text-fg-subtle">/{contagem.total}</span>
             </p>
-            <p className="text-[11px] text-fg-subtle">medalhas</p>
+            <p className="text-[11px] text-fg-subtle">troféus</p>
           </div>
           <div className="rounded-lg bg-bg/50 p-2">
             <p className="font-mono text-xl font-bold">{conquistas.filter((c) => c.codigo === "recorde").length}</p>

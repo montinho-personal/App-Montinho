@@ -6,6 +6,8 @@ import Link from "next/link";
 export type ResumoConquistas = {
   trofeus: number;
   totalTrofeus: number;
+  /** Ganhos da Multimodalidade, que não contam no ranking. */
+  foraDoRanking?: number;
   carimbos: number;
   semanasSeguidas: number;
   recordes: number;
@@ -45,6 +47,9 @@ export function PainelConquistas({ r }: { r: ResumoConquistas }) {
         </span>
         <span className="mt-2 block h-2 overflow-hidden rounded-full bg-border" aria-hidden>
           <span className="block h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+        </span>
+        <span className="mt-1.5 block text-[11px] text-fg-muted">
+          {r.foraDoRanking ? `No ranking: ${r.trofeus - r.foraDoRanking} (${r.foraDoRanking} da Multimodalidade ${r.foraDoRanking === 1 ? "não conta" : "não contam"}).` : "Todos contam no ranking, 1 vez cada."}
         </span>
       </Link>
       <div className="grid grid-cols-3 gap-2">
