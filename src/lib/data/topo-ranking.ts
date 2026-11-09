@@ -22,8 +22,9 @@ function diasDemo(hoje: string): DiaTopo[] {
 async function diasDoTopo(desde: string): Promise<DiaTopo[]> {
   const hoje = dataLocal(new Date());
   if (isDemoMode()) return diasDemo(hoje).filter((d) => d.dia >= desde);
+  // A coroa de amanhã já é decidida às 23h50 (0151): só conta até hoje.
   const db = await getDb();
-  const { data, error } = await db.from("ranking_topo").select("dia, aluno_id").gte("dia", desde).order("dia", { ascending: true }).limit(400);
+  const { data, error } = await db.from("ranking_topo").select("dia, aluno_id").gte("dia", desde).lte("dia", hoje).order("dia", { ascending: true }).limit(400);
   if (error) return [];
   return ((data ?? []) as Array<{ dia: string; aluno_id: string }>).map((r) => ({ dia: r.dia, alunoId: r.aluno_id }));
 }
