@@ -71,6 +71,7 @@ import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
 import { trofeusNoRanking } from "@/lib/ranking/trofeus";
+import { minutosDeCardio } from "@/lib/conquistas/cardio-minutos";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
 import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
@@ -126,7 +127,7 @@ export default async function AlunoHomePage() {
   const cardio = await cardioDoAluno(alunoId, aderencia.semanas.filter((w) => w.pausada).map((w) => w.inicio)).catch(() => null);
   const cardioPendentes = cardio ? pendentesHoje(cardio.prescricoes, cardio.feitos, dataLocal(new Date())) : [];
   const albumResumo = progressoAlbum(album.itens);
-  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null, extras: { quizTotal: await totalQuizPublicado() } });
+  const medalhas = vitrineDeMedalhas({ conquistas, sessoes: sessoes.map(sessaoParaConquista), aderencia, hoje: dataLocal(new Date()), cardio: cardio ? { feitos: cardio.marco.feitos, minutos: minutosDeCardio(cardio.feitos), temPrescricao: cardio.prescricoes.length > 0, prescricaoLonga: cardio.prescricoes.some((p) => p.duracao_min >= 60) } : null, extras: { quizTotal: await totalQuizPublicado() } });
   const proximaMed = proximaMedalha(medalhas);
   const codigosMedalha = new Set<string>(medalhas.map((m) => m.codigo));
   const recenteIso = somarDias(dataLocal(new Date()), -7);

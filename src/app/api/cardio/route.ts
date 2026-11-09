@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const sync = aluno ? await sincronizarConquistas(aluno).catch(() => null) : null;
     // Comemora aqui todos os troféus do cardio que saíram agora e ainda não foram vistos
     // (vários de uma vez entram na fila; os demais têm o seu próprio momento).
-    const novas = sync ? paraComemorar(sync.todas, t0, (c) => (CODIGOS_CARDIO as string[]).includes(c) || c === "dois_folegos" || c === "combo_completo" || c.startsWith("combo_") || (CODIGOS_CARDIO_HORARIO as string[]).includes(c)) : [];
+    const novas = sync ? paraComemorar(sync.todas, t0, (c) => (CODIGOS_CARDIO as string[]).includes(c) || c === "dois_folegos" || c === "combo_completo" || c.startsWith("combo_") || (CODIGOS_CARDIO_HORARIO as string[]).includes(c) || c.startsWith("minutos_cardio_")) : [];
     // Depois de responder: lembrete do próximo troféu que está perto (0104).
     if (aluno) after(() => agendarLembreteTrofeu(aluno).catch(() => undefined));
     return NextResponse.json({ registro, novas }, { status: 201 });

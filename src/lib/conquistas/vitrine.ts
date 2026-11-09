@@ -155,6 +155,12 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "cardio_50", selo: "50❤️" },
   { codigo: "cardio_100", selo: "100" },
   { codigo: "cardio_250", selo: "250" },
+  { codigo: "minutos_cardio_300", selo: "5h" },
+  { codigo: "minutos_cardio_1000", selo: "17h" },
+  { codigo: "minutos_cardio_3000", selo: "50h" },
+  { codigo: "minutos_cardio_6000", selo: "100h" },
+  { codigo: "minutos_cardio_15000", selo: "250h" },
+  { codigo: "minutos_cardio_30000", selo: "500h" },
   { codigo: "cardio_semana_ritmo", selo: "⚡" },
   { codigo: "cardio_meta_semana", selo: "100%" },
   { codigo: "cardio_4_semanas", selo: "4×" },
@@ -231,11 +237,12 @@ export const DEGRAU_ANTERIOR: Record<string, CodigoConquista> = {
   reps_5000: "reps_1000", reps_10000: "reps_5000", reps_25000: "reps_10000", reps_50000: "reps_25000", reps_100000: "reps_50000",
   toneladas_100: "toneladas_25", toneladas_250: "toneladas_100", toneladas_500: "toneladas_250", toneladas_1000: "toneladas_500",
   explorador_30: "explorador_15", explorador_50: "explorador_30",
+  minutos_cardio_1000: "minutos_cardio_300", minutos_cardio_3000: "minutos_cardio_1000", minutos_cardio_6000: "minutos_cardio_3000", minutos_cardio_15000: "minutos_cardio_6000", minutos_cardio_30000: "minutos_cardio_15000",
   acompanhamento_9_meses: "acompanhamento_6_meses", acompanhamento_18_meses: "acompanhamento_1_ano", acompanhamento_2_anos: "acompanhamento_18_meses",
   monitoramento_52: "monitoramento_26",
 };
 
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52", "reps_25000", "reps_50000", "reps_100000", "toneladas_250", "toneladas_500", "toneladas_1000", "explorador_50"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52", "reps_25000", "reps_50000", "reps_100000", "toneladas_250", "toneladas_500", "toneladas_1000", "explorador_50", "minutos_cardio_6000", "minutos_cardio_15000", "minutos_cardio_30000"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -247,6 +254,8 @@ type Aderencia = Pick<ResultadoAderencia, "sequencia" | "semanaAtual" | "semanas
 /** Resumo do Montinho Cardio para o progresso dos troféus de cardio. */
 export type ProgressoCardio = {
   feitos: number;
+  /** Minutos somados de todo cardio que vale (Minutos de Fôlego). */
+  minutos?: number;
   temPrescricao: boolean;
   prescricaoLonga: boolean;
   /** Semana de cardio em andamento (só com prescrição e ainda não cumprida): quanto falta. */
@@ -511,6 +520,16 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         const feitos = e.cardio?.feitos ?? 0;
         // Sem cardio prescrito nem registrado, não disputa a “próxima medalha” com a musculação.
         return { atual: Math.min(feitos, n), alvo: n, falta: `${faltaN(n - Math.min(feitos, n), "cardio", "cardios")} (1 por dia, 10 minutos ou mais) em Montinho Cardio.`, disponivel: feitos > 0 || !!e.cardio?.temPrescricao };
+      }
+      case "minutos_cardio_300":
+      case "minutos_cardio_1000":
+      case "minutos_cardio_3000":
+      case "minutos_cardio_6000":
+      case "minutos_cardio_15000":
+      case "minutos_cardio_30000": {
+        const n = Number(c.slice(15));
+        const feitos = e.cardio?.minutos ?? 0;
+        return { atual: Math.min(feitos, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitos), "minuto", "minutos")} de cardio — você já somou ${feitos.toLocaleString("pt-BR")}.`, disponivel: feitos > 0 || !!e.cardio?.temPrescricao };
       }
       case "cardio_semana_ritmo":
       case "cardio_meta_semana":

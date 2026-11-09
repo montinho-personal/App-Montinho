@@ -27,6 +27,7 @@ import { trofeusDeFeriado, type CodigoFeriado } from "./feriados";
 import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-seguido";
 import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { trofeusDaPratica, type CodigoPratica } from "./pratica-acumulada";
+import { trofeusMinutosCardio, type CodigoMinutosCardio } from "./cardio-minutos";
 import { trofeusDeMonitoramento, type CodigoMonitoramento } from "./monitoramento";
 import { trofeusDeSemanasCompletas, type CodigoSemanasCompletas } from "./semanas-completas";
 import { trofeusMultimodalidade, type CodigoMulti, type ResultadoBenchmarkConquista } from "./multimodalidade";
@@ -38,7 +39,7 @@ export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12, 16, 20, 26, 39, 52] as const;
 /** Treinos concluídos (extras e parciais não entram). 75 em diante = trilha longa (04/11/2026). */
 export const MARCOS_TREINOS = [10, 25, 50, 75, 100, 150, 200, 300, 365, 500] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
-export const LENDARIAS: ReadonlySet<string> = new Set(["reps_100000", "toneladas_1000", "semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
+export const LENDARIAS: ReadonlySet<string> = new Set(["reps_100000", "toneladas_1000", "minutos_cardio_30000", "semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
 
 /** Começo (pedido do Montinho, 23/10/2026). */
 export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
@@ -135,6 +136,7 @@ export type CodigoConquista =
   | CodigoSeries
   // Prática acumulada: repetições, toneladas e exercícios diferentes (pratica-acumulada.ts)
   | CodigoPratica
+  | CodigoMinutosCardio
   // 29/10/2026: acompanhamento em meses + retomada de 1 mês (acompanhamento.ts),
   // autoconhecimento (quiz.ts), mais de compartilhar (compartilhar.ts),
   // cardio por horário/10 km/escada (cardio-horario.ts)
@@ -223,6 +225,7 @@ export { CODIGOS_COMBO } from "./combo-seguido";
 export { CODIGOS_SERIES } from "./volume-series";
 /** Prática acumulada (0150): repetições, toneladas e Explorador, gravados à parte. */
 export { CODIGOS_PRATICA } from "./pratica-acumulada";
+export { CODIGOS_MINUTOS_CARDIO } from "./cardio-minutos";
 /** Monitoramento (0127): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_MONITORAMENTO } from "./monitoramento";
 /** Semanas completas + Semana Perfeita (0129): gravados à parte, como as outras famílias novas. */
@@ -377,6 +380,12 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   explorador_15: { titulo: "Explorador", criterio: "Fazer 15 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
   explorador_30: { titulo: "Desbravador", criterio: "Fazer 30 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
   explorador_50: { titulo: "Mestre Explorador", criterio: "Fazer 50 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
+  minutos_cardio_300: { titulo: "Primeiras 5 Horas", criterio: "Somar 300 minutos de cardio (5 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
+  minutos_cardio_1000: { titulo: "Mil Minutos", criterio: "Somar 1.000 minutos de cardio (quase 17 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
+  minutos_cardio_3000: { titulo: "50 Horas de Fôlego", criterio: "Somar 3.000 minutos de cardio (50 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
+  minutos_cardio_6000: { titulo: "Cem Horas", criterio: "Somar 6.000 minutos de cardio (100 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
+  minutos_cardio_15000: { titulo: "Maratona de Horas", criterio: "Somar 15.000 minutos de cardio (250 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
+  minutos_cardio_30000: { titulo: "Lenda dos Minutos", criterio: "Somar 30.000 minutos de cardio (500 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes). Troféu lendário.", repete: false },
   cardio_voltei: { titulo: "Voltei a Respirar", criterio: `Voltar a fazer cardio depois de ${LIMITES_CARDIO.diasRetomada} dias ou mais sem cardio.`, repete: true },
   desafio_concluido: { titulo: "Desafio concluído", criterio: "Concluir dentro do prazo o número de treinos combinado no desafio.", repete: true },
   eu_voltei: { titulo: "Eu voltei", criterio: "Fazer um treino válido depois de 14 dias ou mais sem treinos registrados.", repete: true },
@@ -690,6 +699,7 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   for (const t of trofeusDoComboSeguido(e.sessoes, e.cardio?.feitos ?? [])) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeSeries(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDaPratica(e.sessoes)) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
+  if (e.cardio) for (const t of trofeusMinutosCardio(e.cardio.feitos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   for (const t of trofeusDeTempo(e.sessoes)) out.push(nova(t.codigo, t.referencia, t.data, t.sessaoId, t.descricao, t.codigo === "retomada_30" ? { diasAfastado: Number(t.evidencia.diasAfastado) } : undefined, t.evidencia));
   if (e.quiz) for (const t of trofeusDoQuiz(e.quiz)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));
   if (e.cardio) for (const t of trofeusCardioHorario(e.cardio.feitos)) out.push(nova(t.codigo, "1", t.data, null, t.descricao, undefined, t.evidencia));

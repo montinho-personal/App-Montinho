@@ -53,6 +53,7 @@ function unidade(codigo: string): [string, string] | null {
   if (codigo.startsWith("combo_")) return ["dia", "dias"];
   if (codigo.startsWith("series_")) return ["série", "séries"];
   if (codigo.startsWith("reps_")) return ["repetição", "repetições"];
+  if (codigo.startsWith("minutos_cardio_")) return ["minuto", "minutos"];
   if (codigo.startsWith("toneladas_")) return ["t", "t"];
   if (codigo.startsWith("explorador_")) return ["exercício", "exercícios"];
   if (codigo.startsWith("treinos_") || codigo === "primeiro_treino" || codigo === "terceiro_especial") return ["treino", "treinos"];

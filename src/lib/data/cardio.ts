@@ -1,3 +1,4 @@
+import { minutosDeCardio } from "@/lib/conquistas/cardio-minutos";
 // ============================================================================
 // Montinho Cardio — dados (RLS; regras puras em src/lib/cardio/regras.ts).
 // • Prescrição: só o personal grava. Mudar = desativar a antiga e criar outra
@@ -422,5 +423,5 @@ export async function progressoCardio(alunoId: string): Promise<ProgressoCardio>
   // Combo em sequência: precisa das sessões de musculação também.
   const sessoes = await sessoesParaCombo(alunoId).catch(() => []);
   const comboSeguidos = sequenciaComboAtual(diasCombo(sessoes, feitos), dataLocal(new Date()));
-  return { feitos: proximoMarco(feitos).feitos, temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin, comboSeguidos };
+  return { feitos: proximoMarco(feitos).feitos, minutos: minutosDeCardio(feitos), temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin, comboSeguidos };
 }

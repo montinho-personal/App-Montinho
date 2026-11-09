@@ -29,7 +29,7 @@ import { classificarSessao, dataLocal, inicioDaSemana } from "@/lib/aderencia/ca
 import { sessaoParaConquista as paraConquista } from "@/lib/conquistas/mapear";
 import { tecnicasFeitas, type FamiliaTecnica } from "@/lib/conquistas/regras";
 import type { Medalha, ProgressoExtras } from "@/lib/conquistas/vitrine";
-import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_BONUS, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, CODIGOS_SEMANAS_COMPLETAS, CODIGOS_MULTI, CODIGOS_TRILHAS, CODIGOS_PRATICA, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
+import { CATALOGO, VERSAO_CRITERIO, CODIGOS_MOBILIDADE, CODIGOS_ALEM, CODIGOS_BONUS, CODIGOS_DESAFIO, CODIGOS_FASE, CODIGOS_SAMURAI, CODIGOS_STRAVA, CODIGOS_COMPARTILHAR, CODIGOS_DESAFIOS, CODIGOS_TECNICA, CODIGOS_CARDIO, CODIGOS_DIA_DUPLO, CODIGOS_FERIADO, CODIGOS_COMBO, CODIGOS_SERIES, CODIGOS_29OUT, CODIGOS_MONITORAMENTO, CODIGOS_SEMANAS_COMPLETAS, CODIGOS_MULTI, CODIGOS_TRILHAS, CODIGOS_PRATICA, CODIGOS_MINUTOS_CARDIO, detectarConquistas, mensagemConclusao, type CodigoConquista, type ItemRecorde, type ModeloCard, type SessaoConquista } from "@/lib/conquistas/regras";
 import { desafiosDoAluno } from "@/lib/data/visitantes";
 import { resumoMensal, type ResumoMensal } from "@/lib/conquistas/mensal";
 import { nomeDaConquista } from "@/lib/conquistas/conteudo";
@@ -150,7 +150,9 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     const novasTrilhas = linhas.filter((l) => CODIGOS_TRILHAS.includes(l.codigo));
     // Prática acumulada (0150): repetições, toneladas e Explorador, num pedido só deles.
     const novasPratica = linhas.filter((l) => (CODIGOS_PRATICA as CodigoConquista[]).includes(l.codigo));
-    const base = linhas.filter((l) => !CODIGOS_TRILHAS.includes(l.codigo) && !(CODIGOS_PRATICA as CodigoConquista[]).includes(l.codigo));
+    // Minutos de Fôlego (0153): minutos de cardio somados, num pedido só deles.
+    const novasMinutos = linhas.filter((l) => (CODIGOS_MINUTOS_CARDIO as CodigoConquista[]).includes(l.codigo));
+    const base = linhas.filter((l) => !CODIGOS_TRILHAS.includes(l.codigo) && !(CODIGOS_PRATICA as CodigoConquista[]).includes(l.codigo) && !(CODIGOS_MINUTOS_CARDIO as CodigoConquista[]).includes(l.codigo));
     const novasAlem = base.filter((l) => CODIGOS_ALEM.includes(l.codigo));
     const novasBonus = base.filter((l) => CODIGOS_BONUS.includes(l.codigo));
     const novasTecnica = base.filter((l) => CODIGOS_TECNICA.includes(l.codigo));
@@ -188,6 +190,7 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
     if (novas29.length) await db.from("conquistas_aluno").upsert(novas29, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasMobilidade.length) await db.from("conquistas_aluno").upsert(novasMobilidade, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasPratica.length) await db.from("conquistas_aluno").upsert(novasPratica, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
+    if (novasMinutos.length) await db.from("conquistas_aluno").upsert(novasMinutos, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasTrilhas.length) await db.from("conquistas_aluno").upsert(novasTrilhas, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasBonus.length) await db.from("conquistas_aluno").upsert(novasBonus, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
     if (novasFeriado.length) await db.from("conquistas_aluno").upsert(novasFeriado, { onConflict: "aluno_id,codigo,referencia", ignoreDuplicates: true });
