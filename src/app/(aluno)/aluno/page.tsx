@@ -70,6 +70,7 @@ import { TrofeusHojeEProximos } from "@/components/conquistas/TrofeusAoAlcance";
 import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
+import { trofeusNoRanking } from "@/lib/ranking/trofeus";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
 import { FeriadoDestaque } from "@/components/inicio/FeriadoDestaque";
@@ -243,7 +244,7 @@ export default async function AlunoHomePage() {
 
       {/* 1. Sessão em andamento, dia concluído ou próximo treino — CTA prioritário */}
       {estadoDia !== "a_fazer" && treinoDeHoje ? (
-        <DiaConcluido estado={estadoDia} nome={primeiroNome} treinoHoje={treinoDeHoje.letra ? `Treino ${treinoDeHoje.letra}${treinoDeHoje.nome_treino ? ` · ${treinoDeHoje.nome_treino}` : ""}` : (treinoDeHoje.nome_treino ?? "Treino")} cardioMinHoje={cardioMinHoje} frase={fraseDoDia(hojeSP, estadoDia === "completo" && cardioMinHoje > 0)} trofeus={ganhas} carimbos={carimbos} pendentes={cardioPendentes} extraLiberado={!!configExtra?.habilitado} valeDoseDupla={!medalhas.some((m) => m.codigo === "dose_dupla" && m.conquistada)} valeDoisFolegos={cardioMinHoje >= LIMITES_CARDIO.minutosMin && !medalhas.some((m) => m.codigo === "dois_folegos" && m.conquistada)} />
+        <DiaConcluido estado={estadoDia} nome={primeiroNome} treinoHoje={treinoDeHoje.letra ? `Treino ${treinoDeHoje.letra}${treinoDeHoje.nome_treino ? ` · ${treinoDeHoje.nome_treino}` : ""}` : (treinoDeHoje.nome_treino ?? "Treino")} cardioMinHoje={cardioMinHoje} frase={fraseDoDia(hojeSP, estadoDia === "completo" && cardioMinHoje > 0)} trofeus={trofeusNoRanking(conquistas)} carimbos={carimbos} pendentes={cardioPendentes} extraLiberado={!!configExtra?.habilitado} valeDoseDupla={!medalhas.some((m) => m.codigo === "dose_dupla" && m.conquistada)} valeDoisFolegos={cardioMinHoje >= LIMITES_CARDIO.minutosMin && !medalhas.some((m) => m.codigo === "dois_folegos" && m.conquistada)} />
       ) : emAndamento ? (
         <Card className="border-accent/50 bg-grain-strong">
           <CardBody className="space-y-3">

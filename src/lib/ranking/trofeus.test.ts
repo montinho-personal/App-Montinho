@@ -32,11 +32,9 @@ describe("ranking de troféus", () => {
 describe("ranking conta os mesmos troféus da sala de troféus", () => {
   it("toda conquista fora da lista de exceções aparece na vitrine (e vice-versa)", () => {
     const naVitrine = new Set(ORDEM.map((o) => o.codigo as string));
-    const fora = new Set<string>(FORA_DO_RANKING);
-    // Exceção aprovada (Multimodalidade): os troféus de modalidade aparecem na vitrine, mas só o Atleta Versátil conta no ranking.
-    // Idem o Topo do Ranking (0138): na vitrine, fora da pontuação (senão o líder ganha ponto por liderar).
-    const soNaVitrine = new Set<string>([...MULTI_FORA_DO_RANKING, ...CODIGOS_TOPO]);
-    for (const codigo of Object.keys(CATALOGO)) expect(soNaVitrine.has(codigo) ? naVitrine.has(codigo) && fora.has(codigo) : naVitrine.has(codigo) !== fora.has(codigo), codigo).toBe(true);
+    // 09/11/2026: tudo conta, menos a Multimodalidade (só o Atleta Versátil entra).
+    expect([...FORA_DO_RANKING].sort()).toEqual([...MULTI_FORA_DO_RANKING].sort());
+    for (const codigo of MULTI_FORA_DO_RANKING) expect(naVitrine.has(codigo), codigo).toBe(true);
   });
 });
 
@@ -69,5 +67,12 @@ describe("ranking sem a linha do personal (Meu treino)", () => {
     const { semMinhaLinha } = await import("./trofeus");
     const r = semMinhaLinha([l(1, "Ana", 9), l(1, "Montinho", 9, true), l(3, "Bia", 7)]);
     expect(r.map((x) => x.posicao)).toEqual([1, 3]);
+  });
+});
+
+describe("trofeusNoRanking", () => {
+  it("conta cada código 1 vez; recorde e Topo contam, multimodalidade não", async () => {
+    const { trofeusNoRanking } = await import("./trofeus");
+    expect(trofeusNoRanking([{ codigo: "recorde" }, { codigo: "recorde" }, { codigo: "topo_5_dias" }, { codigo: "primeiro_wod" }, { codigo: "atleta_versatil" }])).toBe(3);
   });
 });

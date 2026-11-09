@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { fatoresDeDesempate, resumoDesafios, textoDaCutucada, trofeusDoPerfil } from "./perfil";
 
-const p = { trofeus: [{ codigo: "primeiro_treino", em: "2026-10-01T10:00:00Z" }, { codigo: "recorde", em: "2026-10-20T10:00:00Z" }, { codigo: "cardio_1", em: "2026-10-10T10:00:00Z" }], desempate: { pct_semana: 75, carimbos: 12, semanas_seguidas: 2, pct_4sem: null } };
+const p = { trofeus: [{ codigo: "primeiro_treino", em: "2026-10-01T10:00:00Z" }, { codigo: "primeiro_wod", em: "2026-10-20T10:00:00Z" }, { codigo: "cardio_1", em: "2026-10-10T10:00:00Z" }], desempate: { pct_semana: 75, carimbos: 12, semanas_seguidas: 2, pct_4sem: null } };
 
 describe("perfil do ranking", () => {
   it("troféus mais recentes primeiro, com nome e marcando o que não conta no ranking", () => {
     const t = trofeusDoPerfil(p);
-    expect(t.map((x) => x.codigo)).toEqual(["recorde", "cardio_1", "primeiro_treino"]);
+    expect(t.map((x) => x.codigo)).toEqual(["primeiro_wod", "cardio_1", "primeiro_treino"]);
     expect(t[0].contaNoRanking).toBe(false);
     expect(t[2].nome).toBe("Primeiro passo");
   });
