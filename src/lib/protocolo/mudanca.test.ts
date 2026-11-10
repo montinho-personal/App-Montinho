@@ -27,6 +27,13 @@ describe("o que mudou no protocolo", () => {
     expect(mudancasDoProtocolo(base, base)!.relevante).toBe(false);
     expect(mudancasDoProtocolo(null, base)).toBeNull();
   });
+  it("marcar Adaptação num protocolo sem fase não avisa; sem fase → Intensificação avisa", () => {
+    const semFase: SnapProtocolo = { ...base, programa: { ...base.programa, fase: null } };
+    expect(mudancasDoProtocolo(semFase, base)!.mudouFase).toBe(false);
+    expect(mudancasDoProtocolo(semFase, base)!.relevante).toBe(false);
+    const int: SnapProtocolo = { ...base, programa: { ...base.programa, fase: "intensificacao" } };
+    expect(mudancasDoProtocolo(semFase, int)!.mudouFase).toBe(true);
+  });
   it("segunda-feira seguinte e próxima fase", () => {
     expect(segundaSeguinte("2026-11-16T12:00:00Z")).toBe("2026-11-23");
     expect(proximaFase("adaptacao")).toBe("intensificacao");

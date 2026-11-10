@@ -1022,28 +1022,47 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             {estado.programa.split || "divisão não definida"} · {estado.programa.calendario.modo === "fixa" ? "semana fixa" : "ciclo rotativo"} · {Object.entries(frequencia).filter(([l]) => letrasAtivas.includes(l as TreinoLetra)).map(([l, v]) => `${l}×${v}`).join(" ")}
           </span>
         </button>
-        {/* Fase do protocolo: sempre visível, um toque para trocar (gera as medalhas de fase). */}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5">
-          <span className="text-xs font-semibold text-fg-muted">Fase:</span>
-          {FASES.map((f) => {
-            const sel = estado.programa.fase === f;
-            const cor = FASE_INFO[f].cor;
-            return (
-              <button key={f} type="button" onClick={() => updPrograma({ fase: sel ? "" : f })} aria-pressed={sel} title={FASE_INFO[f].resumo} className="h-8 rounded-full border px-3 text-xs font-bold" style={sel ? { borderColor: cor, background: `${cor}26`, color: cor } : { borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}>
-                {FASE_INFO[f].rotulo}
-              </button>
-            );
-          })}
-          {!estado.programa.fase ? <span className="text-[11px] text-fg-subtle">não definida</span> : null}
-          {(() => {
-            const prox = proximaFase(estado.programa.fase);
-            return prox && !passandoFase ? (
-              <button type="button" onClick={() => { updPrograma({ fase: prox }); setPassandoFase(true); }} className="ml-auto h-8 rounded-full px-3 text-xs font-bold text-bg" style={{ background: FASE_INFO[prox].cor }}>
-                🚀 Passar para a {FASE_INFO[prox].rotulo}
-              </button>
-            ) : null;
-          })()}
-        </div>
+        {/* Fase do protocolo: sempre visível, com a fase ATUAL em destaque e o próximo passo à mão. */}
+        {(() => {
+          const fase = estado.programa.fase;
+          const faseSalva = salvo ? salvo.programa.fase : fase;
+          const info = fase ? FASE_INFO[fase] : null;
+          // Sem fase marcada, o próximo passo natural é a Intensificação (o protocolo de antes conta como adaptação).
+          const prox = fase ? proximaFase(fase) : "intensificacao";
+          return (
+            <div className="space-y-2 border-t border-border px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {info ? (
+                  <span className="rounded-full px-3 py-1 text-sm font-extrabold" style={{ background: `${info.cor}26`, color: info.cor }}>📍 Fase atual: {info.rotulo}</span>
+                ) : (
+                  <span className="rounded-full border border-dashed border-border px-3 py-1 text-sm font-bold text-fg-muted">⚠️ Fase não marcada</span>
+                )}
+                {fase !== faseSalva ? <span className="text-[11px] font-semibold text-accent">mudou · toque em Salvar</span> : null}
+                {prox && !passandoFase ? (
+                  <button type="button" onClick={() => { updPrograma({ fase: prox }); setPassandoFase(true); }} className="ml-auto h-9 rounded-full px-4 text-xs font-bold text-bg" style={{ background: FASE_INFO[prox].cor }}>
+                    🚀 Passar para a {FASE_INFO[prox].rotulo}
+                  </button>
+                ) : null}
+                {!prox && fase === "consolidacao" ? <span className="ml-auto text-[11px] text-fg-subtle">✅ Última fase do protocolo</span> : null}
+              </div>
+              <p className="text-[11px] text-fg-subtle">
+                {info ? info.resumo : "Este protocolo ainda não tem fase. Se ele é o começo do aluno, marque Adaptação (o aluno não recebe aviso por isso); se já é hora de evoluir, toque em “Passar para a Intensificação”."}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-fg-muted">{fase ? "Trocar a fase:" : "Marcar a fase:"}</span>
+                {FASES.map((f) => {
+                  const sel = fase === f;
+                  const cor = FASE_INFO[f].cor;
+                  return (
+                    <button key={f} type="button" onClick={() => updPrograma({ fase: sel ? "" : f })} aria-pressed={sel} title={FASE_INFO[f].resumo} className="h-7 rounded-full border px-2.5 text-[11px] font-bold" style={sel ? { borderColor: cor, background: `${cor}26`, color: cor } : { borderColor: "var(--color-border)", color: "var(--color-fg-muted)" }}>
+                      {sel ? "✓ " : ""}{FASE_INFO[f].rotulo}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
         {passandoFase && estado.programa.fase ? (
           <div className="space-y-2 border-t border-border px-4 py-3 text-sm" style={{ background: `${FASE_INFO[estado.programa.fase].cor}14` }}>
             <p className="font-bold">🚀 Passando para a {FASE_INFO[estado.programa.fase].rotulo}: o que revisar</p>

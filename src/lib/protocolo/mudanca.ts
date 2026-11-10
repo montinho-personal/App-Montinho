@@ -59,7 +59,8 @@ export function mudancasDoProtocolo(anterior: SnapProtocolo | null, atual: SnapP
   }
   const faseAntes = ehFase(anterior.programa.fase) ? anterior.programa.fase : null;
   const faseDepois = ehFase(atual.programa.fase) ? atual.programa.fase : null;
-  const mudouFase = !!faseDepois && faseDepois !== faseAntes;
+  // Marcar “Adaptação” num protocolo que não tinha fase não é mudança para o aluno (ele já estava começando).
+  const mudouFase = !!faseDepois && faseDepois !== faseAntes && !(faseAntes === null && faseDepois === "adaptacao");
   const semanaAntes = treinosPorSemana(anterior);
   const semanaDepois = treinosPorSemana(atual);
   const relevante = mudouFase || diasNovos.length > 0 || diasQueSairam.length > 0 || porDia.length > 0 || semanaAntes !== semanaDepois;
