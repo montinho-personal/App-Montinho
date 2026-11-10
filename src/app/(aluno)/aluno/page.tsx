@@ -71,6 +71,9 @@ import { pendentesHoje } from "@/lib/cardio/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
 import { DiaConcluido } from "@/components/inicio/DiaConcluido";
 import { contagemDeTrofeus } from "@/lib/conquistas/contagem";
+import { mudancaRecenteDoProtocolo } from "@/lib/data/mudanca-protocolo";
+import { AvisoProtocoloNovo } from "@/components/inicio/AvisoProtocoloNovo";
+import { FASE_INFO } from "@/lib/treino/fases";
 import { minutosDeCardio } from "@/lib/conquistas/cardio-minutos";
 import { RevisarConhecimento } from "@/components/desbloqueia/RevisarConhecimento";
 import { MobilidadeHoje } from "@/components/mobilidade/MobilidadeHoje";
@@ -175,7 +178,7 @@ export default async function AlunoHomePage() {
   // Conquistas da Tribo (0115): concede o que for devido (também o que saiu com o aluno fora do app).
   const tribo = await telaDaTribo(alunoId).catch(() => null);
   // Academia da Tribo (0146): destaque do lançamento/inauguração e card compacto da obra.
-  const [obrasTribo, obraAtual] = await Promise.all([listarObras().catch(() => []), dadosDaObra().catch(() => null)]);
+  const [obrasTribo, obraAtual, mudancaProtocolo] = await Promise.all([listarObras().catch(() => []), dadosDaObra().catch(() => null), mudancaRecenteDoProtocolo(alunoId, sessao.userId).catch(() => null)]);
   const destaqueObra = destaqueNaHome(obrasTribo, new Date());
   const obraAtiva = obraAtual?.estado === "ativa" ? obraAtual : null;
   const obraInaugurada = destaqueObra.inauguracao ? (obraAtual?.id === destaqueObra.inauguracao.id ? obraAtual : await dadosDaObra(destaqueObra.inauguracao.id).catch(() => null)) : null;
@@ -241,6 +244,8 @@ export default async function AlunoHomePage() {
       {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
 
       {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
+
+      {mudancaProtocolo ? <AvisoProtocoloNovo versaoId={mudancaProtocolo.versaoId} aviso={mudancaProtocolo.aviso} cor={mudancaProtocolo.mudanca.faseDepois && mudancaProtocolo.mudanca.mudouFase ? FASE_INFO[mudancaProtocolo.mudanca.faseDepois].cor : null} /> : null}
 
       {meuTopo ? <TopoDoRanking modo="aluno" dias={meuTopo} ganhos={new Set(conquistas.map((c) => c.codigo as string))} link /> : null}
 

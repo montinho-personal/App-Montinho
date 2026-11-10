@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { avisarMudancaProtocolo } from "@/lib/data/mudanca-protocolo";
 import { requireAcessoAlunoApi, requireTreinadorApi } from "@/lib/auth/session";
 import { getPlanoAtivo, salvarPlano } from "@/lib/data/programas";
 import { salvarCorrecoes, criarIntervencao } from "@/lib/data/acompanhamento";
@@ -48,6 +49,8 @@ export async function PUT(request: Request, { params }: Ctx) {
       referencia: { versao_id: resultado.versao.id },
       visivel_aluno: true,
     }).catch(() => undefined);
+    // Fase nova / dia novo: aviso no celular do aluno (o Início e o 🔔 mostram o que mudou).
+    after(() => avisarMudancaProtocolo(id).catch(() => 0));
     return NextResponse.json({ ok: true, ...resultado, correcoes });
   } catch (e) {
     console.error("[plano] falha ao salvar", e instanceof Error ? e.message : e);

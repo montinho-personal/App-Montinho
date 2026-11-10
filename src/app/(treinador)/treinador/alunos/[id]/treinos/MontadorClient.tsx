@@ -56,6 +56,7 @@ import type { Treino } from "@/lib/supabase/types";
 import { VerExercicio } from "@/components/ui/VerExercicio";
 import { prontidaoDoProtocolo } from "@/lib/montador/prontidao";
 import { EditorBlocos } from "@/components/montador/EditorBlocos";
+import { avisoDoProtocolo, mudancasDoProtocolo, proximaFase, type SnapProtocolo } from "@/lib/protocolo/mudanca";
 import { blocosIniciais } from "@/lib/modalidades/blocos";
 import { ehMusculacao, LISTA_MODALIDADES, MODALIDADES_TREINO, type BlocoTreino, type ModalidadeTreino } from "@/lib/modalidades/tipos";
 
@@ -282,6 +283,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   // Proteção contra perda de trabalho: rascunho neste aparelho + versão em que a tela abriu.
   const chaveRascunho = `montinho-montador:${alunoId}`;
   const versaoBase = useRef<number | null>(programa?.versao ?? null);
+  // O que está SALVO (para a prévia “o aluno vai ver”, 10/11/2026): o estado do jeito que abriu; troca a cada salvar.
+  const [salvo, setSalvo] = useState<Estado | null>(() => (programa ? estado : null));
+  const [passandoFase, setPassandoFase] = useState(false);
   const [rascunho, setRascunho] = useState<RascunhoMontador | null>(null);
   /** Versão salva em outro lugar enquanto esta tela estava aberta (null = sem conflito). */
   const [conflito, setConflito] = useState<number | null>(null);
@@ -679,6 +683,14 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       return { programa: programaNovo, treinos };
     });
 
+  // Prévia do aviso que o aluno recebe ao salvar (regra pura em src/lib/protocolo/mudanca.ts).
+  const previaAviso = useMemo(() => {
+    const snap = (e: Estado): SnapProtocolo => ({ programa: { fase: e.programa.fase || null, frequencia: e.programa.frequenciaManual as Record<string, number>, calendario: e.programa.calendario }, treinos: e.treinos.map((t) => ({ letra: t.letra, nome: t.nome.trim() || `Treino ${t.letra}`, ativo: t.ativo, exercicios: t.rows.filter((r) => r.nome.trim()).map((r) => ({ nome: r.nome })) })) });
+    if (!salvo) return null;
+    const m = mudancasDoProtocolo(snap(salvo), snap(estado));
+    return m?.relevante ? { m, aviso: avisoDoProtocolo(m, new Date().toISOString()) } : null;
+  }, [estado, salvo]);
+
   // --- salvar -----------------------------------------------------------------
   const salvar = useCallback(async (forcar = false) => {
     setSaving(true);
@@ -769,6 +781,8 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
       }
       if (!res.ok) throw new Error(data.error ?? "Falha ao salvar");
       versaoBase.current = data.versao?.versao ?? versaoBase.current;
+      setSalvo(estado);
+      setPassandoFase(false);
       setConflito(null);
       try {
         localStorage.removeItem(chaveRascunho);
@@ -1021,7 +1035,39 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             );
           })}
           {!estado.programa.fase ? <span className="text-[11px] text-fg-subtle">não definida</span> : null}
+          {(() => {
+            const prox = proximaFase(estado.programa.fase);
+            return prox && !passandoFase ? (
+              <button type="button" onClick={() => { updPrograma({ fase: prox }); setPassandoFase(true); }} className="ml-auto h-8 rounded-full px-3 text-xs font-bold text-bg" style={{ background: FASE_INFO[prox].cor }}>
+                🚀 Passar para a {FASE_INFO[prox].rotulo}
+              </button>
+            ) : null;
+          })()}
         </div>
+        {passandoFase && estado.programa.fase ? (
+          <div className="space-y-2 border-t border-border px-4 py-3 text-sm" style={{ background: `${FASE_INFO[estado.programa.fase].cor}14` }}>
+            <p className="font-bold">🚀 Passando para a {FASE_INFO[estado.programa.fase].rotulo}: o que revisar</p>
+            <ol className="list-decimal space-y-1 pl-5 text-xs text-fg-muted">
+              <li>Troque, tire ou adicione exercícios em cada treino (os que ficarem mantêm o histórico de cargas do aluno).</li>
+              <li>Ajuste séries, repetições e técnicas (drop-set, rest-pause…) da fase nova.</li>
+              <li>Mais dias de treino? Use <strong>“+ Adicionar dia”</strong> no fim da lista ou <strong>“Duplicar dia”</strong> num treino parecido.</li>
+              <li>Confira a frequência / o calendário da semana (é a meta semanal; a nova vale a partir da próxima segunda).</li>
+              <li>Toque em <strong>Salvar</strong>. Até lá o aluno continua vendo o protocolo de antes; o antigo fica guardado no histórico.</li>
+            </ol>
+            <button type="button" onClick={() => setPassandoFase(false)} className="text-xs font-semibold text-fg-muted underline">Fechar o passo a passo</button>
+          </div>
+        ) : null}
+        {previaAviso ? (
+          <div className="space-y-1 border-t border-border px-4 py-3 text-xs">
+            <p className="font-bold text-sm">👀 Ao salvar, o aluno vai ver no app:</p>
+            <p className="font-semibold">{previaAviso.aviso.titulo}</p>
+            {previaAviso.aviso.linhas.map((l) => (
+              <p key={l} className="text-fg-muted">{l}</p>
+            ))}
+            {previaAviso.aviso.meta ? <p className="text-fg-muted">{previaAviso.aviso.meta}</p> : null}
+            <p className="text-fg-subtle">{previaAviso.m.mudouFase || previaAviso.m.diasNovos.length || previaAviso.m.diasQueSairam.length ? "Também chega um aviso no celular dele." : "Fica no Início e no 🔔 (sem aviso no celular, por ser só troca de exercício)."}</p>
+          </div>
+        ) : null}
         {showPrograma ? (
           <div className="border-t border-border px-4 py-4 space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">

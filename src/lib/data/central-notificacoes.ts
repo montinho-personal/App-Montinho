@@ -128,6 +128,10 @@ export async function centralDoAluno(s: { alunoId: string; userId: string }): Pr
   );
   if (ev) itens.push({ id: `avaliacao:${ev.e.id}`, tipo: "trofeu", emoji: "🎉", titulo: `Você evoluiu na avaliação física! ${ev.e.manchete}`, texto: "Toque para ver o que melhorou e compartilhar.", href: "/aluno/medidas", quando: ev.quando });
 
+  // Protocolo novo (pedido do Montinho, 10/11/2026): fase nova, dia novo, troca de exercício.
+  const proto = await seguro(import("@/lib/data/mudanca-protocolo").then((m) => m.mudancaRecenteDoProtocolo(s.alunoId, s.userId)), null);
+  if (proto) itens.push({ id: `protocolo:${proto.versaoId}`, tipo: "aviso", emoji: proto.mudanca.mudouFase ? "🚀" : "🆕", titulo: proto.aviso.titulo.replace(/^🚀 |^🆕 /, ""), texto: proto.aviso.linhas.slice(0, 2).join(" · ") || proto.aviso.meta, href: "/aluno/treinar", quando: proto.salvoEm });
+
   // Academia da Tribo (0146): lançamento e inauguração ficam guardados aqui para quem estava sem internet.
   const obras = await seguro(import("@/lib/data/academia").then((m) => m.listarObras()), []);
   for (const o of obras) {
