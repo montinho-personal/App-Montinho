@@ -37,6 +37,7 @@ describe("o que mudou no protocolo", () => {
   it("segunda-feira seguinte e próxima fase", () => {
     expect(segundaSeguinte("2026-11-16T12:00:00Z")).toBe("2026-11-23");
     expect(proximaFase("adaptacao")).toBe("intensificacao");
+    expect(proximaFase("intensificacao")).toBe("consolidacao");
     expect(proximaFase("consolidacao")).toBeNull();
   });
 });
