@@ -21,9 +21,10 @@ export function SemanasCardio({ semanas }: { semanas: SemanaCardio[] }) {
   return (
     <div className="rounded-xl border border-border p-3">
       <p className="mb-2 text-sm font-semibold">Últimas semanas (minutos)</p>
-      <div className="flex h-28 items-end gap-2" role="img" aria-label={ult.map((s) => `Semana de ${dataBR(s.inicio)}: ${s.minutos} de ${s.alvoMin} minutos`).join("; ")}>
+      <div className="flex items-end gap-2" role="img" aria-label={ult.map((s) => `Semana de ${dataBR(s.inicio)}: ${s.minutos} de ${s.alvoMin} minutos`).join("; ")}>
         {ult.map((s) => (
           <div key={s.inicio} className="flex flex-1 flex-col items-center gap-1">
+            <span className="whitespace-nowrap text-[11px] font-bold tabular-nums">{Math.round(s.minutos)} min</span>
             <div className="relative flex h-24 w-full items-end justify-center">
               {s.alvoMin ? <div className="absolute w-full border-t-2 border-dashed border-fg-subtle" style={{ bottom: `${(s.alvoMin / max) * 100}%` }} /> : null}
               <div className={`w-3/4 rounded-t ${s.status === "cumprida" ? "bg-success" : s.status === "pausada" ? "bg-fg-subtle" : "bg-accent"}`} style={{ height: `${Math.max(2, (s.minutos / max) * 100)}%` }} />
@@ -32,7 +33,7 @@ export function SemanasCardio({ semanas }: { semanas: SemanaCardio[] }) {
           </div>
         ))}
       </div>
-      <p className="mt-1 text-[11px] text-fg-subtle">Tracejado = meta da semana. Verde = semana cumprida.</p>
+      <p className="mt-1 text-[11px] text-fg-subtle">{(() => { const m = ult[ult.length - 1]?.alvoMin; return m ? `Tracejado = meta da semana (${Math.round(m)} min). ` : "Tracejado = meta da semana. "; })()}Verde = semana cumprida.</p>
     </div>
   );
 }

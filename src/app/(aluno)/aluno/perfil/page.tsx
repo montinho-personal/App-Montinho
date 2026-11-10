@@ -102,6 +102,8 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
 
       <Grupo titulo="Meu acompanhamento">
         <ItemLink icone="🏋️" titulo="Meus treinos" sub="Ver e começar os treinos do seu programa" href="/aluno/treinar" />
+        <ItemLink icone="❤️‍🔥" titulo="Meu cardio" sub="Meta da semana, minutos feitos e histórico" href="/aluno/cardio" />
+        <ItemLink icone="🧘" titulo="Mobilidade e alongamento" sub="Protocolos guiados de superiores e inferiores" href="/aluno/mobilidade" />
         {sessao.comoPersonal ? <ItemLink icone="✏️" titulo="Montar e editar meus treinos" sub="Abre o montador no painel" href={`/api/meu-treino?sair=1&para=/treinador/alunos/${sessao.alunoId}/treinos`} /> : null}
         <ItemAbrir icone="📋" titulo="Meu programa" sub={plano.programa ? plano.programa.nome : "Nenhum programa publicado ainda"}>
           <div className="space-y-2 text-sm">
