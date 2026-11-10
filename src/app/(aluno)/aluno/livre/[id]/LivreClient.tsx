@@ -99,11 +99,22 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     inicial.map((e) => {
       if (e.series.some((x) => !x.salva)) return e;
       const tipoTec = infoTecnica(e.tecnica)?.serie;
+      // Treino escolhido/montado como base: já abre com as séries da meta (com a técnica marcada, se tiver).
+      if (!e.series.length && e.meta && e.meta.series > 1) {
+        const n = Math.min(10, e.meta.series);
+        const base: SerieTela[] = Array.from({ length: n }, (_, k) => ({ key: novaChave(), serie: k + 1, tipo: "valida" as SerieTipo, carga: "", reps: "", salva: false }));
+        if (e.config && tipoTec && registraEmBlocos(tipoTec)) {
+          const nt = Math.min(n, seriesComTecnica(e.tecnica, e.config));
+          const fin = configEfetiva(e.tecnica, e.config)?.aplicar === "finalizacao";
+          const tec: SerieTela[] = Array.from({ length: nt }, () => ({ key: novaChave(), serie: 0, tipo: tipoTec, carga: "", reps: "", salva: false, blocos: [] }));
+          const lista = fin ? [...base, ...tec] : [...base.slice(0, n - nt), ...tec];
+          return { ...e, series: lista.map((x, k) => ({ ...x, serie: k + 1 })) };
+        }
+        return { ...e, series: base };
+      }
       const feitasTec = e.series.filter((x) => x.tipo === tipoTec).length;
       if (e.config && tipoTec && registraEmBlocos(tipoTec) && feitasTec < seriesComTecnica(e.tecnica, e.config)) return { ...e, series: seriesParaTecnica(e, e.tecnica, e.config, novaChave).slice(0, e.series.length + seriesComTecnica(e.tecnica, e.config) - feitasTec + (e.series.some((x) => x.tipo === "valida") ? 0 : 1)) };
       const ult = e.series.at(-1);
-      // Treino escolhido como base: já abre com as séries da meta.
-      if (!e.series.length && e.meta && e.meta.series > 1) return { ...e, series: Array.from({ length: Math.min(10, e.meta.series) }, (_, k) => ({ key: novaChave(), serie: k + 1, tipo: "valida" as SerieTipo, carga: "", reps: "", salva: false })) };
       return { ...e, series: [...e.series, { key: novaChave(), serie: e.series.length + 1, tipo: ult && ult.tipo !== "aquecimento" && !registraEmBlocos(ult.tipo) ? ult.tipo : "valida", carga: ult?.carga ?? "", reps: "", salva: false }] };
     })
   );

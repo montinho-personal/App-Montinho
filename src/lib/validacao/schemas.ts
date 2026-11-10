@@ -850,7 +850,7 @@ export const comecarComBaseSchema = z
   .object({
     chave: z.string().regex(/^(pronto:[a-z0-9-]{2,80}:[A-H]|aluno:[0-9A-Za-z-]{4,64})$/).optional(),
     /** “✏️ Montar o de hoje”: só ids da biblioteca (nome e músculo vêm do servidor). */
-    montado: z.object({ titulo: z.string().trim().min(1).max(60), itens: z.array(z.object({ biblioteca_id: z.string().min(4).max(64), series: z.number().int().min(1).max(10), reps: z.string().regex(/^\d{1,2}(-\d{1,2})?$/) }).strict()).min(1).max(15) }).strict().optional(),
+    montado: z.object({ titulo: z.string().trim().min(1).max(60), itens: z.array(z.object({ biblioteca_id: z.string().min(4).max(64), series: z.number().int().min(1).max(10), reps: z.string().regex(/^\d{1,2}(-\d{1,2})?$/), tecnica: z.enum(["normal", "dropset", "rest_pause", "myo_reps", "cluster", "tres_sete", "piramide", "piramide_decrescente", "negativo", "super_slow", "isometria", "unilateral"]).optional(), tecnica_config: tecnicaConfigSchema.nullable().optional(), junto_com_proximo: z.boolean().optional() }).strict()).min(1).max(15) }).strict().optional(),
     client_key: z.string().min(4).max(80),
   })
   .strict()

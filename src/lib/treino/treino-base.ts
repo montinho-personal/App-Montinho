@@ -8,7 +8,25 @@
 // ============================================================================
 import type { OpcaoPlano } from "@/lib/visitante/gerar-treino";
 
-export type ItemBase = { biblioteca_id: string | null; nome: string; series: number; reps: string };
+export type ItemBase = { biblioteca_id: string | null; nome: string; series: number; reps: string; /** Treino de hoje montado pelo personal: técnica do exercício (mesmo formato do treino livre). */ tecnica?: string | null; tecnicaConfig?: Record<string, unknown> | null; /** Bi-set/tri-set: junto com o PRÓXIMO da lista. */ juntoComProximo?: boolean };
+
+/** Códigos de bloco (A, B…) para os exercícios marcados “junto com o próximo”, e a técnica de junção pelo tamanho. */
+export function blocosDosJuntos(itens: Array<{ juntoComProximo?: boolean }>): Array<{ bloco: string; tecnica: "biset" | "triset" | "superset" } | null> {
+  const out: Array<{ bloco: string; tecnica: "biset" | "triset" | "superset" } | null> = itens.map(() => null);
+  let i = 0;
+  let n = 0;
+  while (i < itens.length) {
+    let j = i;
+    while (j < itens.length - 1 && itens[j].juntoComProximo) j++;
+    if (j > i) {
+      const bloco = String.fromCharCode(65 + (n++ % 26));
+      const tam = j - i + 1;
+      for (let k = i; k <= j; k++) out[k] = { bloco, tecnica: tam === 2 ? "biset" : tam === 3 ? "triset" : "superset" };
+    }
+    i = j + 1;
+  }
+  return out;
+}
 export type TreinoBase = { chave: string; titulo: string; subtitulo: string; itens: ItemBase[] };
 export type GrupoBase = { id: string; titulo: string; emoji: string; detalhe: string; treinos: TreinoBase[] };
 

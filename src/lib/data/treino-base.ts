@@ -11,8 +11,9 @@ import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { normalizarNome } from "@/lib/grupos";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { nomeVisivel, planoDoPronto, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
-import { baseDoAluno, basesDosProntos, type GrupoBase, type TreinoBase } from "@/lib/treino/treino-base";
-import { adicionarExercicioLivre, iniciarSessaoLivre } from "./livre";
+import { baseDoAluno, basesDosProntos, blocosDosJuntos, type GrupoBase, type TreinoBase } from "@/lib/treino/treino-base";
+import { adicionarExercicioLivre, ajustarExercicioLivre, iniciarSessaoLivre } from "./livre";
+import type { Tecnica } from "@/lib/volume/calcular";
 import type { SessaoCompleta } from "./sessoes";
 
 type ExercicioLinha = { nome: string; biblioteca_id: string | null; series: number; series_aquecimento: number | null; reps: string; ordem: number | null; removido_em: string | null };
@@ -53,9 +54,9 @@ export async function protocolosComoBase(meuAluno: string): Promise<GrupoBase[]>
 }
 
 /** “✏️ Montar o de hoje”: o servidor confere cada id na biblioteca e põe o nome dela. */
-export async function treinoMontadoComoBase(m: { titulo: string; itens: Array<{ biblioteca_id: string; series: number; reps: string }> }): Promise<TreinoBase | null> {
+export async function treinoMontadoComoBase(m: { titulo: string; itens: Array<{ biblioteca_id: string; series: number; reps: string; tecnica?: string; tecnica_config?: Record<string, unknown> | null; junto_com_proximo?: boolean }> }): Promise<TreinoBase | null> {
   const porId = new Map((await listarBiblioteca()).map((b) => [b.id, b]));
-  const itens = m.itens.flatMap((i) => { const b = porId.get(i.biblioteca_id); return b ? [{ biblioteca_id: b.id, nome: b.nome, series: i.series, reps: i.reps }] : []; });
+  const itens = m.itens.flatMap((i) => { const b = porId.get(i.biblioteca_id); return b ? [{ biblioteca_id: b.id, nome: b.nome, series: i.series, reps: i.reps, tecnica: i.tecnica ?? null, tecnicaConfig: i.tecnica_config ?? null, juntoComProximo: !!i.junto_com_proximo }] : []; });
   return itens.length ? { chave: "hoje", titulo: m.titulo, subtitulo: "", itens } : null;
 }
 
@@ -75,9 +76,14 @@ export async function comecarComBase(alunoId: string, clientKey: string, base: T
   const porId = new Map(biblioteca.map((b) => [b.id, b]));
   // Exercício da ficha sem ligação com a biblioteca: casa pelo nome (ou sinônimo).
   const porNome = new Map(biblioteca.flatMap((b) => [b.nome, ...b.sinonimos].map((n) => [normalizarNome(n), b] as const)));
+  const juntos = blocosDosJuntos(base.itens);
   for (const [k, it] of base.itens.entries()) {
     const item = (it.biblioteca_id ? porId.get(it.biblioteca_id) : undefined) ?? porNome.get(normalizarNome(it.nome)) ?? null;
-    await adicionarExercicioLivre(alunoId, s.id, { clientKey: `${clientKey}:${k}`, item, nomeLivre: item ? null : it.nome, tecnica: "normal", meta: { series: it.series, reps: it.reps } });
+    const se = await adicionarExercicioLivre(alunoId, s.id, { clientKey: `${clientKey}:${k}`, item, nomeLivre: item ? null : it.nome, tecnica: "normal", meta: { series: it.series, reps: it.reps } });
+    // Treino de hoje montado com técnica / bi-set: grava como o “＋ Técnica / bi-set” do treino livre.
+    const j = juntos[k];
+    const tec = it.tecnica && it.tecnica !== "normal" ? it.tecnica : null;
+    if (j || tec) await ajustarExercicioLivre(alunoId, s.id, se.id, { tecnica: (j ? j.tecnica : tec) as Tecnica, tecnicaConfig: j ? null : (it.tecnicaConfig ?? null), bloco: j ? j.bloco : null });
   }
   return s;
 }

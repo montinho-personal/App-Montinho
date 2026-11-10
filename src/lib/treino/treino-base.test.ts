@@ -16,3 +16,15 @@ describe("treino base do Meu treino", () => {
     expect(filtrarBases([g!], "perna")).toHaveLength(0);
   });
 });
+
+describe("bi-set/tri-set do treino de hoje", () => {
+  it("junta com o próximo e dá a técnica pelo tamanho", async () => {
+    const { blocosDosJuntos } = await import("./treino-base");
+    expect(blocosDosJuntos([{ juntoComProximo: true }, {}, { juntoComProximo: true }, { juntoComProximo: true }, {}, {}])).toEqual([
+      { bloco: "A", tecnica: "biset" }, { bloco: "A", tecnica: "biset" },
+      { bloco: "B", tecnica: "triset" }, { bloco: "B", tecnica: "triset" }, { bloco: "B", tecnica: "triset" },
+      null,
+    ]);
+    expect(blocosDosJuntos([{}, { juntoComProximo: true }])).toEqual([null, null]);
+  });
+});
