@@ -31,7 +31,9 @@ function Contador({ valor, min, max, onChange, sufixo }: { valor: number; min: n
   );
 }
 
-export function EscolherTecnica({ nome, atual, configAtual, outros, onEscolher, onFechar }: {
+export function EscolherTecnica({ nome, atual, configAtual, outros, onEscolher, onFechar, semComoUsar = false }: {
+  /** Treino de hoje montado pelo personal: quantas séries de técnica se escolhe fora daqui (sem “Como vai usar?”). */
+  semComoUsar?: boolean;
   nome: string;
   atual: string;
   configAtual: ConfigTecnica | null;
@@ -124,7 +126,7 @@ export function EscolherTecnica({ nome, atual, configAtual, outros, onEscolher, 
               </section>
             ) : null}
 
-            {perg?.onde ? (
+            {perg?.onde && !semComoUsar ? (
               <section className="space-y-2">
                 <h3 className="text-sm font-bold">Como vai usar?</h3>
                 <div className="grid gap-2">

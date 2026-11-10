@@ -9,11 +9,15 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
 import { EscolherTecnica, type EscolhaTecnica } from "@/components/livre/EscolherTecnica";
-import { juntaExercicios, resumoEscolha } from "@/lib/treino/tecnica-aluno";
+import { juntaExercicios } from "@/lib/treino/tecnica-aluno";
 import type { ConfigTecnica } from "@/lib/treino/tecnica-config";
-import { comoFicamAsSeries } from "@/lib/treino/treino-base";
+import { infoTecnica } from "@/lib/treino/tecnica-aluno";
+import { registraEmBlocos } from "@/lib/treino/tecnica-config";
 
-type Linha = { id: string; nome: string; series: number; reps: string; tecnica: string; /** Como a técnica é feita (o mesmo quadro do “＋ Técnica” do treino livre). */ config: ConfigTecnica | null; /** Bi-set/tri-set: junto com o próximo da lista. */ junto: boolean };
+/** Técnica feita em séries próprias (drop-set, rest-pause, myo-reps, cluster, 3/7): conta à parte das normais. */
+const emBlocos = (l: { tecnica: string; config: unknown; junto: boolean }) => !l.junto && !!l.config && registraEmBlocos(infoTecnica(l.tecnica)?.serie ?? null);
+
+type Linha = { id: string; nome: string; /** Séries normais. */ series: number; /** Séries com a técnica (feitas DEPOIS das normais). */ tecSeries: number; reps: string; tecnica: string; /** Como a técnica é feita (o mesmo quadro do “＋ Técnica” do treino livre). */ config: ConfigTecnica | null; /** Bi-set/tri-set: junto com o próximo da lista. */ junto: boolean };
 const REPS = ["6-8", "8-10", "10-12", "12-15", "15-20"];
 const novaChave = () => `hoje-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -30,9 +34,7 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
 
   function aplicar(i: number, esc: EscolhaTecnica) {
     setTecnicaDe(null);
-    // “Em várias séries” com mais séries do que o exercício tem: o exercício passa a ter esse número de séries.
-    const pede = esc.config && esc.config.aplicar !== "finalizacao" ? (esc.config.series ?? 0) : 0;
-    if (!juntaExercicios(esc.tecnica)) return mudar(i, { tecnica: esc.tecnica, config: esc.config, junto: false, ...(pede > linhas[i].series ? { series: Math.min(10, pede) } : {}) });
+    if (!juntaExercicios(esc.tecnica)) return mudar(i, { tecnica: esc.tecnica, config: esc.config, junto: false });
     // Bi-set/tri-set: os parceiros escolhidos vão logo depois deste, todos “junto com o próximo”.
     setLinhas((ls) => {
       const ids = esc.parceiros.map(Number);
@@ -55,7 +57,7 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
   async function comecar() {
     setEnviando(true);
     setErro(null);
-    const corpo = { client_key: novaChave(), montado: { titulo: titulo.trim() || "Treino de hoje", itens: linhas.map((l, i) => ({ biblioteca_id: l.id, series: l.series, reps: l.reps, ...(l.junto && i < linhas.length - 1 ? { junto_com_proximo: true } : l.tecnica !== "normal" ? { tecnica: l.tecnica, tecnica_config: l.config as Record<string, unknown> | null } : {}) })) } };
+    const corpo = { client_key: novaChave(), montado: { titulo: titulo.trim() || "Treino de hoje", itens: linhas.map((l, i) => { const junto = l.junto && i < linhas.length - 1; const blocos = !junto && emBlocos(l); return { biblioteca_id: l.id, series: Math.min(10, l.series + (blocos ? l.tecSeries : 0)), reps: l.reps, ...(junto ? { junto_com_proximo: true } : l.tecnica !== "normal" ? { tecnica: l.tecnica, tecnica_config: (blocos && l.config ? { ...l.config, aplicar: "principais", series: l.tecSeries } : l.config) as Record<string, unknown> | null } : {}) }; }) } };
     const r = await fetch("/api/meu-treino/comecar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
     const j = (await r?.json().catch(() => ({}))) as { id?: string; error?: string };
     if (!r?.ok || !j.id) {
@@ -81,7 +83,7 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
                 <button type="button" aria-label={`Tirar ${l.nome}`} onClick={() => setLinhas((ls) => ls.filter((_, k) => k !== i))} className="px-1 text-red">✕</button>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 pl-7 text-sm">
-                <span className="text-xs text-fg-muted">Séries</span>
+                <span className="text-xs text-fg-muted">{emBlocos(l) ? "Séries normais" : "Séries"}</span>
                 <button type="button" aria-label="Menos uma série" onClick={() => mudar(i, { series: Math.max(1, l.series - 1) })} className="h-8 w-8 rounded-full border border-border">−</button>
                 <span className="w-5 text-center font-bold tabular-nums">{l.series}</span>
                 <button type="button" aria-label="Mais uma série" onClick={() => mudar(i, { series: Math.min(10, l.series + 1) })} className="h-8 w-8 rounded-full border border-border">+</button>
@@ -97,12 +99,22 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
                   <p className="text-xs font-semibold text-accent">⚡ Bi-set com o próximo: um atrás do outro, sem descanso no meio.</p>
                 ) : (
                   <button type="button" onClick={() => setTecnicaDe(i)} className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs ${l.tecnica !== "normal" ? "border-accent/60 bg-accent/10" : "border-border"}`}>
-                    <span className="min-w-0 flex-1"><span className="block text-[10px] font-semibold uppercase tracking-wide text-fg-subtle">Técnica</span><span className="block font-semibold">{l.tecnica !== "normal" ? (resumoEscolha(l.tecnica, l.config) ?? l.tecnica) : "Sem técnica · séries normais"}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block text-[10px] font-semibold uppercase tracking-wide text-fg-subtle">Técnica</span><span className="block font-semibold">{l.tecnica !== "normal" ? (infoTecnica(l.tecnica)?.nome ?? l.tecnica) : "Sem técnica · séries normais"}</span></span>
                     <span className="shrink-0 rounded-full border border-accent px-2.5 py-1 font-bold text-accent">{l.tecnica !== "normal" ? "Mudar" : "＋ Técnica / bi-set"}</span>
                   </button>
                 )}
-                {!l.junto && l.tecnica !== "normal" && comoFicamAsSeries(l.series, l.tecnica, l.config) ? (
-                  <p className="text-xs font-semibold text-fg">📋 Vai ficar: {comoFicamAsSeries(l.series, l.tecnica, l.config)!.texto}</p>
+                {emBlocos(l) ? (
+                  <div className="space-y-1 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-xs text-fg-muted">Séries de {infoTecnica(l.tecnica)?.nome}</span>
+                      <button type="button" aria-label="Menos uma série com a técnica" onClick={() => mudar(i, { tecSeries: Math.max(1, l.tecSeries - 1) })} className="h-8 w-8 rounded-full border border-border">−</button>
+                      <span className="w-5 text-center font-bold tabular-nums">{l.tecSeries}</span>
+                      <button type="button" aria-label="Mais uma série com a técnica" onClick={() => mudar(i, { tecSeries: Math.min(6, l.tecSeries + 1) })} className="h-8 w-8 rounded-full border border-border">+</button>
+                    </div>
+                    <p className="text-xs font-semibold">= {l.series + l.tecSeries} séries: {l.series} {l.series === 1 ? "normal" : "normais"} e, no fim, {l.tecSeries} de {infoTecnica(l.tecnica)?.nome}.</p>
+                  </div>
+                ) : !l.junto && l.tecnica !== "normal" ? (
+                  <p className="text-xs font-semibold">= {l.series} {l.series === 1 ? "série" : "séries"}, todas com {infoTecnica(l.tecnica)?.nome}.</p>
                 ) : null}
                 {i < linhas.length - 1 ? (
                   <button type="button" aria-pressed={l.junto} onClick={() => mudar(i, { junto: !l.junto })} className={`h-7 rounded-full border px-2 text-[11px] font-semibold ${l.junto ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>{l.junto ? "✓ Junto com o próximo (separar)" : "⚡ Juntar em bi-set com o próximo"}</button>
@@ -113,12 +125,12 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
         </ol>
       ) : null}
       {buscando ? (
-        <EscolherExercicio itens={itens} onEscolher={(it) => { const nova: Linha = { id: it.id, nome: it.nome, series: 3, reps: "10-12", tecnica: "normal", config: null, junto: false }; setLinhas((ls) => (inserirApos != null ? [...ls.slice(0, inserirApos + 1), nova, ...ls.slice(inserirApos + 1)] : [...ls, nova]).slice(0, 15)); setInserirApos(null); setBuscando(false); }} onFechar={() => { setBuscando(false); setInserirApos(null); }} />
+        <EscolherExercicio itens={itens} onEscolher={(it) => { const nova: Linha = { id: it.id, nome: it.nome, series: 3, tecSeries: 1, reps: "10-12", tecnica: "normal", config: null, junto: false }; setLinhas((ls) => (inserirApos != null ? [...ls.slice(0, inserirApos + 1), nova, ...ls.slice(inserirApos + 1)] : [...ls, nova]).slice(0, 15)); setInserirApos(null); setBuscando(false); }} onFechar={() => { setBuscando(false); setInserirApos(null); }} />
       ) : (
         <button type="button" disabled={linhas.length >= 15} onClick={() => setBuscando(true)} className="touch w-full rounded-xl border border-dashed border-accent px-3 py-3 text-sm font-bold text-accent disabled:opacity-50">＋ {linhas.length ? "Pôr mais um exercício" : "Escolher o primeiro exercício"}</button>
       )}
       {tecnicaDe != null && linhas[tecnicaDe] ? (
-        <EscolherTecnica nome={linhas[tecnicaDe].nome} atual={linhas[tecnicaDe].tecnica} configAtual={linhas[tecnicaDe].config} outros={linhas.map((l, k) => ({ seId: String(k), nome: l.nome })).filter((o) => o.seId !== String(tecnicaDe) && !linhas[Number(o.seId)].junto)} onEscolher={(esc) => aplicar(tecnicaDe, esc)} onFechar={() => setTecnicaDe(null)} />
+        <EscolherTecnica nome={linhas[tecnicaDe].nome} atual={linhas[tecnicaDe].tecnica} configAtual={linhas[tecnicaDe].config} outros={linhas.map((l, k) => ({ seId: String(k), nome: l.nome })).filter((o) => o.seId !== String(tecnicaDe) && !linhas[Number(o.seId)].junto)} onEscolher={(esc) => aplicar(tecnicaDe, esc)} onFechar={() => setTecnicaDe(null)} semComoUsar />
       ) : null}
       {erro ? <p role="alert" className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm">{erro}</p> : null}
       {linhas.length ? (
