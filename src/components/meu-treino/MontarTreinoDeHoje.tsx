@@ -11,6 +11,7 @@ import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherEx
 import { EscolherTecnica, type EscolhaTecnica } from "@/components/livre/EscolherTecnica";
 import { juntaExercicios, resumoEscolha } from "@/lib/treino/tecnica-aluno";
 import type { ConfigTecnica } from "@/lib/treino/tecnica-config";
+import { comoFicamAsSeries } from "@/lib/treino/treino-base";
 
 type Linha = { id: string; nome: string; series: number; reps: string; tecnica: string; /** Como a técnica é feita (o mesmo quadro do “＋ Técnica” do treino livre). */ config: ConfigTecnica | null; /** Bi-set/tri-set: junto com o próximo da lista. */ junto: boolean };
 const REPS = ["6-8", "8-10", "10-12", "12-15", "15-20"];
@@ -29,7 +30,9 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
 
   function aplicar(i: number, esc: EscolhaTecnica) {
     setTecnicaDe(null);
-    if (!juntaExercicios(esc.tecnica)) return mudar(i, { tecnica: esc.tecnica, config: esc.config, junto: false });
+    // “Em várias séries” com mais séries do que o exercício tem: o exercício passa a ter esse número de séries.
+    const pede = esc.config && esc.config.aplicar !== "finalizacao" ? (esc.config.series ?? 0) : 0;
+    if (!juntaExercicios(esc.tecnica)) return mudar(i, { tecnica: esc.tecnica, config: esc.config, junto: false, ...(pede > linhas[i].series ? { series: Math.min(10, pede) } : {}) });
     // Bi-set/tri-set: os parceiros escolhidos vão logo depois deste, todos “junto com o próximo”.
     setLinhas((ls) => {
       const ids = esc.parceiros.map(Number);
@@ -98,6 +101,9 @@ export function MontarTreinoDeHoje({ itens }: { itens: ItemBusca[] }) {
                     <span className="shrink-0 rounded-full border border-accent px-2.5 py-1 font-bold text-accent">{l.tecnica !== "normal" ? "Mudar" : "＋ Técnica / bi-set"}</span>
                   </button>
                 )}
+                {!l.junto && l.tecnica !== "normal" && comoFicamAsSeries(l.series, l.tecnica, l.config) ? (
+                  <p className="text-xs font-semibold text-fg">📋 Vai ficar: {comoFicamAsSeries(l.series, l.tecnica, l.config)!.texto}</p>
+                ) : null}
                 {i < linhas.length - 1 ? (
                   <button type="button" aria-pressed={l.junto} onClick={() => mudar(i, { junto: !l.junto })} className={`h-7 rounded-full border px-2 text-[11px] font-semibold ${l.junto ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`}>{l.junto ? "✓ Junto com o próximo (separar)" : "⚡ Juntar em bi-set com o próximo"}</button>
                 ) : null}

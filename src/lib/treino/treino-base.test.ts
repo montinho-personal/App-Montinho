@@ -28,3 +28,13 @@ describe("bi-set/tri-set do treino de hoje", () => {
     expect(blocosDosJuntos([{}, { juntoComProximo: true }])).toEqual([null, null]);
   });
 });
+
+describe("como ficam as séries com a técnica", () => {
+  it("finalizar soma; em várias séries troca as últimas", async () => {
+    const { comoFicamAsSeries } = await import("./treino-base");
+    expect(comoFicamAsSeries(3, "dropset", { aplicar: "finalizacao", series: 1, blocos: 2 })).toMatchObject({ normais: 3, comTecnica: 1, total: 4 });
+    expect(comoFicamAsSeries(4, "cluster", { aplicar: "principais", series: 2, blocos: 3 })?.texto).toBe("2 séries normais + 2 de Cluster = 4 séries");
+    expect(comoFicamAsSeries(3, "cluster", { aplicar: "principais", series: 3, blocos: 3 })?.texto).toBe("3 séries, todas de Cluster");
+    expect(comoFicamAsSeries(3, "piramide", null)?.texto).toBe("3 séries, todas com Pirâmide");
+  });
+});

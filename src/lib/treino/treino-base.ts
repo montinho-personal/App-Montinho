@@ -7,6 +7,8 @@
 // Nada da ficha do aluno muda; as cargas do aluno nunca vão junto.
 // ============================================================================
 import type { OpcaoPlano } from "@/lib/visitante/gerar-treino";
+import { infoTecnica, seriesComTecnica } from "@/lib/treino/tecnica-aluno";
+import { configEfetiva, registraEmBlocos, type ConfigTecnica } from "@/lib/treino/tecnica-config";
 
 export type ItemBase = { biblioteca_id: string | null; nome: string; series: number; reps: string; /** Treino de hoje montado pelo personal: técnica do exercício (mesmo formato do treino livre). */ tecnica?: string | null; tecnicaConfig?: Record<string, unknown> | null; /** Bi-set/tri-set: junto com o PRÓXIMO da lista. */ juntoComProximo?: boolean };
 
@@ -83,4 +85,24 @@ export function filtrarBases(grupos: GrupoBase[], q: string): GrupoBase[] {
     const treinos = g.treinos.filter((x) => sem(`${x.titulo} ${x.subtitulo}`).includes(t));
     return treinos.length ? [{ ...g, treinos }] : [];
   });
+}
+
+/**
+ * Como ficam as séries de um exercício do treino de hoje com a técnica (o MESMO que o treino livre abre):
+ * “Só para finalizar” SOMA (séries normais + as da técnica no fim); “Em várias séries” troca as últimas
+ * séries pela técnica (o total não muda). Técnica de “jeito de fazer” vale para todas.
+ */
+export function comoFicamAsSeries(series: number, tecnica: string, config: ConfigTecnica | null): { normais: number; comTecnica: number; total: number; texto: string } | null {
+  const info = infoTecnica(tecnica);
+  if (!info || info.exercicios) return null;
+  const tipo = info.serie;
+  const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
+  if (!(tipo && registraEmBlocos(tipo) && config)) return { normais: 0, comTecnica: series, total: series, texto: `${plural(series, "série")}, todas com ${info.nome}` };
+  const nt = Math.min(series, seriesComTecnica(tecnica, config));
+  if (configEfetiva(tecnica, config)?.aplicar === "finalizacao") {
+    const total = series + nt;
+    return { normais: series, comTecnica: nt, total, texto: `${plural(series, "série normal").replace("série normals", "séries normais")} + ${nt} de ${info.nome} no fim = ${plural(total, "série")}` };
+  }
+  const normais = series - nt;
+  return { normais, comTecnica: nt, total: series, texto: normais ? `${plural(normais, "série normal").replace("série normals", "séries normais")} + ${nt} de ${info.nome} = ${plural(series, "série")}` : `${plural(series, "série")}, todas de ${info.nome}` };
 }
