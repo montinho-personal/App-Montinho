@@ -541,7 +541,7 @@ export type SessaoConquista = SessaoAderencia & {
   checkin_pre?: string | null;
   /** false = histórico importado: serve de base para recordes, mas não gera conquistas. */
   conta_aderencia?: boolean;
-  exercicios?: Array<{ exercicio_id: string | null; /** Exercício da biblioteca (Explorador). */ biblioteca_id?: string | null; /** Feito um lado de cada vez (prescrição). */ unilateral?: boolean | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null; /** “＋ Exercício extra” posto pela pessoa no dia. */ extra?: boolean }>;
+  exercicios?: Array<{ exercicio_id: string | null; /** Exercício da biblioteca (Explorador). */ biblioteca_id?: string | null; /** Feito um lado de cada vez (prescrição). */ unilateral?: boolean | null; nome: string; series: SerieConquista[]; /** Técnica prescrita no dia (snapshot). */ tecnica?: string | null; /** “＋ Exercício extra” posto pela pessoa no dia. */ extra?: boolean; /** Treino livre aberto com um treino escolhido: séries da meta (Missão Cumprida). */ meta_series?: number }>;
   /** "app" ou "importado" (histórico de outro app). */
   origem?: string | null;
   /** Fase do protocolo no dia (snapshot da sessão). */
@@ -670,7 +670,15 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   const ehDoApp = (s: SessaoConquista) => s.origem !== "importado";
   const doApp = concluidas.filter(ehDoApp);
   const pct = (s: SessaoConquista) => (s.series_planejadas ? s.series_concluidas / s.series_planejadas : 0);
-  const completo = doApp.find((s) => s.series_planejadas > 0 && s.series_concluidas >= s.series_planejadas);
+  // Treino livre aberto com um treino escolhido (“📋 Escolher um treino para hoje”): vale quando
+  // todas as séries da meta de cada exercício foram feitas (sem aquecimento). Livre do zero não tem meta.
+  const metaCompleta = (s: SessaoConquista) => {
+    const com = (s.exercicios ?? []).filter((x) => (x.meta_series ?? 0) > 0);
+    return com.length > 0 && com.every((x) => x.series.filter((y) => y.tipo !== "aquecimento" && (y.reps ?? 0) > 0).length >= (x.meta_series ?? 0));
+  };
+  const completo = ordenadas.filter(ehDoApp).find((s) =>
+    (classificarSessao(s) === "concluida" && s.series_planejadas > 0 && s.series_concluidas >= s.series_planejadas) ||
+    (s.status === "concluida" && metaCompleta(s)));
   if (completo) out.push(nova("missao_cumprida", "1", completo.iniciado_em, completo.id, "Primeiro treino com todas as séries feitas."));
   const bons = doApp.filter((s) => pct(s) >= LIMITES_COMECO.pctSeries / 100);
   const terceiro = bons[LIMITES_COMECO.treinosBons - 1];

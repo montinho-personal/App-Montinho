@@ -156,7 +156,7 @@ const BASE: Record<CodigoConquista, Base> = {
     categoria: "comeco",
     resumo: "O primeiro treino com todas as séries feitas.",
     mensagem: "Missão cumprida! Treino completinho, série por série. Chalalá!",
-    comoConquistar: "Conclua um treino fazendo 100% das séries propostas.",
+    comoConquistar: "Conclua um treino fazendo 100% das séries propostas (vale o treino da ficha e o livre aberto com um treino escolhido, que já vem com a meta).",
     significado: "Você fez tudo o que estava no plano do dia, do primeiro ao último exercício.",
     importancia: "Completar o treino inteiro dá ao corpo o estímulo que o Montinho planejou para você.",
     explicacao: "Cada série tem um papel no treino. Fazer todas, no seu ritmo e com boa execução, é o que permite avaliar a evolução de verdade.",

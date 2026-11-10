@@ -54,6 +54,13 @@ describe("conquistas — Começo (23/10/2026)", () => {
     expect(r.find((x) => x.codigo === "terceiro_especial")?.data.slice(0, 10)).toBe("2026-09-08");
     expect(codigos(detectar([s("2026-09-01", { series_concluidas: 9 })]))).not.toContain("missao_cumprida");
   });
+  it("Missão Cumprida no treino livre só com meta (treino escolhido) e todas as séries dela", () => {
+    const v = (n: number) => Array.from({ length: n }, () => ({ tipo: "valida", carga_kg: 20, reps: 10 }));
+    const livre = (series: number[], metas: Array<number | undefined>) => s("2026-09-01", { modo: "extra", series_planejadas: 0, series_concluidas: series.reduce((a, b) => a + b, 0), exercicios: series.map((n, i) => ({ exercicio_id: null, nome: `E${i}`, series: [{ tipo: "aquecimento", carga_kg: 10, reps: 12 }, ...v(n)], meta_series: metas[i] })) });
+    expect(codigos(detectar([livre([4, 3], [4, 3])]))).toContain("missao_cumprida");
+    expect(codigos(detectar([livre([4, 2], [4, 3])]))).not.toContain("missao_cumprida");
+    expect(codigos(detectar([livre([4, 3], [undefined, undefined])]))).not.toContain("missao_cumprida");
+  });
   it("Cada Quilo Conta: carga em 3 exercícios no mesmo treino", () => {
     const ex = (nome: string, kg: number | null) => ({ exercicio_id: nome, nome, series: [{ tipo: "valida", carga_kg: kg, reps: 10 }] });
     expect(codigos(detectar([s("2026-09-01", { exercicios: [ex("A", 20), ex("B", 30), ex("C", null)] })]))).not.toContain("cada_quilo_conta");
