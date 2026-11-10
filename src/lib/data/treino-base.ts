@@ -29,9 +29,11 @@ export async function prontosComoBase(): Promise<GrupoBase[]> {
   return basesDosProntos(prontos, porSlug);
 }
 
-/** Protocolos ativos dos alunos (sem visitantes e sem a ficha do próprio personal). */
-export async function protocolosComoBase(semAluno: string): Promise<GrupoBase[]> {
-  const alunos = (await listAlunos().catch(() => [])).filter((a) => a.status === "ativo" && a.id !== semAluno);
+/** Protocolos ativos dos alunos (sem visitantes). A ficha do próprio personal (`meuAluno`) vem
+ *  em primeiro, como “⭐ Meus treinos” (10/11/2026, pedido do Montinho). */
+export async function protocolosComoBase(meuAluno: string): Promise<GrupoBase[]> {
+  const alunos = (await listAlunos().catch(() => [])).filter((a) => a.status === "ativo" || a.id === meuAluno);
+  if (!alunos.some((a) => a.id === meuAluno)) alunos.push({ id: meuAluno, status: "ativo", profile: { nome: "Meus treinos" } } as (typeof alunos)[number]);
   const nome = new Map(alunos.map((a) => [a.id, a.profile?.nome ?? "Sem nome"]));
   let treinos: TreinoLinha[] = [];
   if (isDemoMode()) {
@@ -46,7 +48,8 @@ export async function protocolosComoBase(semAluno: string): Promise<GrupoBase[]>
   return [...porAluno.entries()]
     .map(([id, ts]) => baseDoAluno({ id, nome: nome.get(id) ?? "Sem nome" }, ts))
     .filter((g): g is GrupoBase => !!g)
-    .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));
+    .map((g) => (g.id === `aluno:${meuAluno}` ? { ...g, titulo: "⭐ Meus treinos", emoji: "⭐", detalhe: `${g.treinos.length} treino${g.treinos.length === 1 ? "" : "s"} montados por você`, treinos: g.treinos.map((t) => ({ ...t, titulo: t.titulo.replace(/ \([^)]*\)$/, "") })) } : g))
+    .sort((a, b) => (a.id === `aluno:${meuAluno}` ? -1 : b.id === `aluno:${meuAluno}` ? 1 : a.titulo.localeCompare(b.titulo, "pt-BR")));
 }
 
 /** O treino escolhido, remontado no servidor pela chave (nada vem pronto do aparelho). */

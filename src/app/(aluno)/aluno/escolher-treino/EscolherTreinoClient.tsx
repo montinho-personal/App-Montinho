@@ -32,7 +32,7 @@ export function EscolherTreinoClient({ prontos, alunos }: { prontos: GrupoBase[]
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
-        {([["prontos", `🔥 Treinos prontos (${prontos.length})`], ["alunos", `👥 Protocolos dos alunos (${alunos.length})`]] as const).map(([id, rot]) => (
+        {([["prontos", `🔥 Treinos prontos (${prontos.length})`], ["alunos", `⭐ Meus e 👥 dos alunos (${alunos.length})`]] as const).map(([id, rot]) => (
           <button key={id} type="button" aria-pressed={aba === id} onClick={() => { setAba(id); setAbertoGrupo(null); setQ(""); }} className={`rounded-xl border px-3 py-2 text-sm font-bold ${aba === id ? "border-accent bg-accent text-bg" : "border-border bg-card"}`}>{rot}</button>
         ))}
       </div>
