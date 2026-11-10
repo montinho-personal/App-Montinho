@@ -378,6 +378,27 @@ export async function listarReconhecimentos(alunoId: string | null, limite = 50)
   return (data ?? []) as Reconhecimento[];
 }
 
+/**
+ * Quais destas conquistas já receberam mensagem do personal (Celebrar, 10/11/2026).
+ * Antes o Celebrar lia só os 200 recados mais recentes: passando de 200, as
+ * conquistas celebradas há mais tempo voltavam para “Falta celebrar”.
+ * Busca pelo id de cada conquista, em lotes, sem limite de quantidade.
+ */
+export async function conquistasReconhecidas(ids: string[]): Promise<Set<string>> {
+  const unicos = [...new Set(ids.filter(Boolean))];
+  if (!unicos.length) return new Set();
+  if (isDemoMode()) return new Set(demo().reconhecimentos.map((r) => r.conquista_id).filter((x): x is string => !!x && unicos.includes(x)));
+  const db = await getDb();
+  const out = new Set<string>();
+  for (let i = 0; i < unicos.length; i += 150) {
+    const lote = unicos.slice(i, i + 150);
+    const { data, error } = await db.from("reconhecimentos").select("conquista_id").in("conquista_id", lote);
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as Array<{ conquista_id: string | null }>) if (r.conquista_id) out.add(r.conquista_id);
+  }
+  return out;
+}
+
 /** Inscrições push do aluno (só o treinador consegue; função no banco confere). */
 export async function inscricoesPushDoAluno(alunoId: string): Promise<Array<{ endpoint: string; p256dh: string; auth: string }>> {
   if (isDemoMode()) return [];

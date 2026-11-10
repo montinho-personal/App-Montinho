@@ -2,7 +2,7 @@
 // Conquistas vêm dos registros reais; a mensagem é escrita pelo personal.
 import { requireTreinadorPage } from "@/lib/auth/session";
 import { listAlunos } from "@/lib/db";
-import { datasDasConquistas, listarConquistas, listarEventos, listarReconhecimentos } from "@/lib/data/conquistas";
+import { conquistasReconhecidas, datasDasConquistas, listarConquistas, listarEventos, listarReconhecimentos } from "@/lib/data/conquistas";
 import { agregarChalalaTreino, agregarEventos } from "@/lib/chalala/metricas";
 import { getConfigChalala, metricasPush } from "@/lib/data/notificacoes";
 import { PainelChalalaCelular } from "./PainelChalalaCelular";
@@ -33,7 +33,7 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
   const dias = [7, 30, 90].includes(Number(d)) ? Number(d) : 30;
   const desde = new Date(new Date().getTime() - dias * 86_400_000).toISOString();
   // Visitantes (Modo Visitante) não entram no "Celebrar": eles têm o painel próprio.
-  const [alunos, conquistasTodas, reconhecimentos, eventos, configCelular, push, dispensadas] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 300 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null), conquistasDispensadas().catch(() => new Set<string>())]);
+  const [alunos, conquistasTodas, reconhecimentos, eventos, configCelular, push, dispensadas] = await Promise.all([listAlunos(), listarConquistas(null, { desde, limite: 1000 }), listarReconhecimentos(null, 200), listarEventos(desde), getConfigChalala().catch(() => null), metricasPush(new Date(desde)).catch(() => null), conquistasDispensadas().catch(() => new Set<string>())]);
   const nomes = Object.fromEntries(alunos.map((a) => [a.id, a.profile?.nome ?? "Aluno"]));
   const telefones = Object.fromEntries(alunos.map((a) => [a.id, a.telefone ?? null]));
   const conquistas = conquistasTodas.filter((c) => c.aluno_id in nomes);
@@ -50,7 +50,9 @@ export default async function CelebrarConquistasPage({ searchParams }: { searchP
     retomadas: conquistas.filter((c) => c.codigo === "eu_voltei" || c.codigo === "recomeco_consistente").length,
     recordes: conquistas.filter((c) => c.codigo === "recorde").length,
   };
-  const reconhecidas = new Set(reconhecimentos.map((r) => r.conquista_id).filter(Boolean) as string[]);
+  // Todas as celebradas destas conquistas (não só os 200 recados mais recentes: passando
+  // disso, as antigas voltavam para “Falta celebrar”, caso do Montinho em 10/11/2026).
+  const reconhecidas = await conquistasReconhecidas(conquistas.map((c) => c.id)).catch(() => new Set(reconhecimentos.map((r) => r.conquista_id).filter(Boolean) as string[]));
   // Chegou ao 1º lugar do ranking: não é troféu, é um aviso para o personal parabenizar (0138).
   const [chegadas, topoFeitos] = await Promise.all([chegadasRecentes(dataLocal(desde)).catch(() => []), topoCelebrados().catch(() => new Set<string>())]);
   const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
