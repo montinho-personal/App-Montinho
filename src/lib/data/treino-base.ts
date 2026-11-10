@@ -52,6 +52,13 @@ export async function protocolosComoBase(meuAluno: string): Promise<GrupoBase[]>
     .sort((a, b) => (a.id === `aluno:${meuAluno}` ? -1 : b.id === `aluno:${meuAluno}` ? 1 : a.titulo.localeCompare(b.titulo, "pt-BR")));
 }
 
+/** “✏️ Montar o de hoje”: o servidor confere cada id na biblioteca e põe o nome dela. */
+export async function treinoMontadoComoBase(m: { titulo: string; itens: Array<{ biblioteca_id: string; series: number; reps: string }> }): Promise<TreinoBase | null> {
+  const porId = new Map((await listarBiblioteca()).map((b) => [b.id, b]));
+  const itens = m.itens.flatMap((i) => { const b = porId.get(i.biblioteca_id); return b ? [{ biblioteca_id: b.id, nome: b.nome, series: i.series, reps: i.reps }] : []; });
+  return itens.length ? { chave: "hoje", titulo: m.titulo, subtitulo: "", itens } : null;
+}
+
 /** O treino escolhido, remontado no servidor pela chave (nada vem pronto do aparelho). */
 export async function treinoBasePorChave(chave: string, semAluno: string): Promise<TreinoBase | null> {
   const grupos = chave.startsWith("pronto:") ? await prontosComoBase() : await protocolosComoBase(semAluno);

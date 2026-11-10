@@ -846,7 +846,15 @@ export const ditadoIASchema = z.object({ fala: z.string().trim().min(3).max(4000
 // Treino livre (freestyle) do visitante: exercícios entram na hora.
 const TECNICAS_LIVRE_IDS = ["normal", "dropset", "rest_pause", "biset", "triset", "superset", "piramide", "piramide_decrescente", "myo_reps", "cluster", "tres_sete", "negativo", "super_slow", "isometria", "unilateral"] as const;
 /** Meu treino do personal: começa um treino livre já com um treino pronto ou de um aluno (chave remontada no servidor). */
-export const comecarComBaseSchema = z.object({ chave: z.string().regex(/^(pronto:[a-z0-9-]{2,80}:[A-H]|aluno:[0-9A-Za-z-]{4,64})$/), client_key: z.string().min(4).max(80) }).strict();
+export const comecarComBaseSchema = z
+  .object({
+    chave: z.string().regex(/^(pronto:[a-z0-9-]{2,80}:[A-H]|aluno:[0-9A-Za-z-]{4,64})$/).optional(),
+    /** “✏️ Montar o de hoje”: só ids da biblioteca (nome e músculo vêm do servidor). */
+    montado: z.object({ titulo: z.string().trim().min(1).max(60), itens: z.array(z.object({ biblioteca_id: z.string().min(4).max(64), series: z.number().int().min(1).max(10), reps: z.string().regex(/^\d{1,2}(-\d{1,2})?$/) }).strict()).min(1).max(15) }).strict().optional(),
+    client_key: z.string().min(4).max(80),
+  })
+  .strict()
+  .refine((d) => !!d.chave !== !!d.montado, { message: "Escolha um treino ou monte o de hoje." });
 export const livreIniciarSchema = z.object({
   client_key: z.string().min(4).max(80),
   /** Treino livre como treino extra (dor forte não entra: o extra pede conversa com o Montinho). */

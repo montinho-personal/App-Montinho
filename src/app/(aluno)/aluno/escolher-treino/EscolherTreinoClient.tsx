@@ -4,18 +4,20 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { filtrarBases, type GrupoBase, type TreinoBase } from "@/lib/treino/treino-base";
+import { MontarTreinoDeHoje } from "@/components/meu-treino/MontarTreinoDeHoje";
+import type { ItemBusca } from "@/components/livre/EscolherExercicio";
 
 const novaChave = () => `base-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-export function EscolherTreinoClient({ prontos, alunos }: { prontos: GrupoBase[]; alunos: GrupoBase[] }) {
+export function EscolherTreinoClient({ prontos, alunos, itens }: { prontos: GrupoBase[]; alunos: GrupoBase[]; itens: ItemBusca[] }) {
   const router = useRouter();
-  const [aba, setAba] = useState<"prontos" | "alunos">("prontos");
+  const [aba, setAba] = useState<"prontos" | "alunos" | "hoje">("prontos");
   const [q, setQ] = useState("");
   const [abertoGrupo, setAbertoGrupo] = useState<string | null>(null);
   const [vendo, setVendo] = useState<string | null>(null);
   const [comecando, setComecando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const grupos = useMemo(() => filtrarBases(aba === "prontos" ? prontos : alunos, q), [aba, prontos, alunos, q]);
+  const grupos = useMemo(() => filtrarBases(aba === "prontos" ? prontos : aba === "alunos" ? alunos : [], q), [aba, prontos, alunos, q]);
 
   async function comecar(t: TreinoBase) {
     setComecando(t.chave);
@@ -31,14 +33,16 @@ export function EscolherTreinoClient({ prontos, alunos }: { prontos: GrupoBase[]
 
   return (
     <div className="space-y-3">
+      <button type="button" aria-pressed={aba === "hoje"} onClick={() => setAba("hoje")} className={`w-full rounded-xl border px-3 py-3 text-sm font-black ${aba === "hoje" ? "border-accent bg-accent text-bg" : "border-accent text-accent"}`}>✏️ Montar um treino só para hoje</button>
       <div className="grid grid-cols-2 gap-2">
         {([["prontos", `🔥 Treinos prontos (${prontos.length})`], ["alunos", `⭐ Meus e 👥 dos alunos (${alunos.length})`]] as const).map(([id, rot]) => (
           <button key={id} type="button" aria-pressed={aba === id} onClick={() => { setAba(id); setAbertoGrupo(null); setQ(""); }} className={`rounded-xl border px-3 py-2 text-sm font-bold ${aba === id ? "border-accent bg-accent text-bg" : "border-border bg-card"}`}>{rot}</button>
         ))}
       </div>
-      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={aba === "prontos" ? "Buscar: rainha, costas, glúteo…" : "Buscar pelo nome do aluno ou do treino"} aria-label="Buscar treino" />
+      {aba === "hoje" ? <MontarTreinoDeHoje itens={itens} /> : null}
+      {aba !== "hoje" ? <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={aba === "prontos" ? "Buscar: rainha, costas, glúteo…" : "Buscar pelo nome do aluno ou do treino"} aria-label="Buscar treino" /> : null}
       {erro ? <p role="alert" className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm">{erro}</p> : null}
-      {!grupos.length ? <p className="py-6 text-center text-sm text-fg-muted">Nada encontrado.</p> : null}
+      {aba !== "hoje" && !grupos.length ? <p className="py-6 text-center text-sm text-fg-muted">Nada encontrado.</p> : null}
       <ul className="space-y-2">
         {grupos.map((g) => {
           const aberto = abertoGrupo === g.id || q.trim().length > 0;

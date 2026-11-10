@@ -4,7 +4,7 @@
 // aluno comum não vê o protocolo dos outros.
 import { NextResponse } from "next/server";
 import { getSessao } from "@/lib/auth/session";
-import { comecarComBase, treinoBasePorChave } from "@/lib/data/treino-base";
+import { comecarComBase, treinoBasePorChave, treinoMontadoComoBase } from "@/lib/data/treino-base";
 import { comecarComBaseSchema, lerJson } from "@/lib/validacao/schemas";
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (s.role !== "aluno" || !s.comoPersonal) return NextResponse.json({ error: "Só no Meu treino do personal" }, { status: 403 });
   const { data, error } = await lerJson(request, comecarComBaseSchema);
   if (error) return NextResponse.json(error.body, { status: error.status });
-  const base = await treinoBasePorChave(data.chave, s.alunoId);
+  const base = data.montado ? await treinoMontadoComoBase(data.montado) : await treinoBasePorChave(data.chave!, s.alunoId);
   if (!base) return NextResponse.json({ error: "Esse treino não foi encontrado." }, { status: 404 });
   try {
     const sessao = await comecarComBase(s.alunoId, data.client_key, base);
