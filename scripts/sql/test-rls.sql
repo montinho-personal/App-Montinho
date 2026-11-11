@@ -2900,3 +2900,10 @@ do $$ begin
   if not exists (select 1 from conquistas_aluno where codigo = 'forca_alta_100') then raise exception 'T97a: código novo da trilha de recordes não foi aceito'; end if;
 end $$;
 \echo 'T97 OK: trilhas de recordes'
+
+-- T98 — 0156: aviso de novidade para todos — só o personal manda; anon não executa
+do $$ begin
+  if has_function_privilege('anon', 'public.avisar_novidade(text, text, text, text)', 'execute') then raise exception 'T98a: anon não pode mandar aviso'; end if;
+  if not exists (select 1 from pg_constraint where conname = 'notificacoes_envios_categoria_check' and pg_get_constraintdef(oid) like '%novidade%') then raise exception 'T98b: categoria novidade não aceita'; end if;
+end $$;
+\echo 'T98 OK: avisos de novidade'

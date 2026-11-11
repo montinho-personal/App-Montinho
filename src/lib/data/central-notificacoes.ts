@@ -36,7 +36,22 @@ async function avisosEnviados(userId: string, desde: string): Promise<Array<{ id
     .gte("enviada_em", desde)
     .order("enviada_em", { ascending: false })
     .limit(20);
-  return ((data ?? []) as Array<{ id: string; titulo: string | null; corpo: string | null; url: string | null; enviada_em: string }>).filter((x) => x.titulo && x.corpo) as never;
+  const enviados = ((data ?? []) as Array<{ id: string; titulo: string | null; corpo: string | null; url: string | null; enviada_em: string }>).filter((x) => x.titulo && x.corpo) as Array<{ id: string; titulo: string; corpo: string; url: string | null; enviada_em: string }>;
+  // Novidades do app (0156, ex.: troféus novos): aparecem no sino também para quem não recebe no celular.
+  const { data: nov } = await db
+    .from("notificacoes_envios")
+    .select("id, dados, criado_em")
+    .eq("profile_id", userId)
+    .eq("categoria", "novidade")
+    .gte("criado_em", desde)
+    .order("criado_em", { ascending: false })
+    .limit(5);
+  const ja = new Set(enviados.map((x) => x.id));
+  for (const n of (nov ?? []) as Array<{ id: string; dados: { titulo?: string; corpo?: string; url?: string } | null; criado_em: string }>) {
+    if (ja.has(n.id) || !n.dados?.titulo || !n.dados?.corpo) continue;
+    enviados.push({ id: n.id, titulo: n.dados.titulo, corpo: n.dados.corpo, url: n.dados.url ?? null, enviada_em: n.criado_em });
+  }
+  return enviados;
 }
 
 export async function centralDoAluno(s: { alunoId: string; userId: string }): Promise<ItemCentral[]> {
