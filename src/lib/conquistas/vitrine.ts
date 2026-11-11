@@ -9,6 +9,7 @@
 import { proximoFeriado } from "./feriados";
 import { totalDeSeries } from "./volume-series";
 import { totaisDaPratica, type TotaisPratica } from "./pratica-acumulada";
+import { maiorSubida, totaisDosRecordes, type RecordesDaSessao } from "./recordes-trilha";
 import { mesesComTreino } from "./acompanhamento";
 import { progressoSemanasCompletas } from "./semanas-completas";
 import { JANELAS_CARDIO } from "./cardio-horario";
@@ -212,6 +213,20 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "explorador_15", selo: "🧭15" },
   { codigo: "explorador_30", selo: "🧭30" },
   { codigo: "explorador_50", selo: "🧭50" },
+  // Trilhas de recordes (11/11/2026)
+  { codigo: "recordes_5", selo: "🏅5" },
+  { codigo: "recordes_10", selo: "🏅10" },
+  { codigo: "recordes_25", selo: "🏅25" },
+  { codigo: "recordes_50", selo: "🏅50" },
+  { codigo: "recordes_100", selo: "🏅100" },
+  { codigo: "recordes_250", selo: "🏅250" },
+  { codigo: "recordes_exercicios_5", selo: "💪5" },
+  { codigo: "recordes_exercicios_10", selo: "💪10" },
+  { codigo: "recordes_exercicios_20", selo: "💪20" },
+  { codigo: "recordes_exercicios_30", selo: "💪30" },
+  { codigo: "forca_alta_25", selo: "+25%" },
+  { codigo: "forca_alta_50", selo: "+50%" },
+  { codigo: "forca_alta_100", selo: "2×" },
   // Multimodalidade (só com a Multimodalidade ligada, ou para quem já ganhou)
   { codigo: "primeiro_wod", selo: "WOD" },
   { codigo: "primeira_hyrox", selo: "HYROX" },
@@ -237,12 +252,15 @@ export const DEGRAU_ANTERIOR: Record<string, CodigoConquista> = {
   reps_5000: "reps_1000", reps_10000: "reps_5000", reps_25000: "reps_10000", reps_50000: "reps_25000", reps_100000: "reps_50000",
   toneladas_100: "toneladas_25", toneladas_250: "toneladas_100", toneladas_500: "toneladas_250", toneladas_1000: "toneladas_500",
   explorador_30: "explorador_15", explorador_50: "explorador_30",
+  recordes_10: "recordes_5", recordes_25: "recordes_10", recordes_50: "recordes_25", recordes_100: "recordes_50", recordes_250: "recordes_100",
+  recordes_exercicios_10: "recordes_exercicios_5", recordes_exercicios_20: "recordes_exercicios_10", recordes_exercicios_30: "recordes_exercicios_20",
+  forca_alta_50: "forca_alta_25", forca_alta_100: "forca_alta_50",
   minutos_cardio_1000: "minutos_cardio_300", minutos_cardio_3000: "minutos_cardio_1000", minutos_cardio_6000: "minutos_cardio_3000", minutos_cardio_15000: "minutos_cardio_6000", minutos_cardio_30000: "minutos_cardio_15000",
   acompanhamento_9_meses: "acompanhamento_6_meses", acompanhamento_18_meses: "acompanhamento_1_ano", acompanhamento_2_anos: "acompanhamento_18_meses",
   monitoramento_52: "monitoramento_26",
 };
 
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52", "reps_25000", "reps_50000", "reps_100000", "toneladas_250", "toneladas_500", "toneladas_1000", "explorador_50", "minutos_cardio_6000", "minutos_cardio_15000", "minutos_cardio_30000"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52", "reps_25000", "reps_50000", "reps_100000", "toneladas_250", "toneladas_500", "toneladas_1000", "explorador_50", "recordes_50", "recordes_100", "recordes_250", "recordes_exercicios_30", "forca_alta_100", "minutos_cardio_6000", "minutos_cardio_15000", "minutos_cardio_30000"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -271,7 +289,7 @@ export type ProgressoCardio = {
 /** Progresso dos troféus de compartilhar e do “Mito ou verdade?” (quando a tela tem esses dados). */
 export type ProgressoExtras = { cardsCompartilhados?: number; trofeusCompartilhados?: number; quizCertas?: number; quizTotal?: number; /** Mobilidade: dias seguidos agora de cada protocolo. */ mobilidade?: { superiores: number; inferiores: number }; /** Monitoramento: semanas seguidas com medidas e se a semana atual já tem. */ monitoramento?: { seguidas: number; estaSemana: boolean } };
 
-export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null; extras?: ProgressoExtras | null }): Medalha[] {
+export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conquistado_em: string; session_id?: string | null; dados?: unknown }>; sessoes: SessaoConquista[]; aderencia: Aderencia; hoje: string; cardio?: ProgressoCardio | null; extras?: ProgressoExtras | null }): Medalha[] {
   const ganhas = new Map<string, string>();
   for (const c of e.conquistas) if (!ganhas.has(c.codigo) || c.conquistado_em < ganhas.get(c.codigo)!) ganhas.set(c.codigo, c.conquistado_em);
 
@@ -308,6 +326,14 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
 
   let totaisPratica: TotaisPratica | null = null;
   const pratica = () => (totaisPratica ??= totaisDaPratica(e.sessoes));
+  // Trilhas de recordes: a conta sai dos MESMOS recordes já gravados (o “Novo recorde pessoal” de cada treino).
+  let totaisRec: { recordes: number; exercicios: number } | null = null;
+  const recs = () =>
+    (totaisRec ??= totaisDosRecordes(
+      e.conquistas
+        .filter((c) => c.codigo === "recorde")
+        .map((c): RecordesDaSessao => ({ sessaoId: c.session_id ?? "", data: c.conquistado_em, itens: ((c.dados as { recordes?: RecordesDaSessao["itens"] } | null)?.recordes ?? []) }))
+    ));
   const progresso = (c: CodigoConquista): { atual: number | null; alvo: number | null; falta: string | null; disponivel: boolean } => {
     const treinos = (n: number) => ({ atual: Math.min(concluidas, n), alvo: n, falta: `${faltaN(Math.max(0, n - concluidas), "treino concluído", "treinos concluídos")}, seguindo o seu plano.`, disponivel: true });
     const semanas = (n: number) => ({ atual: Math.min(seq.atual, n), alvo: n, falta: `Cumpra a meta semanal ${n} semanas seguidas — você está em ${seq.atual}.`, disponivel: true });
@@ -589,6 +615,32 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
         const n = Number(c.slice(11));
         const feitos = pratica().exercicios;
         return { atual: Math.min(feitos, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitos), "exercício diferente", "exercícios diferentes")} — você já fez ${feitos}.`, disponivel: true };
+      }
+      case "recordes_5":
+      case "recordes_10":
+      case "recordes_25":
+      case "recordes_50":
+      case "recordes_100":
+      case "recordes_250": {
+        const n = Number(c.slice(9));
+        const feitos = recs().recordes;
+        return { atual: Math.min(feitos, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitos), "recorde", "recordes")} — você já bateu ${feitos}.`, disponivel: true };
+      }
+      case "recordes_exercicios_5":
+      case "recordes_exercicios_10":
+      case "recordes_exercicios_20":
+      case "recordes_exercicios_30": {
+        const n = Number(c.slice(20));
+        const feitos = recs().exercicios;
+        return { atual: Math.min(feitos, n), alvo: n, falta: `${faltaN(Math.max(0, n - feitos), "exercício", "exercícios")} com recorde — você já tem em ${feitos}.`, disponivel: true };
+      }
+      case "forca_alta_25":
+      case "forca_alta_50":
+      case "forca_alta_100": {
+        const n = Number(c.slice(11));
+        const m = maiorSubida(e.sessoes);
+        const atual = Math.max(0, Math.min(m?.pct ?? 0, n));
+        return { atual, alvo: n, falta: m ? `Sua maior subida até agora: +${m.pct}% em ${m.exercicio}.` : "Anote a carga nos seus exercícios: a comparação é com a primeira vez no app.", disponivel: true };
       }
       case "feriado_musculacao":
       case "feriado_cardio":

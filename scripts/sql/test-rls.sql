@@ -2893,3 +2893,10 @@ do $$ begin
   if exists (select 1 from pg_policies where tablename = 'treinos_montinho' and cmd = 'DELETE') then raise exception 'T96c: não pode apagar'; end if;
 end $$;
 \echo 'T96 OK: Treinos do Montinho'
+
+-- T97 — 0155: trilhas de recordes aceitas no banco (o servidor grava; o aluno não)
+do $$ begin
+  insert into conquistas_aluno (aluno_id, codigo, referencia, conquistado_em, titulo) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'recordes_5', '1', now(), 'Caçador de Recordes'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'forca_alta_100', '1', now(), 'Força em Alta: Dobrou!') on conflict do nothing;
+  if not exists (select 1 from conquistas_aluno where codigo = 'forca_alta_100') then raise exception 'T97a: código novo da trilha de recordes não foi aceito'; end if;
+end $$;
+\echo 'T97 OK: trilhas de recordes'

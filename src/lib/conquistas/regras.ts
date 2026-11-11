@@ -27,6 +27,7 @@ import { trofeusDeFeriado, type CodigoFeriado } from "./feriados";
 import { trofeusDoComboSeguido, LIMITES_COMBO, type CodigoCombo } from "./combo-seguido";
 import { trofeusDeSeries, type CodigoSeries } from "./volume-series";
 import { trofeusDaPratica, type CodigoPratica } from "./pratica-acumulada";
+import { proximoDaTrilha, trofeusDosRecordes, trofeusForcaEmAlta, type CodigoRecordesTrilha, type RecordesDaSessao } from "./recordes-trilha";
 import { trofeusMinutosCardio, type CodigoMinutosCardio } from "./cardio-minutos";
 import { trofeusDeMonitoramento, type CodigoMonitoramento } from "./monitoramento";
 import { trofeusDeSemanasCompletas, type CodigoSemanasCompletas } from "./semanas-completas";
@@ -39,7 +40,7 @@ export const MARCOS_SEMANAS = [4, 5, 6, 8, 10, 12, 16, 20, 26, 39, 52] as const;
 /** Treinos concluídos (extras e parciais não entram). 75 em diante = trilha longa (04/11/2026). */
 export const MARCOS_TREINOS = [10, 25, 50, 75, 100, 150, 200, 300, 365, 500] as const;
 /** Troféus lendários: visual e celebração especiais (conquista muito rara). */
-export const LENDARIAS: ReadonlySet<string> = new Set(["reps_100000", "toneladas_1000", "minutos_cardio_30000", "semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
+export const LENDARIAS: ReadonlySet<string> = new Set(["recordes_250", "reps_100000", "toneladas_1000", "minutos_cardio_30000", "semanas_consistentes_12", "semanas_consistentes_52", "treinos_500", "cardio_250", "topo_30_dias"]);
 
 /** Começo (pedido do Montinho, 23/10/2026). */
 export const LIMITES_COMECO = { exerciciosComCarga: 3, treinosBons: 3, pctSeries: 80, diasInicio: 30, pausaMin: 7, pausaMax: 13 } as const;
@@ -136,6 +137,8 @@ export type CodigoConquista =
   | CodigoSeries
   // Prática acumulada: repetições, toneladas e exercícios diferentes (pratica-acumulada.ts)
   | CodigoPratica
+  // Trilhas de recordes: Caçador de Recordes, Força em Todo Lugar, Força em Alta (recordes-trilha.ts)
+  | CodigoRecordesTrilha
   | CodigoMinutosCardio
   // 29/10/2026: acompanhamento em meses + retomada de 1 mês (acompanhamento.ts),
   // autoconhecimento (quiz.ts), mais de compartilhar (compartilhar.ts),
@@ -225,6 +228,8 @@ export { CODIGOS_COMBO } from "./combo-seguido";
 export { CODIGOS_SERIES } from "./volume-series";
 /** Prática acumulada (0150): repetições, toneladas e Explorador, gravados à parte. */
 export { CODIGOS_PRATICA } from "./pratica-acumulada";
+/** Trilhas de recordes (0155): gravados à parte, como as outras famílias novas. */
+export { CODIGOS_RECORDES_TRILHA } from "./recordes-trilha";
 export { CODIGOS_MINUTOS_CARDIO } from "./cardio-minutos";
 /** Monitoramento (0127): gravados à parte, como as outras famílias novas. */
 export { CODIGOS_MONITORAMENTO } from "./monitoramento";
@@ -380,6 +385,19 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   explorador_15: { titulo: "Explorador", criterio: "Fazer 15 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
   explorador_30: { titulo: "Desbravador", criterio: "Fazer 30 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
   explorador_50: { titulo: "Mestre Explorador", criterio: "Fazer 50 exercícios diferentes no app, com pelo menos 1 série válida em cada (aquecimento não conta).", repete: false },
+  recordes_5: { titulo: "Caçador de Recordes", criterio: "Bater 5 recordes pessoais no app. Cada exercício que bate recorde num treino conta 1 (até 3 por treino): mais carga que todas as vezes anteriores, ou mais repetições com a mesma carga, com pelo menos 2 registros antes. Treino com dor não conta.", repete: false },
+  recordes_10: { titulo: "Caçador de Recordes II", criterio: "Bater 10 recordes pessoais no app. Cada exercício que bate recorde num treino conta 1 (até 3 por treino): mais carga que todas as vezes anteriores, ou mais repetições com a mesma carga, com pelo menos 2 registros antes. Treino com dor não conta.", repete: false },
+  recordes_25: { titulo: "Caçador de Recordes III", criterio: "Bater 25 recordes pessoais no app. Cada exercício que bate recorde num treino conta 1 (até 3 por treino): mais carga que todas as vezes anteriores, ou mais repetições com a mesma carga, com pelo menos 2 registros antes. Treino com dor não conta.", repete: false },
+  recordes_50: { titulo: "Mestre dos Recordes", criterio: "Bater 50 recordes pessoais no app. Cada exercício que bate recorde num treino conta 1 (até 3 por treino): mais carga que todas as vezes anteriores, ou mais repetições com a mesma carga, com pelo menos 2 registros antes. Treino com dor não conta.", repete: false },
+  recordes_100: { titulo: "Clube dos 100 Recordes", criterio: "Bater 100 recordes pessoais no app. Cada exercício que bate recorde num treino conta 1 (até 3 por treino): mais carga que todas as vezes anteriores, ou mais repetições com a mesma carga, com pelo menos 2 registros antes. Treino com dor não conta.", repete: false },
+  recordes_250: { titulo: "Lenda dos Recordes", criterio: "Bater 250 recordes pessoais no app. Cada exercício que bate recorde num treino conta 1 (até 3 por treino): mais carga que todas as vezes anteriores, ou mais repetições com a mesma carga, com pelo menos 2 registros antes. Treino com dor não conta.", repete: false },
+  recordes_exercicios_5: { titulo: "Força em Todo Lugar", criterio: "Bater recorde pessoal em 5 exercícios diferentes. Vale o mesmo recorde do “Novo recorde pessoal”; cada exercício conta uma vez.", repete: false },
+  recordes_exercicios_10: { titulo: "Força em Todo Lugar II", criterio: "Bater recorde pessoal em 10 exercícios diferentes. Vale o mesmo recorde do “Novo recorde pessoal”; cada exercício conta uma vez.", repete: false },
+  recordes_exercicios_20: { titulo: "Força em Todo Lugar III", criterio: "Bater recorde pessoal em 20 exercícios diferentes. Vale o mesmo recorde do “Novo recorde pessoal”; cada exercício conta uma vez.", repete: false },
+  recordes_exercicios_30: { titulo: "Força em Todo o Corpo", criterio: "Bater recorde pessoal em 30 exercícios diferentes. Vale o mesmo recorde do “Novo recorde pessoal”; cada exercício conta uma vez.", repete: false },
+  forca_alta_25: { titulo: "Força em Alta: +25%", criterio: "Subir 25% a carga de um exercício desde a primeira vez no app. Compara a maior carga do treino com a carga da 1ª vez que você anotou peso nele (de 5 kg para cima), com pelo menos 2 treinos antes nele. Treino com dor não conta.", repete: false },
+  forca_alta_50: { titulo: "Força em Alta: +50%", criterio: "Subir 50% a carga de um exercício desde a primeira vez no app. Compara a maior carga do treino com a carga da 1ª vez que você anotou peso nele (de 5 kg para cima), com pelo menos 2 treinos antes nele. Treino com dor não conta.", repete: false },
+  forca_alta_100: { titulo: "Força em Alta: Dobrou!", criterio: "Dobrar a carga de um exercício desde a primeira vez no app. Compara a maior carga do treino com a carga da 1ª vez que você anotou peso nele (de 5 kg para cima), com pelo menos 2 treinos antes nele. Treino com dor não conta.", repete: false },
   minutos_cardio_300: { titulo: "Primeiras 5 Horas", criterio: "Somar 300 minutos de cardio (5 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
   minutos_cardio_1000: { titulo: "Mil Minutos", criterio: "Somar 1.000 minutos de cardio (quase 17 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
   minutos_cardio_3000: { titulo: "50 Horas de Fôlego", criterio: "Somar 3.000 minutos de cardio (50 horas). Vale todo cardio de 10 minutos ou mais: anotado no app, cronômetro, treino extra de cardio, corrida do HYROX e Strava (a mesma atividade não conta duas vezes).", repete: false },
@@ -785,12 +803,22 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   }
 
   // Recordes (uma conquista por sessão, até 3 marcas).
+  const daTrilha: RecordesDaSessao[] = [];
   for (let i = 0; i < baseRecordes.length; i++) {
     const s = baseRecordes[i];
     if (s.conta_aderencia === false) continue; // histórico importado não vira conquista
     const r = recordesDaSessao(s, baseRecordes.slice(0, i), e.baseCarga);
-    if (r.length) out.push(nova("recorde", s.id, s.iniciado_em, s.id, r.map(textoRecorde).join(" · "), { recordes: r }));
+    if (r.length) {
+      if (s.origem !== "importado") daTrilha.push({ sessaoId: s.id, data: s.iniciado_em, itens: r });
+      // Cada recorde mostra quanto falta para o próximo troféu da trilha (conta no ranking).
+      const total = daTrilha.reduce((t, x) => t + x.itens.length, 0);
+      const prox = proximoDaTrilha(total);
+      const trilha = prox ? ` · 🏅 Conta para o Caçador de Recordes: ${prox.atual} de ${prox.alvo}` : "";
+      out.push(nova("recorde", s.id, s.iniciado_em, s.id, r.map(textoRecorde).join(" · ") + trilha, { recordes: r }));
+    }
   }
+  // Trilhas de recordes (11/11/2026): recordes somados, exercícios diferentes e carga que subiu 25/50/100%.
+  for (const t of [...trofeusDosRecordes(daTrilha), ...trofeusForcaEmAlta(baseRecordes)]) out.push(nova(t.codigo, "1", t.data, t.sessaoId, t.descricao, undefined, t.evidencia));
 
   if (e.relatorioVistoEm) out.push(nova("relatorio_mensal", "1", e.relatorioVistoEm, null, "Você abriu sua evolução completa."));
 
