@@ -96,7 +96,13 @@ export default async function TreinadorDashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Alunos ativos" value={String(m.ativos)} hint={`de ${m.total_alunos} no total`} tone="success" />
         <StatCard label="Treinaram nos últimos 7 dias" value={String(treinaramSemana)} hint={`de ${ativos.length} ativos`} tone={treinaramSemana >= ativos.length * 0.6 ? "success" : "gold"} />
-        <StatCard label="Pedidos de adaptação" value={String(adaptacoes.length)} hint="aguardando resposta" tone={adaptacoes.length ? "gold" : "neutral"} />
+        {adaptacoes.length ? (
+          <a href="#pedidos-adaptacao" className="block rounded-2xl hover:opacity-90" aria-label="Ver os pedidos de adaptação">
+            <StatCard label="Pedidos de adaptação" value={String(adaptacoes.length)} hint="aguardando resposta · toque para ver ›" tone="gold" />
+          </a>
+        ) : (
+          <StatCard label="Pedidos de adaptação" value="0" hint="aguardando resposta" tone="neutral" />
+        )}
         <StatCard label="Pendentes / pausados" value={`${m.pendentes} / ${m.pausados}`} hint="cadastro ou acesso" tone="neutral" />
       </div>
 
@@ -223,7 +229,7 @@ export default async function TreinadorDashboardPage() {
       </div>
 
       {adaptacoes.length ? (
-        <Card>
+        <Card id="pedidos-adaptacao" className="scroll-mt-24">
           <CardHeader>
             <CardTitle>Pedidos de adaptação em aberto</CardTitle>
           </CardHeader>
