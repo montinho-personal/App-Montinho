@@ -21,6 +21,7 @@ export default async function EscolherTreinoPage() {
         <h1 className="text-2xl font-bold">Escolher um treino para hoje</h1>
         <p className="mt-1 text-sm text-fg-muted">Monte um só para hoje, ou escolha um treino pronto, um dos seus ou de um aluno. Abre o treino livre já com os exercícios, as séries e as repetições; dá para trocar, tirar e pôr exercício. A ficha do aluno não muda e as cargas dele não vêm junto.</p>
       </header>
+      <a href="/api/meu-treino?sair=1&para=/treinador/treinos-montinho" className="block rounded-xl border border-border bg-card px-4 py-3 text-sm"><span className="font-bold">🔥 Salvar meus treinos para os alunos</span><span className="block text-xs text-fg-muted">Os treinos que você fez viram “Treinos que o Montinho fez” no app dos alunos.</span></a>
       <EscolherTreinoClient prontos={prontos} alunos={alunos} itens={itens} />
     </div>
   );

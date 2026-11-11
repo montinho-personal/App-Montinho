@@ -2885,3 +2885,11 @@ do $$ begin
   if public.nome_curto('Montinho') <> 'Montinho' or public.nome_curto('  ') <> 'Aluno' or public.nome_curto('Aline de Souza') <> 'Aline S.' then raise exception 'T95b'; end if;
 end $$;
 \echo 'T95 OK: nome curto'
+
+-- T96 — 0154: Treinos do Montinho (só o personal grava; com login lê os publicados)
+do $$ begin
+  if not (select relrowsecurity from pg_class where oid = 'public.treinos_montinho'::regclass) then raise exception 'T96a: RLS desligada'; end if;
+  if (select count(*) from pg_policies where tablename = 'treinos_montinho' and cmd in ('INSERT','UPDATE') and (coalesce(qual,'') || coalesce(with_check,'')) like '%is_treinador%') < 2 then raise exception 'T96b: escrita sem trava do personal'; end if;
+  if exists (select 1 from pg_policies where tablename = 'treinos_montinho' and cmd = 'DELETE') then raise exception 'T96c: não pode apagar'; end if;
+end $$;
+\echo 'T96 OK: Treinos do Montinho'

@@ -1102,3 +1102,10 @@ export const obraAcaoSchema = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("liberar"), set_id: z.string().uuid(), motivo: z.string().trim().min(3).max(300) }).strict(),
   z.object({ acao: z.literal("exibicao"), id: idObra, banner_dias: z.number().int().min(0).max(60).optional(), mostrar_contribuicoes: z.boolean().optional() }).strict(),
 ]);
+
+/** Treinos do Montinho (0154): salvar um treino feito, editar o texto, publicar/arquivar. */
+export const treinoMontinhoSalvarSchema = z.object({ sessao_id: z.string().min(4).max(64), titulo: z.string().trim().max(120).optional() }).strict();
+export const treinoMontinhoAtualizarSchema = z
+  .object({ titulo: z.string().trim().min(1).max(120).optional(), foco: z.string().trim().max(200).nullable().optional(), narrativa: z.string().trim().max(1500).nullable().optional(), publicado: z.boolean().optional(), arquivar: z.literal(true).optional() })
+  .strict();
+export const treinoMontinhoComecarSchema = z.object({ client_key: z.string().min(4).max(80) }).strict();

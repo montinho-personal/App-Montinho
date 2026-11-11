@@ -21,6 +21,7 @@ import { podeRegistrar } from "@/lib/visitante/acesso";
 import { contextoExtraGerado } from "@/lib/data/extra-gerado";
 import { hrefDaSessao } from "@/lib/treino/livre";
 import { wodDoDia } from "@/lib/data/wod-dia";
+import { listarTreinosMontinho } from "@/lib/data/treinos-montinho";
 
 export const metadata = { title: "Treinar" };
 
@@ -37,6 +38,7 @@ export default async function TreinarPage() {
   const placar = emAndamento ? null : await placarDoAluno(sessao.alunoId, null, { qualquerPlano: true }).catch(() => null);
   const livreMetas = placar?.origem === "livre_metas" ? placar : null;
   // Treino livre para quem não está a fim de nenhum dos treinos (acesso em dia).
+  const treinosMontinho = await listarTreinosMontinho().catch(() => []);
   const mostrarLivre = !emAndamento && !livreMetas && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null);
   const wodHoje = FEATURES.multimodalidade ? await wodDoDia().catch(() => null) : null;
   const ultimaPorLetra = new Map<string, string>();
@@ -93,6 +95,14 @@ export default async function TreinarPage() {
             <span className="block font-black">Escolher um treino para hoje</span>
             <span className="block text-xs text-fg-muted">Treinos prontos (Rainha do Agachamento…) ou o protocolo de um aluno</span>
           </span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
+
+      {treinosMontinho.length && !emAndamento ? (
+        <Link href="/aluno/treinos-do-montinho" className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 hover:bg-accent/15">
+          <span className="text-2xl" aria-hidden>🔥</span>
+          <span className="min-w-0 flex-1"><span className="block font-bold">Treinos que o Montinho fez</span><span className="block truncate text-xs text-fg-muted">{treinosMontinho.length === 1 ? treinosMontinho[0].titulo : `${treinosMontinho.length} treinos · o mais novo: ${treinosMontinho[0].titulo}`}</span></span>
           <span className="shrink-0 text-accent" aria-hidden>→</span>
         </Link>
       ) : null}

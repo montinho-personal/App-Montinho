@@ -1,6 +1,7 @@
 // Treino livre (freestyle) do visitante: em andamento ou o resumo do fim.
 export const dynamic = "force-dynamic";
 
+import { SalvarParaAlunos } from "@/components/treinos-montinho/SalvarParaAlunos";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
 import { tipoDePeso } from "@/lib/treino/padrao-carga";
 import { notFound, redirect } from "next/navigation";
@@ -39,7 +40,8 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     // Pedido de avaliação no Google (visitante): este treino já está na conta dos concluídos.
     const camp = visitante && base.status === "concluida" ? await campanhaDoVisitante(sessao.alunoId, sessao.acessoFim ?? null).catch(() => null) : null;
     const avaliacao = camp?.avaliacao && camp.treinosConcluidos >= REGRAS_AVALIACAO.minTreinos ? { link: camp.avaliacao, treinos: camp.treinosConcluidos } : null;
-    return <FimLivreClient avaliacao={avaliacao} base={base} nome={sessao.nome.split(" ")[0]} resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={duracaoMin} dor={s.feedback_percepcao === "dor" || s.checkin_pre === "desconforto"} />;
+    const fim = <FimLivreClient avaliacao={avaliacao} base={base} nome={sessao.nome.split(" ")[0]} resumo={resumoLivre(exercicios)} exercicios={exercicios} podeSalvar={visitante && podeRegistrar("visitante", sessao.acessoFim ?? null)} extra={s.modo === "extra"} duracaoMin={duracaoMin} dor={s.feedback_percepcao === "dor" || s.checkin_pre === "desconforto"} />;
+    return sessao.comoPersonal && (s.exercicios?.length ?? 0) > 0 ? <div className="space-y-4">{fim}<SalvarParaAlunos sessaoId={s.id} titulo={s.nome_treino && !/^(Extra · )?Treino livre$/.test(s.nome_treino) ? s.nome_treino : "este treino"} /></div> : fim;
   }
 
   const [biblioteca, metas, ultimas, padraoCarga] = await Promise.all([listarBiblioteca(), s.modo === "extra" ? null : placarDoAluno(sessao.alunoId, s.id, { qualquerPlano: true }).catch(() => null), ultimasExecucoes(sessao.alunoId, s.exercicios.map((e) => ({ id: e.id, nome: e.nome, biblioteca_id: e.biblioteca_id }))).catch(() => ({}) as Record<string, null>), getPadraoCarga(sessao.alunoId).catch(() => ({ anilhas: null, halteres: null }))]);

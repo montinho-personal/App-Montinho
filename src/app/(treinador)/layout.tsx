@@ -10,6 +10,7 @@ const NAV = [
   ...(FEATURES.multimodalidade ? [{ label: "WOD do dia", href: "/treinador/wod", icon: "play" } as const] : []),
   { label: "Treinos feitos", href: "/treinador/treinos-feitos", icon: "table" },
   { label: "Meu treino", href: "/treinador/meu-treino", icon: "dumbbell" },
+  { label: "Treinos do Montinho", href: "/treinador/treinos-montinho", icon: "star" },
   { label: "Buscar", href: "/treinador/busca", icon: "search" },
   { label: "Alunos", href: "/treinador/alunos", icon: "users" },
   ...(FEATURES.modoVisitante ? [{ label: "Visitantes", href: "/treinador/visitantes", icon: "user" } as const, { label: "Leads", href: "/treinador/leads", icon: "chart" } as const] : []),
