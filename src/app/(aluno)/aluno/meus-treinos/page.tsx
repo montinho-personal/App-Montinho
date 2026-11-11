@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { listarTreinosMontinho } from "@/lib/data/treinos-montinho";
 import { Voltar } from "@/components/ui/Voltar";
 import { notFound } from "next/navigation";
 import { FEATURES, isDemoMode } from "@/lib/env";
@@ -30,6 +31,7 @@ export default async function MeusTreinosPage() {
   const pode = podeRegistrar("visitante", sessao.acessoFim ?? null);
   const enviados = await meusEnviosPendentes(sessao.alunoId).catch(() => []);
   const vitrine = prontosVisiveis(isDemoMode());
+  const treinosMontinho = await listarTreinosMontinho().catch(() => []);
 
   // Desafio do treino pronto em andamento (treinos criados a partir dele).
   const doPronto = meus.map((t) => ({ t, pronto: prontoDaMarca(t.observacoes) })).filter((x) => x.pronto);
@@ -73,6 +75,12 @@ export default async function MeusTreinosPage() {
             <Link href="/aluno/treinos-prontos" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
               <span className="text-2xl" aria-hidden>🔥</span>
               <span><span className="block font-bold">Treinos prontos do Montinho</span><span className="block text-xs text-fg-muted">{vitrine.slice(0, 2).map((t) => nomeVisivel(t)).join(", ")} e mais. Com desafio.</span></span>
+            </Link>
+          ) : null}
+          {treinosMontinho.length ? (
+            <Link href="/aluno/treinos-do-montinho" className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 hover:bg-accent/15">
+              <span className="text-2xl" aria-hidden>💪</span>
+              <span><span className="block font-bold">Treinos que o Montinho fez</span><span className="block text-xs text-fg-muted">Os treinos que ele mesmo fez{treinosMontinho[0] ? `, como “${treinosMontinho[0].titulo}”` : ""}. Faça o mesmo treino com as suas cargas.</span></span>
             </Link>
           ) : null}
         </div>

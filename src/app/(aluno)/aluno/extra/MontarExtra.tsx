@@ -13,12 +13,14 @@ import { BRAND } from "@/config/brand";
 import type { ItemBiblioteca } from "@/lib/biblioteca/tipos";
 import { EuMonto, type ItemEscolhido } from "./EuMonto";
 import { SorteioExtra } from "./SorteioExtra";
+import { CartaoTreinoMontinho } from "@/components/treinos-montinho/CartaoTreinoMontinho";
+import type { TreinoMontinho } from "@/lib/treino/treinos-montinho";
 
 const CORPO: Record<CorpoExtra, string> = { bem: "Bem recuperado", cansado: "Um pouco cansado", dor_leve: "Dor leve", dor_moderada: "Dor moderada", dor: "Dor forte" };
 const chip = (on: boolean) => `touch rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-accent bg-accent/15 text-accent" : "border-border text-fg-muted"}`;
 const chave = () => `extra-gerado:${new Date().toISOString().slice(0, 10)}:${Math.random().toString(36).slice(2, 10)}`;
 
-export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGerado; biblioteca: ItemBiblioteca[]; atalhos: Array<{ nome: string; biblioteca_id: string | null; grupo: string | null }> }) {
+export function MontarExtra({ ctx, biblioteca, atalhos, treinosMontinho = [] }: { ctx: ContextoExtraGerado; biblioteca: ItemBiblioteca[]; atalhos: Array<{ nome: string; biblioteca_id: string | null; grupo: string | null }>; /** Treinos que o Montinho fez (0154). */ treinosMontinho?: TreinoMontinho[] }) {
   const router = useRouter();
   const toast = useToast();
   const [tempo, setTempo] = useState<number | null>(null);
@@ -26,7 +28,7 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
   const [corpo, setCorpo] = useState<CorpoExtra | null>(null);
   const [previa, setPrevia] = useState<ResultadoExtraGerado | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const [modo, setModo] = useState<"app" | "livre" | "sorteio">("app");
+  const [modo, setModo] = useState<"app" | "livre" | "sorteio" | "montinho">("app");
   // “🎲 Livre” no tempo: treino livre como extra (sem tempo fixo, decide os exercícios na hora).
   const [livreHora, setLivreHora] = useState(false);
   const [itens, setItensState] = useState<ItemEscolhido[]>([]);
@@ -101,15 +103,17 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
           <p className="text-fg-muted">Deixe o app montar em três toques, monte do seu jeito (tocando ou falando) ou deixe o {BRAND.name} sortear um treino pronto.</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-1 rounded-xl border border-border p-1" role="group" aria-label="Quem monta o extra">
-          {([["app", "O app monta"], ["livre", "Eu monto"], ["sorteio", "🎲 Sorteio"]] as const).map(([v, t]) => (
+        <div className={`grid ${treinosMontinho.length ? "grid-cols-2" : "grid-cols-3"} gap-1 rounded-xl border border-border p-1`} role="group" aria-label="Quem monta o extra">
+          {([["app", "O app monta"], ["livre", "Eu monto"], ["sorteio", "🎲 Sorteio"], ...(treinosMontinho.length ? [["montinho", "🔥 Do Montinho"] as const] : [])] as const).map(([v, t]) => (
             <button key={v} type="button" aria-pressed={modo === v} onClick={() => { setModo(v); setPrevia(null); }} className={`touch rounded-lg px-1 py-2 text-sm font-bold leading-tight ${modo === v ? "bg-accent text-bg" : "text-fg-muted"}`}>
               {t}
             </button>
           ))}
         </div>
 
-        {modo === "sorteio" ? (
+        {modo === "montinho" ? (
+          <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">Os treinos que o {BRAND.name} montou e fez de verdade. Escolha como está o seu corpo e faça o mesmo treino dele, com as suas cargas.</p>
+        ) : modo === "sorteio" ? (
           <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
             O {BRAND.name} sorteia um treino dos prontos (Shape de Verão, Rainha do Agachamento…). Você vê os exercícios: gostou, começa; não gostou, vai para a próxima rodada.
           </p>
@@ -162,7 +166,9 @@ export function MontarExtra({ ctx, biblioteca, atalhos }: { ctx: ContextoExtraGe
           </div>
         </fieldset>
 
-        {modo === "sorteio" ? (
+        {modo === "montinho" ? (
+          <div className="space-y-3">{treinosMontinho.map((t) => <CartaoTreinoMontinho key={t.id} t={t} extraCorpo={corpo} compacto />)}</div>
+        ) : modo === "sorteio" ? (
           <SorteioExtra corpo={corpo} />
         ) : modo === "app" && livreHora ? (
           corpo === "dor" ? (

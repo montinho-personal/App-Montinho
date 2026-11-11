@@ -12,7 +12,7 @@ import { normalizarNome } from "@/lib/grupos";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { nomeVisivel, planoDoPronto, prontosVisiveis } from "@/lib/visitante/treinos-prontos";
 import { baseDoAluno, basesDosProntos, blocosDosJuntos, type GrupoBase, type TreinoBase } from "@/lib/treino/treino-base";
-import { adicionarExercicioLivre, ajustarExercicioLivre, iniciarSessaoLivre } from "./livre";
+import { adicionarExercicioLivre, ajustarExercicioLivre, iniciarSessaoLivre, type ExtraLivre } from "./livre";
 import type { Tecnica } from "@/lib/volume/calcular";
 import type { SessaoCompleta } from "./sessoes";
 
@@ -68,8 +68,8 @@ export async function treinoBasePorChave(chave: string, semAluno: string): Promi
 }
 
 /** Abre o treino livre do personal já com os exercícios do treino escolhido (séries e reps como meta). */
-export async function comecarComBase(alunoId: string, clientKey: string, base: TreinoBase): Promise<SessaoCompleta> {
-  const s = await iniciarSessaoLivre(alunoId, clientKey, { nome: base.titulo });
+export async function comecarComBase(alunoId: string, clientKey: string, base: TreinoBase, opts: { extra?: ExtraLivre | null } = {}): Promise<SessaoCompleta> {
+  const s = await iniciarSessaoLivre(alunoId, clientKey, { nome: base.titulo, extra: opts.extra ?? null });
   // Já havia um treino livre em andamento: não mistura (a tela de Treinar mostra o “Continuar”).
   if (s.exercicios.length) throw new Error("Você tem um treino em andamento. Termine ou cancele ele antes de escolher outro.");
   const biblioteca = await listarBiblioteca();

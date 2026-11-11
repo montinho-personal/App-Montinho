@@ -9,7 +9,7 @@ import { resumoItem, tecnicasDoTreino, totalDeSeries, type TreinoMontinho } from
 
 const novaChave = () => `tm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-export function CartaoTreinoMontinho({ t, podeFazer = true }: { t: TreinoMontinho; podeFazer?: boolean }) {
+export function CartaoTreinoMontinho({ t, podeFazer = true, extraCorpo, compacto = false }: { t: TreinoMontinho; podeFazer?: boolean; /** No treino extra: o “como está o corpo” escolhido (sem ele, o botão espera). */ extraCorpo?: string | null; compacto?: boolean }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [indo, setIndo] = useState(false);
@@ -19,7 +19,7 @@ export function CartaoTreinoMontinho({ t, podeFazer = true }: { t: TreinoMontinh
   async function fazer() {
     setIndo(true);
     setErro(null);
-    const r = await fetch(`/api/treinos-montinho/${t.id}/comecar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_key: novaChave() }) }).catch(() => null);
+    const r = await fetch(`/api/treinos-montinho/${t.id}/comecar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_key: novaChave(), ...(extraCorpo !== undefined ? { extra: extraCorpo ? { corpo: extraCorpo } : null } : {}) }) }).catch(() => null);
     const j = (await r?.json().catch(() => ({}))) as { id?: string; error?: string };
     if (!r?.ok || !j.id) {
       setIndo(false);
@@ -39,7 +39,7 @@ export function CartaoTreinoMontinho({ t, podeFazer = true }: { t: TreinoMontinh
           {tecs.map((x) => <span key={x} className="rounded-full border border-border px-2 py-0.5 text-fg-muted">⚡ {x}</span>)}
         </p>
       </header>
-      {t.narrativa ? <p className="whitespace-pre-line text-sm leading-relaxed">{t.narrativa}</p> : null}
+      {t.narrativa ? <p className={`whitespace-pre-line text-sm leading-relaxed ${compacto && !aberto ? "line-clamp-3" : ""}`}>{t.narrativa}</p> : null}
       <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="text-xs font-semibold text-accent underline underline-offset-2">{aberto ? "Esconder os exercícios" : `Ver os ${t.itens.length} exercícios`}</button>
       {aberto ? (
         <ol className="space-y-1 rounded-xl bg-bg/40 p-3 text-sm">
@@ -49,7 +49,7 @@ export function CartaoTreinoMontinho({ t, podeFazer = true }: { t: TreinoMontinh
         </ol>
       ) : null}
       {erro ? <p role="alert" className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm">{erro}</p> : null}
-      {podeFazer ? <button type="button" disabled={indo} onClick={() => void fazer()} className="touch w-full rounded-xl bg-accent px-3 py-3 font-black text-bg disabled:opacity-60">{indo ? "Abrindo…" : "▶ Fazer este treino"}</button> : null}
+      {podeFazer ? <button type="button" disabled={indo || (extraCorpo !== undefined && (!extraCorpo || extraCorpo === "dor"))} onClick={() => void fazer()} className="touch w-full rounded-xl bg-accent px-3 py-3 font-black text-bg disabled:opacity-60">{indo ? "Abrindo…" : extraCorpo !== undefined && !extraCorpo ? "Escolha acima como está o seu corpo" : extraCorpo === "dor" ? "Com dor forte, nada de extra hoje" : extraCorpo !== undefined ? "▶ Fazer como treino extra" : "▶ Fazer este treino"}</button> : null}
     </article>
   );
 }
