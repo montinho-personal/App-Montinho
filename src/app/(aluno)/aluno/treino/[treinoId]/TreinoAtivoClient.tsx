@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { BlocosWod } from "@/components/wod/BlocosWod";
+import { EscolherParceirosBloco } from "@/components/montador/EscolherParceirosBloco";
 import type { BlocoTreino } from "@/lib/modalidades/tipos";
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { MicroVitoriaFaixa } from "@/components/treinos/MicroVitoria";
@@ -315,6 +316,8 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
   const [statusEx, setStatusEx] = useState<Record<string, string>>({});
   // Microvitórias (Fase 1): 1º exercício e metade, no máximo 2 por treino.
   const [micro, setMicro] = useState<string | null>(null);
+  // “⚡ Juntar em bi-set”: abre as caixinhas para escolher COM QUAL exercício (11/11/2026; antes juntava sozinho com o de baixo).
+  const [escolhendoBiset, setEscolhendoBiset] = useState<string | null>(null);
   const microVistas = useRef(new Set<MicroVitoria>());
   const limparMicro = useCallback(() => setMicro(null), []);
   // Ritmo do treino (do cronômetro): “atrasado” destaca o atalho do bi-set.
@@ -1643,6 +1646,34 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
         );
       })() : null}
 
+      {escolhendoBiset ? (() => {
+        const nomeSe = (id: string) => {
+          const i = sessao.exercicios.findIndex((x) => x.id === id);
+          const se = sessao.exercicios[i];
+          return (trocaAtiva(se)?.nome ?? (exercicios.find((e) => e.id === (se?.exercicio_id ?? se?.id)) ?? exercicios[i])?.nome) || "Exercício";
+        };
+        const itens = itensParaJuntar();
+        const numero = (id: string) => itens.findIndex((x) => x.id === id) + 1;
+        const opcoes = itens.filter((x) => x.livre && x.id !== escolhendoBiset).map((x) => ({ key: x.id, numero: numero(x.id), nome: nomeSe(x.id) }));
+        const sugestao = parceiroParaBiset(itens, escolhendoBiset);
+        return (
+          <EscolherParceirosBloco
+            metodo="Bi-set"
+            precisa={1}
+            ancora={{ numero: numero(escolhendoBiset), nome: nomeSe(escolhendoBiset) }}
+            opcoes={opcoes}
+            inicial={sugestao ? [sugestao] : []}
+            cor="#a78bfa"
+            onConfirmar={(keys) => {
+              const a = escolhendoBiset;
+              setEscolhendoBiset(null);
+              if (keys[0]) void juntarEmBiset(a, keys[0]);
+            }}
+            onCancelar={() => setEscolhendoBiset(null)}
+          />
+        );
+      })() : null}
+
       <div className="space-y-3">
         {(() => {
         const grupos = gruposDoTreino(itensDoTreino());
@@ -1951,7 +1982,7 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                         </button>
                         {/* Bi-set na hora, à vista (pedido do Montinho, 03/11/2026). */}
                         {!presencial && !finalizado && parceiroParaBiset(itensParaJuntar(), se.id) ? (
-                          <button type="button" onClick={() => void juntarEmBiset(se.id, parceiroParaBiset(itensParaJuntar(), se.id)!)} className="touch flex-1 rounded-lg border border-dashed border-[#a78bfa]/60 px-3 py-2 text-sm font-semibold text-[#a78bfa]">
+                          <button type="button" onClick={() => setEscolhendoBiset(se.id)} className="touch flex-1 rounded-lg border border-dashed border-[#a78bfa]/60 px-3 py-2 text-sm font-semibold text-[#a78bfa]">
                             ⚡ Juntar em bi-set
                           </button>
                         ) : null}
