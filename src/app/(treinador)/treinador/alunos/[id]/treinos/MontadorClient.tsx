@@ -614,19 +614,30 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     }));
   const moverDia = (tk: string, dir: -1 | 1) => commit((e) => ({ ...e, treinos: moverTreino(e.treinos, tk, dir) }));
   const proximaLetraLivre = (treinos: TreinoVM[]): TreinoLetra | null => LETRAS_TREINO.find((l) => !treinos.some((t) => t.letra === l)) ?? null;
+  // Ciclo rotativo: dia novo entra na sequência (12/11/2026, caso da Carol: D e E criados ficaram
+  // fora do ciclo “A B C”, com 0×/semana, e o volume não mudava).
+  const comNoCiclo = (e: Estado, letras: TreinoLetra[]): Estado => {
+    const cal = e.programa.calendario;
+    if (cal.modo !== "rotativo") return e;
+    const faltam = letras.filter((l) => !cal.sequencia.includes(l));
+    return faltam.length ? { ...e, programa: { ...e.programa, calendario: { ...cal, sequencia: [...cal.sequencia, ...faltam] } } } : e;
+  };
   const addDia = () =>
     commit((e) => {
       const l = proximaLetraLivre(e.treinos);
       if (!l) return e;
-      return { ...e, treinos: [...e.treinos, emptyTreino(l)] };
+      return comNoCiclo({ ...e, treinos: [...e.treinos, emptyTreino(l)] }, [l]);
     });
   const duplicarDia = (tk: string) =>
     commit((e) => {
       const l = proximaLetraLivre(e.treinos);
       const src = e.treinos.find((t) => t.key === tk);
       if (!l || !src) return e;
-      return { ...e, treinos: [...e.treinos, { ...src, key: novaKey(), id: null, letra: l, nome: `${src.nome} (cópia)`, rows: src.rows.map(cloneRow) }] };
+      return comNoCiclo({ ...e, treinos: [...e.treinos, { ...src, key: novaKey(), id: null, letra: l, nome: `${src.nome} (cópia)`, rows: src.rows.map(cloneRow) }] }, [l]);
     });
+  /** Treinos ativos com exercícios que ficaram fora da semana/ciclo (0×/semana): não entram no volume. */
+  const foraDaSemana = estado.treinos.filter((t) => t.ativo && t.rows.some((r) => r.nome.trim()) && !(frequencia[t.letra] ?? 0)).map((t) => t.letra);
+  const porNoCiclo = () => commit((e) => comNoCiclo(e, foraDaSemana));
   // Limpa descansos individuais de todos os dias: passa a valer o padrão (bi-set mantém o 0 entre os exercícios).
   const usarDescansoPadrao = () => {
     if (!window.confirm("Usar o descanso padrão em todos os exercícios?\n\nEntre séries e após cada exercício passa a valer o seu padrão (1min30 / 2 min, ou o que estiver em Ajustes). Dentro de bi-sets continua sem descanso entre os exercícios. Depois, toque em Salvar.")) return;
@@ -1024,6 +1035,22 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             {estado.programa.split || "divisão não definida"} · {estado.programa.calendario.modo === "fixa" ? "semana fixa" : "ciclo rotativo"} · {Object.entries(frequencia).filter(([l]) => letrasAtivas.includes(l as TreinoLetra)).map(([l, v]) => `${l}×${v}`).join(" ")}
           </span>
         </button>
+        {foraDaSemana.length ? (
+          <div className="mx-4 mb-3 space-y-2 rounded-lg border border-warning/50 bg-warning/10 px-3 py-2.5 text-xs">
+            <p className="text-fg">
+              ⚠️ <strong>{foraDaSemana.length === 1 ? `O treino ${foraDaSemana[0]} está` : `Os treinos ${foraDaSemana.join(", ").replace(/, ([^,]*)$/, " e $1")} estão`} fora {estado.programa.calendario.modo === "rotativo" ? "do ciclo" : "da semana"}</strong> (0× por semana): não entram no volume nem na semana do aluno.
+              {estado.programa.calendario.modo === "rotativo" ? ` Ciclo de hoje: ${(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>).sequencia.join(" ")}.` : ""}
+            </p>
+            {estado.programa.calendario.modo === "rotativo" ? (
+              <button type="button" onClick={porNoCiclo} className="touch rounded-md bg-warning px-3 py-1.5 text-xs font-bold text-bg">
+                ➕ Pôr {foraDaSemana.join(" e ")} no ciclo ({[...(estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>).sequencia, ...foraDaSemana].join(" ")})
+              </button>
+            ) : (
+              <p className="text-fg-muted">Marque {foraDaSemana.length === 1 ? "esse treino" : "esses treinos"} nos dias da semana em “Protocolo e semana”.</p>
+            )}
+            <p className="text-[11px] text-fg-subtle">Os dias por semana continuam {estado.programa.calendario.modo === "rotativo" ? (estado.programa.calendario as Extract<Calendario, { modo: "rotativo" }>).diasPorSemana : "os mesmos"}; o volume da tabela é por semana. Depois, toque em Salvar.</p>
+          </div>
+        ) : null}
         {/* Fase do protocolo: sempre visível, com a fase ATUAL em destaque e o próximo passo à mão. */}
         {(() => {
           const fase = estado.programa.fase;
