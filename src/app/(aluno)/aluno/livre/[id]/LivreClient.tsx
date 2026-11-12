@@ -6,8 +6,9 @@
 import Link from "next/link";
 import { PADRAO_CARGA_VAZIO, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
+import { CABECALHO_ALUNO } from "@/lib/auth/cabecalho";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -83,17 +84,19 @@ const FEEDBACK = [
   { id: "dor", rotulo: "⚠️ Senti dor" },
 ] as const;
 
-async function chamar(url: string, metodo: string, corpo: unknown): Promise<{ ok: boolean; json: Record<string, unknown> }> {
+async function chamar(url: string, metodo: string, corpo: unknown, cab: Record<string, string> = {}): Promise<{ ok: boolean; json: Record<string, unknown> }> {
   try {
-    const r = await fetch(url, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+    const r = await fetch(url, { method: metodo, headers: { "Content-Type": "application/json", ...cab }, body: JSON.stringify(corpo) });
     return { ok: r.ok, json: ((await r.json().catch(() => ({}))) ?? {}) as Record<string, unknown> };
   } catch {
     return { ok: false, json: { error: "Sem conexão. Confira a internet e tente de novo." } };
   }
 }
 
-export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas, padraoCarga = PADRAO_CARGA_VAZIO, titulo = null }: { /** Treino escolhido como base (Meu treino): o nome dele no lugar de “Decida na hora”. */ titulo?: string | null; /** Como a pessoa anota o peso (Perfil). */ padraoCarga?: PadraoCarga; sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
+export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = false, voltar = "/aluno", metas, padraoCarga = PADRAO_CARGA_VAZIO, titulo = null, alunoAula = null, aoTerminar = null }: { /** Aula presencial: o personal registra o treino livre deste aluno (cabeçalho do aluno da aula). */ alunoAula?: string | null; /** Aula presencial: para onde ir ao concluir. */ aoTerminar?: string | null; /** Treino escolhido como base (Meu treino): o nome dele no lugar de “Decida na hora”. */ titulo?: string | null; /** Como a pessoa anota o peso (Perfil). */ padraoCarga?: PadraoCarga; sessaoId: string; iniciadoEm: string; itens: ItemBusca[]; inicial: ExercicioTela[]; extra?: boolean; voltar?: string; /** Treino livre por metas: placar da semana (com o que já foi salvo neste treino) e o contexto da sugestão. */ metas?: { placar: LinhaPlacar[]; hoje: string; recentes: GrupoMuscular[] } | null }) {
   const router = useRouter();
+  const cab = useMemo((): Record<string, string> => (alunoAula ? { [CABECALHO_ALUNO]: alunoAula } : {}), [alunoAula]);
+  const api = (url: string, metodo: string, corpo: unknown) => chamar(url, metodo, corpo, cab);
   // Ao abrir (ou voltar), todo exercício já tem onde anotar: as séries da técnica que faltam ou uma série vazia.
   const [exs, setExs] = useState<ExercicioTela[]>(() =>
     inicial.map((e) => {
@@ -215,7 +218,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     setOcupado(true);
     setBuscando(false);
     setErro(null);
-    const r = await chamar(`/api/livre/${sessaoId}/exercicios`, "POST", { client_key: novaChave(), tecnica: "normal", ...corpo });
+    const r = await api(`/api/livre/${sessaoId}/exercicios`, "POST", { client_key: novaChave(), tecnica: "normal", ...corpo });
     adicionando.current = false;
     setOcupado(false);
     if (!r.ok) {
@@ -246,7 +249,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   async function juntar(ids: string[], tecnica: Tecnica, bloco: string) {
     setExs((l) => juntarBlocosAdjacentes(l.map((x) => (ids.includes(x.seId) ? { ...x, tecnica, config: null, bloco, series: x.series.map((y) => (y.salva || !registraEmBlocos(y.tipo) ? y : { ...y, tipo: "valida", blocos: undefined })) } : x))));
     for (const id of ids) {
-      const r = await chamar(`/api/livre/${sessaoId}/exercicios/${id}`, "PATCH", { tecnica, tecnica_config: null, bloco });
+      const r = await api(`/api/livre/${sessaoId}/exercicios/${id}`, "PATCH", { tecnica, tecnica_config: null, bloco });
       if (!r.ok) setErroEx({ seId: id, texto: String(r.json.error ?? "Não foi possível juntar agora.") });
     }
   }
@@ -255,7 +258,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
   async function separar(bloco: string) {
     const ids = exs.filter((x) => x.bloco === bloco).map((x) => x.seId);
     setExs((l) => l.map((x) => (x.bloco === bloco ? { ...x, tecnica: "normal", bloco: null } : x)));
-    for (const id of ids) await chamar(`/api/livre/${sessaoId}/exercicios/${id}`, "PATCH", { tecnica: "normal", tecnica_config: null, bloco: null });
+    for (const id of ids) await api(`/api/livre/${sessaoId}/exercicios/${id}`, "PATCH", { tecnica: "normal", tecnica_config: null, bloco: null });
   }
 
   /** Aplica a técnica escolhida na janela: grava e já ajusta as séries (ou junta os exercícios). */
@@ -278,7 +281,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       return;
     }
     mudarEx(e.seId, (x) => ({ ...x, tecnica: esc.tecnica, config: esc.config, bloco: null, series: seriesParaTecnica(x, esc.tecnica, esc.config, novaChave) }));
-    const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "PATCH", { tecnica: esc.tecnica, tecnica_config: esc.config, bloco: null });
+    const r = await api(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "PATCH", { tecnica: esc.tecnica, tecnica_config: esc.config, bloco: null });
     if (!r.ok) setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível salvar a técnica agora.") });
   }
 
@@ -321,7 +324,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     if (s.carga.trim() && carga == null) return setErroEx({ seId: e.seId, texto: `Série ${s.serie}: carga inválida. Use números, ex.: 42,5` });
     setErroEx(null);
     marcar(s.key, true);
-    const r = await chamar(`/api/sessoes/${sessaoId}/series`, "POST", { session_exercise_id: e.seId, client_key: `livre:${s.key}`, serie: s.serie, tipo: s.tipo, carga_kg: carga, reps, ...(pedacos?.length ? { blocos: pedacos } : {}) });
+    const r = await api(`/api/sessoes/${sessaoId}/series`, "POST", { session_exercise_id: e.seId, client_key: `livre:${s.key}`, serie: s.serie, tipo: s.tipo, carga_kg: carga, reps, ...(pedacos?.length ? { blocos: pedacos } : {}) });
     marcar(s.key, false);
     if (!r.ok) return setErroEx({ seId: e.seId, texto: `Série ${s.serie} não foi salva: ${String(r.json.error ?? "tente de novo.")}` });
     contarNoPlacar(e, s, contaNoPlacar(s.tipo));
@@ -356,7 +359,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     setErroEx(null);
     if (salvaNoServidor) {
       marcar(s.key, true);
-      const r = await chamar(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
+      const r = await api(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
       marcar(s.key, false);
       if (!r.ok) return setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível apagar a série.") });
       contarNoPlacar(e, s, false);
@@ -370,27 +373,28 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
     if (salvas.length && !window.confirm(`Tirar “${e.nome}” do treino? ${salvas.length === 1 ? "A série salva será apagada." : `As ${salvas.length} séries salvas serão apagadas.`}`)) return;
     setErroEx(null);
     for (const s of salvas) {
-      const r = await chamar(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
+      const r = await api(`/api/sessoes/${sessaoId}/series`, "DELETE", { client_key: `livre:${s.key}` });
       if (!r.ok) return setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível apagar a série.") });
       contarNoPlacar(e, s, false);
     }
-    const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "DELETE", {});
+    const r = await api(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "DELETE", {});
     if (!r.ok) return setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível tirar agora.") });
     setExs((l) => l.filter((x) => x.seId !== e.seId));
     if (aberto === e.seId) setAberto(null);
   }
 
   async function ajustar(e: ExercicioTela, patch: { tecnica?: string; observacao?: string }) {
-    const r = await chamar(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "PATCH", patch);
+    const r = await api(`/api/livre/${sessaoId}/exercicios/${e.seId}`, "PATCH", patch);
     if (!r.ok) setErroEx({ seId: e.seId, texto: String(r.json.error ?? "Não foi possível salvar agora.") });
   }
 
   async function terminar(status: "concluida" | "abandonada") {
     setOcupado(true);
-    const r = await chamar(`/api/sessoes/${sessaoId}`, "PATCH", { status, feedback_percepcao: status === "concluida" ? feedback : null, feedback_comentario: comentario.trim() || null });
+    const r = await api(`/api/sessoes/${sessaoId}`, "PATCH", { status, feedback_percepcao: status === "concluida" ? feedback : null, feedback_comentario: comentario.trim() || null });
     setOcupado(false);
     if (!r.ok) return setErro(String(r.json.error ?? "Não foi possível terminar agora."));
     if (status === "abandonada") return router.push(voltar);
+    if (aoTerminar) return router.push(aoTerminar);
     router.refresh();
   }
 
@@ -441,8 +445,8 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
 
                   {e.tipoPeso ? (
                     <p className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-xs text-fg-muted">
-                      ⚖️ {padraoCarga[e.tipoPeso] ? <><span className="font-semibold text-fg">{instrucaoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}</span> ({resumoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}) · </> : "Como você anota o peso? "}
-                      <Link href="/aluno/perfil" className="font-semibold text-accent underline-offset-2 hover:underline">{padraoCarga[e.tipoPeso] ? "mudar no Perfil" : "Escolher no Perfil"}</Link>
+                      ⚖️ {padraoCarga[e.tipoPeso] ? <><span className="font-semibold text-fg">{instrucaoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}</span> ({resumoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}) · </> : alunoAula ? "Jeito de anotar o peso ainda não escolhido · " : "Como você anota o peso? "}
+                      {alunoAula ? <span>{padraoCarga[e.tipoPeso] ? "o aluno muda no Perfil dele" : "o aluno escolhe no Perfil dele"}</span> : <Link href="/aluno/perfil" className="font-semibold text-accent underline-offset-2 hover:underline">{padraoCarga[e.tipoPeso] ? "mudar no Perfil" : "Escolher no Perfil"}</Link>}
                     </p>
                   ) : null}
                   <div className="space-y-2">
@@ -561,7 +565,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
 
   return (
     <div className="space-y-4 pb-24">
-      <RecadosAoVivo sessaoId={sessaoId} />
+      {alunoAula ? null : <RecadosAoVivo sessaoId={sessaoId} />}
       <div className="flex justify-end"><TelaAcesaTreino /></div>
       <header className="flex items-start justify-between gap-3">
         <div>

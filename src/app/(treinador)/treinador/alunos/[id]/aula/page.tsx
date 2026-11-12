@@ -6,6 +6,8 @@ import { getPlanoAtivo } from "@/lib/data/programas";
 import { getSessaoEmAndamento, listSessoes } from "@/lib/data/sessoes";
 import { Card, CardBody } from "@/components/ui/Card";
 import { dataBR } from "@/lib/format";
+import { ehSessaoLivre } from "@/lib/treino/livre";
+import { ComecarLivreAula } from "./ComecarLivreAula";
 
 export const metadata = { title: "Aula presencial" };
 
@@ -33,11 +35,12 @@ export default async function AulaPresencialPage({ params }: { params: Promise<{
         <p className="text-sm text-fg-muted">Você marca peso e repetições de {nome.split(" ")[0]} pelo seu celular. Tudo entra no histórico, no volume da semana e na evolução dela(e).</p>
       </div>
       {emAndamento ? (
-        <Link href={`/treinador/alunos/${id}/aula/${emAndamento.treino_id}?sessao=${emAndamento.id}`} className="block rounded-xl border border-warning/50 bg-warning/10 p-4 text-sm">
+        <Link href={ehSessaoLivre(emAndamento) ? `/treinador/alunos/${id}/aula/livre/${emAndamento.id}` : `/treinador/alunos/${id}/aula/${emAndamento.treino_id}?sessao=${emAndamento.id}`} className="block rounded-xl border border-warning/50 bg-warning/10 p-4 text-sm">
           <span className="font-semibold">Treino em andamento: {emAndamento.nome_treino}</span>
           <span className="block text-xs text-fg-muted">Toque para continuar de onde parou.</span>
         </Link>
       ) : null}
+      {emAndamento ? null : <ComecarLivreAula alunoId={id} nome={nome.split(" ")[0]} />}
       {plano.treinos.length ? (
         <ul className="space-y-2">
           {plano.treinos.map((t) => (

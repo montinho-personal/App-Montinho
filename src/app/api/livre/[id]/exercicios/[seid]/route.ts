@@ -2,14 +2,14 @@
 // DELETE — tira do treino um exercício sem séries (fica “pulado”; nada é apagado).
 import { NextResponse } from "next/server";
 import { ajustarExercicioLivre, tirarExercicioLivre } from "@/lib/data/livre";
-import { requireAlunoTreinoLivreApi } from "@/lib/treino/livre-guarda";
+import { requireTreinoLivreApi } from "@/lib/treino/livre-guarda";
 import { lerJson, livreAjusteSchema } from "@/lib/validacao/schemas";
 
 type Ctx = { params: Promise<{ id: string; seid: string }> };
 
 export async function PATCH(request: Request, { params }: Ctx) {
   const { id, seid } = await params;
-  const { sessao, error } = await requireAlunoTreinoLivreApi();
+  const { sessao, error } = await requireTreinoLivreApi(request);
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, livreAjusteSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
@@ -22,9 +22,9 @@ export async function PATCH(request: Request, { params }: Ctx) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: Ctx) {
+export async function DELETE(request: Request, { params }: Ctx) {
   const { id, seid } = await params;
-  const { sessao, error } = await requireAlunoTreinoLivreApi();
+  const { sessao, error } = await requireTreinoLivreApi(request);
   if (error) return error;
   try {
     const ok = await tirarExercicioLivre(sessao.alunoId, id, seid);

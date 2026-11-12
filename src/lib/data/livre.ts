@@ -20,7 +20,7 @@ import { getSessao, getSessaoEmAndamento, gravarSessaoNova, type SessaoCompleta 
 /** Como treino extra: registrado à parte (não conta na meta semanal), com o “como está o corpo” do extra. */
 export type ExtraLivre = { corpo: "bem" | "cansado" | "dor_leve" | "dor_moderada" };
 
-export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opts: { extra?: ExtraLivre | null; /** Treino escolhido como base (Meu treino do personal). */ nome?: string | null } = {}): Promise<SessaoCompleta> {
+export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opts: { extra?: ExtraLivre | null; /** Treino escolhido como base (Meu treino do personal). */ nome?: string | null; /** Aula presencial: o personal registra. */ origem?: "app" | "treinador" } = {}): Promise<SessaoCompleta> {
   const atual = await getSessaoEmAndamento(alunoId);
   if (atual) {
     if (ehSessaoLivre(atual)) return atual;
@@ -51,7 +51,7 @@ export async function iniciarSessaoLivre(alunoId: string, clientKey: string, opt
     series_concluidas: 0,
     feedback_percepcao: null,
     feedback_comentario: null,
-    origem: "app",
+    origem: opts.origem ?? "app",
     created_at: agora,
     updated_at: agora,
   };

@@ -5,15 +5,17 @@ import { NextResponse } from "next/server";
 import { iniciarSessaoLivre } from "@/lib/data/livre";
 import { getConfigExtra } from "@/lib/data/extras";
 import { contextoExtraGerado } from "@/lib/data/extra-gerado";
-import { requireAlunoTreinoLivreApi } from "@/lib/treino/livre-guarda";
+import { requireTreinoLivreApi } from "@/lib/treino/livre-guarda";
 import { lerJson, livreIniciarSchema } from "@/lib/validacao/schemas";
 import { BRAND } from "@/config/brand";
 
 export async function POST(request: Request) {
-  const { sessao, error } = await requireAlunoTreinoLivreApi();
+  const { sessao, error } = await requireTreinoLivreApi(request);
   if (error) return error;
   const { data, error: vErr } = await lerJson(request, livreIniciarSchema);
   if (vErr) return NextResponse.json(vErr.body, { status: vErr.status });
+  // Aula presencial: o personal registra o treino livre do aluno (não é extra).
+  if (sessao.presencial && data.extra) return NextResponse.json({ error: "Na aula presencial o treino livre não é extra." }, { status: 400 });
   if (data.extra) {
     if (data.extra.corpo === "dor") return NextResponse.json({ error: `Com dor forte, nada de extra hoje. Converse com o ${BRAND.name} antes de treinar mais.` }, { status: 409 });
     const [config, ctx] = await Promise.all([getConfigExtra(sessao.alunoId), contextoExtraGerado(sessao.alunoId)]);
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
   }
   try {
     const corpo = data.extra && data.extra.corpo !== "dor" ? { corpo: data.extra.corpo } : null;
-    const s = await iniciarSessaoLivre(sessao.alunoId, data.client_key, { extra: corpo });
+    const s = await iniciarSessaoLivre(sessao.alunoId, data.client_key, { extra: corpo, ...(sessao.presencial ? { origem: "treinador" as const } : {}) });
     return NextResponse.json({ id: s.id }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível começar agora.";
