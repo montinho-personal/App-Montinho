@@ -323,6 +323,8 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                     <td className={`px-1 py-1.5 text-right font-mono font-bold ${incluirSecundario ? "text-fg" : STATUS_COR[l.status]}`} title={l.deTecnicas ? `${numBR(l.total - l.deTecnicas)} séries + ${numBR(l.deTecnicas)} de drops/mini-séries` : undefined}>
                       {numBR(l.total)}
                       {l.deTecnicas ? <span className="text-accent">*</span> : null}
+                      {/* No celular as colunas +sec/Total ficam fora da tela: o secundário aparece aqui embaixo (12/11/2026, caso da lombar no meio terra). */}
+                      {compacto && incluirSecundario && l.secundario ? <span className="block whitespace-nowrap text-[10px] font-normal text-fg-subtle">+{numBR(l.secundario)} sec.</span> : null}
                     </td>
                     <td className="px-1 py-1.5 text-right font-mono">
                       {editandoMetas ? (
