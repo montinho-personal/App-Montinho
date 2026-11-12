@@ -59,3 +59,24 @@ describe("anilhas/halteres: dobro, metade e bem acima (04/11/2026)", () => {
     expect(conferirSerie({ carga: 6, reps: 12, cargasReferencia: [3], padrao: anilhaPorLado })).toBeNull(); // 3 → 6 kg: diferença pequena
   });
 });
+
+describe("vírgula que sumiu (12/11/2026, caso da Brigida)", () => {
+  it("585 com referência de 45–54 vira 58,5; 495 vira 49,5", async () => {
+    const { virgulaPerdida } = await import("./conferencia");
+    expect(virgulaPerdida(585, [45, 495, 54])).toBe(58.5);
+    expect(virgulaPerdida(495, [45, 54, 585])).toBe(49.5);
+  });
+  it("não mexe em subida de verdade nem em aquecimento leve", async () => {
+    const { virgulaPerdida } = await import("./conferencia");
+    expect(virgulaPerdida(100, [40, 80, 90])).toBeNull();
+    expect(virgulaPerdida(200, [20, 40, 80])).toBeNull();
+    expect(virgulaPerdida(60, [55])).toBeNull();
+  });
+  it("sem referência, só acima do limite do grupo", async () => {
+    const { virgulaPerdida } = await import("./conferencia");
+    expect(virgulaPerdida(585, [])).toBe(58.5);
+    expect(virgulaPerdida(250, [])).toBeNull();
+    expect(virgulaPerdida(125, [], "biceps")).toBe(12.5);
+    expect(virgulaPerdida(585, [600])).toBeNull();
+  });
+});

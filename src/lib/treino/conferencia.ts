@@ -122,3 +122,25 @@ export function conferirSerie(e: EntradaConferencia): Alerta | null {
   }
   return null;
 }
+
+/**
+ * Vírgula que sumiu (12/11/2026, caso da Brigida: o teclado do celular dela não
+ * tinha vírgula e 58,5 virou 585). Devolve a carga ÷ 10 quando o número só faz
+ * sentido assim: com referência do aluno, 5× ou mais acima e o ÷ 10 perto dela;
+ * sem referência, acima do limite do grupo (o mesmo da conferência). Senão, null.
+ * Usado para corrigir sozinho onde não dá para perguntar (concluir tudo de uma
+ * vez, séries em blocos); na série comum a conferência pergunta “Era X kg?”.
+ */
+export function virgulaPerdida(carga: number | null, referencias: number[], grupo?: GrupoMuscular | null): number | null {
+  if (carga == null || !Number.isFinite(carga) || carga < 20) return null;
+  const todas = referencias.filter((c) => Number.isFinite(c) && c > 0);
+  // Tira das referências as que também parecem erro (bem acima do normal das outras).
+  const refs = todas.length ? todas.filter((c) => c <= mediana(todas) * 3) : [];
+  const dez = Math.round(carga) / 10;
+  if (refs.length) {
+    // 5× acima até da MAIOR referência (aquecimento leve não engana) e o ÷ 10 perto do normal.
+    return carga >= Math.max(...refs) * 5 && perto(dez, mediana(refs)) ? dez : null;
+  }
+  const limite = grupo && GRUPOS_LEVES.has(grupo) ? 100 : 300;
+  return carga > limite ? dez : null;
+}

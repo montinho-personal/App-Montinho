@@ -19,7 +19,7 @@ import { microVitoria, TEXTO_MICRO, type MicroVitoria } from "@/lib/treino/micro
 import { linkExecucao, textoExecucao } from "@/lib/treino/execucao-whatsapp";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
 import { COR_TECNICA, descreverTecnica, METODOS } from "@/lib/volume/tecnicas";
-import { conferirSerie, type Alerta } from "@/lib/treino/conferencia";
+import { conferirSerie, virgulaPerdida, type Alerta } from "@/lib/treino/conferencia";
 import { gruposDoTreino, proximoNoBloco, rodadaDoBloco, rotulosDosExercicios, type ItemTreino } from "@/lib/treino/blocos";
 import { codigoBloco, juntarBlocosAdjacentes, parceiroParaBiset, sugestaoDeBiset, type ItemJuntar } from "@/lib/treino/tecnica-aluno";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -733,8 +733,33 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
     const usarSug = !sLocal.blocos?.length && ((!sLocal.carga.trim() && !!sLocal.sugCarga) || (!sLocal.reps.trim() && !!sLocal.sugReps));
     const s0 = usarSug ? { ...sLocal, carga: sLocal.carga.trim() || sLocal.sugCarga || "", reps: sLocal.reps.trim() || sLocal.sugReps || "" } : sLocal;
     if (usarSug && !correcao) atualizar(seId, idx, { carga: s0.carga, reps: s0.reps });
-    const s = correcao ? { ...s0, ...(correcao.carga != null ? { carga: String(correcao.carga).replace(".", ",") } : {}), ...(correcao.reps != null ? { reps: String(correcao.reps) } : {}) } : s0;
-    if (correcao) atualizar(seId, idx, { carga: s.carga, reps: s.reps });
+    const s1 = correcao ? { ...s0, ...(correcao.carga != null ? { carga: String(correcao.carga).replace(".", ",") } : {}), ...(correcao.reps != null ? { reps: String(correcao.reps) } : {}) } : s0;
+    if (correcao) atualizar(seId, idx, { carga: s1.carga, reps: s1.reps });
+    // Vírgula que sumiu (12/11/2026, caso da Brigida: teclado sem vírgula, 58,5 virou 585):
+    // onde não dá para perguntar (concluir tudo de uma vez e séries em blocos), corrige sozinho e avisa.
+    const s = (() => {
+      if (correcao || outroAparelho[seId]) return s1;
+      const nV = (v: string | undefined | null) => Number(String(v ?? "").replace(",", "."));
+      const refs = [
+        ...(series[seId] ?? []).filter((_, k) => k !== idx).flatMap((x) => [nV(x.carga), nV(x.blocos?.[0]?.carga)]),
+        ...(ex.trocado ? [] : (ultimas[ex.id]?.series ?? []).map((x) => x.carga_kg ?? 0)),
+      ].filter((n) => Number.isFinite(n) && n > 0);
+      const fmtV = (n: number) => String(n).replace(".", ",");
+      const trocas: string[] = [];
+      const fix = (v: string) => {
+        const c = virgulaPerdida(v.trim() ? nV(v) : null, refs, ex.grupo_muscular ?? null);
+        if (c == null) return v;
+        trocas.push(`${v} → ${fmtV(c)} kg`);
+        return fmtV(c);
+      };
+      let r = s1;
+      if (s1.blocos?.length) r = { ...s1, blocos: s1.blocos.map((b) => ({ ...b, carga: fix(b.carga) })) };
+      else if (silencioso) r = { ...s1, carga: fix(s1.carga) };
+      if (!trocas.length) return s1;
+      atualizar(seId, idx, { carga: r.carga, blocos: r.blocos });
+      toast.success(`Corrigimos a carga: ${trocas.join(", ")} (parece que faltou a vírgula). Se não era isso, ajuste antes de terminar.`);
+      return r;
+    })();
     // Série em blocos: reps = soma dos pedaços; carga = a do 1º pedaço (drop-set guarda cada uma).
     const planosBase = blocosDaSerie(ex, s, series[seId]);
     // O aluno pode ter posto ou tirado um drop: a carga sugerida de cada um segue a quantidade dele.
