@@ -1,3 +1,4 @@
+import { volumeFeitoDaSemana } from "@/lib/data/livre-metas";
 import { AbasTreinoCardio } from "@/components/cardio/AbasTreinoCardio";
 import { metasDaEstrategia } from "@/lib/estrategia/plano";
 import { notFound } from "next/navigation";
@@ -63,6 +64,7 @@ export default async function MontadorPage({ params }: PageProps) {
     alta: alta ? { nome: alta.nome, antes: alta.primeira, agora: alta.ultima } : null,
   };
 
+  const feitoSemana = await volumeFeitoDaSemana(id).catch(() => null);
   const p28 = periodoDias(28);
   const realizadoBruto = volumeRealizadoPorGrupo(seriesRealizadasPorGrupo(sessoes, p28));
   const realizadoSemanal = Object.fromEntries(Object.entries(realizadoBruto).map(([g, v]) => [g, Math.round(((v ?? 0) / 4) * 10) / 10]));
@@ -100,6 +102,7 @@ export default async function MontadorPage({ params }: PageProps) {
       correcoes={[...correcoes.entries()].map(([nome, v]) => ({ nome, grupo: v.grupo, secundarios: v.secundarios }))}
       anamnese={(anamnese as Anamnese | null) ?? null}
       realizadoSemanal={realizadoSemanal}
+      feitoSemana={feitoSemana}
       focoEstrategia={focoEstrategia}
       porques={porques}
     />

@@ -30,7 +30,7 @@ import { MetodoPicker } from "@/components/montador/MetodoPicker";
 import { ConfigTecnicaPainel } from "@/components/montador/ConfigTecnicaPainel";
 import { ehConfiguravel, type ConfigTecnica } from "@/lib/treino/tecnica-config";
 import { FASES, FASE_INFO, type Fase } from "@/lib/treino/fases";
-import { TabelaVolume } from "@/components/montador/TabelaVolume";
+import { TabelaVolume, type FeitoNaSemana } from "@/components/montador/TabelaVolume";
 import { PainelTempo } from "@/components/montador/PainelTempo";
 import { estimarDuracao, formatarDuracao, mesclarParametros, type ExercicioTempo, type ParametrosTempo, type ResultadoTempo } from "@/lib/tempo/estimar";
 import { usePreferenciasVolume } from "@/components/montador/usePreferenciasVolume";
@@ -146,6 +146,8 @@ type Props = {
   correcoes: Array<{ nome: string; grupo: GrupoMuscular; secundarios: GrupoMuscular[] }>;
   anamnese: Anamnese | null;
   realizadoSemanal: Partial<Record<GrupoMuscular, number>>;
+  /** Séries feitas nesta semana em qualquer treino (ficha, extra, livre). */
+  feitoSemana?: FeitoNaSemana | null;
   /** Montinho Desbloqueia: “por quê” de cada exercício salvo (aluno vê no treino). */
   porques?: Record<string, string>;
 };
@@ -260,7 +262,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false, metasDoRelatorio = null }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, feitoSemana = null, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false, metasDoRelatorio = null }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -1645,6 +1647,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             nivel={estado.programa.nivel || null}
             incluirSecundario={incluirSecundario}
             realizado={realizadoSemanal}
+            feito={feitoSemana}
             onMetas={(m) => updPrograma({ metas_volume: m })}
             onPrioridades={(p) => updPrograma({ prioridades: p })}
             onSecundario={setIncluirSecundario}

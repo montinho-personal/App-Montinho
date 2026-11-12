@@ -30,6 +30,8 @@ type Props = {
   nivel: string | null;
   incluirSecundario: boolean;
   realizado?: Partial<Record<GrupoMuscular, number>> | null; // média semanal realizada (opcional)
+  /** Séries FEITAS nesta semana em qualquer treino (ficha, extra, treino livre). Com ele, aparece a coluna “Feito”. */
+  feito?: FeitoNaSemana | null;
   /** Sem onMetas/onPrioridades a tabela fica só de leitura (metas e prioridades não editáveis). */
   onMetas?: (m: Partial<Record<GrupoMuscular, MetaVolume>>) => void;
   onPrioridades?: (p: string[]) => void;
@@ -40,6 +42,17 @@ type Props = {
   ajustarPorRir?: boolean;
   onAjustarPorRir?: (v: boolean) => void;
 };
+
+export type FeitoNaSemana = { inicio: string; direto: Partial<Record<GrupoMuscular, number>>; comSecundario: Partial<Record<GrupoMuscular, number>> };
+
+const PARTES_OMBRO: GrupoMuscular[] = ["ombros", "ombro_anterior", "ombro_lateral", "ombro_posterior"];
+
+/** Quanto foi feito na linha (Ombros total = soma das partes; parte do abdômen não tem série própria). */
+export function feitoDaLinha(l: Pick<LinhaVolume, "grupo" | "somaDasPartes" | "parteDe">, feitas: Partial<Record<GrupoMuscular, number>>): number | null {
+  if (l.parteDe) return null;
+  if (l.somaDasPartes) return Math.round(PARTES_OMBRO.reduce((n, g) => n + (feitas[g] ?? 0), 0) * 100) / 100;
+  return feitas[l.grupo] ?? 0;
+}
 
 /** Número no padrão brasileiro (vírgula decimal, até 2 casas). */
 const numBR = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -104,7 +117,7 @@ export function TabelaVolume(props: Props) {
   );
 }
 
-export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, onMetas, onPrioridades, onSecundario, regraTecnicas = "moderada", onRegraTecnicas, ajustarPorRir = false, onAjustarPorRir, semTitulo = false }: Props & { semTitulo?: boolean }) {
+export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, incluirSecundario, realizado, feito, onMetas, onPrioridades, onSecundario, regraTecnicas = "moderada", onRegraTecnicas, ajustarPorRir = false, onAjustarPorRir, semTitulo = false }: Props & { semTitulo?: boolean }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("padrao");
   const [compacto, setCompacto] = useState(false);
@@ -243,6 +256,8 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
         <p className="text-[10.5px] text-fg-subtle"><span className="font-bold text-accent">★ Prioridade</span> = músculo prioritário do protocolo.</p>
       ) : null}
 
+      {feito ? <NotaFeito feito={feito} incluirSecundario={incluirSecundario} grupos={resultado.linhas.map((l) => l.grupo)} /> : null}
+
       {linhas.length === 0 ? (
         <p className="py-6 text-center text-xs text-fg-subtle">Digite os exercícios: o volume aparece aqui na hora.</p>
       ) : (
@@ -258,6 +273,7 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                 )) : null}
                 <th className="text-right font-semibold px-1 py-1" title="Séries diretas válidas por semana (sem aquecimento). * inclui drops/mini-séries de técnicas avançadas pela regra escolhida.">Sem.</th>
                 <th className="whitespace-nowrap text-right font-semibold px-1 py-1">Meta</th>
+                {feito ? <th className="whitespace-nowrap text-right font-semibold px-1 py-1 text-accent" title="Séries feitas nesta semana (segunda até hoje) em qualquer treino: da ficha, extra, treino livre e aula presencial. Sem aquecimento.">Feito</th> : null}
                 {!compacto ? <th className="text-right font-semibold px-1 py-1" title="Sessões por semana em que o grupo recebe séries">Freq.</th> : null}
                 {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Participação secundária estimada (fração de série × frequência)">+sec</th> : null}
                 {incluirSecundario ? <th className="text-right font-semibold px-1 py-1" title="Total = séries diretas + secundário estimado. É este total que é comparado com a meta.">Total</th> : null}
@@ -317,6 +333,12 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                         <span className="text-fg-subtle">—</span>
                       )}
                     </td>
+                    {feito ? (() => {
+                      const f = feitoDaLinha(l, incluirSecundario ? feito.comSecundario : feito.direto);
+                      if (f === null) return <td className="px-1 py-1.5 text-right font-mono text-fg-subtle">·</td>;
+                      const cor = !l.meta ? "text-fg-muted" : f < l.meta.min ? "text-info" : f > l.meta.max ? "text-warning" : "text-success";
+                      return <td className={`px-1 py-1.5 text-right font-mono font-bold ${cor}`}>{numBR(f)}</td>;
+                    })() : null}
                     {!compacto ? <td className="px-1 py-1.5 text-right font-mono text-fg-muted">{l.frequencia ? `${numBR(l.frequencia)}×` : "·"}</td> : null}
                     {incluirSecundario ? <td className="px-1 py-1.5 text-right font-mono text-fg-subtle">{l.secundario ? `+${numBR(l.secundario)}` : "·"}</td> : null}
                     {incluirSecundario ? <td className={`px-1 py-1.5 text-right font-mono font-bold ${STATUS_COR[l.status]}`}>{l.ponderado ? numBR(l.ponderado) : "·"}</td> : null}
@@ -328,13 +350,13 @@ export function TabelaVolumeConteudo({ resultado, metas, prioridades, nivel, inc
                 <td className="px-1 py-1.5 font-semibold">Inferiores (soma)</td>
                 {!compacto ? letras.map((x) => <td key={x} />) : null}
                 <td className="px-1 py-1.5 text-right font-mono">{numBR(resultado.subtotais.inferiores)}</td>
-                <td colSpan={5} />
+                <td colSpan={6} />
               </tr>
               <tr className="text-[11px] text-fg-muted">
                 <td className="px-1 py-1 font-semibold">Superiores (soma)</td>
                 {!compacto ? letras.map((x) => <td key={x} />) : null}
                 <td className="px-1 py-1 text-right font-mono">{numBR(resultado.subtotais.superiores)}</td>
-                <td colSpan={5} />
+                <td colSpan={6} />
               </tr>
             </tbody>
           </table>
@@ -424,4 +446,19 @@ export function partesJuntoDoTotal<T extends { grupo: string; parteDe?: string; 
   const pais = new Set(linhas.map((x) => x.grupo));
   const soltas = linhas.filter((x) => { const p = paiDe(x); return !p || !pais.has(p); });
   return soltas.flatMap((x) => [x, ...linhas.filter((y) => paiDe(y) === x.grupo)]);
+}
+
+/** Legenda da coluna “Feito” + músculos treinados na semana que o protocolo não tem. */
+function NotaFeito({ feito, incluirSecundario, grupos }: { feito: FeitoNaSemana; incluirSecundario: boolean; grupos: GrupoMuscular[] }) {
+  const feitas = incluirSecundario ? feito.comSecundario : feito.direto;
+  const tem = new Set<string>(grupos);
+  if (grupos.some((g) => g.startsWith("ombro_") || g === "ombros")) for (const g of PARTES_OMBRO) tem.add(g);
+  const fora = (Object.entries(feitas) as Array<[GrupoMuscular, number]>).filter(([g, n]) => !tem.has(g) && n >= 1);
+  const desde = feito.inicio.split("-").reverse().slice(0, 2).join("/");
+  return (
+    <p className="rounded-md border border-accent/30 bg-accent/5 px-2.5 py-1.5 text-[11px] text-fg-muted">
+      <strong className="text-accent">Feito</strong> = séries desta semana (desde segunda, {desde}) em <strong>qualquer treino</strong>: da ficha, extra e treino livre{incluirSecundario ? ", com o secundário" : ""}.
+      {fora.length ? <> Fora do protocolo: {fora.map(([g, n]) => `${GRUPO_LABEL[g] ?? g} ${numBR(n)}`).join(" · ")}.</> : null}
+    </p>
+  );
 }

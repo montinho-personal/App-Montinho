@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { TabelaVolumeConteudo } from "@/components/montador/TabelaVolume";
+import { TabelaVolumeConteudo, type FeitoNaSemana } from "@/components/montador/TabelaVolume";
 import { usePreferenciasVolume } from "@/components/montador/usePreferenciasVolume";
 import { calcularVolumeSemanal, type DiaVolume, type Frequencia, type MetaVolume } from "@/lib/volume/calcular";
 import type { GrupoMuscular } from "@/lib/supabase/types-extended";
@@ -18,9 +18,11 @@ type Props = {
   prioridades: string[];
   nivel: string | null;
   editarHref: string;
+  /** Séries feitas nesta semana em qualquer treino (ficha, extra, livre). */
+  feito?: FeitoNaSemana | null;
 };
 
-export function VolumeAluno({ dias, frequencia, metas, prioridades, nivel, editarHref }: Props) {
+export function VolumeAluno({ dias, frequencia, metas, prioridades, nivel, editarHref, feito = null }: Props) {
   const { regraTecnicas, setRegraTecnicas, ajustarPorRir, setAjustarPorRir } = usePreferenciasVolume();
   const [incluirSecundario, setIncluirSecundario] = useState(true);
   const resultado = useMemo(
@@ -31,7 +33,7 @@ export function VolumeAluno({ dias, frequencia, metas, prioridades, nivel, edita
   return (
     <Card>
       <CardHeader className="flex items-center justify-between gap-2">
-        <CardTitle className="text-base">Volume semanal programado</CardTitle>
+        <CardTitle className="text-base">Volume semanal: programado × feito</CardTitle>
         <Link href={editarHref} className="alvo text-xs font-semibold text-accent hover:underline">
           Editar no montador
         </Link>
@@ -48,6 +50,7 @@ export function VolumeAluno({ dias, frequencia, metas, prioridades, nivel, edita
           onRegraTecnicas={setRegraTecnicas}
           ajustarPorRir={ajustarPorRir}
           onAjustarPorRir={setAjustarPorRir}
+          feito={feito}
           semTitulo
         />
       </CardBody>

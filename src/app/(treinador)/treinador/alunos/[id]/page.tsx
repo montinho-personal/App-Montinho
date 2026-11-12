@@ -1,3 +1,4 @@
+import { volumeFeitoDaSemana } from "@/lib/data/livre-metas";
 import { rotuloDia, treinosFeitos } from "@/lib/historico/treinos-feitos";
 import { notFound } from "next/navigation";
 import { listarCardio, listarCardiosStrava } from "@/lib/data/strava";
@@ -97,7 +98,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
     getAnamnese(id),
   ]);
   const biblioteca = await listarBiblioteca();
-  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio, cardiosStrava] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => []), listarCardiosStrava(aluno.id, 10).catch(() => [])]);
+  const [aderencia, pedidosExtra, extrasAluno, historicoResumo, estrategia, cardio, cardiosStrava, feitoSemana] = await Promise.all([aderenciaDoAluno(aluno), listarSolicitacoes({ alunoId: aluno.id }), listarExtras(aluno.id), listarHistoricoResumo(aluno.id), estrategiaVigente(aluno.id), listarCardio(aluno.id, 8).catch(() => []), listarCardiosStrava(aluno.id, 10).catch(() => []), volumeFeitoDaSemana(aluno.id).catch(() => null)]);
   const tituloExtra = Object.fromEntries(extrasAluno.map((x) => [x.id, x.titulo]));
   const hojeLocal = dataLocal(new Date());
   const mobAluno = await mobilidadeDoAlunoPersonal(aluno.id).catch(() => null);
@@ -347,6 +348,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                       prioridades={plano.programa?.prioridades ?? []}
                       nivel={plano.programa?.nivel ?? null}
                       editarHref={`/treinador/alunos/${id}/treinos`}
+                      feito={feitoSemana}
                     />
                   </>
                 )}

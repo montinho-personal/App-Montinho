@@ -90,15 +90,7 @@ export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | nu
   const desde = somarDias(inicio < somarDias(hoje, -2) ? inicio : somarDias(hoje, -2), 0);
   const sessoes = (await listSessoes(alunoId, { desde: `${desde}T00:00:00-03:00`, limite: 60, status: "todas" })).filter((s) => s.status !== "abandonada");
   const agruparOmbros = !Object.keys(metas).some((g) => g.startsWith("ombro_"));
-  // Secundários pela biblioteca (mesmo cálculo da tabela de volume do montador).
-  const biblioteca: ItemBiblioteca[] = await listarBiblioteca().catch(() => []);
-  const porId = new Map(biblioteca.map((b) => [b.id, b]));
-  const porNome = new Map(biblioteca.map((b) => [normalizarNome(b.nome), b]));
-  const secDe = (e: { biblioteca_id: string | null; nome: string }) => (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined)?.pesosSecundarios ?? porNome.get(normalizarNome(e.nome))?.pesosSecundarios ?? null;
-  // Músculo pela biblioteca de HOJE (04/11/2026, caso da rosca inversa que virou só antebraço): o treino
-  // antigo guardou o músculo da época; vale a classificação atual quando o exercício é da biblioteca.
-  const grupoDe = (e: { biblioteca_id: string | null; grupo_muscular: GrupoMuscular | null }) => (e.biblioteca_id ? porId.get(e.biblioteca_id)?.grupo : undefined) ?? e.grupo_muscular;
-  const series = (lista: typeof sessoes) => lista.flatMap((s) => s.exercicios.flatMap((e) => { const sec = secDe(e); const grupo = grupoDe(e); return e.series.map((x) => ({ grupo, tipo: x.tipo, secundarios: sec })); }));
+  const series = await seriesComBiblioteca();
   const daSemana = sessoes.filter((s) => dataLocal(s.iniciado_em) >= inicio);
   const feitas = ombrosNoGeral(volumeDaSemana(series(daSemana), agruparOmbros), metas);
   const atual = sessoes.find((s) => s.id === sessaoAtualId);
@@ -106,4 +98,32 @@ export async function placarDoAluno(alunoId: string, sessaoAtualId?: string | nu
   const recentes = Object.entries(volumeRealizadoPorGrupo(series(sessoes.filter((s) => s.id !== sessaoAtualId && dataLocal(s.iniciado_em) >= somarDias(hoje, -2) && dataLocal(s.iniciado_em) < hoje)), agruparOmbros)).filter(([, n]) => (n ?? 0) >= 3).map(([g]) => g as GrupoMuscular);
   const placar = placarDaSemana(metas, feitas);
   return { placar, sugestao: sugestaoDeAgora(placar, { hoje, recentes, jaHoje }), resumo: resumoDaSemana(placar), origem, metas, feitas, recentes };
+}
+
+/** Séries de cada sessão com o músculo ATUAL da biblioteca e os secundários (mesmo cálculo da tabela de volume do montador). */
+async function seriesComBiblioteca() {
+  const biblioteca: ItemBiblioteca[] = await listarBiblioteca().catch(() => []);
+  const porId = new Map(biblioteca.map((b) => [b.id, b]));
+  const porNome = new Map(biblioteca.map((b) => [normalizarNome(b.nome), b]));
+  const secDe = (e: { biblioteca_id: string | null; nome: string }) => (e.biblioteca_id ? porId.get(e.biblioteca_id) : undefined)?.pesosSecundarios ?? porNome.get(normalizarNome(e.nome))?.pesosSecundarios ?? null;
+  // Músculo pela biblioteca de HOJE (04/11/2026, caso da rosca inversa que virou só antebraço): o treino
+  // antigo guardou o músculo da época; vale a classificação atual quando o exercício é da biblioteca.
+  const grupoDe = (e: { biblioteca_id: string | null; grupo_muscular: GrupoMuscular | null }) => (e.biblioteca_id ? porId.get(e.biblioteca_id)?.grupo : undefined) ?? e.grupo_muscular;
+  type Sessao = Awaited<ReturnType<typeof listSessoes>>[number];
+  return (lista: Sessao[]) => lista.flatMap((s) => s.exercicios.flatMap((e) => { const sec = secDe(e); const grupo = grupoDe(e); return e.series.map((x) => ({ grupo, tipo: x.tipo, secundarios: sec })); }));
+}
+
+export type FeitoDaSemana = { inicio: string; direto: Partial<Record<GrupoMuscular, number>>; comSecundario: Partial<Record<GrupoMuscular, number>> };
+
+/**
+ * Séries FEITAS na semana (segunda a hoje, Brasília) em QUALQUER treino — ficha,
+ * extra, treino livre, aula presencial (pedido do Montinho, 12/11/2026: “o treino
+ * livre também tem que somar o volume de séries”). Deltoides separados, como a
+ * tabela do montador; sem aquecimento; treino cancelado não conta.
+ */
+export async function volumeFeitoDaSemana(alunoId: string): Promise<FeitoDaSemana> {
+  const inicio = inicioDaSemanaDe(dataLocal(new Date()));
+  const [sessoes, series] = await Promise.all([listSessoes(alunoId, { desde: `${inicio}T00:00:00-03:00`, limite: 60, status: "todas" }), seriesComBiblioteca()]);
+  const s = series(sessoes.filter((x) => x.status !== "abandonada" && dataLocal(x.iniciado_em) >= inicio));
+  return { inicio, direto: volumeDaSemana(s.map((x) => ({ ...x, secundarios: null })), false), comSecundario: volumeDaSemana(s, false) };
 }
