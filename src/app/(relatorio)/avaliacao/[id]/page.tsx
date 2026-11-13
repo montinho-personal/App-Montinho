@@ -10,6 +10,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessao } from "@/lib/auth/session";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { acessoVencido } from "@/lib/aluno/renovacao";
 import { podeAcessarAluno } from "@/lib/auth/guards";
 import { getAluno } from "@/lib/db";
 import { listarAvaliacoes, medidaPorId } from "@/lib/data/medidas";
@@ -98,6 +100,8 @@ export default async function RelatorioAvaliacaoPage({ params, searchParams }: {
   if (!/^[\w-]{1,64}$/.test(id)) notFound();
   const sessao = await getSessao();
   if (!sessao) redirect(`/login?next=/avaliacao/${id}`);
+  // Aluno com o acesso vencido: relatórios travados até renovar (a renovação aparece no Início).
+  if (sessao.role === "aluno" && !sessao.comoPersonal && acessoVencido(sessao.acessoAte, dataLocal(new Date()))) redirect("/aluno/evolucao");
   const linha = await medidaPorId(id);
   if (!linha || !podeAcessarAluno(sessao, linha.aluno_id)) notFound();
   const [aluno, { medidas }] = await Promise.all([getAluno(linha.aluno_id), listarAvaliacoes(linha.aluno_id)]);

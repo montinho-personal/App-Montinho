@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessao } from "@/lib/auth/session";
+import { acessoVencido } from "@/lib/aluno/renovacao";
 import { podeAcessarAluno } from "@/lib/auth/guards";
 import { getAluno, listEvolucao } from "@/lib/db";
 import { getPlanoAtivo } from "@/lib/data/programas";
@@ -97,6 +98,8 @@ export default async function RelatorioPremiumPage({ params, searchParams }: Pro
   const { alunoId } = await params;
   const sessao = await getSessao();
   if (!sessao) redirect(`/login?next=/relatorio/${alunoId}`);
+  // Aluno com o acesso vencido: relatórios travados até renovar (a renovação aparece no Início).
+  if (sessao.role === "aluno" && !sessao.comoPersonal && acessoVencido(sessao.acessoAte, dataLocal(new Date()))) redirect("/aluno/evolucao");
   if (!podeAcessarAluno(sessao, alunoId)) notFound();
   const { periodo: p } = await searchParams;
   const periodo: PeriodoPremium = p === "30" || p === "90" ? p : "tudo";

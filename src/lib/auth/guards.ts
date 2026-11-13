@@ -4,7 +4,7 @@ export type Papel = "treinador" | "aluno";
 
 export type SessaoApp =
   | { mode: "live" | "demo"; userId: string; nome: string; role: "treinador"; alunoId: null }
-  | { mode: "live" | "demo"; userId: string; nome: string; role: "aluno"; alunoId: string; modalidade?: "consultoria" | "visitante"; acessoFim?: string | null; /** O personal usando o app como aluno (“Meu treino”). */ comoPersonal?: boolean };
+  | { mode: "live" | "demo"; userId: string; nome: string; role: "aluno"; alunoId: string; modalidade?: "consultoria" | "visitante"; acessoFim?: string | null; /** Aluno da consultoria: “Acesso até” da ficha (aaaa-mm-dd). */ acessoAte?: string | null; /** O personal usando o app como aluno (“Meu treino”). */ comoPersonal?: boolean };
 
 /** Visitante (Modo Visitante, 0052)? Alunos da consultoria e treinador: false. */
 export function ehVisitante(sessao: SessaoApp | null): boolean {
@@ -59,12 +59,12 @@ export function caminhoStoragePermitido(sessao: SessaoApp | null, caminho: strin
 /** Converte a identidade de demo guardada no cookie em sessão. Retorna null se inválida. */
 export function sessaoDoCookieDemo(
   valor: string | undefined,
-  personas: Array<{ chave: string; userId: string; nome: string; role: Papel; alunoId: string | null; modalidade?: "consultoria" | "visitante"; diasDesdeFim?: number }>
+  personas: Array<{ chave: string; userId: string; nome: string; role: Papel; alunoId: string | null; modalidade?: "consultoria" | "visitante"; diasDesdeFim?: number; diasVencido?: number }>
 ): SessaoApp | null {
   if (!valor) return null;
   const p = personas.find((x) => x.chave === valor);
   if (!p) return null;
   if (p.role === "treinador") return { mode: "demo", userId: p.userId, nome: p.nome, role: "treinador", alunoId: null };
   if (!p.alunoId) return null;
-  return { mode: "demo", userId: p.userId, nome: p.nome, role: "aluno", alunoId: p.alunoId, ...(p.modalidade === "visitante" ? { modalidade: "visitante" as const, acessoFim: p.diasDesdeFim != null ? new Date(Date.now() - p.diasDesdeFim * 86_400_000).toISOString() : null } : {}) };
+  return { mode: "demo", userId: p.userId, nome: p.nome, role: "aluno", alunoId: p.alunoId, ...(p.modalidade === "visitante" ? { modalidade: "visitante" as const, acessoFim: p.diasDesdeFim != null ? new Date(Date.now() - p.diasDesdeFim * 86_400_000).toISOString() : null } : {}), ...(p.diasVencido != null ? { acessoAte: new Date(Date.now() - p.diasVencido * 86_400_000 - 3 * 3_600_000).toISOString().slice(0, 10) } : {}) };
 }

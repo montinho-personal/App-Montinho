@@ -6,6 +6,8 @@ export const DEMO_PERSONAS = [
   { chave: "aluno:joao", userId: "aluno-joao", nome: "João Pereira (demo)", role: "aluno" as const, alunoId: "joao" },
   { chave: "aluno:bia", userId: "aluno-bia", nome: "Bia Ramos (visitante, demo)", role: "aluno" as const, alunoId: "bia", modalidade: "visitante" as const },
   // Para ver o pós-30 dias na demonstração: acesso acabou há 2 dias (app aberto só para ver) e há 10 dias (app fechado).
+  // Aluno da consultoria com o acesso vencido há 5 dias: entra no app, treino e relatórios travados.
+  { chave: "aluno:joao-vencido", userId: "aluno-joao", nome: "João Pereira (acesso vencido há 5 dias)", role: "aluno" as const, alunoId: "joao", diasVencido: 5 },
   { chave: "aluno:bia-fim", userId: "aluno-bia", nome: "Bia Ramos (visitante, 30 dias acabaram há 2 dias)", role: "aluno" as const, alunoId: "bia", modalidade: "visitante" as const, diasDesdeFim: 2 },
   { chave: "aluno:bia-fechado", userId: "aluno-bia", nome: "Bia Ramos (visitante, app fechado)", role: "aluno" as const, alunoId: "bia", modalidade: "visitante" as const, diasDesdeFim: 10 },
 ];

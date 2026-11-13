@@ -20,6 +20,9 @@ import { FEATURES } from "@/lib/env";
 import { appEncerrado, dataBR, estadoDoAcesso } from "@/lib/visitante/acesso";
 import { campanhaDoVisitante } from "@/lib/data/campanhas";
 import { conviteDoFim } from "@/lib/visitante/trava";
+import { acessoVencido, mensagemRenovacao } from "@/lib/aluno/renovacao";
+import { resumoParaRenovacao } from "@/lib/data/renovacao";
+import { GuardaRenovacao } from "@/components/aluno/RenovacaoAluno";
 
 const TABS = [
   { label: "Início", href: "/aluno", icon: "home" },
@@ -48,6 +51,9 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
   // Aviso diário para ativar as notificações: cita o feriado que vale troféu se estiver perto (até 4 dias).
   const hoje = dataLocal(new Date());
   const fer = proximoFeriado(hoje);
+  // Aluno da consultoria com o acesso vencido: entra, mas treino e relatórios travam (pedido do Montinho, 13/11/2026).
+  const alunoVencido = !visitante && !sessao.comoPersonal && !!BRAND.contact.whatsapp && acessoVencido(sessao.acessoAte, hoje);
+  const renovacao = alunoVencido ? mensagemRenovacao({ nome: sessao.nome, acessoAte: sessao.acessoAte!, resumo: await resumoParaRenovacao(sessao.alunoId), whatsapp: BRAND.contact.whatsapp! }) : null;
   const avisoFeriado = fer && fer.dia <= somarDias(hoje, 4) ? `${fer.feriado.emoji} ${fer.dia === hoje ? "Hoje" : `Dia ${fer.dia.slice(8, 10)}/${fer.dia.slice(5, 7)}`} é ${fer.feriado.nome}: treinar vale troféu especial com o nome do feriado!` : null;
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -107,14 +113,14 @@ export default async function AlunoLayout({ children }: { children: React.ReactN
               ) : sessao.modalidade === "visitante" ? (
                 <AvisoAcessoVisitante alunoId={sessao.alunoId} fim={fimAcesso} />
               ) : null}
-              {children}
+              {renovacao ? <GuardaRenovacao msg={renovacao}>{children}</GuardaRenovacao> : children}
             </div>
           </main>
           <MobileTabBar items={visitante ? [...TABS.slice(0, 5), TAB_CONSULTORIA, ...TABS.slice(5)] : [...TABS]} />
         </TravaVisitanteProvider>
       )}
       <RegistrarAcesso id={sessao.alunoId} />
-      {fechado ? null : <PedirNotificacoes extra={avisoFeriado} ativo={!convite} />}
+      {fechado ? null : <PedirNotificacoes extra={avisoFeriado} ativo={!convite && !renovacao} />}
       <AjusteTecladoIphone />
     </div>
   );
