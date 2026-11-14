@@ -35,6 +35,7 @@ import { AtribuirTreinoButton } from "./AtribuirTreinoModal";
 import { EditarAlunoButton } from "./EditarAlunoModal";
 import { EnviarAcessoButton } from "./EnviarAcesso";
 import { ComparadorFotos } from "./ComparadorFotos";
+import { CopiarResumoFase } from "./CopiarResumoFase";
 import { ComparadorMedidas } from "@/components/evolucao/ComparadorMedidas";
 import { PainelCheckins } from "./PainelCheckins";
 import { HistoricoPulso } from "@/components/pulso/HistoricoPulso";
@@ -205,6 +206,7 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   </Link>
                 );
               })()}
+              <CopiarResumoFase alunoId={id} />
               {avResumo ? (
                 <PainelAvaliacao r={avResumo} compacto relatorioHref={`/avaliacao/${avResumo.id}`} medidasHref={`/treinador/alunos/${id}/medidas`} />
               ) : (

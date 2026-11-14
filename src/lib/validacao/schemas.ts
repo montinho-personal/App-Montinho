@@ -1109,3 +1109,9 @@ export const treinoMontinhoAtualizarSchema = z
   .object({ titulo: z.string().trim().min(1).max(120).optional(), foco: z.string().trim().max(200).nullable().optional(), narrativa: z.string().trim().max(1500).nullable().optional(), publicado: z.boolean().optional(), arquivar: z.literal(true).optional() })
   .strict();
 export const treinoMontinhoComecarSchema = z.object({ client_key: z.string().min(4).max(80), /** Como treino extra (mesmas regras do extra). */ extra: z.object({ corpo: z.enum(["bem", "cansado", "dor_leve", "dor_moderada", "dor"]) }).nullable().optional() }).strict();
+
+/** “Copiar resumo da fase” (14/11/2026): período em dias de Brasília, até 1 ano. */
+export const resumoFaseQuerySchema = z
+  .object({ inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD)"), fim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD)") })
+  .refine((v) => v.inicio <= v.fim, { message: "A data inicial precisa ser antes da final." })
+  .refine((v) => (Date.parse(v.fim) - Date.parse(v.inicio)) / 86_400_000 <= 366, { message: "Período de até 1 ano." });
