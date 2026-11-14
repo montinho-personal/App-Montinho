@@ -128,16 +128,20 @@ export default async function RelatorioAvaliacaoPage({ params, searchParams }: {
   return (
     <div className="py-4 md:py-8 print:py-0">
       <style>{CSS}</style>
-      <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
+      <div className="so-tela top-safe z-20 mx-auto mb-3 w-[210mm] md:sticky max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
         <div className="flex flex-wrap items-center gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
           <BaixarPdf arquivo={nomeDoArquivo("Avaliação Física", nome, rel.data)} />
           <CompartilharCardRelatorio card={card} registrar={!doPersonal} rotulo={doPersonal ? "📲 Card para o aluno" : "📲 Compartilhar"} className="inline-flex h-10 items-center rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold" />
           {doPersonal ? <EnviarRelatorioAvaliacao id={rel.id} nome={nome} telefone={aluno.telefone ?? null} data={rel.data} /> : null}
         </div>
-        {paraComparar.length >= 2 ? <div className="mt-2"><EscolherComparacao id={rel.id} opcoes={paraComparar} atual={rel.anterior?.id ?? null} /></div> : null}
-        {evolucao?.evoluiu ? <div className="mt-2"><ParabensAvaliacao e={evolucao} card={card} personal={doPersonal} claro /></div> : null}
       </div>
+      {paraComparar.length >= 2 || evolucao?.evoluiu ? (
+        <div className="so-tela mx-auto mb-5 w-[210mm] max-w-full space-y-2 px-4 text-sm text-[#1a1814] md:px-0">
+          {paraComparar.length >= 2 ? <EscolherComparacao id={rel.id} opcoes={paraComparar} atual={rel.anterior?.id ?? null} /> : null}
+          {evolucao?.evoluiu ? <ParabensAvaliacao e={evolucao} card={card} personal={doPersonal} claro /> : null}
+        </div>
+      ) : null}
 
       <section className="folha">
         <div className="flex items-start justify-between gap-4">
@@ -263,7 +267,7 @@ function RelatorioGeral({ r, series, nome, doPersonal, alunoId, telefone, altura
   return (
     <div className="py-4 md:py-8 print:py-0">
       <style>{CSS}</style>
-      <div className="so-tela sticky top-safe z-20 mx-auto mb-5 w-[210mm] max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
+      <div className="so-tela top-safe z-20 mx-auto mb-3 w-[210mm] md:sticky max-w-full bg-[#e9e6df]/95 px-4 py-2 text-sm text-[#1a1814] backdrop-blur md:px-0">
         <div className="flex flex-wrap items-center gap-2">
           <Link href={voltar} className="inline-flex h-10 items-center gap-1 rounded-full border border-[#1a1814]/30 bg-white px-4 font-semibold">← Voltar</Link>
           <BaixarPdf arquivo={nomeDoArquivo("Avaliação Física", nome, r.data)} />
