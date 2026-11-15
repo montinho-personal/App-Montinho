@@ -93,9 +93,9 @@ export function chaveNoRanking(c: { codigo: string; referencia?: string | null }
 }
 
 /** Troféus que contam no ranking CADA VEZ que são ganhos: feriados (1 por feriado, 0158) e o
- *  Dobro de Fôlego (1 por semana com o dobro dos minutos de cardio, 0159). Os outros, 1 vez. */
+ *  Dobro e Triplo de Fôlego (1 por semana com o dobro/triplo dos minutos de cardio, 0159/0160). Os outros, 1 vez. */
 export function contaCadaVez(codigo: string): boolean {
-  return codigo.startsWith("feriado_") || codigo === "cardio_dobro";
+  return codigo.startsWith("feriado_") || codigo === "cardio_dobro" || codigo === "cardio_triplo";
 }
 
 /** Quantos troféus contam no ranking (fora de FORA_DO_RANKING; feriado 1 por feriado) — mesma conta do banco. */

@@ -31,6 +31,8 @@ export const LIMITES_CARDIO = {
   /** “Fôlego Extra” e “Dobro de Fôlego”: minutos da semana acima do prescrito (pedido do Montinho, 28/10/2026). */
   extra150: 1.5,
   extra200: 2,
+  /** Triplo de Fôlego (15/11/2026): 300% dos minutos prescritos na semana. */
+  extra300: 3,
   /** Fôlego de Ferro: semanas seguidas cumprindo a prescrição. */
   semanasFerro: 4,
   /** Strava perto de um registro (mesmo dia, até 3 h de diferença) = a mesma atividade. */
@@ -158,6 +160,7 @@ export type SemanaCardio = {
   /** Dia em que a semana passou de 150% / 200% dos minutos prescritos (Fôlego Extra / Dobro de Fôlego). */
   extra150Em?: string | null;
   extra200Em?: string | null;
+  extra300Em?: string | null;
   status: StatusSemanaCardio;
   atual: boolean;
   /** A prescrição começou no meio desta semana: não cumprir não quebra a sequência. */
@@ -184,6 +187,7 @@ export function semanasDeCardio(entrada: { prescricoes: PrescricaoVigencia[]; fe
     let minutosEm: string | null = null;
     let extra150Em: string | null = null;
     let extra200Em: string | null = null;
+    let extra300Em: string | null = null;
     if (alvoMin) {
       const precisa = alvoMin * (1 - LIMITES_CARDIO.toleranciaMeta);
       let soma = 0;
@@ -191,7 +195,8 @@ export function semanasDeCardio(entrada: { prescricoes: PrescricaoVigencia[]; fe
         soma += f.duracaoMin;
         if (!minutosEm && soma >= precisa) minutosEm = f.realizadoEm;
         if (!extra150Em && soma >= alvoMin * LIMITES_CARDIO.extra150) extra150Em = f.realizadoEm;
-        if (!extra200Em && soma >= alvoMin * LIMITES_CARDIO.extra200) { extra200Em = f.realizadoEm; break; }
+        if (!extra200Em && soma >= alvoMin * LIMITES_CARDIO.extra200) extra200Em = f.realizadoEm;
+        if (!extra300Em && soma >= alvoMin * LIMITES_CARDIO.extra300) { extra300Em = f.realizadoEm; break; }
       }
     }
     const ehAtual = w === atual;
@@ -208,7 +213,7 @@ export function semanasDeCardio(entrada: { prescricoes: PrescricaoVigencia[]; fe
             : validos.length
               ? "parcial"
               : "sem_cardio";
-    out.push({ inicio: w, alvoSessoes, alvoMin, sessoes: validos.length, minutos, sessoesEm, minutosEm, cumpridaEm, metaMinutos: !!minutosEm, extra150Em, extra200Em, status, atual: ehAtual, inicioPrescricao });
+    out.push({ inicio: w, alvoSessoes, alvoMin, sessoes: validos.length, minutos, sessoesEm, minutosEm, cumpridaEm, metaMinutos: !!minutosEm, extra150Em, extra200Em, extra300Em, status, atual: ehAtual, inicioPrescricao });
   }
   return out;
 }
@@ -233,9 +238,9 @@ export function resumoSemana(s: SemanaCardio | undefined): { pct: number | null;
 export type CodigoCardio =
   | "cardio_1" | "cardio_2" | "cardio_3" | "cardio_10" | "cardio_25" | "cardio_50" | "cardio_100" | "cardio_250" | "cardio_500" | "cardio_1000"
   | "cardio_uma_hora" | "cardio_semana_ritmo" | "cardio_meta_semana" | "cardio_4_semanas" | "cardio_voltei"
-  | "cardio_folego_extra" | "cardio_dobro";
+  | "cardio_folego_extra" | "cardio_dobro" | "cardio_triplo";
 
-export const CODIGOS_CARDIO: CodigoCardio[] = ["cardio_1", "cardio_2", "cardio_3", "cardio_10", "cardio_25", "cardio_50", "cardio_100", "cardio_250", "cardio_500", "cardio_1000", "cardio_uma_hora", "cardio_semana_ritmo", "cardio_meta_semana", "cardio_4_semanas", "cardio_voltei", "cardio_folego_extra", "cardio_dobro"];
+export const CODIGOS_CARDIO: CodigoCardio[] = ["cardio_1", "cardio_2", "cardio_3", "cardio_10", "cardio_25", "cardio_50", "cardio_100", "cardio_250", "cardio_500", "cardio_1000", "cardio_uma_hora", "cardio_semana_ritmo", "cardio_meta_semana", "cardio_4_semanas", "cardio_voltei", "cardio_folego_extra", "cardio_dobro", "cardio_triplo"];
 
 export type TrofeuCardio = { codigo: CodigoCardio; referencia: string; data: string; descricao: string; evidencia: Record<string, unknown> };
 
@@ -280,6 +285,10 @@ export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] 
   // semana conta no ranking. A 1ª semana mantém a referência "1" (já gravada); as outras, `semana:<segunda>`.
   semanas.filter((s) => s.extra200Em && !pausaSemana(s)).forEach((s200, i) => {
     out.push({ codigo: "cardio_dobro", referencia: referenciaDobro(i, s200.inicio), data: s200.extra200Em!, descricao: `O dobro dos ${s200.alvoMin} min prescritos na semana de ${fmtData(s200.inicio)}.`, evidencia: { semana: s200.inicio, alvoMin: s200.alvoMin } });
+  });
+  // Triplo de Fôlego (15/11/2026, pedido do Montinho): 3× os minutos da semana; também vale toda semana.
+  semanas.filter((s) => s.extra300Em && !pausaSemana(s)).forEach((s300) => {
+    out.push({ codigo: "cardio_triplo", referencia: `semana:${s300.inicio}`, data: s300.extra300Em!, descricao: `O triplo dos ${s300.alvoMin} min prescritos na semana de ${fmtData(s300.inicio)}.`, evidencia: { semana: s300.inicio, alvoMin: s300.alvoMin } });
   });
   let seq = 0;
   for (const s of semanas) {

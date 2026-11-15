@@ -1121,6 +1121,17 @@ const BASE: Record<CodigoConquista, Base> = {
     proximoPasso: "Conte ao Montinho como se sentiu: ele ajusta o seu cardio.",
     fontes: ["oms2020"],
   },
+  cardio_triplo: {
+    categoria: "cardio",
+    resumo: "O triplo dos minutos de cardio prescritos na semana.",
+    mensagem: "Triplo de Fôlego! O triplo do cardio da semana.",
+    comoConquistar: "Some na semana o triplo dos minutos de cardio prescritos (ex.: 70 min prescritos → 210 min).",
+    significado: "Uma semana com três vezes o cardio combinado.",
+    importancia: "As recomendações de saúde citam benefícios extras com mais minutos de atividade aeróbica por semana, desde que a recuperação acompanhe.",
+    explicacao: "Conta a soma dos minutos da semana e vale DE NOVO a cada semana em que você chegar ao triplo: cada semana é um troféu a mais no ranking. Quem faz o triplo também ganha o Dobro na mesma semana. Respeite o corpo: se a semana pesou, a próxima pode voltar ao prescrito.",
+    proximoPasso: "Conte ao Montinho como se sentiu: ele ajusta o seu cardio.",
+    fontes: ["oms2020"],
+  },
   cardio_voltei: {
     categoria: "retomada",
     resumo: "Voltar ao cardio depois de 14 dias ou mais.",

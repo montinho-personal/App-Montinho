@@ -2920,3 +2920,10 @@ do $$ begin
   if position('cardio_dobro' in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T100: ranking_trofeus_v3 sem o Dobro de Fôlego por semana'; end if;
 end $$;
 \echo 'T100 OK: Dobro de Fôlego por semana'
+
+-- T101 — 0160: Triplo de Fôlego aceito e contado por semana no ranking
+do $$ begin
+  if position('cardio_triplo' in (select pg_get_constraintdef(oid) from pg_constraint where conname = 'conquistas_aluno_codigo_check')) = 0 then raise exception 'T101a: cardio_triplo não aceito'; end if;
+  if position('cardio_triplo' in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T101b: ranking sem o Triplo por semana'; end if;
+end $$;
+\echo 'T101 OK: Triplo de Fôlego'

@@ -167,6 +167,7 @@ export const ORDEM: Array<{ codigo: CodigoConquista; selo: string }> = [
   { codigo: "cardio_4_semanas", selo: "4×" },
   { codigo: "cardio_folego_extra", selo: "150%" },
   { codigo: "cardio_dobro", selo: "2×" },
+  { codigo: "cardio_triplo", selo: "3×" },
   { codigo: "cardio_uma_hora", selo: "60′" },
   { codigo: "cardio_meia_noite", selo: "0h" },
   { codigo: "cardio_madrugada", selo: "<5h" },
@@ -260,7 +261,7 @@ export const DEGRAU_ANTERIOR: Record<string, CodigoConquista> = {
   monitoramento_52: "monitoramento_26",
 };
 
-export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52", "reps_25000", "reps_50000", "reps_100000", "toneladas_250", "toneladas_500", "toneladas_1000", "explorador_50", "recordes_50", "recordes_100", "recordes_250", "recordes_exercicios_30", "forca_alta_100", "minutos_cardio_6000", "minutos_cardio_15000", "minutos_cardio_30000"];
+export const DESAFIADORAS: CodigoConquista[] = ["semanas_consistentes_12", "semanas_consistentes_10", "semanas_consistentes_8", "constancia_verdade", "protocolo_completo", "acompanhamento_12_semanas", "treinos_50", "mestre_tecnicas", "treino_samurai", "cardio_100", "cardio_250", "cardio_4_semanas", "cardio_dobro", "cardio_triplo", "combo_30", "series_1000", "acompanhamento_6_meses", "acompanhamento_1_ano", "cards_30", "trofeus_compartilhados_50", "quiz_50", "cardio_4h", "cardio_10km", "cardio_escada_1h", "monitoramento_12", "monitoramento_26", "semanas_completas_25", "semanas_completas_50", "semana_perfeita_10", "evolucao_sem_fronteiras", "topo_10_dias", "topo_30_dias", "treinos_100", "treinos_150", "treinos_200", "treinos_300", "treinos_365", "treinos_500", "semanas_consistentes_16", "semanas_consistentes_20", "semanas_consistentes_26", "semanas_consistentes_39", "semanas_consistentes_52", "series_2000", "series_5000", "acompanhamento_9_meses", "acompanhamento_18_meses", "acompanhamento_2_anos", "monitoramento_52", "reps_25000", "reps_50000", "reps_100000", "toneladas_250", "toneladas_500", "toneladas_1000", "explorador_50", "recordes_50", "recordes_100", "recordes_250", "recordes_exercicios_30", "forca_alta_100", "minutos_cardio_6000", "minutos_cardio_15000", "minutos_cardio_30000"];
 
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -565,8 +566,9 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
           : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, a meta da semana aparece em Montinho Cardio.", disponivel: false };
       case "cardio_folego_extra":
       case "cardio_dobro":
+      case "cardio_triplo":
         return e.cardio?.temPrescricao
-          ? { atual: null, alvo: null, falta: c === "cardio_dobro" ? "Some numa semana o dobro dos minutos de cardio prescritos. Vale de novo a cada semana." : "Some numa semana o prescrito e mais a metade (150% dos minutos).", disponivel: true }
+          ? { atual: null, alvo: null, falta: c === "cardio_triplo" ? "Some numa semana o triplo dos minutos de cardio prescritos. Vale de novo a cada semana." : c === "cardio_dobro" ? "Some numa semana o dobro dos minutos de cardio prescritos. Vale de novo a cada semana." : "Some numa semana o prescrito e mais a metade (150% dos minutos).", disponivel: true }
           : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, dá para ir além da meta da semana.", disponivel: false };
       case "dois_folegos":
         return { atual: null, alvo: null, falta: "Faça 2 cardios no mesmo dia, cada um com 10 minutos ou mais (ex.: um de manhã e outro à noite).", disponivel: true };

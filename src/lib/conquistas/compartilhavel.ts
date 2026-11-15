@@ -199,6 +199,7 @@ export const TEXTO_COMPARTILHAVEL: Record<CodigoConquista, { frase: string; porq
   dose_dupla: { frase: "Dose Dupla: 2 treinos no mesmo dia.", porque: "Treinei duas vezes no mesmo dia." },
   cardio_folego_extra: { frase: "Fôlego Extra: além do cardio da semana.", porque: "Fiz o prescrito e mais a metade." },
   cardio_dobro: { frase: "Dobro de Fôlego: o dobro na semana.", porque: "Uma semana com o dobro do combinado." },
+  cardio_triplo: { frase: "Triplo de Fôlego: o triplo na semana.", porque: "Uma semana com o triplo do combinado." },
   cardio_voltei: { frase: "Voltei a respirar.", porque: "Pausa acontece. O importante é voltar." },
   strava_conectado: { frase: "Relógio no pulso, treino no app.", porque: "Batimento e cardio no acompanhamento: o esforço inteiro aparece." },
   desafio_concluido: { frase: "Desafio concluído!", porque: "Cumprir o combinado dentro do prazo mostra que dá para encaixar o treino na rotina." },

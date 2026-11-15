@@ -143,6 +143,14 @@ describe("troféus de cardio", () => {
     const d = trofeusDoCardio({ prescricoes: [presc()], feitos }, "2026-10-20").filter((x) => x.codigo === "cardio_dobro");
     expect(d.map((x) => x.referencia)).toEqual(["1", "semana:2026-10-12"]);
   });
+  it("Triplo de Fôlego: 3× os minutos da semana, toda semana (e leva o Dobro junto)", () => {
+    // 3 × 30 = 90 min → triplo = 270 min.
+    const t = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 90) }, "2026-10-06");
+    expect(t.filter((x) => x.codigo === "cardio_triplo").map((x) => x.referencia)).toEqual(["semana:2026-09-28"]);
+    expect(t.map((x) => x.codigo)).toContain("cardio_dobro");
+    const so2 = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 80) }, "2026-10-06").map((x) => x.codigo);
+    expect(so2).not.toContain("cardio_triplo");
+  });
   it("Semana no Ritmo (sessões) e 100% no Plano (minutos, com 10% de tolerância)", () => {
     const t = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 28) }, "2026-10-06").map((x) => x.codigo);
     expect(t).toContain("cardio_semana_ritmo");

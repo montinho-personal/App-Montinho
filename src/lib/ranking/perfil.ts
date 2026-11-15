@@ -59,7 +59,7 @@ export function trofeusDoPerfil(p: Pick<PerfilRanking, "trofeus">): TrofeuDoPerf
     .sort((a, b) => (a.em < b.em ? 1 : -1))
     .map((t) => {
       const c = CONTEUDO[t.codigo as CodigoConquista];
-      return { codigo: t.codigo, chave: chaveNoRanking(t), nome: t.codigo.startsWith("feriado_") && t.titulo ? t.titulo : t.codigo === "cardio_dobro" && t.referencia?.startsWith("semana:") ? `${nomeDaConquista(t.codigo)} · ${t.referencia.slice(15, 17)}/${t.referencia.slice(12, 14)}` : nomeDaConquista(t.codigo), selo: SELO.get(t.codigo) ?? "🏅", categoria: c ? CATEGORIA_EMOJI[c.categoria] : "🏅", em: t.em, contaNoRanking: !fora.has(t.codigo) };
+      return { codigo: t.codigo, chave: chaveNoRanking(t), nome: t.codigo.startsWith("feriado_") && t.titulo ? t.titulo : (t.codigo === "cardio_dobro" || t.codigo === "cardio_triplo") && t.referencia?.startsWith("semana:") ? `${nomeDaConquista(t.codigo)} · ${t.referencia.slice(15, 17)}/${t.referencia.slice(12, 14)}` : nomeDaConquista(t.codigo), selo: SELO.get(t.codigo) ?? "🏅", categoria: c ? CATEGORIA_EMOJI[c.categoria] : "🏅", em: t.em, contaNoRanking: !fora.has(t.codigo) };
     });
 }
 
