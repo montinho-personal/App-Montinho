@@ -2927,3 +2927,9 @@ do $$ begin
   if position('cardio_triplo' in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T101b: ranking sem o Triplo por semana'; end if;
 end $$;
 \echo 'T101 OK: Triplo de Fôlego'
+
+-- T102 — 0161: Fôlego Extra contado por semana no ranking
+do $$ begin
+  if position($x$'cardio_folego_extra', 'cardio_dobro'$x$ in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T102: ranking sem o Fôlego Extra por semana'; end if;
+end $$;
+\echo 'T102 OK: Fôlego Extra por semana'

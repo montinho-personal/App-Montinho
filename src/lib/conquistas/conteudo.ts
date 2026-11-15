@@ -963,7 +963,7 @@ const BASE: Record<CodigoConquista, Base> = {
     comoConquistar: "Some na semana o prescrito e mais a metade dele (ex.: 120 min prescritos → 180 min).",
     significado: "Você fez bem mais cardio do que o combinado numa semana.",
     importancia: "Um volume maior de atividade aeróbica, quando bem tolerado, amplia os benefícios para o coração e o condicionamento.",
-    explicacao: "O app soma os minutos de cardio da semana (segunda a domingo) e compara com o prescrito. Vá além no seu ritmo: dor ou cansaço exagerado são sinal para voltar ao combinado.",
+    explicacao: "O app soma os minutos de cardio da semana (segunda a domingo) e compara com o prescrito. Vale DE NOVO a cada semana em que você chegar a 150%: cada semana é um troféu a mais no ranking. Vá além no seu ritmo: dor ou cansaço exagerado são sinal para voltar ao combinado.",
     proximoPasso: "Quer o Dobro de Fôlego? É o dobro do prescrito numa semana — com calma e boa recuperação.",
     fontes: ["oms2020"],
   },

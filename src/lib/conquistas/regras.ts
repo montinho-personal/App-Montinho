@@ -354,7 +354,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   cardio_semana_ritmo: { titulo: "Semana no Ritmo", criterio: "Fazer todos os cardios prescritos pelo personal numa semana (de segunda a domingo).", repete: false },
   cardio_meta_semana: { titulo: "100% no Plano", criterio: `Chegar aos minutos de cardio prescritos para a semana (com ${Math.round(LIMITES_CARDIO.toleranciaMeta * 100)}% de tolerância). Quem vai além ganha o Fôlego Extra (150%) e o Dobro de Fôlego (200%).`, repete: false },
   cardio_4_semanas: { titulo: "Fôlego de Ferro", criterio: `Cumprir os cardios prescritos em ${LIMITES_CARDIO.semanasFerro} semanas seguidas (pausas combinadas não quebram).`, repete: false },
-  cardio_folego_extra: { titulo: "Fôlego Extra", criterio: `Somar ${Math.round(LIMITES_CARDIO.extra150 * 100)}% dos minutos de cardio prescritos numa semana (o prescrito + metade).`, repete: false },
+  cardio_folego_extra: { titulo: "Fôlego Extra", criterio: `Somar ${Math.round(LIMITES_CARDIO.extra150 * 100)}% dos minutos de cardio prescritos numa semana (o prescrito + metade). Vale de novo a cada semana.`, repete: true },
   cardio_dobro: { titulo: "Dobro de Fôlego", criterio: "Somar o dobro dos minutos de cardio prescritos numa semana. Vale de novo a cada semana com o dobro.", repete: true },
   cardio_triplo: { titulo: "Triplo de Fôlego", criterio: "Somar o triplo dos minutos de cardio prescritos numa semana. Vale de novo a cada semana com o triplo.", repete: true },
   dois_folegos: { titulo: "Dois Fôlegos", criterio: `Fazer 2 cardios no mesmo dia, cada um com ${LIMITES_CARDIO.minutosMin} minutos ou mais.`, repete: false },

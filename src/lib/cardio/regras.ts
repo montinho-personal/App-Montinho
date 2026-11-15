@@ -279,8 +279,10 @@ export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] 
   const plano = semanas.find((s) => s.minutosEm);
   if (plano) out.push({ codigo: "cardio_meta_semana", referencia: "1", data: plano.minutosEm!, descricao: `Meta de ${plano.alvoMin} min cumprida na semana de ${fmtData(plano.inicio)}.`, evidencia: { semana: plano.inicio, alvoMin: plano.alvoMin } });
   // Foi além do prescrito na semana: 150% (Fôlego Extra) e 200% (Dobro de Fôlego) dos minutos.
-  const s150 = semanas.find((s) => s.extra150Em && !pausaSemana(s));
-  if (s150) out.push({ codigo: "cardio_folego_extra", referencia: "1", data: s150.extra150Em!, descricao: `${Math.round(LIMITES_CARDIO.extra150 * 100)}% dos ${s150.alvoMin} min prescritos na semana de ${fmtData(s150.inicio)}.`, evidencia: { semana: s150.inicio, alvoMin: s150.alvoMin } });
+  // Fôlego Extra também vale de novo a cada semana (pedido do Montinho, 15/11/2026); mesma referência do Dobro.
+  semanas.filter((s) => s.extra150Em && !pausaSemana(s)).forEach((s150, i) => {
+    out.push({ codigo: "cardio_folego_extra", referencia: referenciaDobro(i, s150.inicio), data: s150.extra150Em!, descricao: `${Math.round(LIMITES_CARDIO.extra150 * 100)}% dos ${s150.alvoMin} min prescritos na semana de ${fmtData(s150.inicio)}.`, evidencia: { semana: s150.inicio, alvoMin: s150.alvoMin } });
+  });
   // Dobro de Fôlego vale DE NOVO a cada semana com o dobro (pedido do Montinho, 15/11/2026), e cada
   // semana conta no ranking. A 1ª semana mantém a referência "1" (já gravada); as outras, `semana:<segunda>`.
   semanas.filter((s) => s.extra200Em && !pausaSemana(s)).forEach((s200, i) => {

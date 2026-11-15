@@ -248,10 +248,10 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
     if (c.temPrescricao && sm && sm.alvoMin > 0 && sm.minutos >= sm.alvoMin * 0.9) {
       for (const [codigo, fator, nome] of [["cardio_folego_extra", 1.5, "150%"], ["cardio_dobro", 2, "o dobro"], ["cardio_triplo", 3, "o triplo"]] as const) {
         // O Dobro de Fôlego vale de novo toda semana (15/11/2026): aparece mesmo já ganho.
-        const m = codigo === "cardio_folego_extra" ? aberta(codigo) : qualquer(codigo);
+        const m = qualquer(codigo);
         const faltaMin = Math.ceil(sm.alvoMin * fator - sm.minutos);
         if (m && faltaMin > 0 && faltaMin <= sm.alvoMin * 0.6) {
-          out.push(item(m, `Meta da semana batida! Mais ${faltaMin} min de cardio e você chega a ${nome} do prescrito${codigo !== "cardio_folego_extra" && m.conquistada ? ` (o ${m.titulo} vale de novo a cada semana)` : ""}.`, "Até domingo"));
+          out.push(item(m, `Meta da semana batida! Mais ${faltaMin} min de cardio e você chega a ${nome} do prescrito${m.conquistada ? ` (o ${m.titulo} vale de novo a cada semana)` : ""}.`, "Até domingo"));
           break;
         }
       }
