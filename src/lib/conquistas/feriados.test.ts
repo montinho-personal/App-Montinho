@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destaqueFeriado, feriadoDoDia, feriadosDoAno, pascoa, proximoFeriado, tituloFeriado, trofeusDeFeriado } from "./feriados";
+import { destaqueFeriado, feriadoDoDia, feriadosDoAno, historicoDeFeriados, pascoa, proximoFeriado, textoDoFeriado, tituloFeriado, trofeusDeFeriado } from "./feriados";
 import type { CardioFeito } from "@/lib/cardio/regras";
 
 const sessao = (id: string, inicio: string) => ({ id, iniciado_em: inicio, status: "concluida", series_concluidas: 10, series_planejadas: 10, modo: "normal", conta_aderencia: true }) as never;
@@ -38,5 +38,21 @@ describe("trofeusDeFeriado", () => {
   });
   it("cardio curto (menos de 10 min) não conta", () => {
     expect(trofeusDeFeriado([], [cardio("2026-12-25", 5)])).toEqual([]);
+  });
+});
+
+describe("histórico de feriados", () => {
+  it("junta por feriado, do mais recente ao mais antigo", () => {
+    const h = historicoDeFeriados([
+      { codigo: "feriado_musculacao", referencia: "finados:2026", conquistado_em: "2026-11-02T12:00:00Z", evidencia: { dia: "2026-11-02" } },
+      { codigo: "feriado_cardio", referencia: "finados:2026", conquistado_em: "2026-11-02T13:00:00Z", evidencia: { dia: "2026-11-02" } },
+      { codigo: "feriado_combo", referencia: "finados:2026", conquistado_em: "2026-11-02T13:00:00Z", evidencia: {} },
+      { codigo: "feriado_musculacao", referencia: "republica:2026", conquistado_em: "2026-11-15T12:00:00Z", evidencia: { dia: "2026-11-15" } },
+      { codigo: "recorde", referencia: "x", conquistado_em: "2026-11-15T12:00:00Z" },
+    ]);
+    expect(h.map((x) => x.nome)).toEqual(["Proclamação da República", "Finados"]);
+    expect(h[1]).toMatchObject({ musculacao: true, cardio: true, combo: true, trofeus: 3, dia: "2026-11-02" });
+    expect(textoDoFeriado(h[0])).toBe("Musculação");
+    expect(textoDoFeriado(h[1])).toBe("Musculação + cardio");
   });
 });

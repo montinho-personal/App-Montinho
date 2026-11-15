@@ -2907,3 +2907,10 @@ do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'notificacoes_envios_categoria_check' and pg_get_constraintdef(oid) like '%novidade%') then raise exception 'T98b: categoria novidade não aceita'; end if;
 end $$;
 \echo 'T98 OK: avisos de novidade'
+
+-- T99 — 0158: troféu de feriado conta 1 vez POR FERIADO nas funções do ranking
+do $$ begin
+  if position('feriado' in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T99a: ranking_trofeus_v3 sem a regra do feriado'; end if;
+  if position('feriado' in pg_get_functiondef('public.montinho_no_ranking()'::regprocedure)) = 0 then raise exception 'T99b: montinho_no_ranking sem a regra do feriado'; end if;
+end $$;
+\echo 'T99 OK: feriado conta por feriado'

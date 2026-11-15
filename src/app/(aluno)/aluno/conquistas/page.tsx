@@ -29,6 +29,7 @@ import { tecnicasFeitas } from "@/lib/conquistas/regras";
 import { getPlanoAtivo } from "@/lib/data/programas";
 import { AbasConquistas } from "@/components/tribo/AbasConquistas";
 import { RecadoFechavel } from "@/components/conquistas/RecadoFechavel";
+import { MeusFeriados } from "@/components/conquistas/MeusFeriados";
 
 export const metadata = { title: "Conquistas" };
 
@@ -103,6 +104,7 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
       />
       <div id="ao-alcance" className="scroll-mt-24"><TrofeusAoAlcance itens={aoAlcance} /></div>
       <div id="carimbos" className="scroll-mt-24"><CartaoCarimbos total={totalCarimbos} /></div>
+      <MeusFeriados conquistas={conquistas} hoje={hoje} />
       {incentivo ? <IncentivoIndicacao momento="conquistas" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <section className="space-y-2" aria-labelledby="categorias-titulo">
         <div className="flex items-baseline justify-between gap-2">

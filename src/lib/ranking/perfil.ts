@@ -6,14 +6,15 @@
 import { CATEGORIA_EMOJI, CONTEUDO, nomeDaConquista } from "@/lib/conquistas/conteudo";
 import { ORDEM } from "@/lib/conquistas/vitrine";
 import type { CodigoConquista } from "@/lib/conquistas/regras";
-import { FORA_DO_RANKING } from "./trofeus";
+import { FORA_DO_RANKING, chaveNoRanking } from "./trofeus";
 
 export type PerfilRanking = {
   ref: string;
   nome: string;
   eu: boolean;
   visitante: boolean;
-  trofeus: Array<{ codigo: string; em: string }>;
+  /** 0158: troféu de feriado vem 1 por feriado, com `referencia` e o `titulo` (“Finados Pago”). */
+  trofeus: Array<{ codigo: string; em: string; referencia?: string | null; titulo?: string | null }>;
   desempate: { pct_semana: number | null; carimbos: number; semanas_seguidas: number; pct_4sem: number | null };
   cutuquei_hoje: boolean;
   /** 0118: números dos desafios (sem a 0118 no banco, não vem). */
@@ -47,7 +48,7 @@ export function resumoDesafios(d: DesafiosDoPerfil | undefined, primeiroNome: st
   return { numeros, frase };
 }
 
-export type TrofeuDoPerfil = { codigo: string; nome: string; selo: string; categoria: string; em: string; contaNoRanking: boolean };
+export type TrofeuDoPerfil = { codigo: string; chave: string; nome: string; selo: string; categoria: string; em: string; contaNoRanking: boolean };
 
 const SELO = new Map(ORDEM.map((o) => [o.codigo as string, o.selo]));
 
@@ -58,7 +59,7 @@ export function trofeusDoPerfil(p: Pick<PerfilRanking, "trofeus">): TrofeuDoPerf
     .sort((a, b) => (a.em < b.em ? 1 : -1))
     .map((t) => {
       const c = CONTEUDO[t.codigo as CodigoConquista];
-      return { codigo: t.codigo, nome: nomeDaConquista(t.codigo), selo: SELO.get(t.codigo) ?? "🏅", categoria: c ? CATEGORIA_EMOJI[c.categoria] : "🏅", em: t.em, contaNoRanking: !fora.has(t.codigo) };
+      return { codigo: t.codigo, chave: chaveNoRanking(t), nome: t.codigo.startsWith("feriado_") && t.titulo ? t.titulo : nomeDaConquista(t.codigo), selo: SELO.get(t.codigo) ?? "🏅", categoria: c ? CATEGORIA_EMOJI[c.categoria] : "🏅", em: t.em, contaNoRanking: !fora.has(t.codigo) };
     });
 }
 
@@ -67,7 +68,7 @@ export type FatorDesempate = { ordem: number; rotulo: string; valor: string; aju
 /** Os fatores, na ordem do desempate aprovado (troféus → semana passada → carimbos → semanas seguidas → 4 semanas). */
 export function fatoresDeDesempate(p: Pick<PerfilRanking, "trofeus" | "desempate">): FatorDesempate[] {
   const fora = new Set<string>(FORA_DO_RANKING);
-  const noRanking = new Set(p.trofeus.map((t) => t.codigo).filter((c) => !fora.has(c))).size;
+  const noRanking = new Set(p.trofeus.filter((t) => !fora.has(t.codigo)).map(chaveNoRanking)).size;
   const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n)}%`);
   const d = p.desempate;
   return [

@@ -86,8 +86,14 @@ export function fraseDoRanking(linhas: LinhaRanking[]): string {
  *  Só a Multimodalidade fica de fora (quem não faz WOD/HYROX não sai em desvantagem); o Atleta Versátil conta. Espelho de 0152. */
 export const FORA_DO_RANKING = ["primeiro_wod", "primeiro_benchmark", "superando_recorde", "primeira_hyrox", "primeiro_funcional", "semana_multimodalidade", "evolucao_sem_fronteiras"] as const;
 
-/** Quantos troféus contam no ranking (códigos diferentes fora de FORA_DO_RANKING) — mesma conta do banco. */
-export function trofeusNoRanking(conquistas: { codigo: string }[]): number {
+/** Pedido do Montinho (15/11/2026): troféu de FERIADO conta 1 vez POR FERIADO (Finados Pago e
+ *  Proclamação da República Pago = 2 troféus); os outros, 1 vez por código. Espelho de 0158. */
+export function chaveNoRanking(c: { codigo: string; referencia?: string | null }): string {
+  return c.codigo.startsWith("feriado_") && c.referencia ? `${c.codigo}:${c.referencia}` : c.codigo;
+}
+
+/** Quantos troféus contam no ranking (fora de FORA_DO_RANKING; feriado 1 por feriado) — mesma conta do banco. */
+export function trofeusNoRanking(conquistas: { codigo: string; referencia?: string | null }[]): number {
   const fora = new Set<string>(FORA_DO_RANKING);
-  return new Set(conquistas.map((c) => c.codigo).filter((c) => !fora.has(c))).size;
+  return new Set(conquistas.filter((c) => !fora.has(c.codigo)).map(chaveNoRanking)).size;
 }

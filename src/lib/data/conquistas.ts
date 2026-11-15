@@ -69,8 +69,20 @@ export type AlunoBase = { id: string; data_inicio: string | null; created_at: st
 type DemoConquistas = { conquistas: ConquistaRow[]; reconhecimentos: Reconhecimento[]; eventos: EventoChalala[] };
 function demo(): DemoConquistas {
   const g = globalThis as unknown as { __montinhoConquistas?: DemoConquistas };
-  g.__montinhoConquistas ??= { conquistas: [], reconhecimentos: [], eventos: [] };
+  g.__montinhoConquistas ??= { conquistas: feriadosDemo(), reconhecimentos: [], eventos: [] };
   return g.__montinhoConquistas;
+}
+
+/** Demo: a Aline treinou em Finados (musculação + cardio) e no Dia da Aparecida (só musculação), para a tela “🎉 Meus feriados”. */
+function feriadosDemo(): ConquistaRow[] {
+  const ano = new Date().getFullYear() - (new Date().getMonth() < 10 ? 1 : 0);
+  const linha = (codigo: CodigoConquista, slug: string, dia: string, titulo: string): ConquistaRow => ({ id: `demo-${codigo}-${slug}`, aluno_id: "aline", codigo, referencia: `${slug}:${ano}`, conquistado_em: `${ano}-${dia}T14:00:00Z`, session_id: null, titulo, descricao: null, dados: {}, created_at: `${ano}-${dia}T14:00:00Z`, criterio_versao: 1, evidencia: { feriado: slug, dia: `${ano}-${dia}` }, origem: "app", vista_em: `${ano}-${dia}T15:00:00Z` }) as ConquistaRow;
+  return [
+    linha("feriado_musculacao", "aparecida", "10-12", "Nossa Senhora Aparecida Pago"),
+    linha("feriado_musculacao", "finados", "11-02", "Finados Pago"),
+    linha("feriado_cardio", "finados", "11-02", "Finados de Fôlego"),
+    linha("feriado_combo", "finados", "11-02", "Finados Completo"),
+  ];
 }
 
 

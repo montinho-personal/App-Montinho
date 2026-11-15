@@ -8,7 +8,7 @@
 // troféu da Multimodalidade, e a tela diz quantos).
 // ============================================================================
 import { ORDEM, type Medalha } from "./vitrine";
-import { FORA_DO_RANKING, trofeusNoRanking } from "@/lib/ranking/trofeus";
+import { FORA_DO_RANKING, chaveNoRanking, trofeusNoRanking } from "@/lib/ranking/trofeus";
 
 const NA_VITRINE = new Set<string>(ORDEM.map((o) => o.codigo));
 const FORA = new Set<string>(FORA_DO_RANKING);
@@ -26,9 +26,12 @@ export type ContagemTrofeus = {
   extras: number;
 };
 
-export function contagemDeTrofeus(medalhas: Medalha[], conquistas: Array<{ codigo: string }>): ContagemTrofeus {
+export function contagemDeTrofeus(medalhas: Medalha[], conquistas: Array<{ codigo: string; referencia?: string | null }>): ContagemTrofeus {
   const naColecao = medalhas.filter((m) => m.conquistada).length;
-  const extras = new Set(conquistas.map((c) => c.codigo).filter((c) => !NA_VITRINE.has(c) && !FORA.has(c) && c !== "topo_ranking")).size;
+  // Feriados (15/11/2026): a coleção mostra 1 de cada (Pago, de Fôlego, Completo); cada feriado a mais é troféu a mais.
+  const feriados = conquistas.filter((c) => c.codigo.startsWith("feriado_"));
+  const feriadosAMais = new Set(feriados.map(chaveNoRanking)).size - new Set(feriados.map((c) => c.codigo)).size;
+  const extras = new Set(conquistas.map((c) => c.codigo).filter((c) => !NA_VITRINE.has(c) && !FORA.has(c) && c !== "topo_ranking")).size + Math.max(0, feriadosAMais);
   const ganhos = naColecao + extras;
   const noRanking = trofeusNoRanking(conquistas);
   return { ganhos, total: medalhas.length + extras, noRanking, foraDoRanking: Math.max(0, ganhos - noRanking), extras };

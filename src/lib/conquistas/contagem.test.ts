@@ -15,4 +15,14 @@ describe("contagem única de troféus", () => {
     const c = contagemDeTrofeus([m("primeiro_treino", true), m("primeiro_wod", true)], [{ codigo: "primeiro_treino" }, { codigo: "primeiro_wod" }]);
     expect(c).toMatchObject({ ganhos: 2, noRanking: 1, foraDoRanking: 1 });
   });
+  it("feriado conta 1 vez por feriado (Finados Pago + República Pago = 2)", () => {
+    const medalhas = [m("feriado_musculacao", true), m("feriado_cardio", true), m("feriado_combo", false)];
+    const conquistas = [
+      { codigo: "feriado_musculacao", referencia: "finados:2026" },
+      { codigo: "feriado_cardio", referencia: "finados:2026" },
+      { codigo: "feriado_musculacao", referencia: "republica:2026" },
+    ];
+    const c = contagemDeTrofeus(medalhas, conquistas);
+    expect(c).toMatchObject({ ganhos: 3, noRanking: 3, foraDoRanking: 0, extras: 1 });
+  });
 });

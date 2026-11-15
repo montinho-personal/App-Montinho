@@ -118,3 +118,36 @@ export function trofeusDeFeriado(sessoes: SessaoDia[], cardios: CardioFeito[]): 
   }
   return out;
 }
+
+// ── Histórico (15/11/2026, pedido do Montinho: “relatando quais feriados ela foi e o que ela fez”) ──
+export type FeriadoFeito = {
+  referencia: string; slug: string; nome: string; emoji: string; ano: number; dia: string | null;
+  musculacao: boolean; cardio: boolean; combo: boolean; trofeus: number;
+};
+
+/** Um item por feriado em que a pessoa ganhou troféu, do mais recente ao mais antigo. PURO. */
+export function historicoDeFeriados(conquistas: Array<{ codigo: string; referencia: string | null; conquistado_em: string; evidencia?: Record<string, unknown> | null }>): FeriadoFeito[] {
+  const por = new Map<string, FeriadoFeito>();
+  for (const c of conquistas) {
+    if (!(CODIGOS_FERIADO as string[]).includes(c.codigo) || !c.referencia) continue;
+    const [slug, anoTxt] = c.referencia.split(":");
+    const ano = Number(anoTxt);
+    const f = Number.isFinite(ano) ? feriadosDoAno(ano).find((x) => x.slug === slug) : undefined;
+    const ev = c.evidencia ?? {};
+    const diaEv = typeof ev.dia === "string" ? ev.dia : typeof ev.musculacao === "string" ? ev.musculacao : null;
+    const item = por.get(c.referencia) ?? { referencia: c.referencia, slug, nome: f?.nome ?? slug, emoji: f?.emoji ?? "🎉", ano, dia: diaEv ?? f?.datas[0] ?? null, musculacao: false, cardio: false, combo: false, trofeus: 0 };
+    if (c.codigo === "feriado_musculacao") item.musculacao = true;
+    if (c.codigo === "feriado_cardio") item.cardio = true;
+    if (c.codigo === "feriado_combo") item.combo = true;
+    item.trofeus += 1;
+    por.set(c.referencia, item);
+  }
+  return [...por.values()].sort((a, b) => ((a.dia ?? "") < (b.dia ?? "") ? 1 : -1));
+}
+
+/** Frase do que fez no feriado. */
+export function textoDoFeriado(f: Pick<FeriadoFeito, "musculacao" | "cardio" | "combo">): string {
+  if (f.musculacao && f.cardio) return "Musculação + cardio";
+  if (f.musculacao) return "Musculação";
+  return "Cardio";
+}

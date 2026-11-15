@@ -106,11 +106,11 @@ export function PerfilRankingSheet({ refPessoa, nome, posicao, interagir, onFech
               {trofeus.length ? (
                 <ul className="mt-2 grid grid-cols-3 gap-2">
                   {trofeus.map((t) => (
-                    <li key={t.codigo}>
-                      <button type="button" onClick={() => setAberto(aberto === t.codigo ? null : t.codigo)} className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 text-center ${aberto === t.codigo ? "border-accent" : "border-border"} bg-surface`}>
+                    <li key={t.chave}>
+                      <button type="button" onClick={() => setAberto(aberto === t.chave ? null : t.chave)} className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 text-center ${aberto === t.chave ? "border-accent" : "border-border"} bg-surface`}>
                         <span className={`grid h-12 w-12 place-items-center overflow-hidden rounded-full border-2 border-accent/70 bg-accent/10 px-0.5 font-black leading-none tracking-tight ${tamanhoSelo(t.selo)}`}>{t.selo}</span>
                         <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{t.nome}</span>
-                        {aberto === t.codigo ? <span className="text-[10px] text-fg-muted">{dataBR(t.em)}{t.contaNoRanking ? "" : " · não conta no ranking"}</span> : null}
+                        {aberto === t.chave ? <span className="text-[10px] text-fg-muted">{dataBR(t.em)}{t.contaNoRanking ? "" : " · não conta no ranking"}</span> : null}
                       </button>
                     </li>
                   ))}
