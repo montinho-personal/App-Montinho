@@ -149,12 +149,13 @@ describe("troféus por ação (compartilhar, indicar, desafios, dia em dobro)", 
     expect(codigos(trofeusNosProximosDias({ ...nenhum, treinos: [], acoes: base }))).not.toContain("vitrine_de_trofeus");
   });
 
-  it("chamada no card: 1º compartilhamento ganha agora; depois conta para o Diário e a Vitrine", () => {
+  it("chamada no card: 1º compartilhamento ganha agora; depois o Diário (4ª semana) ou o Espalhando de novo; medalha conta para a Vitrine", () => {
     const abertas = new Map<never, string>([["compartilhou_primeiro", "Espalhando o Chalalá"], ["diario_de_bordo", "Diário de Bordo"], ["vitrine_de_trofeus", "Vitrine de Troféus"]] as never);
     expect(chamadaDaAcao("card_treino", abertas, base)).toMatchObject({ codigo: "compartilhou_primeiro", agora: true });
     const semPrimeiro = new Map([...abertas].filter(([k]) => k !== "compartilhou_primeiro"));
     expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 3 })).toMatchObject({ codigo: "diario_de_bordo", agora: true });
-    expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 1 })).toMatchObject({ codigo: "diario_de_bordo", agora: false });
+    // Espalhando o Chalalá vale de novo a cada treino: depois do 1º, o card do treino sempre ganha agora.
+    expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 1 })).toMatchObject({ codigo: "compartilhou_primeiro", agora: true });
     expect(chamadaDaAcao("card_medalha", semPrimeiro, { ...base, trofeusCompartilhados: ["a", "b", "c", "d"] }, "treinos_10")).toMatchObject({ codigo: "vitrine_de_trofeus", agora: true });
     // Troféu já compartilhado não conta de novo.
     expect(chamadaDaAcao("card_medalha", semPrimeiro, { ...base, trofeusCompartilhados: ["treinos_10"] }, "treinos_10")).toBeNull();

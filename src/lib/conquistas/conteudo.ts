@@ -639,13 +639,13 @@ const BASE: Record<CodigoConquista, Base> = {
   },
   compartilhou_primeiro: {
     categoria: "compartilhar",
-    resumo: "O primeiro card compartilhado.",
+    resumo: "Card compartilhado: vale de novo a cada treino.",
     mensagem: "Espalhando o Chalalá! Sua evolução já está inspirando alguém.",
-    comoConquistar: "No fim do treino, numa medalha ou numa descoberta, toque em “Gerar card” e depois em Compartilhar (ou Baixar).",
+    comoConquistar: "No fim do treino, numa medalha ou numa descoberta, toque em “Gerar card” e depois em Compartilhar (ou Baixar). Depois, cada treino com o card do fim compartilhado vale o troféu de novo.",
     significado: "Você mostrou para o mundo um pedaço do seu processo.",
     importancia: "Contar para os outros reforça o compromisso com você mesmo: quem compartilha a rotina costuma levar o plano mais a sério.",
-    explicacao: "O card leva só o que você escolhe mostrar (treino, troféu ou frase) e o logo do Montinho. Nenhum dado de saúde vai junto.",
-    proximoPasso: "Compartilhe o card do fim do treino em semanas diferentes e ganhe o Diário de Bordo.",
+    explicacao: "Vale de novo a cada TREINO com o card do fim compartilhado (vários toques no mesmo treino contam 1): cada um é um troféu a mais no ranking. O card leva só o que você escolhe mostrar (treino, troféu ou frase) e o logo do Montinho. Nenhum dado de saúde vai junto.",
+    proximoPasso: "Compartilhe o card no fim de todo treino: cada um vale o troféu de novo e conta para o Diário de Bordo e os Cards no Feed.",
     fontes: ["sdt2025"],
   },
   diario_de_bordo: {

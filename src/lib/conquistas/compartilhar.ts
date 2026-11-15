@@ -141,3 +141,20 @@ export function trofeusCompartilharMais(eventos: EventoCompartilhar[], semanas: 
   }
   return out;
 }
+
+// ============================================================================
+// “Espalhando o Chalalá” a cada treino (pedido do Montinho, 15/11/2026: “incentivar
+// os alunos a sempre compartilhar um card”): além do 1º compartilhamento (referência
+// "1"), cada TREINO com o card do fim compartilhado (ou baixado) vale o troféu de novo
+// (referência "sessao:<id>") e conta no ranking. Vários toques no mesmo treino = 1.
+// ============================================================================
+/** O 1º compartilhamento do card do fim de cada treino (só cards com a referência da sessão). */
+export function cardsDeTreinoCompartilhados(eventos: EventoCompartilhar[]): Array<{ sessaoId: string; em: string }> {
+  const por = new Map<string, string>();
+  for (const e of [...eventos].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+    if (!ENVIO_CARD.has(e.tipo) || e.origem !== "conclusao" || !e.ref?.startsWith("sessao:")) continue;
+    const id = e.ref.slice(7);
+    if (id && !por.has(id)) por.set(id, e.created_at);
+  }
+  return [...por].map(([sessaoId, em]) => ({ sessaoId, em }));
+}

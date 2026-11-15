@@ -8,7 +8,7 @@ const PROIBIDO = [/dopamina/i, /reprogram/i, /21 dias.*h[áa]bito|h[áa]bito.*21
 describe("biblioteca editorial das conquistas", () => {
   it("169 conquistas (161 únicas + 8 recorrentes: as de sempre + as 3 de feriado; +18 das trilhas longas e o Exercício Bônus em 04/11/2026; +14 da prática acumulada em 06/11/2026; +6 dos Minutos de Fôlego em 09/11/2026; +13 das trilhas de recordes em 11/11/2026), todas com o conteúdo completo", () => {
     expect(codigos).toHaveLength(189);
-    expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["cardio_dobro", "cardio_folego_extra", "cardio_triplo", "cardio_voltei", "desafio_concluido", "eu_voltei", "feriado_cardio", "feriado_combo", "feriado_musculacao", "recorde", "retomada_30"]);
+    expect(codigos.filter((c) => CATALOGO[c].repete).sort()).toEqual(["cardio_dobro", "cardio_folego_extra", "cardio_triplo", "cardio_voltei", "compartilhou_primeiro", "desafio_concluido", "eu_voltei", "feriado_cardio", "feriado_combo", "feriado_musculacao", "recorde", "retomada_30"]);
     for (const c of codigos) {
       const t = CONTEUDO[c];
       for (const campo of ["nome", "resumo", "criterio", "mensagem", "comoConquistar", "significado", "importancia", "explicacao", "proximoPasso"] as const) expect(t[campo].length, `${c}.${campo}`).toBeGreaterThan(campo === "nome" ? 3 : 10);

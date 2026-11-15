@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { trofeuExercicioExtra } from "@/lib/treino/exercicio-extra";
-import { LIMITES_COMPARTILHAR, trofeusCompartilharMais, type CodigoCompartilharMais, type EventoCompartilhar, type MarcosCompartilhar } from "./compartilhar";
+import { LIMITES_COMPARTILHAR, cardsDeTreinoCompartilhados, trofeusCompartilharMais, type CodigoCompartilharMais, type EventoCompartilhar, type MarcosCompartilhar } from "./compartilhar";
 import { trofeusDeTempo, type CodigoAcompanhamento } from "./acompanhamento";
 import { trofeusDoQuiz, type CodigoQuiz, type RespostaQuiz } from "./quiz";
 import { trofeusCardioHorario, type CodigoCardioHorario } from "./cardio-horario";
@@ -331,7 +331,7 @@ export const CATALOGO: Record<CodigoConquista, { titulo: string; criterio: strin
   recorde: { titulo: "Novo recorde pessoal", criterio: "Superar sua melhor marca no mesmo exercício (mais carga, ou mais repetições com a mesma carga), com pelo menos 2 registros anteriores comparáveis.", repete: true },
   treino_samurai: { titulo: "Treino do Samurai", criterio: "Começar um treino de musculação entre 3h59 e 4h30 da manhã (horário de Brasília) e concluí-lo. Vale o horário em que você tocou em “Começar treino”, registrado pelo app (não o relógio do celular): começou às 4h30, conta; às 4h31, já não conta.", repete: false },
   strava_conectado: { titulo: "Relógio no Pulso", criterio: "Conectar o seu relógio ao app pelo Strava (Perfil → Relógio), autorizando a importação dos batimentos e dos cardios.", repete: false },
-  compartilhou_primeiro: { titulo: "Espalhando o Chalalá", criterio: "Compartilhar (ou baixar) pela primeira vez um card do app: fim de treino, troféu ou descoberta.", repete: false },
+  compartilhou_primeiro: { titulo: "Espalhando o Chalalá", criterio: "Compartilhar (ou baixar) um card do app: fim de treino, troféu ou descoberta. Vale de novo a cada treino com o card do fim compartilhado.", repete: true },
   diario_de_bordo: { titulo: "Diário de Bordo", criterio: "Compartilhar o card do fim do treino em 4 semanas diferentes (várias vezes na mesma semana contam uma).", repete: false },
   vitrine_de_trofeus: { titulo: "Vitrine de Troféus", criterio: "Compartilhar 5 troféus diferentes (o mesmo troféu mais de uma vez conta uma).", repete: false },
   inspiracao_galera: { titulo: "Inspiração da Galera", criterio: "Alguém abrir o link de um card que você compartilhou.", repete: false },
@@ -707,6 +707,15 @@ export function detectarConquistas(e: EntradaConquistas): ConquistaDetectada[] {
   if (e.primeiraAvaliacao) out.push(nova("ponto_de_partida", "1", e.primeiraAvaliacao, null, "Primeira avaliação registrada: o ponto de partida da sua evolução."));
   const cp = e.compartilhar;
   if (cp?.primeiro) out.push(nova("compartilhou_primeiro", "1", cp.primeiro, null, "Você compartilhou a sua evolução pela primeira vez."));
+  // Espalhando o Chalalá vale de novo a cada treino com o card do fim compartilhado (15/11/2026).
+  // O card que já foi o 1º compartilhamento de todos fica só com a referência "1".
+  if (e.eventosCompartilhar) {
+    const minhas = new Set(e.sessoes.map((s) => s.id));
+    for (const c of cardsDeTreinoCompartilhados(e.eventosCompartilhar)) {
+      if (c.em === cp?.primeiro || !minhas.has(c.sessaoId)) continue;
+      out.push(nova("compartilhou_primeiro", `sessao:${c.sessaoId}`, c.em, c.sessaoId, "Card do fim do treino compartilhado: o Chalalá foi espalhado de novo!"));
+    }
+  }
   if (cp?.diario) out.push(nova("diario_de_bordo", "1", cp.diario, null, `Card do fim do treino compartilhado em ${LIMITES_COMPARTILHAR.semanasDiario} semanas diferentes.`));
   if (cp?.vitrine) out.push(nova("vitrine_de_trofeus", "1", cp.vitrine, null, `${LIMITES_COMPARTILHAR.trofeusVitrine} troféus diferentes compartilhados.`));
   if (cp?.inspiracao) out.push(nova("inspiracao_galera", "1", cp.inspiracao, null, "Alguém abriu o link de um card que você compartilhou."));

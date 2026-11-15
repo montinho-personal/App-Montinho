@@ -2933,3 +2933,9 @@ do $$ begin
   if position($x$'cardio_folego_extra', 'cardio_dobro'$x$ in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T102: ranking sem o Fôlego Extra por semana'; end if;
 end $$;
 \echo 'T102 OK: Fôlego Extra por semana'
+
+-- T103 — 0162: Espalhando o Chalalá contado por treino no ranking
+do $$ begin
+  if position($x$'compartilhou_primeiro', 'cardio_folego_extra'$x$ in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T103: ranking sem o Espalhando por treino'; end if;
+end $$;
+\echo 'T103 OK: Espalhando o Chalalá por treino'
