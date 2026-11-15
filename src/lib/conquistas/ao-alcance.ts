@@ -356,8 +356,9 @@ export function chamadaDaAcao(acao: AcaoTrofeu, abertas: ReadonlyMap<CodigoConqu
       return (
         ganha("compartilhou_primeiro", "Compartilhe ou baixe este card e ganhe o troféu") ??
         (!a.diarioEstaSemana && n === 3 ? ganha("diario_de_bordo", "4ª semana compartilhando o card do treino: compartilhe agora e ganhe o troféu") : null) ??
-        // Espalhando o Chalalá vale de novo a cada treino (15/11/2026): sempre dá para ganhar agora.
-        { codigo: "compartilhou_primeiro", titulo: "Espalhando o Chalalá", texto: "Compartilhe o card deste treino e ganhe o troféu de novo (vale a cada treino e conta no ranking)", agora: true }
+        // Espalhando o Chalalá vale de novo 1 vez por semana (15/11/2026): se ainda não compartilhou o card do treino nesta semana.
+        (!a.diarioEstaSemana ? { codigo: "compartilhou_primeiro" as CodigoConquista, titulo: "Espalhando o Chalalá", texto: "Compartilhe este card e ganhe o troféu da semana (vale 1 por semana e conta no ranking)", agora: true } : null) ??
+        inspiracao()
       );
     }
     case "card_medalha": {

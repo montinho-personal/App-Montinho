@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { codigoDoLink } from "@/lib/chalala/link";
-import { cardsDeTreinoCompartilhados, marcosCompartilhar, progressoCompartilhar, type EventoCompartilhar } from "./compartilhar";
+import { semanasComCardCompartilhado, marcosCompartilhar, progressoCompartilhar, type EventoCompartilhar } from "./compartilhar";
 
 const ev = (tipo: string, created_at: string, o: Partial<EventoCompartilhar> = {}): EventoCompartilhar => ({ tipo, origem: null, modelo: null, ref: null, created_at, ...o });
 
@@ -34,14 +34,13 @@ describe("troféus de compartilhamento", () => {
   it("código do link: opaco, 12 caracteres, igual ao do banco (md5)", () => {
     expect(codigoDoLink("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")).toMatch(/^[a-f0-9]{12}$/);
   });
-  it("Espalhando o Chalalá a cada treino: 1 por card de fim de treino (vários toques = 1; medalha não entra)", () => {
-    const c = cardsDeTreinoCompartilhados([
+  it("Espalhando o Chalalá toda semana: 1 por semana com card compartilhado (cancelado não conta)", () => {
+    const w = semanasComCardCompartilhado([
       ev("compartilhar_nativo", "2026-11-10T12:00:00Z", { origem: "conclusao", ref: "sessao:a" }),
-      ev("download", "2026-11-10T12:05:00Z", { origem: "conclusao", ref: "sessao:a" }),
-      ev("compartilhar_nativo", "2026-11-12T12:00:00Z", { origem: "conclusao", ref: "sessao:b" }),
-      ev("compartilhar_nativo", "2026-11-12T13:00:00Z", { origem: "medalha", ref: "medalha:treinos_10" }),
-      ev("compartilhar_cancelado", "2026-11-13T12:00:00Z", { origem: "conclusao", ref: "sessao:c" }),
+      ev("download", "2026-11-12T12:05:00Z", { origem: "medalha", ref: "medalha:treinos_10" }),
+      ev("compartilhar_cancelado", "2026-11-17T12:00:00Z", { origem: "conclusao" }),
+      ev("descoberta_compartilhada", "2026-11-18T12:00:00Z"),
     ]);
-    expect(c).toEqual([{ sessaoId: "a", em: "2026-11-10T12:00:00Z" }, { sessaoId: "b", em: "2026-11-12T12:00:00Z" }]);
+    expect(w).toEqual([{ semana: "2026-11-09", em: "2026-11-10T12:00:00Z" }, { semana: "2026-11-16", em: "2026-11-18T12:00:00Z" }]);
   });
 });

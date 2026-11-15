@@ -154,8 +154,9 @@ describe("troféus por ação (compartilhar, indicar, desafios, dia em dobro)", 
     expect(chamadaDaAcao("card_treino", abertas, base)).toMatchObject({ codigo: "compartilhou_primeiro", agora: true });
     const semPrimeiro = new Map([...abertas].filter(([k]) => k !== "compartilhou_primeiro"));
     expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 3 })).toMatchObject({ codigo: "diario_de_bordo", agora: true });
-    // Espalhando o Chalalá vale de novo a cada treino: depois do 1º, o card do treino sempre ganha agora.
+    // Espalhando o Chalalá vale 1 por semana: sem card do treino nesta semana, ganha agora; já compartilhou, não.
     expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 1 })).toMatchObject({ codigo: "compartilhou_primeiro", agora: true });
+    expect(chamadaDaAcao("card_treino", semPrimeiro, { ...base, semanasDiario: 1, diarioEstaSemana: true })?.codigo).not.toBe("compartilhou_primeiro");
     expect(chamadaDaAcao("card_medalha", semPrimeiro, { ...base, trofeusCompartilhados: ["a", "b", "c", "d"] }, "treinos_10")).toMatchObject({ codigo: "vitrine_de_trofeus", agora: true });
     // Troféu já compartilhado não conta de novo.
     expect(chamadaDaAcao("card_medalha", semPrimeiro, { ...base, trofeusCompartilhados: ["treinos_10"] }, "treinos_10")).toBeNull();

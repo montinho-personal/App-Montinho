@@ -143,18 +143,19 @@ export function trofeusCompartilharMais(eventos: EventoCompartilhar[], semanas: 
 }
 
 // ============================================================================
-// “Espalhando o Chalalá” a cada treino (pedido do Montinho, 15/11/2026: “incentivar
-// os alunos a sempre compartilhar um card”): além do 1º compartilhamento (referência
-// "1"), cada TREINO com o card do fim compartilhado (ou baixado) vale o troféu de novo
-// (referência "sessao:<id>") e conta no ranking. Vários toques no mesmo treino = 1.
+// “Espalhando o Chalalá” toda semana (pedido do Montinho, 15/11/2026: “incentivar os
+// alunos a sempre compartilhar um card… deixa apenas 1 por semana”): além do 1º
+// compartilhamento (referência "1"), cada SEMANA (segunda a domingo, Brasília) com pelo
+// menos 1 card compartilhado ou baixado — fim de treino, troféu ou descoberta — vale o
+// troféu de novo (referência "semana:<segunda>") e conta no ranking.
 // ============================================================================
-/** O 1º compartilhamento do card do fim de cada treino (só cards com a referência da sessão). */
-export function cardsDeTreinoCompartilhados(eventos: EventoCompartilhar[]): Array<{ sessaoId: string; em: string }> {
+/** O 1º compartilhamento de cada semana, da mais antiga à mais recente. */
+export function semanasComCardCompartilhado(eventos: EventoCompartilhar[]): Array<{ semana: string; em: string }> {
   const por = new Map<string, string>();
   for (const e of [...eventos].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-    if (!ENVIO_CARD.has(e.tipo) || e.origem !== "conclusao" || !e.ref?.startsWith("sessao:")) continue;
-    const id = e.ref.slice(7);
-    if (id && !por.has(id)) por.set(id, e.created_at);
+    if (!ENVIO.has(e.tipo)) continue;
+    const w = segundaFeira(e.created_at);
+    if (!por.has(w)) por.set(w, e.created_at);
   }
-  return [...por].map(([sessaoId, em]) => ({ sessaoId, em }));
+  return [...por].map(([semana, em]) => ({ semana, em }));
 }

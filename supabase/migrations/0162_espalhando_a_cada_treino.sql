@@ -1,8 +1,9 @@
--- 0162 — “Espalhando o Chalalá” (compartilhou_primeiro) vale DE NOVO a cada treino
--- com o card do fim compartilhado (ou baixado), e cada um conta no ranking (pedido do
--- Montinho, 15/11/2026: “incentivar os alunos sempre a compartilhar um card”). O app
--- grava o 1º com referência '1' (como já estava) e os outros com 'sessao:<id>'
--- (src/lib/conquistas/compartilhar.ts#cardsDeTreinoCompartilhados). Aqui: as funções
+-- 0162 — “Espalhando o Chalalá” (compartilhou_primeiro) vale DE NOVO a cada SEMANA
+-- com pelo menos 1 card compartilhado (ou baixado), e cada semana conta no ranking
+-- (pedido do Montinho, 15/11/2026: “incentivar os alunos sempre a compartilhar um
+-- card… deixa apenas 1 por semana”). O app grava o 1º com referência '1' (como já
+-- estava) e as semanas seguintes com 'semana:<segunda>'
+-- (src/lib/conquistas/compartilhar.ts#semanasComCardCompartilhado). Aqui: as funções
 -- do ranking contam compartilhou_primeiro por referência. Idempotente.
 do $$
 declare
