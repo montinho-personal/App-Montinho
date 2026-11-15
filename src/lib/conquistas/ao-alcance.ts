@@ -70,8 +70,10 @@ function porCodigo(ms: Medalha[]) {
     const x = m.get(c);
     return x && !x.conquistada ? x : null;
   };
+  /** A medalha mesmo já ganha (para os que valem de novo, como o Dobro de Fôlego). */
+  const qualquer = (c: CodigoConquista) => m.get(c) ?? null;
   const falta = (x: Medalha) => (x.alvo ?? 0) - (x.atual ?? 0);
-  return { aberta, falta };
+  return { aberta, qualquer, falta };
 }
 
 const item = (m: Medalha, oQueFazer: string, quando?: string): ItemAlcance => ({ codigo: m.codigo, titulo: m.titulo, selo: m.selo, oQueFazer, ...(quando ? { quando } : {}) });
@@ -192,7 +194,7 @@ export const DIAS_ALCANCE = 7;
  * semana, as técnicas novas que já estão na ficha e as ações de um toque.
  */
 export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Aderencia; tecnicasFeitas: ReadonlySet<FamiliaTecnica>; hoje: string; treinos: Array<{ letra: string; exercicios: ExercicioTecnica[] }>; /** Montinho Cardio: marcos de quantidade e a semana de cardio. */ cardio?: ProgressoCardio | null; /** Compartilhar, indicar, desafios e o dia em dobro. */ acoes?: AcoesAlcance | null }): ItemAlcance[] {
-  const { aberta, falta } = porCodigo(e.medalhas);
+  const { aberta, qualquer, falta } = porCodigo(e.medalhas);
   const out: ItemAlcance[] = [];
   const meta = e.aderencia.semanaAtual?.meta ?? null;
   const porSemana = Math.max(1, meta ?? 3);
@@ -245,10 +247,11 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
     const sm = c.semanaMin;
     if (c.temPrescricao && sm && sm.alvoMin > 0 && sm.minutos >= sm.alvoMin * 0.9) {
       for (const [codigo, fator, nome] of [["cardio_folego_extra", 1.5, "150%"], ["cardio_dobro", 2, "o dobro"]] as const) {
-        const m = aberta(codigo);
+        // O Dobro de Fôlego vale de novo toda semana (15/11/2026): aparece mesmo já ganho.
+        const m = codigo === "cardio_dobro" ? qualquer(codigo) : aberta(codigo);
         const faltaMin = Math.ceil(sm.alvoMin * fator - sm.minutos);
         if (m && faltaMin > 0 && faltaMin <= sm.alvoMin * 0.6) {
-          out.push(item(m, `Meta da semana batida! Mais ${faltaMin} min de cardio e você chega a ${nome} do prescrito.`, "Até domingo"));
+          out.push(item(m, `Meta da semana batida! Mais ${faltaMin} min de cardio e você chega a ${nome} do prescrito${codigo === "cardio_dobro" && m.conquistada ? " (o Dobro de Fôlego vale de novo a cada semana)" : ""}.`, "Até domingo"));
           break;
         }
       }

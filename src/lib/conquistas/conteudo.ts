@@ -1117,7 +1117,7 @@ const BASE: Record<CodigoConquista, Base> = {
     comoConquistar: "Some na semana o dobro dos minutos de cardio prescritos (ex.: 120 min prescritos → 240 min).",
     significado: "Uma semana com o dobro do cardio combinado.",
     importancia: "As recomendações de saúde citam benefícios extras com mais minutos de atividade aeróbica por semana, desde que a recuperação acompanhe.",
-    explicacao: "Conta a soma dos minutos da semana. Respeite o corpo: se a semana pesou, a próxima pode voltar ao prescrito.",
+    explicacao: "Conta a soma dos minutos da semana e vale DE NOVO a cada semana em que você chegar ao dobro: cada semana é um troféu a mais no ranking. Respeite o corpo: se a semana pesou, a próxima pode voltar ao prescrito.",
     proximoPasso: "Conte ao Montinho como se sentiu: ele ajusta o seu cardio.",
     fontes: ["oms2020"],
   },

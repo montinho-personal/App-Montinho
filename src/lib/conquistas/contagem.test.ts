@@ -25,4 +25,12 @@ describe("contagem única de troféus", () => {
     const c = contagemDeTrofeus(medalhas, conquistas);
     expect(c).toMatchObject({ ganhos: 3, noRanking: 3, foraDoRanking: 0, extras: 1 });
   });
+  it("Dobro de Fôlego conta 1 vez por semana", () => {
+    const c = contagemDeTrofeus([m("cardio_dobro", true)], [
+      { codigo: "cardio_dobro", referencia: "1" },
+      { codigo: "cardio_dobro", referencia: "semana:2026-11-02" },
+      { codigo: "cardio_dobro", referencia: "semana:2026-11-09" },
+    ]);
+    expect(c).toMatchObject({ ganhos: 3, noRanking: 3 });
+  });
 });

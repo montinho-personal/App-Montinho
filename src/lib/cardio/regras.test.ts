@@ -138,6 +138,11 @@ describe("troféus de cardio", () => {
     // Sem prescrição não existe “além do prescrito”.
     expect(trofeusDoCardio({ prescricoes: [], feitos: semana("2026-09-29", 3, 90) }, "2026-10-06").map((x) => x.codigo)).not.toContain("cardio_dobro");
   });
+  it("Dobro de Fôlego vale de novo a cada semana com o dobro (1ª = referência 1)", () => {
+    const feitos = [...semana("2026-09-29", 3, 60), ...semana("2026-10-06", 3, 30), ...semana("2026-10-13", 3, 60)];
+    const d = trofeusDoCardio({ prescricoes: [presc()], feitos }, "2026-10-20").filter((x) => x.codigo === "cardio_dobro");
+    expect(d.map((x) => x.referencia)).toEqual(["1", "semana:2026-10-12"]);
+  });
   it("Semana no Ritmo (sessões) e 100% no Plano (minutos, com 10% de tolerância)", () => {
     const t = trofeusDoCardio({ prescricoes: [presc()], feitos: semana("2026-09-29", 3, 28) }, "2026-10-06").map((x) => x.codigo);
     expect(t).toContain("cardio_semana_ritmo");

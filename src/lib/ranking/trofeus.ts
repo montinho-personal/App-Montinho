@@ -89,7 +89,13 @@ export const FORA_DO_RANKING = ["primeiro_wod", "primeiro_benchmark", "superando
 /** Pedido do Montinho (15/11/2026): troféu de FERIADO conta 1 vez POR FERIADO (Finados Pago e
  *  Proclamação da República Pago = 2 troféus); os outros, 1 vez por código. Espelho de 0158. */
 export function chaveNoRanking(c: { codigo: string; referencia?: string | null }): string {
-  return c.codigo.startsWith("feriado_") && c.referencia ? `${c.codigo}:${c.referencia}` : c.codigo;
+  return contaCadaVez(c.codigo) && c.referencia ? `${c.codigo}:${c.referencia}` : c.codigo;
+}
+
+/** Troféus que contam no ranking CADA VEZ que são ganhos: feriados (1 por feriado, 0158) e o
+ *  Dobro de Fôlego (1 por semana com o dobro dos minutos de cardio, 0159). Os outros, 1 vez. */
+export function contaCadaVez(codigo: string): boolean {
+  return codigo.startsWith("feriado_") || codigo === "cardio_dobro";
 }
 
 /** Quantos troféus contam no ranking (fora de FORA_DO_RANKING; feriado 1 por feriado) — mesma conta do banco. */

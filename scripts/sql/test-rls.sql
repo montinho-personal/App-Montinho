@@ -2914,3 +2914,9 @@ do $$ begin
   if position('feriado' in pg_get_functiondef('public.montinho_no_ranking()'::regprocedure)) = 0 then raise exception 'T99b: montinho_no_ranking sem a regra do feriado'; end if;
 end $$;
 \echo 'T99 OK: feriado conta por feriado'
+
+-- T100 — 0159: Dobro de Fôlego conta 1 vez por semana nas funções do ranking
+do $$ begin
+  if position('cardio_dobro' in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T100: ranking_trofeus_v3 sem o Dobro de Fôlego por semana'; end if;
+end $$;
+\echo 'T100 OK: Dobro de Fôlego por semana'

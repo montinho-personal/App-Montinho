@@ -244,6 +244,9 @@ export type EntradaCardio = { prescricoes: PrescricaoVigencia[]; feitos: CardioF
 const pausaSemana = (s: SemanaCardio) => s.status === "pausada" || s.status === "sem_prescricao";
 const fmtData = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
+/** Referência do Dobro de Fôlego: a 1ª semana fica "1"; as seguintes, `semana:<segunda-feira>`. */
+export const referenciaDobro = (i: number, inicioSemana: string) => (i === 0 ? "1" : `semana:${inicioSemana}`);
+
 export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] {
   const out: TrofeuCardio[] = [];
   const dias = diasDeCardio(e.feitos).filter((d) => d.valido);
@@ -273,8 +276,11 @@ export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] 
   // Foi além do prescrito na semana: 150% (Fôlego Extra) e 200% (Dobro de Fôlego) dos minutos.
   const s150 = semanas.find((s) => s.extra150Em && !pausaSemana(s));
   if (s150) out.push({ codigo: "cardio_folego_extra", referencia: "1", data: s150.extra150Em!, descricao: `${Math.round(LIMITES_CARDIO.extra150 * 100)}% dos ${s150.alvoMin} min prescritos na semana de ${fmtData(s150.inicio)}.`, evidencia: { semana: s150.inicio, alvoMin: s150.alvoMin } });
-  const s200 = semanas.find((s) => s.extra200Em && !pausaSemana(s));
-  if (s200) out.push({ codigo: "cardio_dobro", referencia: "1", data: s200.extra200Em!, descricao: `O dobro dos ${s200.alvoMin} min prescritos na semana de ${fmtData(s200.inicio)}.`, evidencia: { semana: s200.inicio, alvoMin: s200.alvoMin } });
+  // Dobro de Fôlego vale DE NOVO a cada semana com o dobro (pedido do Montinho, 15/11/2026), e cada
+  // semana conta no ranking. A 1ª semana mantém a referência "1" (já gravada); as outras, `semana:<segunda>`.
+  semanas.filter((s) => s.extra200Em && !pausaSemana(s)).forEach((s200, i) => {
+    out.push({ codigo: "cardio_dobro", referencia: referenciaDobro(i, s200.inicio), data: s200.extra200Em!, descricao: `O dobro dos ${s200.alvoMin} min prescritos na semana de ${fmtData(s200.inicio)}.`, evidencia: { semana: s200.inicio, alvoMin: s200.alvoMin } });
+  });
   let seq = 0;
   for (const s of semanas) {
     if (s.status === "cumprida") {

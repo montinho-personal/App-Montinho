@@ -566,7 +566,7 @@ export function vitrineDeMedalhas(e: { conquistas: Array<{ codigo: string; conqu
       case "cardio_folego_extra":
       case "cardio_dobro":
         return e.cardio?.temPrescricao
-          ? { atual: null, alvo: null, falta: c === "cardio_dobro" ? "Some numa semana o dobro dos minutos de cardio prescritos." : "Some numa semana o prescrito e mais a metade (150% dos minutos).", disponivel: true }
+          ? { atual: null, alvo: null, falta: c === "cardio_dobro" ? "Some numa semana o dobro dos minutos de cardio prescritos. Vale de novo a cada semana." : "Some numa semana o prescrito e mais a metade (150% dos minutos).", disponivel: true }
           : { atual: null, alvo: null, falta: "Quando o Montinho prescrever cardio para você, dá para ir além da meta da semana.", disponivel: false };
       case "dois_folegos":
         return { atual: null, alvo: null, falta: "Faça 2 cardios no mesmo dia, cada um com 10 minutos ou mais (ex.: um de manhã e outro à noite).", disponivel: true };
