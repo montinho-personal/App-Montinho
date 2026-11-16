@@ -645,6 +645,8 @@ export function recordesDaSessao(sessao: SessaoConquista, anteriores: SessaoConq
   const chave = (e: { exercicio_id: string | null; nome: string }) => e.exercicio_id ?? `nome:${normalizarNome(e.nome)}`;
   const validas = (xs: SerieConquista[]) => xs.filter((x) => x.tipo === "valida" && (x.carga_kg ?? 0) > 0 && (x.reps ?? 0) > 0);
   for (const ex of sessao.exercicios ?? []) {
+    // Prancha e outros isométricos (as “repetições” são segundos) não dão recorde (pedido do Montinho, 16/11/2026).
+    if (exercicioJaIsometrico(ex.nome)) continue;
     const hoje = validas(ex.series);
     if (!hoje.length) continue;
     const k = chave(ex);

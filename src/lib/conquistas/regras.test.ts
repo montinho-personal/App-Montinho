@@ -214,6 +214,15 @@ describe("conquistas — além do necessário", () => {
   });
 });
 
+describe("recorde na prancha", () => {
+  it("prancha (segundos) não dá recorde; outro exercício no mesmo treino dá", () => {
+    const ex = (nome: string, reps: number, carga = 1) => ({ exercicio_id: nome, nome, series: [{ tipo: "valida", carga_kg: carga, reps }] });
+    const ses = [s("2026-10-01", { exercicios: [ex("Prancha frontal", 60), ex("Leg press", 10, 50)] }), s("2026-10-03", { exercicios: [ex("Prancha frontal", 60), ex("Leg press", 10, 50)] })];
+    const r = recordesDaSessao(s("2026-10-06", { exercicios: [ex("Prancha frontal", 90), ex("Leg press", 10, 55)] }), ses);
+    expect(r.map((x) => x.exercicio)).toEqual(["Leg press"]);
+  });
+});
+
 describe("medalhas das técnicas avançadas", () => {
   const EM_BLOCOS = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"];
   const comTecnica = (dia: string, tecnicas: string[], reps = 10) => s(dia, { exercicios: tecnicas.map((t, i) => ({ exercicio_id: `e${i}`, nome: `Ex ${i}`, tecnica: t, series: [{ tipo: "valida", carga_kg: 20, reps, ...(EM_BLOCOS.includes(t) && reps > 0 ? { blocos: [{ carga: 20, reps }, { carga: 15, reps: 6 }] } : {}) }] })) });
