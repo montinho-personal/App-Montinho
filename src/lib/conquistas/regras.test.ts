@@ -215,7 +215,18 @@ describe("conquistas — além do necessário", () => {
 });
 
 describe("medalhas das técnicas avançadas", () => {
-  const comTecnica = (dia: string, tecnicas: string[], reps = 10) => s(dia, { exercicios: tecnicas.map((t, i) => ({ exercicio_id: `e${i}`, nome: `Ex ${i}`, tecnica: t, series: [{ tipo: "valida", carga_kg: 20, reps }] })) });
+  const EM_BLOCOS = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"];
+  const comTecnica = (dia: string, tecnicas: string[], reps = 10) => s(dia, { exercicios: tecnicas.map((t, i) => ({ exercicio_id: `e${i}`, nome: `Ex ${i}`, tecnica: t, series: [{ tipo: "valida", carga_kg: 20, reps, ...(EM_BLOCOS.includes(t) && reps > 0 ? { blocos: [{ carga: 20, reps }, { carga: 15, reps: 6 }] } : {}) }] })) });
+  it("técnica em blocos (drop-set, rest-pause…) só conta com os blocos preenchidos", () => {
+    const semBlocos = s("2026-10-01", { exercicios: [{ exercicio_id: "d", nome: "Supino", tecnica: "dropset", series: [{ tipo: "valida", carga_kg: 40, reps: 10 }] }] });
+    expect(codigos(detectar([semBlocos]))).not.toContain("primeira_tecnica");
+    const umBloco = s("2026-10-01", { exercicios: [{ exercicio_id: "d", nome: "Supino", tecnica: "rest_pause", series: [{ tipo: "valida", carga_kg: 40, reps: 10, blocos: [{ carga: 40, reps: 10 }, { carga: 40, reps: 0 }] }] }] });
+    expect(codigos(detectar([umBloco]))).not.toContain("primeira_tecnica");
+    const preenchido = s("2026-10-01", { exercicios: [{ exercicio_id: "d", nome: "Supino", tecnica: "dropset", series: [{ tipo: "valida", carga_kg: 40, reps: 10, blocos: [{ carga: 40, reps: 10 }, { carga: 30, reps: 6 }] }] }] });
+    expect(codigos(detectar([preenchido]))).toContain("primeira_tecnica");
+    // Técnica sem blocos (pirâmide) segue valendo com a série feita.
+    expect(codigos(detectar([comTecnica("2026-10-01", ["piramide"])]))).toContain("primeira_tecnica");
+  });
   it("1, 2 e 3 técnicas diferentes; pirâmide crescente e decrescente contam como uma", () => {
     const r = detectar([comTecnica("2026-10-01", ["dropset"]), comTecnica("2026-10-03", ["piramide", "piramide_decrescente"]), comTecnica("2026-10-06", ["rest_pause", "normal"])]);
     expect(codigos(r)).toEqual(expect.arrayContaining(["primeira_tecnica", "tecnicas_2", "tecnicas_3"]));

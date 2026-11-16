@@ -540,6 +540,14 @@ export function fasesConquistadas(sessoes: SessaoConquista[]): Array<{ codigo: C
 const ISOMETRICO_POR_NATUREZA = /\b(prancha|plank|cadeirinha|wall ?sit|hollow|isometric[ao]|isometria|parada de mao)\b/;
 export const exercicioJaIsometrico = (nome: string) => ISOMETRICO_POR_NATUREZA.test(normalizarNome(nome));
 
+/** Técnicas feitas em BLOCOS: o troféu só vale se a pessoa anotou os blocos (pedido do Montinho, 16/11/2026:
+ *  “só contar se preencheu os campos dos blocos da técnica; tem gente que ganhou e não fez”). */
+export const TECNICAS_EM_BLOCOS: ReadonlySet<FamiliaTecnica> = new Set(["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"]);
+/** Uma série (fora do aquecimento) com 2+ blocos preenchidos com repetições. Técnicas sem blocos: basta a série feita. */
+export function tecnicaFeitaDeVerdade(f: FamiliaTecnica, series: SerieConquista[]): boolean {
+  if (!TECNICAS_EM_BLOCOS.has(f)) return true;
+  return series.some((x) => x.tipo !== "aquecimento" && (x.blocos ?? []).filter((b) => (b.reps ?? 0) > 0).length >= 2);
+}
 export function tecnicasFeitas(sessoes: SessaoConquista[]): Array<{ familia: FamiliaTecnica; data: string; sessaoId: string }> {
   const out: Array<{ familia: FamiliaTecnica; data: string; sessaoId: string }> = [];
   const vistas = new Set<FamiliaTecnica>();
@@ -550,6 +558,8 @@ export function tecnicasFeitas(sessoes: SessaoConquista[]): Array<{ familia: Fam
       if (!f || vistas.has(f)) continue;
       if (f === "isometria" && exercicioJaIsometrico(e.nome)) continue;
       if (!e.series.some((x) => x.tipo !== "aquecimento" && (x.reps ?? 0) > 0)) continue;
+      // Técnica em blocos (drop-set, rest-pause…): só vale com os blocos preenchidos de verdade (16/11/2026).
+      if (!tecnicaFeitaDeVerdade(f, e.series)) continue;
       vistas.add(f);
       out.push({ familia: f, data: s.iniciado_em, sessaoId: s.id });
     }
