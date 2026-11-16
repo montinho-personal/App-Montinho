@@ -34,6 +34,16 @@ export const podeFinalizar = (t: Tecnica | string | null | undefined): t is Tecn
 export const TECNICAS_BLOCOS = ["rest_pause", "dropset", "myo_reps", "cluster", "tres_sete"] as const;
 export type TecnicaBlocos = (typeof TECNICAS_BLOCOS)[number];
 export const registraEmBlocos = (t: Tecnica | string | null | undefined): t is TecnicaBlocos => !!t && (TECNICAS_BLOCOS as readonly string[]).includes(t);
+/**
+ * Repetições da última vez para sugerir na série de hoje (16/11/2026, caso da Adriana: cluster 70 kg × 4+4+6
+ * apareceu como “70 × 14” numa série normal de pirâmide). Série da última vez feita em BLOCOS (soma de blocos
+ * com pausas) só vale como dica se hoje for a mesma técnica; senão fica sem dica de reps (o peso continua).
+ */
+export function repsParaSugerir(anterior: { tipo?: string | null; reps?: number | null } | null | undefined, tipoHoje: string | null | undefined): number | null {
+  if (anterior?.reps == null) return null;
+  if (registraEmBlocos(anterior.tipo) && anterior.tipo !== tipoHoje) return null;
+  return anterior.reps;
+}
 
 export type ConfigTecnica = {
   /** "finalizacao" = séries a mais no fim; "principais" = dentro das séries prescritas. */

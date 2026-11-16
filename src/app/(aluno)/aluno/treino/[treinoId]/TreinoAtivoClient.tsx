@@ -84,7 +84,7 @@ import { ehPorTempo, segundosPrevistos } from "@/lib/treino/medida";
 import { FRASE_FACIL, LIMITE_FACIL, conviteVaiQueTaFacil } from "@/lib/chalala/facil";
 import { CronometroSerie } from "./CronometroSerie";
 import { SerieEmBlocos, type BlocoDigitado } from "./SerieEmBlocos";
-import { ajusteDeBlocos, arredondarCarga, blocosComQuantidade, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
+import { ajusteDeBlocos, arredondarCarga, blocosComQuantidade, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, repsParaSugerir, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { samuraiNoTreino, trofeusNoTreino, type ItemAlcance } from "@/lib/conquistas/ao-alcance";
@@ -418,7 +418,12 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
             carga: p?.carga_kg != null ? String(p.carga_kg) : salvo?.carga_kg != null ? String(salvo.carga_kg) : "",
             reps: p?.reps != null ? String(p.reps) : salvo?.reps != null ? String(salvo.reps) : "",
             sugCarga: i <= aquec || daUltimaVez(i - aquec)?.carga_kg == null ? undefined : String(daUltimaVez(i - aquec)!.carga_kg).replace(".", ","),
-            sugReps: i <= aquec || daUltimaVez(i - aquec)?.reps == null ? undefined : String(daUltimaVez(i - aquec)!.reps),
+            sugReps: (() => {
+              if (i <= aquec) return undefined;
+              const tipoHoje = salvo ? salvo.tipo : i > planejadas && i <= planejadas + nFin ? tipoFin : "valida";
+              const r = repsParaSugerir(daUltimaVez(i - aquec), tipoHoje);
+              return r == null ? undefined : String(r);
+            })(),
             rir: p?.rir != null ? String(p.rir) : salvo?.rir != null ? String(salvo.rir) : "",
             desconforto: p?.desconforto != null ? String(p.desconforto) : salvo?.desconforto != null ? String(salvo.desconforto) : "",
             concluida: Boolean(salvo) || Boolean(pend),
@@ -914,7 +919,8 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
         [se.id]: (cur[se.id] ?? []).map((x) => {
           if (x.concluida || x.tipo === "aquecimento") return x;
           const u = validasAntes[n++] ?? validasAntes.at(-1) ?? null;
-          return { ...x, carga: "", reps: "", sugCarga: u?.carga_kg != null ? String(u.carga_kg).replace(".", ",") : undefined, sugReps: u?.reps != null ? String(u.reps) : undefined };
+          const r = repsParaSugerir(u, x.tipo);
+          return { ...x, carga: "", reps: "", sugCarga: u?.carga_kg != null ? String(u.carga_kg).replace(".", ",") : undefined, sugReps: r != null ? String(r) : undefined };
         }),
       };
     });
@@ -1955,7 +1961,7 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                                 inputMode="numeric"
                                 aria-label={ehPorTempo(ex) ? `Tempo da série ${s.serie} em segundos` : `Repetições da série ${s.serie}${metas[i] ? ` (meta ${rotuloMeta(metas[i]!)})` : ""}`}
                                 value={s.reps}
-                                placeholder={s.sugReps ?? (ref?.reps != null ? String(ref.reps) : null) ?? (ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps")}
+                                placeholder={s.sugReps ?? (repsParaSugerir(ref, s.tipo) != null ? String(repsParaSugerir(ref, s.tipo)) : null) ?? (ehPorTempo(ex) ? String(segundosPrevistos(repsDaSerie(ex, s.serie) || ex.reps) ?? "seg") : repsDaSerie(ex, s.serie) || "reps")}
                                 onChange={(e) => atualizar(se.id, i, { reps: e.target.value, concluida: false, sincronizada: false })}
                                 className={`h-11 w-full rounded-md border bg-bg px-2 text-center font-mono text-base placeholder:text-fg-muted/45 ${s.concluida ? "border-success/50" : "border-border"} focus:border-accent`}
                               />

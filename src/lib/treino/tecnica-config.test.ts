@@ -98,3 +98,14 @@ describe("pôr e tirar drops, mini-séries e blocos na série", () => {
     expect(ajusteDeBlocos("dropset")!.unidade).toBe("drop");
   });
 });
+
+import { repsParaSugerir } from "./tecnica-config";
+describe("repsParaSugerir (dica de reps da última vez)", () => {
+  it("cluster da última vez não vira dica numa série normal; mesma técnica continua", () => {
+    expect(repsParaSugerir({ tipo: "cluster", reps: 19 }, "valida")).toBeNull();
+    expect(repsParaSugerir({ tipo: "cluster", reps: 19 }, "cluster")).toBe(19);
+    expect(repsParaSugerir({ tipo: "valida", reps: 12 }, "valida")).toBe(12);
+    expect(repsParaSugerir({ tipo: "piramide", reps: 10 }, "valida")).toBe(10);
+    expect(repsParaSugerir(null, "valida")).toBeNull();
+  });
+});
