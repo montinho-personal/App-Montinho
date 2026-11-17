@@ -11,17 +11,71 @@ function Variacao({ pct, base }: { pct: number | null; base: string }) {
   return pct > 0 ? <span className="font-bold text-success">▲ {pct}% {base}</span> : <span className="text-fg-muted">▼ {Math.abs(pct)}% {base}</span>;
 }
 
+/** Peso levantado hoje × último treino × média, em barras (o de hoje em dourado). */
+function BarrasVolume({ r, letra }: { r: RelatorioConclusao; letra?: string | null }) {
+  const daPct = (pct: number) => r.volumeKg / (1 + pct / 100);
+  const linhas: Array<{ rotulo: string; kg: number; hoje?: boolean; pct?: number }> = [{ rotulo: "Hoje", kg: r.volumeKg, hoje: true }];
+  if (r.anterior?.volumePct != null) linhas.push({ rotulo: letra ? `Último treino ${letra}` : "Último treino", kg: daPct(r.anterior.volumePct), pct: r.anterior.volumePct });
+  if (r.media) linhas.push({ rotulo: `Sua média (${r.media.treinos})`, kg: daPct(r.media.volumePct), pct: r.media.volumePct });
+  const max = Math.max(...linhas.map((l) => l.kg), 1);
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-fg-muted">🏋️ Peso levantado (kg × repetições)</p>
+      {linhas.map((l, i) => (
+        <div key={l.rotulo}>
+          <div className="flex items-baseline justify-between text-xs">
+            <span className={l.hoje ? "font-bold" : "text-fg-muted"}>{l.rotulo}</span>
+            <span className="font-mono">{kg(Math.round(l.kg))}</span>
+          </div>
+          <div className="mt-0.5 h-3 overflow-hidden rounded-full bg-border/60">
+            <div className={`barra-cresce h-full rounded-full ${l.hoje ? "bg-accent" : "bg-fg-subtle/50"}`} style={{ width: `${Math.max(4, (l.kg / max) * 100)}%`, animationDelay: `${i * 120}ms` }} />
+          </div>
+        </div>
+      ))}
+      <p className="text-xs text-fg-muted">🔁 {r.repsTotais} repetições no total</p>
+      <p className="text-sm">
+        {r.anterior?.volumePct != null ? <Variacao pct={r.anterior.volumePct} base={letra ? `vs último treino ${letra}` : "vs último treino"} /> : r.media ? <Variacao pct={r.media.volumePct} base="vs sua média" /> : null}
+      </p>
+    </div>
+  );
+}
+
+/** Exercícios comparados à última vez: barra dividida em melhorou / manteve / abaixo. */
+function BarraExercicios({ e }: { e: RelatorioConclusao["exercicios"] }) {
+  const total = e.melhorou + e.igual + e.abaixo || 1;
+  const partes = [
+    { n: e.melhorou, cor: "bg-success", texto: "melhorou", classe: "text-success font-bold" },
+    { n: e.igual, cor: "bg-fg-subtle/50", texto: "manteve", classe: "text-fg-muted" },
+    { n: e.abaixo, cor: "bg-border", texto: "abaixo", classe: "text-fg-muted" },
+  ].filter((p) => p.n > 0);
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-fg-muted">Seus exercícios comparados à última vez</p>
+      <div className="flex h-4 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={partes.map((p) => `${p.n} ${p.texto}`).join(", ")}>
+        {partes.map((p, i) => <div key={p.texto} className={`barra-cresce h-full ${p.cor}`} style={{ width: `${(p.n / total) * 100}%`, animationDelay: `${i * 150}ms` }} />)}
+      </div>
+      <p className="flex flex-wrap gap-x-3 text-sm">
+        {partes.map((p) => (
+          <span key={p.texto} className={p.classe}>
+            {p.texto === "melhorou" ? "▲" : p.texto === "manteve" ? "=" : "▼"} {p.n} {p.texto}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
 export function RelatorioTreino({ r, letra }: { r: RelatorioConclusao; letra?: string | null }) {
-  const doTreino = letra ? `vs último treino ${letra}` : "vs último treino";
   const e = r.exercicios;
   const outrosRecordes = r.recordesVida.filter((x) => !(r.maiorPeso?.recordeVida && x.exercicio === r.maiorPeso.exercicio));
   const difMin = r.anterior?.duracaoDifMin ?? 0;
+  const temBarras = r.volumeKg > 0 && (r.anterior?.volumePct != null || r.media != null);
   return (
     <div className="space-y-3 rounded-2xl border border-accent/40 bg-accent/[0.06] p-4">
       <p className="text-sm font-extrabold uppercase tracking-wide text-accent">📊 Como foi o seu treino</p>
 
-      <div className="grid grid-cols-2 gap-2">
-        {r.volumeKg > 0 ? (
+      {temBarras ? null : <div className={`grid gap-2 ${r.volumeKg > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {r.volumeKg > 0 && !temBarras ? (
           <div className="rounded-xl bg-surface p-3">
             <p className="font-mono text-2xl font-black leading-none">{kg(r.volumeKg)}</p>
             <p className="mt-1 text-xs font-semibold text-fg-muted">🏋️ peso levantado</p>
@@ -31,22 +85,11 @@ export function RelatorioTreino({ r, letra }: { r: RelatorioConclusao; letra?: s
           <p className="font-mono text-2xl font-black leading-none">{r.repsTotais}</p>
           <p className="mt-1 text-xs font-semibold text-fg-muted">🔁 repetições</p>
         </div>
-      </div>
+      </div>}
 
-      {r.volumeKg > 0 && (r.anterior?.volumePct != null || r.media) ? (
-        <div className="space-y-0.5 text-sm">
-          {r.anterior?.volumePct != null ? <p><Variacao pct={r.anterior.volumePct} base={doTreino} /></p> : null}
-          {r.media ? <p><Variacao pct={r.media.volumePct} base={`vs sua média (${r.media.treinos} ${r.media.treinos === 1 ? "treino" : "treinos"})`} /></p> : null}
-        </div>
-      ) : null}
+      {temBarras ? <BarrasVolume r={r} letra={letra} /> : null}
 
-      {e.comparaveis ? (
-        <div className="flex flex-wrap gap-1.5 text-sm">
-          {e.melhorou ? <span className="rounded-full bg-success/15 px-3 py-1 font-bold text-success">▲ melhorou em {e.melhorou} {e.melhorou === 1 ? "exercício" : "exercícios"}</span> : null}
-          {e.igual ? <span className="rounded-full bg-border px-3 py-1 text-fg-muted">= manteve em {e.igual}</span> : null}
-          {e.abaixo ? <span className="rounded-full bg-border px-3 py-1 text-fg-muted">▼ abaixo em {e.abaixo}</span> : null}
-        </div>
-      ) : null}
+      {e.comparaveis ? <BarraExercicios e={e} /> : null}
 
       {difMin < 0 ? <p className="text-sm font-semibold">⏱ {Math.abs(difMin)} min mais rápido que da última vez</p> : null}
 

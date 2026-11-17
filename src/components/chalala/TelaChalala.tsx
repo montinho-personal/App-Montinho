@@ -51,6 +51,28 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
   };
 }
 
+/** Anel que enche até o % do treino feito, com o ✓ no meio. */
+function AnelDoTreino({ pct, parcial }: { pct: number; parcial: boolean }) {
+  const p = Math.max(0, Math.min(100, pct));
+  const raio = 52;
+  const total = 2 * Math.PI * raio;
+  return (
+    <div className="relative mx-auto h-32 w-32">
+      <span aria-hidden className="chalala-brilho absolute inset-4 rounded-full bg-accent/30" />
+      <svg viewBox="0 0 120 120" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx="60" cy="60" r={raio} fill="none" stroke="currentColor" strokeWidth="9" className="text-border" />
+        <circle cx="60" cy="60" r={raio} fill="none" strokeWidth="9" strokeLinecap="round" className={`anel-enche ${parcial ? "stroke-accent" : "stroke-success"}`} strokeDasharray={total} strokeDashoffset={total * (1 - p / 100)} style={{ ["--anel-total" as string]: String(total) }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center" role="img" aria-label={`${p}% do treino feito`}>
+        <span className={`chalala-pop flex h-12 w-12 items-center justify-center rounded-full ${parcial ? "bg-accent" : "bg-success"} text-bg`}>
+          <Icon name="check" size={28} />
+        </span>
+        <span className="mt-1 font-mono text-sm font-black">{p}%</span>
+      </div>
+    </div>
+  );
+}
+
 function Numero({ emoji, valor, extra, rotulo }: { emoji: string; valor: string; extra?: string; rotulo: string }) {
   return (
     <div className="flex flex-col-reverse rounded-xl bg-surface px-1 py-3">
@@ -164,12 +186,7 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
       <Card className="relative overflow-hidden border-success/40 bg-grain-strong">
         <CardBody className="space-y-5 py-7 text-center">
           <div className="space-y-2">
-            <div className="relative mx-auto h-16 w-16">
-              <span aria-hidden className="chalala-brilho absolute inset-0 rounded-full bg-accent/40" />
-              <span className="chalala-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-success text-bg">
-                <Icon name="check" size={36} />
-              </span>
-            </div>
+            <AnelDoTreino pct={parcial ? Math.round((base.seriesPlanejadas ? base.series / base.seriesPlanejadas : 0.5) * 100) : (resumo?.relatorio?.pct ?? 100)} parcial={parcial} />
             {parcial ? (
               <h1 className="text-2xl font-extrabold tracking-tight">Treino registrado</h1>
             ) : (
@@ -185,7 +202,7 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
             {parcial ? (
               <p className="text-fg-muted">Hoje você adaptou a rotina e conseguiu treinar.</p>
             ) : resumo?.relatorio?.completo ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-bold text-success">🏆 100% do treino feito</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-bold text-success">🏆 Treino completo!</span>
             ) : null}
           </div>
 
