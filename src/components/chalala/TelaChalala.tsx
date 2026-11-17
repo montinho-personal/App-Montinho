@@ -51,6 +51,23 @@ export function dadosDoResumo(r: Pick<ResumoChalala, "nomeTreino" | "data" | "du
   };
 }
 
+function Numero({ emoji, valor, extra, rotulo }: { emoji: string; valor: string; extra?: string; rotulo: string }) {
+  return (
+    <div className="flex flex-col-reverse rounded-xl bg-surface px-1 py-3">
+      <dt className="mt-1.5 text-xs font-semibold text-fg-muted">
+        <span aria-hidden>{emoji} </span>
+        {rotulo}
+      </dt>
+      <dd className="font-mono text-3xl font-black leading-none">
+        {valor}
+        {extra ? <span className="text-sm font-bold text-fg-subtle">{extra}</span> : null}
+      </dd>
+    </div>
+  );
+}
+
+const faltam = (n: number) => (n <= 0 ? "" : n <= 1 ? "Falta 1 treino. Bora fechar a semana! 💪" : `Faltam ${num(n)} treinos. Um de cada vez! 💪`);
+
 type AulaPresencial = { nomeAluno: string; voltarHref: string; cabecalhos: Record<string, string> };
 
 export function TelaChalala({ base, nome, presencial = null, confianca = null, children }: { base: BaseConclusao; nome: string; presencial?: AulaPresencial | null; confianca?: string | null; children?: React.ReactNode }) {
@@ -105,6 +122,8 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
       fetch("/api/conquistas/vistas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: medalhasNovas.map((c) => c.id) }) }).catch(() => undefined);
     }
   }
+  // Destaques sem repetir o que o topo e o cartão da conquista já mostram.
+  const destaquesHoje = (r?.destaques ?? []).filter((d) => !/^Meta da semana|^Você completou sua meta/.test(d) && !(conquista && d.startsWith("Conquista:")));
   const dados: DadosCard = r ? dadosDoResumo(r) : { nomeTreino: base.nomeTreino, data: base.data, duracaoMin: base.duracaoMin, series: base.series };
 
   // Medalhas mostradas (ou nenhuma) → abre o card do treino sozinho, uma vez por sessão.
@@ -141,86 +160,68 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
 
   return (
     <div className={`space-y-4 ${animacoes ? "" : "sem-animacao"}`}>
+      {/* Topo (17/11/2026, pedido do Montinho: “bater o olho e ler”): celebração, os 3 números grandes e a meta em bolinhas, num cartão só. */}
       <Card className="relative overflow-hidden border-success/40 bg-grain-strong">
-        <CardBody className="space-y-2 py-8 text-center">
-          <div className="relative mx-auto h-16 w-16">
-            <span aria-hidden className="chalala-brilho absolute inset-0 rounded-full bg-accent/40" />
-            <span className="chalala-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-success text-bg">
-              <Icon name="check" size={36} />
-            </span>
+        <CardBody className="space-y-5 py-7 text-center">
+          <div className="space-y-2">
+            <div className="relative mx-auto h-16 w-16">
+              <span aria-hidden className="chalala-brilho absolute inset-0 rounded-full bg-accent/40" />
+              <span className="chalala-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-success text-bg">
+                <Icon name="check" size={36} />
+              </span>
+            </div>
+            {parcial ? (
+              <h1 className="text-2xl font-extrabold tracking-tight">Treino registrado</h1>
+            ) : (
+              <h1 className="leading-none">
+                <span className="block text-4xl font-black tracking-tight text-accent">CHALALÁ!</span>
+                <span className="mt-1 block text-lg font-extrabold uppercase tracking-wide">Treino concluído</span>
+              </h1>
+            )}
+            {parcial && confianca ? <p className="font-bold text-accent">{confianca}</p> : null}
+            <p className="text-sm text-fg-muted">
+              {base.nomeTreino ?? "Treino"} · {dataBR(r?.data ?? base.data)}
+            </p>
+            {parcial ? (
+              <p className="text-fg-muted">Hoje você adaptou a rotina e conseguiu treinar.</p>
+            ) : resumo?.relatorio?.completo ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-bold text-success">🏆 100% do treino feito</span>
+            ) : null}
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">{parcial ? "Treino registrado" : "CHALALÁ! TREINO CONCLUÍDO!"}</h1>
-          {parcial && confianca ? <p className="font-bold text-accent">{confianca}</p> : null}
-          <p className="text-fg-muted">{parcial ? "Hoje você adaptou a rotina e conseguiu treinar." : resumo?.relatorio?.completo ? "Você fez 100% do treino. Parabéns!" : "Mais um passo na sua evolução."}</p>
-        </CardBody>
-      </Card>
 
-      <Card>
-        <CardBody className="space-y-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-fg-subtle">Resumo da sessão</p>
-            <p className="font-bold">{base.nomeTreino ?? "Treino"}</p>
-            <p className="text-xs text-fg-muted">{dataBR(r?.data ?? base.data)}</p>
-          </div>
-          <dl className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-surface p-2">
-              <dt className="text-[11px] text-fg-subtle">Duração</dt>
-              <dd className="font-mono text-lg font-bold">{duracao ? formatarMin(duracao) : "—"}</dd>
-            </div>
-            <div className="rounded-lg bg-surface p-2">
-              <dt className="text-[11px] text-fg-subtle">Exercícios</dt>
-              <dd className="font-mono text-lg font-bold">{r ? r.exercicios : "…"}</dd>
-            </div>
-            <div className="rounded-lg bg-surface p-2">
-              <dt className="text-[11px] text-fg-subtle">Séries</dt>
-              <dd className="font-mono text-lg font-bold">
-                {base.series}
-                {/* Treino livre não tem séries previstas: mostra só as feitas. */}
-                {base.seriesPlanejadas > 0 ? <span className="text-xs font-normal text-fg-subtle">/{base.seriesPlanejadas}</span> : null}
-              </dd>
-            </div>
+          <dl className="grid grid-cols-3 gap-2">
+            <Numero emoji="⏱" valor={!duracao ? "—" : duracao < 60 ? String(duracao) : formatarMin(duracao)} extra={duracao && duracao < 60 ? " min" : undefined} rotulo="de treino" />
+            <Numero emoji="💪" valor={r ? String(r.exercicios) : "…"} rotulo={r?.exercicios === 1 ? "exercício" : "exercícios"} />
+            <Numero emoji="🔥" valor={String(base.series)} extra={base.seriesPlanejadas > 0 && base.seriesPlanejadas !== base.series ? `/${base.seriesPlanejadas}` : undefined} rotulo="séries" />
           </dl>
-          {!duracao ? <p className="text-[11px] text-fg-subtle">Duração não exibida: o início e o fim registrados não permitem um tempo confiável.</p> : <p className="text-[11px] text-fg-subtle">Tempo entre o início e o fim do treino, descontando as pausas.</p>}
+          {!duracao ? <p className="text-[11px] text-fg-subtle">Duração não exibida: o início e o fim registrados não permitem um tempo confiável.</p> : null}
 
-          {r?.meta ? (
-            <div className="space-y-1">
-              <div className="flex items-baseline justify-between text-sm">
-                <span className="font-semibold">Meta da semana</span>
-                <span className="font-mono">
-                  {num(Math.min(r.pontosSemana, r.meta))}/{r.meta}
-                </span>
+          {r?.meta && r.modo !== "extra" ? (
+            <div className="space-y-2 rounded-xl bg-bg/60 px-3 py-3">
+              <p className="text-sm font-bold">{r.metaCumprida ? "✅ Meta da semana cumprida!" : `Meta da semana: ${num(Math.min(r.pontosSemana, r.meta))} de ${r.meta}`}</p>
+              <div className="flex justify-center gap-1.5" role="progressbar" aria-valuemin={0} aria-valuemax={r.meta} aria-valuenow={Math.min(r.pontosSemana, r.meta)} aria-label="Progresso da meta semanal">
+                {Array.from({ length: Math.min(r.meta, 14) }, (_, i) => (
+                  <span key={i} className={`h-3 max-w-10 flex-1 rounded-full ${i < Math.floor(r.pontosSemana) ? (r.metaCumprida ? "bg-success" : "bg-accent") : "bg-border"}`} />
+                ))}
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-border" role="progressbar" aria-valuemin={0} aria-valuemax={r.meta} aria-valuenow={Math.min(r.pontosSemana, r.meta)} aria-label="Progresso da meta semanal">
-                <div className={`h-full rounded-full ${r.metaCumprida ? "bg-success" : "bg-accent"} transition-[width] duration-700 motion-reduce:transition-none`} style={{ width: `${Math.min(100, (r.pontosSemana / r.meta) * 100)}%` }} />
-              </div>
-              <p className="text-xs text-fg-muted">{r.modo === "extra" ? "Treino extra: fica registrado, mas não entra na meta." : r.metaCumprida ? "Meta da semana cumprida." : r.meta === 1 ? `Você completou ${num(r.pontosSemana)} do seu 1 treino desta semana.` : `Você completou ${num(r.pontosSemana)} dos seus ${r.meta} treinos desta semana.`}</p>
+              {!r.metaCumprida ? <p className="text-xs text-fg-muted">{faltam(r.meta - r.pontosSemana)}</p> : null}
             </div>
+          ) : r?.modo === "extra" ? (
+            <p className="text-xs text-fg-muted">Treino extra: fica registrado, mas não entra na meta da semana.</p>
           ) : null}
         </CardBody>
       </Card>
 
-      {/* Próxima missão (Fase 1): só informação, sem botão — não compete com o compartilhar. */}
-      {r?.proximaMissao && !presencial ? (
-        <div className="flex items-start gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">
-          <span aria-hidden className="text-2xl">🎯</span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Próxima missão</p>
-            <p className="font-bold leading-tight">{r.proximaMissao.titulo}</p>
-            <p className="text-sm text-fg-muted">{r.proximaMissao.texto}</p>
-          </div>
-        </div>
-      ) : null}
-
       {r?.relatorio ? <RelatorioTreino r={r.relatorio} letra={r.letra} /> : null}
 
-      {r?.destaques?.length ? (
+      {destaquesHoje.length ? (
         <Card className="border-accent/40">
           <CardBody className="space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Destaques de hoje</p>
-            <ul className="space-y-1 text-sm">
-              {r.destaques.map((d) => <li key={d} className="flex gap-2"><span className="text-accent" aria-hidden>✦</span><span>{d}</span></li>)}
+            <p className="text-sm font-extrabold uppercase tracking-wide text-accent">✨ Destaques de hoje</p>
+            <ul className="space-y-1.5 text-base">
+              {destaquesHoje.map((d) => <li key={d} className="flex gap-2"><span className="text-accent" aria-hidden>✦</span><span>{d}</span></li>)}
             </ul>
-            {r.evolucao ? (
+            {r?.evolucao ? (
               <details className="text-xs text-fg-muted">
                 <summary className="cursor-pointer font-semibold text-accent">Por que isso é importante?</summary>
                 <p className="mt-1">{POR_QUE[r.evolucao.tipo]}</p>
@@ -236,8 +237,8 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
       {conquista ? (
         <Card className="border-accent/40">
           <CardBody className="space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Conquista desta sessão</p>
-            <p className="font-bold">{nomeDaConquista(conquista.codigo, conquista.titulo)}</p>
+            <p className="text-sm font-extrabold uppercase tracking-wide text-accent">🏅 Conquista de hoje</p>
+            <p className="text-lg font-extrabold leading-tight">{nomeDaConquista(conquista.codigo, conquista.titulo)}</p>
             <p className="text-sm text-fg-muted">{conquista.codigo === "recorde" ? conquista.descricao : (CONTEUDO[conquista.codigo as CodigoConquista]?.mensagem ?? conquista.descricao)}</p>
             {!presencial && conquista.codigo !== "recorde" && conquista.codigo !== "eu_voltei" ? (
               <Link href={`/aluno/conquistas/todas?m=${conquista.codigo}`} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Entenda por que isso é importante</Link>
@@ -246,10 +247,22 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
         </Card>
       ) : null}
 
+      {/* Próxima missão (Fase 1): só informação, sem botão — não compete com o compartilhar. */}
+      {r?.proximaMissao && !presencial ? (
+        <div className="flex items-start gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">
+          <span aria-hidden className="text-2xl">🎯</span>
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold uppercase tracking-wide text-accent">Próxima missão</p>
+            <p className="font-bold leading-tight">{r.proximaMissao.titulo}</p>
+            <p className="text-sm text-fg-muted">{r.proximaMissao.texto}</p>
+          </div>
+        </div>
+      ) : null}
+
       {r ? (
-        <div className="rounded-lg border border-border px-4 py-3">
-          <p className="text-sm">{r.mensagem}</p>
-          <p className="mt-1 text-[11px] text-fg-subtle">Mensagem automática do app, gerada a partir dos seus registros.</p>
+        <div className="px-1 text-center">
+          <p className="text-base font-semibold">💛 {r.mensagem}</p>
+          <p className="mt-1 text-[10px] text-fg-subtle">Mensagem automática do app, gerada a partir dos seus registros.</p>
         </div>
       ) : falhou ? (
         <p className="text-xs text-fg-subtle">Sem conexão agora: meta e conquistas aparecem quando a internet voltar. Seu treino já está salvo.</p>
@@ -273,7 +286,7 @@ export function TelaChalala({ base, nome, presencial = null, confianca = null, c
       ) : (
       <div className="space-y-2">
         <button type="button" onClick={() => setEditor(true)} className="touch inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 font-bold text-bg">
-          Compartilhar minha conquista
+          📲 Compartilhar meu treino
         </button>
         <p className="text-center text-[11px] text-fg-subtle">Opcional. Suas conquistas e sua sequência não dependem de compartilhar.</p>
         <div className="grid grid-cols-2 gap-2">
