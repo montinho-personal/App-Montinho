@@ -109,3 +109,18 @@ describe("repsParaSugerir (dica de reps da última vez)", () => {
     expect(repsParaSugerir(null, "valida")).toBeNull();
   });
 });
+
+import { blocosDaUltimaVez, textoDosBlocos } from "./tecnica-config";
+describe("drops da última vez", () => {
+  const antes = [
+    { tipo: "valida", blocos: null },
+    { tipo: "dropset", blocos: [{ carga: 40, reps: 12 }, { carga: 30, reps: 8 }, { carga: 22.5, reps: 6 }] },
+    { tipo: "dropset", blocos: [{ carga: 40, reps: 10 }, { carga: 30, reps: 7 }] },
+  ];
+  it("pega a mesma série em blocos da última vez e escreve cada drop", () => {
+    expect(textoDosBlocos(blocosDaUltimaVez(antes, "dropset", 0)!)).toBe("40 kg × 12 → 30 kg × 8 → 22,5 kg × 6");
+    expect(blocosDaUltimaVez(antes, "dropset", 1)!.length).toBe(2);
+    expect(blocosDaUltimaVez(antes, "dropset", 5)!.length).toBe(2);
+    expect(blocosDaUltimaVez(antes, "cluster", 0)).toBeNull();
+  });
+});

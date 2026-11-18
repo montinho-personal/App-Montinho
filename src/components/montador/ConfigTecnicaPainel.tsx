@@ -4,6 +4,7 @@
 // myo-reps, cluster, 3/7, super slow, negativo). Fica logo abaixo do método:
 // resumo colorido sempre visível; toque para abrir e ajustar cada número.
 import { useState } from "react";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import type { Tecnica } from "@/lib/volume/calcular";
 import { COR_TECNICA, METODOS } from "@/lib/volume/tecnicas";
 import { cargasDosDrops, configEfetiva, ehConfiguravel, exemploRestPause, instrucaoTecnica, LIMITES_TECNICA, PADRAO_TECNICA, podeFinalizar, resumoTecnica, type ConfigTecnica } from "@/lib/treino/tecnica-config";
@@ -17,15 +18,16 @@ function Numero({ rotulo, dica, campo, cfg, onChange, sufixo, vazio }: { rotulo:
     <label className="block min-w-0 space-y-1">
       <span className="block text-[11px] font-semibold text-fg-muted">{rotulo}</span>
       <span className="flex items-center rounded-lg border border-border bg-bg focus-within:border-accent">
-        <input
+        {/* CampoNumero (18/11/2026, caso do Montinho: ao digitar “25” na redução, o “2” virava 5 na hora pelo mínimo):
+            deixa digitar livre e só corrige para min–max ao sair do campo; vazio volta ao padrão. */}
+        <CampoNumero
           inputMode="numeric"
-          value={valor == null ? "" : String(valor)}
+          valor={typeof valor === "number" ? valor : null}
+          min={min}
+          max={max}
+          onChange={(n) => onChange({ ...cfg, [campo]: n })}
+          onVazio={() => onChange({ ...cfg, [campo]: undefined })}
           placeholder={vazio ?? String((PADRAO_TECNICA.rest_pause as Record<string, unknown>)[campo] ?? "")}
-          onChange={(e) => {
-            const d = e.target.value.replace(/\D/g, "").slice(0, 3);
-            const n = d === "" ? undefined : Math.min(max, Math.max(min, Number(d)));
-            onChange({ ...cfg, [campo]: n });
-          }}
           className="h-10 w-full min-w-0 bg-transparent px-2 text-center font-mono text-base outline-none"
           aria-label={rotulo}
         />

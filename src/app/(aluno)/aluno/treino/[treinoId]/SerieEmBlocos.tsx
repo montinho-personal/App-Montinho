@@ -5,7 +5,7 @@
 // Pode pôr ou tirar um drop, uma mini-série ou um bloco na hora.
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { arredondarCarga, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
+import { arredondarCarga, somaBlocos, type BlocoPlanejado, textoDosBlocos } from "@/lib/treino/tecnica-config";
 
 export type BlocoDigitado = { carga: string; reps: string };
 
@@ -46,7 +46,10 @@ export function SerieEmBlocos({
   onConcluir,
   onPausa,
   chavePausa,
+  ultimaVez,
 }: {
+  /** O que a pessoa fez nesta série da última vez (cada drop/bloco), para lembrar e usar de dica. */
+  ultimaVez?: Array<{ carga: number | null; reps: number | null }> | null;
   /** Técnica (rest_pause, cluster…): guarda no aparelho a pausa que a pessoa escolheu. */
   chavePausa?: string;
   rotulo: string;
@@ -114,6 +117,12 @@ export function SerieEmBlocos({
         </span>
       </div>
 
+      {ultimaVez?.length ? (
+        <p className="rounded-md bg-surface px-2 py-1.5 text-xs text-fg-muted">
+          📈 <span className="font-semibold">Última vez:</span> <span className="font-mono">{textoDosBlocos(ultimaVez)}</span>
+        </p>
+      ) : null}
+
       {!cargaPorBloco ? (
         <label className="flex items-center gap-2 text-xs text-fg-muted">
           Carga (kg)
@@ -165,7 +174,7 @@ export function SerieEmBlocos({
                     type="text"
                     inputMode="decimal"
                     value={l.carga}
-                    placeholder={i === 0 ? (cargaRef ?? "kg") : sugerida != null ? kg(sugerida) : "kg"}
+                    placeholder={ultimaVez?.[i]?.carga != null ? kg(ultimaVez[i].carga!) : i === 0 ? (cargaRef ?? "kg") : sugerida != null ? kg(sugerida) : "kg"}
                     onChange={(e) => mudar(i, { carga: e.target.value })}
                     aria-label={`Carga de ${rotuloBloco} em quilos`}
                     className="h-10 w-20 rounded-md border border-border bg-bg px-2 text-center font-mono text-base focus:border-accent"
@@ -175,7 +184,7 @@ export function SerieEmBlocos({
                   type="text"
                   inputMode="numeric"
                   value={l.reps}
-                  placeholder={p.meta}
+                  placeholder={ultimaVez?.[i]?.reps != null ? String(ultimaVez[i].reps) : p.meta}
                   onChange={(e) => mudar(i, { reps: e.target.value.replace(/\D/g, "").slice(0, 3) })}
                   aria-label={`Repetições de ${rotuloBloco}`}
                   className="h-10 w-20 rounded-md border border-border bg-bg px-2 text-center font-mono text-base focus:border-accent"

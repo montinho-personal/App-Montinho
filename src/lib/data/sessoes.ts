@@ -136,7 +136,7 @@ async function porSessoes<T>(db: Awaited<ReturnType<typeof getDb>>, tabela: "ses
 export type UltimaExecucao = {
   data: string;
   nomeTreino: string | null;
-  series: Array<{ serie: number; carga_kg: number | null; reps: number | null; rir: number | null; tipo: SerieTipo }>;
+  series: Array<{ serie: number; carga_kg: number | null; reps: number | null; rir: number | null; tipo: SerieTipo; /** Pedaços da série em blocos (drop-set, rest-pause…), para mostrar no próximo treino. */ blocos?: Array<{ carga: number | null; reps: number | null }> | null }>;
 };
 
 /**
@@ -159,7 +159,7 @@ export async function ultimasExecucoes(alunoId: string, exercicios: Array<{ id: 
         achado = {
           data: s.finalizado_em ?? s.iniciado_em,
           nomeTreino: s.nome_treino,
-          series: se.series.filter((x) => x.tipo !== "aquecimento").map((x) => ({ serie: x.serie, carga_kg: x.carga_kg, reps: x.reps, rir: x.rir, tipo: x.tipo })),
+          series: se.series.filter((x) => x.tipo !== "aquecimento").map((x) => ({ serie: x.serie, carga_kg: x.carga_kg, reps: x.reps, rir: x.rir, tipo: x.tipo, ...(x.blocos?.length ? { blocos: x.blocos } : {}) })),
         };
         break;
       }

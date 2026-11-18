@@ -84,7 +84,7 @@ import { ehPorTempo, segundosPrevistos } from "@/lib/treino/medida";
 import { FRASE_FACIL, LIMITE_FACIL, conviteVaiQueTaFacil } from "@/lib/chalala/facil";
 import { CronometroSerie } from "./CronometroSerie";
 import { SerieEmBlocos, type BlocoDigitado } from "./SerieEmBlocos";
-import { ajusteDeBlocos, arredondarCarga, blocosComQuantidade, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, repsParaSugerir, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
+import { ajusteDeBlocos, arredondarCarga, blocosComQuantidade, blocosPlanejados, configEfetiva, instrucaoTecnica, podeFinalizar, registraEmBlocos, blocosDaUltimaVez, repsParaSugerir, resumoTecnica, seriesDeFinalizacao, somaBlocos, type BlocoPlanejado } from "@/lib/treino/tecnica-config";
 import { FRASES_CONFIANCA, confiancaAntesDoTreino, confiancaNoFim, podeMostrarConfianca } from "@/lib/chalala/confianca";
 import { FRACAO_CONCLUSAO } from "@/lib/aderencia/calcular";
 import { samuraiNoTreino, trofeusNoTreino, type ItemAlcance } from "@/lib/conquistas/ao-alcance";
@@ -1923,6 +1923,7 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                                 onConcluir={() => concluirSerie(se.id, i, ex)}
                                 onPausa={(seg) => setTimer((t) => ({ seg, key: (t?.key ?? 0) + 1, fim: new Date().getTime() + seg * 1000 }))}
                                 chavePausa={ex.tecnica ?? undefined}
+                                ultimaVez={blocosDaUltimaVez(ultima?.series, s.tipo, (ehFin ? nFin : nVal) - 1)}
                               />
                             </div>
                           );

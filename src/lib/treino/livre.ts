@@ -1,3 +1,4 @@
+import { textoDosBlocos } from "./tecnica-config";
 // ============================================================================
 // Treino livre (freestyle) do visitante: sem ficha pronta. A pessoa escolhe o
 // exercício na hora, anota as séries (carga × repetições), se usou alguma
@@ -100,12 +101,14 @@ export function treinoDoLivre(exs: ExercicioLivre[]): Array<{ biblioteca_id: str
 
 const kg = (n: number) => `${String(n).replace(".", ",")} kg`;
 /** “Última vez (21/10): 40 kg × 10 · 40 kg × 8” — para lembrar a carga na hora de escolher. */
-export function textoUltimaVez(u: { data: string; series: Array<{ carga_kg: number | null; reps: number | null; tipo: string }> } | null | undefined): string | null {
+export function textoUltimaVez(u: { data: string; series: Array<{ carga_kg: number | null; reps: number | null; tipo: string; blocos?: Array<{ carga: number | null; reps: number | null }> | null }> } | null | undefined): string | null {
   if (!u) return null;
   const ss = u.series.filter((s) => s.tipo !== "aquecimento" && (s.carga_kg != null || s.reps != null)).slice(0, 4);
   if (!ss.length) return null;
   const dia = u.data.slice(0, 10).split("-").reverse().slice(0, 2).join("/");
-  return `Última vez (${dia}): ${ss.map((s) => (s.carga_kg != null && s.reps != null ? `${kg(s.carga_kg)} × ${s.reps}` : s.carga_kg != null ? kg(s.carga_kg) : `${s.reps} reps`)).join(" · ")}`;
+  // Série em blocos (drop-set, rest-pause…) mostra cada pedaço: “40 kg × 12 → 30 kg × 8” (18/11/2026).
+  const umaSerie = (s: (typeof ss)[number]) => (s.blocos && s.blocos.length > 1 ? `(${textoDosBlocos(s.blocos)})` : s.carga_kg != null && s.reps != null ? `${kg(s.carga_kg)} × ${s.reps}` : s.carga_kg != null ? kg(s.carga_kg) : `${s.reps} reps`);
+  return `Última vez (${dia}): ${ss.map(umaSerie).join(" · ")}`;
 }
 
 /** Carga digitada no padrão do Brasil (“42,5”) → número; vazio/inválido = null. */

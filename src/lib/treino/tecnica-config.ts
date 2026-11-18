@@ -335,3 +335,24 @@ export function instrucaoTecnica(tecnica: Tecnica | string | null | undefined, s
   }
   return null;
 }
+
+type BlocoAntes = { carga: number | null; reps: number | null };
+type SerieAntes = { tipo?: string | null; blocos?: BlocoAntes[] | null };
+const kgTxt = (n: number) => `${String(n).replace(".", ",")} kg`;
+/**
+ * Blocos que a pessoa fez da última vez nesta série (18/11/2026, pedido do Montinho: “no próximo treino,
+ * ficar registrado os drops feitos, pra pessoa já saber qual fez”): a N-ésima série em blocos da mesma
+ * técnica do último treino (se faltar, a última delas). Sem blocos anotados → null.
+ */
+export function blocosDaUltimaVez(series: SerieAntes[] | null | undefined, tipo: string, indice: number): BlocoAntes[] | null {
+  const mesmas = (series ?? []).filter((x) => x.tipo === tipo && (x.blocos ?? []).some((b) => (b.reps ?? 0) > 0));
+  const s = mesmas[indice] ?? mesmas.at(-1);
+  return s?.blocos?.length ? s.blocos : null;
+}
+/** “40 kg × 12 → 30 kg × 8 → 22 kg × 6” (sem carga: só as repetições). */
+export function textoDosBlocos(blocos: BlocoAntes[]): string {
+  return blocos
+    .filter((b) => b.reps != null || b.carga != null)
+    .map((b) => (b.carga != null && b.reps != null ? `${kgTxt(b.carga)} × ${b.reps}` : b.carga != null ? kgTxt(b.carga) : `${b.reps}`))
+    .join(" → ");
+}
