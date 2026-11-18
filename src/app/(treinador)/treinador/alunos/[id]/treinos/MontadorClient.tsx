@@ -498,11 +498,18 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
     setJuntando(null);
   };
   /** Método do exercício. Bi-set/tri-set com outros exercícios no treino: pergunta com qual juntar. */
+  /** Exercício que acabou de ganhar uma técnica configurável: a folha da técnica abre sozinha. */
+  const [abrirTecnica, setAbrirTecnica] = useState<string | null>(null);
   const escolherMetodo = (tk: string, rk: string, metodo: Tecnica) => {
     const t = estado.treinos.find((x) => x.key === tk);
     if (ehTecnicaBloco(metodo) && t && t.rows.some((r) => r.key !== rk && r.nome.trim())) {
       setJuntando({ tk, rk, metodo });
       return;
+    }
+    if (ehConfiguravel(metodo)) {
+      setAbrirTecnica(rk);
+      // Só vale para a escolha de agora: fechar e reabrir o treino não abre a folha de novo.
+      setTimeout(() => setAbrirTecnica(null), 1500);
     }
     aplicarMetodoUm(tk, rk, metodo);
   };
@@ -1474,7 +1481,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                 </div>
                                 {ehConfiguravel(r.tecnica) ? (
                                   <div className="px-2 pb-2">
-                                    <ConfigTecnicaPainel key={r.tecnica} tecnica={r.tecnica} config={r.tecnicaConfig} validas={Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento)} cargaAlvo={r.cargaAlvo} onChange={(c) => updRow(t.key, r.key, { tecnicaConfig: c })} />
+                                    <ConfigTecnicaPainel key={r.tecnica} tecnica={r.tecnica} config={r.tecnicaConfig} validas={Math.max(0, totalSeries(r.seriesConfig) - r.aquecimento)} cargaAlvo={r.cargaAlvo} repsTexto={r.seriesConfig.modo === "iguais" ? r.seriesConfig.reps : r.seriesConfig.series.map((x) => x.reps).join(" · ")} exercicio={r.nome} abrirAoMontar={abrirTecnica === r.key} onChange={(c) => updRow(t.key, r.key, { tecnicaConfig: c })} onRemover={() => escolherMetodo(t.key, r.key, "normal")} />
                                   </div>
                                 ) : null}
                               </div>

@@ -338,3 +338,6 @@
 .barra-cresce { transform-origin: left; animation: barra-cresce 900ms cubic-bezier(0.3, 0.8, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) { .anel-enche, .barra-cresce { animation: none; } }
 .sem-animacao .anel-enche, .sem-animacao .barra-cresce { animation: none; }
+
+/* Folha da técnica aberta (montador): os avisos de tempo não cobrem o botão “Pronto”. */
+body.folha-tecnica-aberta .pilha-toasts { display: none !important; }

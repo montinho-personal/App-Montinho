@@ -293,7 +293,7 @@ const vezes = (n: number) => `${n}×`;
 export function resumoTecnica(tecnica: Tecnica | string | null | undefined, salvo: unknown): string | null {
   const c = configEfetiva(tecnica, salvo);
   if (!c) return null;
-  const onde = c.aplicar === "finalizacao" ? `${vezes(c.series)} no final` : c.series > 0 ? `nas últimas ${c.series === 1 ? "série" : `${c.series} séries`}` : "em todas as séries";
+  const onde = c.aplicar === "finalizacao" ? `${vezes(c.series)} no final` : c.series === 1 ? "na última série" : c.series > 0 ? `nas últimas ${c.series} séries` : "em todas as séries";
   switch (tecnica) {
     case "rest_pause":
       return `${onde} · ${blocosEscolhidos(salvo) ? `${c.blocos + 1} blocos${c.repsAlvo != null ? ` · meta ${c.repsAlvo} reps` : ""}` : c.repsAlvo != null ? `meta ${c.repsAlvo} reps` : `${c.blocos} mini-séries`} · pausas de ${seg(c.pausaSeg)}`;
@@ -355,4 +355,102 @@ export function textoDosBlocos(blocos: BlocoAntes[]): string {
     .filter((b) => b.reps != null || b.carga != null)
     .map((b) => (b.carga != null && b.reps != null ? `${kgTxt(b.carga)} × ${b.reps}` : b.carga != null ? kgTxt(b.carga) : `${b.reps}`))
     .join(" → ");
+}
+
+// ---------------------------------------------------------------------------
+// Montador: técnica “em frase” (18/11/2026, pedido do Montinho: o painel da
+// técnica estava confuso). Onde entra, atalhos e a prévia do que o aluno vê.
+// ---------------------------------------------------------------------------
+export type OndeEntra = "ultima" | "extra" | "todas" | "outro";
+
+/** Em que séries a técnica entra, do jeito que o treinador fala. */
+export function ondeEntra(tecnica: Tecnica | string | null | undefined, salvo: unknown, validas: number): OndeEntra | null {
+  const c = configEfetiva(tecnica, salvo);
+  if (!c || !podeFinalizar(tecnica)) return null;
+  if (c.aplicar === "finalizacao") return c.series === 1 ? "extra" : "outro";
+  const n = Math.max(1, c.series);
+  if (validas > 1 && n >= validas) return "todas";
+  return n === 1 ? "ultima" : "outro";
+}
+
+/** Configuração depois de tocar em “Na última série / Série a mais no fim / Em todas”. */
+export function configDoOnde(cfg: ConfigTecnica, onde: Exclude<OndeEntra, "outro">, validas: number): ConfigTecnica {
+  if (onde === "extra") return { ...cfg, aplicar: "finalizacao", series: 1 };
+  return { ...cfg, aplicar: "principais", series: onde === "ultima" ? 1 : Math.min(LIMITES_TECNICA.series[1], Math.max(1, validas)) };
+}
+
+/** Atalhos de um toque por técnica (só mudam os números da técnica; “onde entra” fica como está). */
+export const ATALHOS_TECNICA: Partial<Record<TecnicaConfiguravel, Array<{ rotulo: string; cfg: ConfigTecnica }>>> = {
+  dropset: [
+    { rotulo: "1 drop −25%", cfg: { blocos: 1, reducaoPct: 25 } },
+    { rotulo: "2 drops −20%", cfg: { blocos: 2, reducaoPct: 20 } },
+    { rotulo: "3 drops −20%", cfg: { blocos: 3, reducaoPct: 20 } },
+  ],
+  rest_pause: [
+    { rotulo: "3 blocos · 15 s", cfg: { blocos: 2, pausaSeg: 15 } },
+    { rotulo: "4 blocos · 20 s", cfg: { blocos: 3, pausaSeg: 20 } },
+  ],
+  myo_reps: [
+    { rotulo: "15 + 4×5", cfg: { reps: 15, blocos: 4, repsBloco: 5 } },
+    { rotulo: "20 + 3×3", cfg: { reps: 20, blocos: 3, repsBloco: 3 } },
+  ],
+  cluster: [
+    { rotulo: "3 × 4 · 20 s", cfg: { blocos: 3, reps: 4, pausaSeg: 20 } },
+    { rotulo: "5 × 2 · 15 s", cfg: { blocos: 5, reps: 2, pausaSeg: 15 } },
+  ],
+};
+
+/** Um atalho está valendo quando todos os números dele batem com a configuração. */
+export const atalhoAtivo = (tecnica: Tecnica | string | null | undefined, salvo: unknown, cfg: ConfigTecnica): boolean => {
+  const c = configEfetiva(tecnica, salvo);
+  // Rest-pause sem nº de blocos escolhido = “quantas der até o total”: nenhum atalho de blocos está valendo.
+  if (tecnica === "rest_pause" && cfg.blocos != null && !blocosEscolhidos(salvo)) return false;
+  return !!c && (Object.keys(cfg) as Array<keyof ConfigTecnica>).every((k) => c[k] === cfg[k]);
+};
+
+const intervalo = (de: number, ate: number) => (de === ate ? `Série ${de}` : ate === de + 1 ? `Séries ${de} e ${ate}` : `Séries ${de} a ${ate}`);
+
+/**
+ * “O aluno vai ver”: série por série, em linhas curtas. `repsTexto` = reps prescritas
+ * das séries normais; `carga` = carga-alvo (sem ela, o drop-set usa 50 kg de exemplo).
+ */
+export function previaDoAluno(tecnica: Tecnica | string | null | undefined, salvo: unknown, validas: number, nome: string, repsTexto?: string | null, carga?: number | null): { linhas: Array<{ texto: string; tecnica: boolean }>; total: number } | null {
+  const c = configEfetiva(tecnica, salvo);
+  if (!c) return null;
+  // Reps série a série (“12/10/8/6”): cada linha mostra só as séries dela.
+  const pedacos = (repsTexto ?? "").split("/").map((x) => x.trim()).filter(Boolean);
+  const repsDe = (qtd: number) => (!pedacos.length ? "normais" : `${(pedacos.length === Math.max(0, validas) && pedacos.length > 1 ? pedacos.slice(0, qtd) : pedacos).join(" / ")} reps`);
+  const kg = carga && carga > 0 ? carga : 50;
+  const detalhe = (() => {
+    switch (tecnica) {
+      case "dropset":
+        return `${carga && carga > 0 ? "" : "ex.: "}${[kg, ...cargasDosDrops(kg, c.blocos, c.reducaoPct)].map(kgTxt).join(" → ")}`;
+      case "rest_pause":
+        return c.repsAlvo != null ? `${exemploRestPause(c.repsAlvo, blocosEscolhidos(salvo) ? c.blocos + 1 : undefined).join(" + ")} = ${c.repsAlvo} reps` : `${c.blocos + 1} blocos até a falha · ${c.pausaSeg} s de pausa`;
+      case "myo_reps":
+        return `${c.reps} + ${c.blocos}×${c.repsBloco} reps`;
+      case "cluster":
+        return `${Array.from({ length: c.blocos }, () => c.reps).join(" + ")} reps · ${c.pausaSeg} s entre blocos`;
+      case "tres_sete":
+        return `3 + 4 + 5 + 6 + 7 reps · ${c.pausaSeg} s entre blocos`;
+      default:
+        return `${c.descidaSeg} s descendo · ${c.subidaSeg} s subindo`;
+    }
+  })();
+  const v = Math.max(0, validas);
+  const linhas: Array<{ texto: string; tecnica: boolean }> = [];
+  if (!podeFinalizar(tecnica)) {
+    linhas.push({ texto: `${v > 0 ? (v === 1 ? "A série" : `Todas as ${v} séries`) : "Todas as séries"} com ${nome}: ${detalhe}`, tecnica: true });
+    return { linhas, total: v };
+  }
+  if (c.aplicar === "finalizacao") {
+    if (v > 0) linhas.push({ texto: `${intervalo(1, v)}: ${repsDe(v)}`, tecnica: false });
+    linhas.push({ texto: `＋ ${c.series === 1 ? "1 série" : `${c.series} séries`} de ${nome} no fim: ${detalhe}`, tecnica: true });
+    return { linhas, total: v + c.series };
+  }
+  const n = Math.min(Math.max(1, v), Math.max(1, c.series));
+  const normais = Math.max(0, v - n);
+  if (normais > 0) linhas.push({ texto: `${intervalo(1, normais)}: ${repsDe(normais)}`, tecnica: false });
+  linhas.push({ texto: `${intervalo(normais + 1, normais + n)} com ${nome}: ${detalhe}`, tecnica: true });
+  return { linhas, total: Math.max(v, n) };
 }

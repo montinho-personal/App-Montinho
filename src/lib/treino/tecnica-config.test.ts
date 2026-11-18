@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ajusteDeBlocos, blocosComQuantidade, blocosPlanejados, camposLegados, cargasDosDrops, configEfetiva, exemploRestPause, instrucaoTecnica, resumoTecnica, seriesDeFinalizacao, somaBlocos } from "./tecnica-config";
+import { ajusteDeBlocos, blocosComQuantidade, blocosPlanejados, camposLegados, cargasDosDrops, configEfetiva, exemploRestPause, instrucaoTecnica, resumoTecnica, seriesDeFinalizacao, somaBlocos, ondeEntra, configDoOnde, atalhoAtivo, previaDoAluno } from "./tecnica-config";
 
 describe("configEfetiva", () => {
   it("usa os padrões da técnica quando nada foi salvo", () => {
@@ -122,5 +122,49 @@ describe("drops da última vez", () => {
     expect(blocosDaUltimaVez(antes, "dropset", 1)!.length).toBe(2);
     expect(blocosDaUltimaVez(antes, "dropset", 5)!.length).toBe(2);
     expect(blocosDaUltimaVez(antes, "cluster", 0)).toBeNull();
+  });
+});
+
+describe("técnica em frase (montador)", () => {
+  it("onde entra: última, série a mais, todas", () => {
+    expect(ondeEntra("dropset", {}, 4)).toBe("extra");
+    expect(ondeEntra("dropset", configDoOnde({}, "ultima", 4), 4)).toBe("ultima");
+    expect(ondeEntra("dropset", configDoOnde({}, "todas", 4), 4)).toBe("todas");
+    expect(ondeEntra("dropset", { aplicar: "principais", series: 2 }, 4)).toBe("outro");
+    expect(ondeEntra("dropset", { aplicar: "finalizacao", series: 2 }, 4)).toBe("outro");
+    expect(ondeEntra("cluster", {}, 4)).toBeNull();
+  });
+  it("trocar onde entra não mexe nos números da técnica", () => {
+    expect(configDoOnde({ blocos: 3, reducaoPct: 25 }, "ultima", 4)).toEqual({ blocos: 3, reducaoPct: 25, aplicar: "principais", series: 1 });
+    expect(configDoOnde({}, "todas", 9).series).toBe(6);
+  });
+  it("atalho ativo quando os números batem", () => {
+    expect(atalhoAtivo("dropset", {}, { blocos: 2, reducaoPct: 20 })).toBe(true);
+    expect(atalhoAtivo("dropset", { blocos: 1 }, { blocos: 2, reducaoPct: 20 })).toBe(false);
+  });
+  it("prévia: drop-set na última série não aumenta o total", () => {
+    const p = previaDoAluno("dropset", { aplicar: "principais", series: 1 }, 4, "Drop-set", "10-12", 50)!;
+    expect(p.total).toBe(4);
+    expect(p.linhas.map((l) => l.texto)).toEqual(["Séries 1 a 3: 10-12 reps", "Série 4 com Drop-set: 50 kg → 40 kg → 32 kg"]);
+  });
+  it("prévia: série a mais no fim soma no total; sem carga usa exemplo", () => {
+    const p = previaDoAluno("dropset", {}, 3, "Drop-set", "12")!;
+    expect(p.total).toBe(4);
+    expect(p.linhas[1].texto).toBe("＋ 1 série de Drop-set no fim: ex.: 50 kg → 40 kg → 32 kg");
+  });
+  it("prévia: cluster vale para todas as séries", () => {
+    const p = previaDoAluno("cluster", {}, 4, "Cluster")!;
+    expect(p.linhas).toEqual([{ texto: "Todas as 4 séries com Cluster: 4 + 4 + 4 reps · 20 s entre blocos", tecnica: true }]);
+  });
+});
+
+describe("prévia com reps série a série", () => {
+  it("mostra só as reps das séries normais", () => {
+    const p = previaDoAluno("dropset", { aplicar: "principais", series: 1 }, 4, "Drop-set", "12/10/8/6", 50)!;
+    expect(p.linhas[0].texto).toBe("Séries 1 a 3: 12 / 10 / 8 reps");
+  });
+  it("rest-pause sem blocos escolhidos: nenhum atalho de blocos ativo", () => {
+    expect(atalhoAtivo("rest_pause", {}, { blocos: 2, pausaSeg: 15 })).toBe(false);
+    expect(atalhoAtivo("rest_pause", { blocos: 2 }, { blocos: 2, pausaSeg: 15 })).toBe(true);
   });
 });
