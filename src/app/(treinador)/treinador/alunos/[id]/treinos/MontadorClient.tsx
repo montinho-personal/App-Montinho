@@ -57,6 +57,8 @@ import { VerExercicio } from "@/components/ui/VerExercicio";
 import { prontidaoDoProtocolo } from "@/lib/montador/prontidao";
 import { EditorBlocos } from "@/components/montador/EditorBlocos";
 import { avisoDoProtocolo, mudancasDoProtocolo, proximaFase, type SnapProtocolo } from "@/lib/protocolo/mudanca";
+import { compararMusculos, compararProtocolos, versaoDePartida, type ProtocoloComparavel } from "@/lib/protocolo/comparar";
+import { ComparativoProtocolo } from "@/components/montador/ComparativoProtocolo";
 import { blocosIniciais } from "@/lib/modalidades/blocos";
 import { ehMusculacao, LISTA_MODALIDADES, MODALIDADES_TREINO, type BlocoTreino, type ModalidadeTreino } from "@/lib/modalidades/tipos";
 
@@ -124,6 +126,8 @@ type Props = {
   multimodalidade?: boolean;
   /** Faixas de séries do último relatório do Montinho Strategy (entram quando o plano está sem metas). */
   metasDoRelatorio?: { metas: Partial<Record<GrupoMuscular, MetaVolume>>; data: string | null } | null;
+  /** Versões salvas do protocolo (para o comparativo “antes × agora”), da mais nova para a mais antiga. */
+  versoes?: Array<{ id: string; versao: number; created_at: string; fase: string | null; snapshot: SnapshotPrograma }>;
   /** Foco de cada dia segundo a estratégia importada (séries/semana por músculo). */
   focoEstrategia?: Record<string, string>;
   /** Padrões de tempo do treinador (nível acima do treino). */
@@ -240,6 +244,63 @@ function programaInicial(p: Programa | null, letras: TreinoLetra[]): ProgramaVM 
   };
 }
 
+/** Vezes por semana de cada letra (calendário; sem calendário, a frequência manual ou 1×). */
+function frequenciaDoEstado(e: Estado): Frequencia {
+  const f = frequenciaDoCalendario(e.programa.calendario);
+  const calendarioVazio = Object.keys(f).length === 0;
+  for (const t of e.treinos) {
+    if (!t.ativo) continue;
+    // Sem calendário definido: cada letra 1×/semana (ou frequência manual salva).
+    // Com calendário definido: letra fora da semana/ciclo = 0 (o treinador vê o aviso na linha).
+    if (f[t.letra] == null) f[t.letra] = calendarioVazio ? Number(e.programa.frequenciaManual[t.letra] ?? 1) : 0;
+  }
+  return f;
+}
+
+/** Versão salva (programa_versoes.snapshot) → o mesmo formato da tela, para comparar. */
+function estadoDoSnapshot(s: SnapshotPrograma, atuais?: Map<string, Row>): Estado {
+  // O mesmo exercício que ainda está na tela usa o MESMO músculo/biblioteca (a conta do volume tem de bater);
+  // os que saíram usam o músculo gravado na versão.
+  const linha = (e: SnapshotPrograma["treinos"][number]["exercicios"][number]): Row => {
+    const r = rowDeExercicio({ ...e, grupo_origem: e.grupo_muscular ? "manual" : null, conta_volume: true, biblioteca_id: null } as unknown as ExercicioPrescrito);
+    const igual = e.id ? atuais?.get(e.id) : undefined;
+    return igual ? { ...r, grupo: igual.grupo, secundarios: igual.secundarios, bibliotecaId: igual.bibliotecaId, contaVolume: igual.contaVolume } : r;
+  };
+  const treinos: TreinoVM[] = (s.treinos ?? []).map((t) => ({
+    key: novaKey(),
+    id: t.id,
+    letra: t.letra,
+    nome: t.nome,
+    ativo: t.ativo,
+    observacoes: t.observacoes ?? "",
+    rows: [...t.exercicios].sort((a, b) => a.ordem - b.ordem).map(linha),
+    tempos: {},
+    tempoAlvo: "",
+  }));
+  return { programa: programaInicial(s.programa as unknown as Programa, treinos.map((t) => t.letra)), treinos };
+}
+
+/** Estado → formato do comparativo (séries válidas, reps, técnica, descanso, vezes por semana). */
+function comparavel(e: Estado): ProtocoloComparavel {
+  const f = frequenciaDoEstado(e);
+  return {
+    fase: e.programa.fase || null,
+    treinos: e.treinos.map((t) => ({
+      letra: t.letra,
+      nome: t.nome.trim() || `Treino ${t.letra}`,
+      ativo: t.ativo,
+      vezesPorSemana: Number(f[t.letra] ?? 0),
+      exercicios: t.rows
+        .filter((r) => r.nome.trim())
+        .map((r) => {
+          const cfg = r.seriesConfig;
+          const reps = cfg.modo === "iguais" ? cfg.reps : cfg.series.slice(Math.min(r.aquecimento, cfg.series.length)).map((x) => x.reps).join("-");
+          return { nome: r.nome.trim(), series: Math.max(0, totalSeries(cfg) - r.aquecimento), reps, tecnica: METODOS.find((m) => m.v === r.tecnica)?.l ?? "", descansoSeg: cfg.modo === "iguais" ? cfg.descanso_seg : (cfg.series[0]?.descanso_seg ?? null) };
+        }),
+    })),
+  };
+}
+
 // ----------------------------------------------------------------------------
 /** Converte uma linha do montador no formato do cálculo de tempo (aquecimento = primeiras séries). */
 function exercicioTempoDaLinha(r: Row): ExercicioTempo {
@@ -262,7 +323,7 @@ function exercicioTempoDaLinha(r: Row): ExercicioTempo {
   };
 }
 
-export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, feitoSemana = null, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false, metasDoRelatorio = null }: Props) {
+export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, finalizados, biblioteca, itensBiblioteca, equivalencias, alternativasOcultas = [], podeOcultar = true, favoritos, usoExercicios, correcoes, anamnese, realizadoSemanal, feitoSemana = null, temposTreinador, focoEstrategia = {}, porques = {}, multimodalidade = false, metasDoRelatorio = null, versoes = [] }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -359,21 +420,11 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   );
 
   // --- frequência e volume (tempo real) ---------------------------------------
-  const frequencia = useMemo<Frequencia>(() => {
-    const f = frequenciaDoCalendario(estado.programa.calendario);
-    const calendarioVazio = Object.keys(f).length === 0;
-    for (const t of estado.treinos) {
-      if (!t.ativo) continue;
-      // Sem calendário definido: cada letra 1×/semana (ou frequência manual salva).
-      // Com calendário definido: letra fora da semana/ciclo = 0 (o treinador vê o aviso na linha).
-      if (f[t.letra] == null) f[t.letra] = calendarioVazio ? Number(estado.programa.frequenciaManual[t.letra] ?? 1) : 0;
-    }
-    return f;
-  }, [estado.programa.calendario, estado.programa.frequenciaManual, estado.treinos]);
+  const frequencia = useMemo<Frequencia>(() => frequenciaDoEstado(estado), [estado]);
 
-  const diasVolume = useMemo<DiaVolume[]>(
-    () =>
-      estado.treinos.map((t) => ({
+  const diasDoEstado = useCallback(
+    (treinos: TreinoVM[]): DiaVolume[] =>
+      treinos.map((t) => ({
         letra: t.letra,
         nome: t.nome,
         ativo: t.ativo,
@@ -387,10 +438,29 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             return { id: r.key, nome: r.nome, grupo: g.grupo, secundarios: r.secundarios.length ? r.secundarios : item?.secundarios.length ? item.secundarios : g.secundarios, pesosSecundarios: pesos, confianca: g.confianca, series: totalSeries(r.seriesConfig), seriesAquecimento: r.aquecimento, tecnica: r.tecnica, tecnicaExtras: r.tecnicaExtras === "" ? null : Number(r.tecnicaExtras), tecnicaSeries: r.tecnicaSeries === "" ? null : Number(r.tecnicaSeries), tecnicaConfig: r.tecnicaConfig, rir: r.rir === "" ? null : Number(r.rir), contaVolume: r.contaVolume };
           }),
       })),
-    [estado.treinos, resolver, itemDaLinha]
+    [resolver, itemDaLinha]
   );
+  const diasVolume = useMemo<DiaVolume[]>(() => diasDoEstado(estado.treinos), [diasDoEstado, estado.treinos]);
 
   const volume = useMemo(() => calcularVolumeSemanal(diasVolume, { frequencia, metas: estado.programa.metas_volume, incluirSecundario, agruparOmbros: false, regraTecnicas, ajustarPorRir }), [diasVolume, frequencia, estado.programa.metas_volume, incluirSecundario, regraTecnicas, ajustarPorRir]);
+
+  // 📊 Antes × agora (18/11/2026): protocolo de partida = a última versão salva de OUTRA fase (senão a última salva).
+  const [baseEscolhida, setBaseEscolhida] = useState<string | null>(null);
+  const [comparativoAberto, setComparativoAberto] = useState(false);
+  const fmtData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const opcoesBase = useMemo(() => versoes.map((v) => ({ id: v.id, rotulo: `${v.fase && FASE_INFO[v.fase as Fase] ? FASE_INFO[v.fase as Fase].rotulo : "Sem fase"} · versão ${v.versao} · ${fmtData(v.created_at)}` })), [versoes]);
+  const base = useMemo(() => (baseEscolhida ? versoes.find((v) => v.id === baseEscolhida) : null) ?? versaoDePartida(versoes, estado.programa.fase || null), [versoes, baseEscolhida, estado.programa.fase]);
+  const comparativo = useMemo(() => {
+    if (!base) return null;
+    const be = estadoDoSnapshot(base.snapshot, new Map(estado.treinos.flatMap((t) => t.rows.filter((r) => r.id).map((r) => [r.id as string, r]))));
+    const op = { incluirSecundario, agruparOmbros: false, regraTecnicas, ajustarPorRir, metas: {} };
+    const vAntes = calcularVolumeSemanal(diasDoEstado(be.treinos), { ...op, frequencia: frequenciaDoEstado(be) });
+    const limpa = (r: typeof vAntes) => r.linhas.filter((l) => !l.parteDe).map((l) => ({ grupo: l.grupo, label: l.label, total: l.total }));
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    // Séries/semana = a MESMA conta da barra “Volume” (séries válidas por músculo), para os números baterem.
+    const comp = { ...compararProtocolos(comparavel(be), comparavel(estado)), seriesSemanaAntes: r1(vAntes.subtotais.total), seriesSemanaAgora: r1(volume.subtotais.total) };
+    return { comp, musculos: compararMusculos(limpa(vAntes), limpa(volume)), rotulo: opcoesBase.find((o) => o.id === base.id)?.rotulo ?? `versão ${base.versao}` };
+  }, [base, estado, volume, diasDoEstado, incluirSecundario, regraTecnicas, ajustarPorRir, opcoesBase]);
 
   // Duração estimada de cada treino (recalcula a cada mudança). Precedência:
   // app → padrão do treinador → treino → exercício → série.
@@ -1075,7 +1145,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                 )}
                 {fase !== faseSalva ? <span className="text-[11px] font-semibold text-accent">mudou · toque em Salvar</span> : null}
                 {prox && !passandoFase ? (
-                  <button type="button" onClick={() => { updPrograma({ fase: prox }); setPassandoFase(true); }} className="ml-auto h-9 rounded-full px-4 text-xs font-bold text-bg" style={{ background: FASE_INFO[prox].cor }}>
+                  <button type="button" onClick={() => { updPrograma({ fase: prox }); setPassandoFase(true); setComparativoAberto(true); setTimeout(() => document.getElementById("passo-a-passo-fase")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className="ml-auto h-9 rounded-full px-4 text-xs font-bold text-bg" style={{ background: FASE_INFO[prox].cor }}>
                     🚀 Passar para a {FASE_INFO[prox].rotulo}
                   </button>
                 ) : null}
@@ -1100,9 +1170,10 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
           );
         })()}
         {passandoFase && estado.programa.fase ? (
-          <div className="space-y-2 border-t border-border px-4 py-3 text-sm" style={{ background: `${FASE_INFO[estado.programa.fase].cor}14` }}>
+          <div id="passo-a-passo-fase" className="scroll-mt-24 space-y-2 border-t border-border px-4 py-3 text-sm" style={{ background: `${FASE_INFO[estado.programa.fase].cor}14` }}>
             <p className="font-bold">🚀 Passando para a {FASE_INFO[estado.programa.fase].rotulo}: o que revisar</p>
             <ol className="list-decimal space-y-1 pl-5 text-xs text-fg-muted">
+              <li>Logo abaixo, no <strong>📊 Antes × agora</strong>, você vê o protocolo de partida ao lado do que está montando: o que entrou, saiu e mudou em cada treino e as séries por músculo.</li>
               <li>Troque, tire ou adicione exercícios em cada treino (os que ficarem mantêm o histórico de cargas do aluno).</li>
               <li>Ajuste séries, repetições e técnicas (drop-set, rest-pause…) da fase nova.</li>
               <li>Mais dias de treino? Use <strong>“+ Adicionar dia”</strong> no fim da lista ou <strong>“Duplicar dia”</strong> num treino parecido.</li>
@@ -1111,6 +1182,9 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
             </ol>
             <button type="button" onClick={() => setPassandoFase(false)} className="text-xs font-semibold text-fg-muted underline">Fechar o passo a passo</button>
           </div>
+        ) : null}
+        {comparativo ? (
+          <ComparativoProtocolo key={`${base?.id}:${comparativoAberto}`} id="comparativo-protocolo" comp={comparativo.comp} musculos={comparativo.musculos} opcoes={opcoesBase} baseId={base!.id} onTrocarBase={setBaseEscolhida} rotuloBase={comparativo.rotulo} aberto={comparativoAberto || passandoFase} />
         ) : null}
         {previaAviso ? (
           <div className="space-y-1 border-t border-border px-4 py-3 text-xs">

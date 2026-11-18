@@ -6,7 +6,7 @@ import { requireTreinadorPage } from "@/lib/auth/session";
 import { getAluno, getAnamnese } from "@/lib/db";
 import { listarBiblioteca, listarEquivalencias, listarFavoritos, usoDosExercicios } from "@/lib/data/biblioteca";
 import { lerTemposTreinador } from "@/lib/data/preferencias";
-import { getPlanoAtivo, listTreinosFinalizados } from "@/lib/data/programas";
+import { getPlanoAtivo, listTreinosFinalizados, listVersoes } from "@/lib/data/programas";
 import { listCorrecoes } from "@/lib/data/acompanhamento";
 import { listSessoes } from "@/lib/data/sessoes";
 import { periodoDias, seriesRealizadasPorGrupo } from "@/lib/relatorios/calcular";
@@ -65,6 +65,8 @@ export default async function MontadorPage({ params }: PageProps) {
   };
 
   const feitoSemana = await volumeFeitoDaSemana(id).catch(() => null);
+  // 📊 Antes × agora: versões salvas do protocolo (a de partida sai daqui).
+  const versoes = (await listVersoes(id, 30).catch(() => [])).filter((v) => v.snapshot?.treinos?.length).map((v) => ({ id: v.id, versao: v.versao, created_at: v.created_at, fase: (v.snapshot.programa?.fase as string | null | undefined) ?? null, snapshot: v.snapshot }));
   const p28 = periodoDias(28);
   const realizadoBruto = volumeRealizadoPorGrupo(seriesRealizadasPorGrupo(sessoes, p28));
   const realizadoSemanal = Object.fromEntries(Object.entries(realizadoBruto).map(([g, v]) => [g, Math.round(((v ?? 0) / 4) * 10) / 10]));
@@ -105,6 +107,7 @@ export default async function MontadorPage({ params }: PageProps) {
       feitoSemana={feitoSemana}
       focoEstrategia={focoEstrategia}
       porques={porques}
+      versoes={versoes}
     />
     </>
   );
