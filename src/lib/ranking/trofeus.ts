@@ -94,9 +94,11 @@ export function chaveNoRanking(c: { codigo: string; referencia?: string | null }
 
 /** Troféus que contam no ranking CADA VEZ que são ganhos: feriados (1 por feriado, 0158) e o
  *  Fôlego Extra, Dobro e Triplo de Fôlego (1 por semana com 150%/200%/300% dos minutos de cardio, 0159–0161) e o
- *  Espalhando o Chalalá (1 por semana com um card compartilhado, 0162). Os outros, 1 vez. */
+ *  Espalhando o Chalalá (1 por semana com um card compartilhado, 0162) e os troféus de meta do cardio
+ *  (Semana no Ritmo, 100% no Plano, Fôlego de Ferro, Uma Hora de Chalalá: 1 por nível de meta, 0163). Os outros, 1 vez. */
+const POR_NIVEL = new Set<string>(["cardio_semana_ritmo", "cardio_meta_semana", "cardio_4_semanas", "cardio_uma_hora"]);
 export function contaCadaVez(codigo: string): boolean {
-  return codigo.startsWith("feriado_") || codigo === "compartilhou_primeiro" || codigo === "cardio_folego_extra" || codigo === "cardio_dobro" || codigo === "cardio_triplo";
+  return codigo.startsWith("feriado_") || codigo === "compartilhou_primeiro" || codigo === "cardio_folego_extra" || codigo === "cardio_dobro" || codigo === "cardio_triplo" || POR_NIVEL.has(codigo);
 }
 
 /** Quantos troféus contam no ranking (fora de FORA_DO_RANKING; feriado 1 por feriado) — mesma conta do banco. */

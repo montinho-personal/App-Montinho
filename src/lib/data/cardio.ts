@@ -14,7 +14,7 @@ import { getDb } from "@/lib/supabase/rls";
 import { demoStore, uid } from "@/lib/mock/store";
 import { mockProfiles } from "@/lib/mock/db";
 import { dataLocal, inicioDaSemana, somarDias } from "@/lib/aderencia/calcular";
-import { deRegistro, juntarCardios, semanasDeCardio, sinaisDoCardio, proximoMarco, type CardioFeito, type EntradaCardio, type SemanaCardio, type SinalCardio } from "@/lib/cardio/regras";
+import { CODIGOS_POR_NIVEL, deRegistro, juntarCardios, niveisDoCardio, semanasDeCardio, trofeusDoCardio, sinaisDoCardio, proximoMarco, type CardioFeito, type EntradaCardio, type SemanaCardio, type SinalCardio } from "@/lib/cardio/regras";
 import { modalidadeDoStrava, modalidadeDoTexto } from "@/lib/cardio/modalidades";
 import { listarCardiosStrava } from "@/lib/data/strava";
 import type { CardioPrescricao, CardioRegistro, IntensidadeCardio, ModalidadeCardio, ModalidadePrescricao } from "@/lib/supabase/types-extended";
@@ -407,15 +407,22 @@ export async function progressoCardio(alunoId: string): Promise<ProgressoCardio>
   let semana: ProgressoCardio["semana"] = null;
   let semanaMin: ProgressoCardio["semanaMin"] = null;
   let seguidas = 0;
+  let abertosNoNivel: string[] | undefined;
   if (temPrescricao) {
     const semanas = semanasDeCardio({ prescricoes: todas, feitos, hoje: dataLocal(new Date()), semanasPausadas });
+    // Meta intensificada: o que ainda não saiu neste nível volta para o “ao alcance”.
+    const nivel = niveisDoCardio(semanas, todas, dataLocal(new Date())).at(-1);
+    if (nivel && nivel.nivel > 1) {
+      const ganhos = new Set(trofeusDoCardio({ prescricoes: todas, feitos, semanasPausadas }, dataLocal(new Date())).filter((t) => t.referencia === nivel.referencia).map((t) => t.codigo as string));
+      abertosNoNivel = CODIGOS_POR_NIVEL.filter((c) => !ganhos.has(c));
+    }
     const atual = semanas.find((w) => w.atual);
     if (atual && atual.alvoMin > 0) semanaMin = { minutos: atual.minutos, alvoMin: atual.alvoMin };
     if (atual && !atual.cumpridaEm && (atual.alvoSessoes > 0 || atual.alvoMin > 0)) {
       semana = { faltaSessoes: Math.max(0, atual.alvoSessoes - atual.sessoes), faltaMin: Math.max(0, Math.ceil(atual.alvoMin - atual.minutos)), metaMinutos: atual.metaMinutos };
     }
     // Semanas seguidas cumpridas logo antes da atual (a que começou a prescrição no meio não quebra).
-    for (const w of semanas.filter((x) => !x.atual).sort((a, b) => (a.inicio < b.inicio ? 1 : -1))) {
+    for (const w of semanas.filter((x) => !x.atual && (!nivel || x.inicio >= nivel.desde)).sort((a, b) => (a.inicio < b.inicio ? 1 : -1))) {
       if (w.cumpridaEm) seguidas++;
       else if (!w.inicioPrescricao) break;
     }
@@ -423,5 +430,5 @@ export async function progressoCardio(alunoId: string): Promise<ProgressoCardio>
   // Combo em sequência: precisa das sessões de musculação também.
   const sessoes = await sessoesParaCombo(alunoId).catch(() => []);
   const comboSeguidos = sequenciaComboAtual(diasCombo(sessoes, feitos), dataLocal(new Date()));
-  return { feitos: proximoMarco(feitos).feitos, minutos: minutosDeCardio(feitos), temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin, comboSeguidos };
+  return { feitos: proximoMarco(feitos).feitos, minutos: minutosDeCardio(feitos), temPrescricao, prescricaoLonga: todas.some((p) => p.ativo && p.duracao_min >= 60), semana, seguidas, semanaMin, comboSeguidos, abertosNoNivel };
 }

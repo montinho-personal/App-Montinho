@@ -2939,3 +2939,9 @@ do $$ begin
   if position($x$'compartilhou_primeiro', 'cardio_folego_extra'$x$ in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T103: ranking sem o Espalhando por treino'; end if;
 end $$;
 \echo 'T103 OK: Espalhando o Chalalá por treino'
+
+-- T104 — 0163: troféus de meta do cardio contados por nível no ranking
+do $$ begin
+  if position($x$'cardio_semana_ritmo', 'cardio_meta_semana'$x$ in pg_get_functiondef('public.ranking_trofeus_v3()'::regprocedure)) = 0 then raise exception 'T104: ranking sem os troféus de meta por nível'; end if;
+end $$;
+\echo 'T104 OK: troféus de meta do cardio por nível'

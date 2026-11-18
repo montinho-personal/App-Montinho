@@ -84,6 +84,43 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos, modo = "person
     else setErro("Não foi possível encerrar agora.");
   }
 
+  // 🔥 Intensificar (18/11/2026, pedido do Montinho): sobe só os minutos da semana; o resto fica igual.
+  // A antiga vai para o histórico e os troféus de meta voltam a valer na meta nova.
+  const [intensificando, setIntensificando] = useState<string | null>(null);
+  const [novaMeta, setNovaMeta] = useState(0);
+  const abrirIntensificar = (p: CardioPrescricao) => {
+    setErro(null);
+    const atual = p.minutos_semana ?? p.frequencia_semanal * p.duracao_min;
+    setNovaMeta(Math.min(1680, atual + 20));
+    setIntensificando(p.id);
+  };
+  async function intensificar(p: CardioPrescricao) {
+    const base = doRegistro(p);
+    setSalvando(true);
+    setErro(null);
+    const corpo = {
+      ...base,
+      minutos_semana: novaMeta,
+      duracao_min: porDia(novaMeta, base.frequencia_semanal),
+      nome: base.nome.trim() || null,
+      treino_id: (base.vinculo === "apos_treino" || base.vinculo === "antes_treino") && base.treino_id ? base.treino_id : null,
+      fc_alvo_min: base.fc_alvo_min ? Number(base.fc_alvo_min) : null,
+      fc_alvo_max: base.fc_alvo_max ? Number(base.fc_alvo_max) : null,
+      intervalos: base.tipo === "intervalado" ? base.intervalos.trim() || null : null,
+      observacoes: base.observacoes.trim() || null,
+      substitui_id: p.id,
+    };
+    const r = await fetch(rota, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).catch(() => null);
+    setSalvando(false);
+    if (!r?.ok) {
+      const d = await r?.json().catch(() => ({}));
+      setErro(d?.error ?? d?.detalhes?.[0]?.message ?? "Não foi possível intensificar agora.");
+      return;
+    }
+    setIntensificando(null);
+    router.refresh();
+  }
+
   const total = prescricoes.reduce((t, p) => t + (p.minutos_semana ?? p.frequencia_semanal * p.duracao_min), 0);
 
   return (
@@ -104,11 +141,54 @@ export function PrescricaoCardio({ alunoId, prescricoes, treinos, modo = "person
                   {p.observacoes ? <p className="mt-1 text-xs">📝 {p.observacoes}</p> : null}
                   <p className="mt-1 text-[11px] text-fg-subtle">Desde {new Date(p.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
                 </div>
-                <div className="flex gap-2 text-xs">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {personal ? (
+                    <button type="button" onClick={() => (intensificando === p.id ? setIntensificando(null) : abrirIntensificar(p))} aria-expanded={intensificando === p.id} className="alvo rounded-md border border-accent/60 bg-accent/15 px-3 py-1.5 font-bold text-accent">
+                      🔥 Intensificar
+                    </button>
+                  ) : null}
                   <button type="button" onClick={() => abrir(p)} className="alvo rounded-md border border-border px-3 py-1.5">Ajustar</button>
                   <button type="button" onClick={() => void encerrar(p.id)} className="alvo rounded-md border border-border px-3 py-1.5 text-fg-muted">Encerrar</button>
                 </div>
               </div>
+              {intensificando === p.id ? (() => {
+                const atual = p.minutos_semana ?? p.frequencia_semanal * p.duracao_min;
+                const sobe = novaMeta - atual;
+                return (
+                  <div className="mt-3 space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-3">
+                    <p className="font-bold">🔥 Intensificar o cardio</p>
+                    <p className="text-xs text-fg-muted">Hoje: <strong>{atual} min</strong> por semana. Quanto vai subir?</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[10, 20, 30, 60].map((n) => (
+                        <button key={n} type="button" aria-pressed={novaMeta === atual + n} onClick={() => setNovaMeta(Math.min(1680, atual + n))} className={`touch rounded-full border px-3 py-2 text-sm font-semibold ${novaMeta === atual + n ? "border-accent bg-accent text-bg" : "border-border"}`}>
+                          +{n} min
+                        </button>
+                      ))}
+                      <button type="button" aria-pressed={novaMeta === Math.round(atual * 1.25)} onClick={() => setNovaMeta(Math.min(1680, Math.round(atual * 1.25)))} className={`touch rounded-full border px-3 py-2 text-sm font-semibold ${novaMeta === Math.round(atual * 1.25) ? "border-accent bg-accent text-bg" : "border-border"}`}>
+                        +25%
+                      </button>
+                    </div>
+                    <div className="max-w-[12rem]">
+                      <Num rotulo="Meta nova (min por semana)" valor={novaMeta} min={10} max={1680} onChange={setNovaMeta} />
+                    </div>
+                    <p className="rounded-lg bg-surface px-3 py-2 text-sm">
+                      {atual} → <strong>{novaMeta} min por semana</strong> em {p.frequencia_semanal} {p.frequencia_semanal === 1 ? "dia" : "dias"} (≈ {porDia(novaMeta, p.frequencia_semanal)} min por dia).
+                    </p>
+                    <ul className="space-y-1 text-xs text-fg-muted">
+                      <li>• A meta nova já vale nesta semana. O resto da prescrição continua igual, e a antiga fica no histórico.</li>
+                      <li>• 🏆 Os troféus de meta voltam a valer na meta nova, a partir da próxima segunda: Semana no Ritmo, 100% no Plano, Fôlego de Ferro e Uma Hora de Chalalá. Cada um conta de novo no ranking.</li>
+                      <li>• Só vale como meta nova se passar da maior meta que {personal ? "o aluno" : "você"} já teve.</li>
+                    </ul>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setIntensificando(null)} className="alvo rounded-lg border border-border px-3 py-2 text-sm">Cancelar</button>
+                      <button type="button" disabled={salvando || sobe <= 0} onClick={() => void intensificar(p)} className="alvo flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-bold text-bg disabled:opacity-50">
+                        {salvando ? "Salvando…" : sobe > 0 ? `🔥 Subir para ${novaMeta} min` : "Escolha uma meta maior"}
+                      </button>
+                    </div>
+                    {erro ? <p className="text-xs text-red">{erro}</p> : null}
+                  </div>
+                );
+              })() : null}
             </li>
           ))}
         </ul>

@@ -256,15 +256,17 @@ export function trofeusNosProximosDias(e: { medalhas: Medalha[]; aderencia: Ader
         }
       }
     }
+    // Meta intensificada (18/11/2026): os troféus de meta voltam a valer no nível novo.
+    const abertaNoNivel = (cod: CodigoConquista) => aberta(cod) ?? (c.abertosNoNivel?.includes(cod) ? qualquer(cod) : null);
     const s = c.semana;
     if (c.temPrescricao && s && (s.faltaSessoes > 0 || s.faltaMin > 0)) {
       const oQue = s.metaMinutos && s.faltaMin > 0 ? `Faltam ${s.faltaMin} min de cardio para fechar a semana.` : `Falta${s.faltaSessoes > 1 ? "m" : ""} ${plural(s.faltaSessoes, "cardio", "cardios")} para fechar a semana.`;
-      const ritmo = aberta("cardio_semana_ritmo");
+      const ritmo = abertaNoNivel("cardio_semana_ritmo");
       if (ritmo && s.faltaSessoes > 0 && s.faltaSessoes <= diasRestantes) out.push(item(ritmo, oQue, "Até domingo"));
-      const plano = aberta("cardio_meta_semana");
+      const plano = abertaNoNivel("cardio_meta_semana");
       // 100% no Plano é pelos minutos da semana.
       if (plano && s.faltaMin > 0) out.push(item(plano, `Faltam ${s.faltaMin} min de cardio para bater 100% da semana.`, "Até domingo"));
-      const ferro = aberta("cardio_4_semanas");
+      const ferro = abertaNoNivel("cardio_4_semanas");
       if (ferro && (c.seguidas ?? 0) === 3) out.push(item(ferro, `${oQue} São 4 semanas seguidas de cardio.`, "Até domingo"));
     }
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasDeCardio, juntarCardios, pendentesHoje, proximoMarco, resumoSemana, semanasDeCardio, sinaisDoCardio, trofeusDoCardio, type CardioFeito } from "./regras";
+import { diasDeCardio, juntarCardios, pendentesHoje, proximoMarco, resumoSemana, semanasDeCardio, sinaisDoCardio, trofeusDoCardio, niveisDoCardio, type CardioFeito } from "./regras";
 import { modalidadeDoStrava, modalidadeDoTexto } from "./modalidades";
 
 let n = 0;
@@ -27,7 +27,7 @@ function feito(data: string, min: number, extra: Partial<CardioFeito> = {}): Car
     ...extra,
   };
 }
-const presc = (extra: Partial<{ frequencia_semanal: number; duracao_min: number; created_at: string; desativado_em: string | null; ativo: boolean }> = {}) => ({
+const presc = (extra: Partial<{ id: string; frequencia_semanal: number; duracao_min: number; created_at: string; desativado_em: string | null; ativo: boolean }> = {}) => ({
   id: "p1",
   frequencia_semanal: 3,
   duracao_min: 30,
@@ -216,5 +216,48 @@ describe("pendentes de hoje e modalidades", () => {
     expect(modalidadeDoTexto("Bike ergométrica")).toBe("bike_ergometrica");
     expect(modalidadeDoStrava("VirtualRun")).toBe("esteira");
     expect(modalidadeDoStrava("Ride")).toBe("bike");
+  });
+});
+
+describe("níveis de meta do cardio (intensificar)", () => {
+  // Meta 90 min (3 × 30) desde 28/09; intensificada para 120 min (3 × 40) na quarta 14/10.
+  const antiga = presc({ id: "p1", desativado_em: "2026-10-14T10:00:00-03:00", ativo: false });
+  const nova = presc({ id: "p2", duracao_min: 40, created_at: "2026-10-14T10:00:00-03:00" });
+  it("subir a meta abre um nível novo a partir da segunda seguinte", () => {
+    const semanas = semanasDeCardio({ prescricoes: [antiga, nova], feitos: [], hoje: "2026-10-27" });
+    const n = niveisDoCardio(semanas);
+    expect(n.map((x) => [x.nivel, x.desde, x.alvoMin, x.referencia])).toEqual([
+      [1, "", 90, "1"],
+      [2, "2026-10-19", 120, "nivel:2026-10-19"],
+    ]);
+  });
+  it("os troféus de meta voltam a valer na meta nova (e a semana em que subiu não conta 2 vezes)", () => {
+    const feitos = [...semana("2026-09-28", 3, 30), ...semana("2026-10-12", 3, 40), ...semana("2026-10-19", 3, 40)];
+    const t = trofeusDoCardio({ prescricoes: [antiga, nova], feitos }, "2026-10-27").filter((x) => x.codigo === "cardio_meta_semana" || x.codigo === "cardio_semana_ritmo");
+    expect(t.map((x) => [x.codigo, x.referencia, (x.evidencia as { semana: string }).semana])).toEqual([
+      ["cardio_semana_ritmo", "1", "2026-09-28"],
+      ["cardio_meta_semana", "1", "2026-09-28"],
+      ["cardio_semana_ritmo", "nivel:2026-10-19", "2026-10-19"],
+      ["cardio_meta_semana", "nivel:2026-10-19", "2026-10-19"],
+    ]);
+  });
+  it("baixar e voltar à mesma meta não abre nível novo", () => {
+    const a = presc({ id: "a", created_at: "2026-09-28T09:00:00-03:00", desativado_em: "2026-10-05T09:00:00-03:00", ativo: false });
+    const b = presc({ id: "b", duracao_min: 20, created_at: "2026-10-05T09:00:00-03:00", desativado_em: "2026-10-12T09:00:00-03:00", ativo: false });
+    const c = presc({ id: "c", created_at: "2026-10-12T09:00:00-03:00" });
+    expect(niveisDoCardio(semanasDeCardio({ prescricoes: [a, b, c], feitos: [], hoje: "2026-10-27" })).length).toBe(1);
+  });
+  it("sem intensificar, tudo igual a antes (só o nível 1)", () => {
+    const t = trofeusDoCardio({ prescricoes: [presc()], feitos: [...semana("2026-09-28", 3), ...semana("2026-10-05", 3)] }, "2026-10-27");
+    expect(t.filter((x) => x.codigo === "cardio_meta_semana").map((x) => x.referencia)).toEqual(["1"]);
+  });
+});
+
+describe("níveis: só o personal intensifica", () => {
+  it("meta que o visitante sobe sozinho não abre nível novo", () => {
+    const a = { ...presc({ id: "a", desativado_em: "2026-10-14T10:00:00-03:00", ativo: false }), autoria: "proprio" as const };
+    const b = { ...presc({ id: "b", duracao_min: 40, created_at: "2026-10-14T10:00:00-03:00" }), autoria: "proprio" as const };
+    const semanas = semanasDeCardio({ prescricoes: [a, b], feitos: [], hoje: "2026-10-27" });
+    expect(niveisDoCardio(semanas, [a, b], "2026-10-27").length).toBe(1);
   });
 });

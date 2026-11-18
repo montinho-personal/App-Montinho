@@ -285,6 +285,8 @@ export type ProgressoCardio = {
   semanaMin?: { minutos: number; alvoMin: number } | null;
   /** Dias seguidos com musculação + 20 min de cardio, até hoje (Combo em sequência). */
   comboSeguidos?: number;
+  /** Meta de cardio intensificada (nível 2+): troféus de meta ainda não ganhos NESTE nível (voltam ao alcance). */
+  abertosNoNivel?: string[];
 };
 
 /** Progresso dos troféus de compartilhar e do “Mito ou verdade?” (quando a tela tem esses dados). */

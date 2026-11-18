@@ -132,7 +132,7 @@ export function diasDeCardio(feitos: CardioFeito[]): DiaCardio[] {
     });
 }
 
-type PrescricaoVigencia = Pick<CardioPrescricao, "id" | "frequencia_semanal" | "duracao_min" | "created_at" | "desativado_em" | "ativo"> & { minutos_semana?: number | null };
+type PrescricaoVigencia = Pick<CardioPrescricao, "id" | "frequencia_semanal" | "duracao_min" | "created_at" | "desativado_em" | "ativo"> & { minutos_semana?: number | null; autoria?: "personal" | "proprio" };
 
 /** Minutos da semana de uma prescrição (o total que o personal/visitante definiu, ou vezes × duração). */
 export const minutosDaPrescricao = (p: Pick<PrescricaoVigencia, "frequencia_semanal" | "duracao_min" | "minutos_semana">) => p.minutos_semana ?? p.frequencia_semanal * p.duracao_min;
@@ -250,6 +250,44 @@ const pausaSemana = (s: SemanaCardio) => s.status === "pausada" || s.status === 
 const fmtData = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 /** Referência do Dobro de Fôlego: a 1ª semana fica "1"; as seguintes, `semana:<segunda-feira>`. */
+/** Troféus de meta que voltam a valer quando a meta de cardio sobe (1 por nível; contam no ranking a cada nível). */
+export const CODIGOS_POR_NIVEL = ["cardio_semana_ritmo", "cardio_meta_semana", "cardio_4_semanas", "cardio_uma_hora"] as const;
+
+export type NivelCardio = {
+  nivel: number;
+  /** 1ª semana que vale para os troféus do nível (nível 1 = desde sempre). */
+  desde: string;
+  /** Semana em que a meta subiu (pode ser no meio dela). */
+  subiuEm: string | null;
+  alvoMin: number;
+  anteriorMin: number | null;
+  referencia: string;
+};
+
+/**
+ * Níveis de meta do cardio (18/11/2026, pedido do Montinho: botão “Intensificar cardio”). Um nível
+ * novo começa quando a meta da semana passa da MAIOR meta que a pessoa já teve (baixar e voltar ao
+ * mesmo número não conta de novo). Se a meta subiu no meio da semana, o nível só vale a partir da
+ * segunda seguinte — a semana em que subiu não dá troféu de graça com a meta antiga já batida.
+ */
+export function niveisDoCardio(semanas: SemanaCardio[], prescricoes?: PrescricaoVigencia[], hoje?: string): NivelCardio[] {
+  // Só o PERSONAL intensifica (pedido do Montinho, 18/11/2026): meta que o visitante sobe sozinho não abre nível.
+  const doPersonal = (inicio: string) => !prescricoes || !hoje || prescricoesDaSemana(prescricoes, inicio, hoje).every((p) => p.autoria !== "proprio");
+  const out: NivelCardio[] = [];
+  let maior = 0;
+  for (const s of [...semanas].sort((a, b) => (a.inicio < b.inicio ? -1 : 1))) {
+    if (!s.alvoMin) continue;
+    if (!out.length) {
+      out.push({ nivel: 1, desde: "", subiuEm: null, alvoMin: s.alvoMin, anteriorMin: null, referencia: "1" });
+    } else if (s.alvoMin > maior && doPersonal(s.inicio)) {
+      const desde = s.inicioPrescricao ? somarDias(s.inicio, 7) : s.inicio;
+      out.push({ nivel: out.length + 1, desde, subiuEm: s.inicio, alvoMin: s.alvoMin, anteriorMin: maior, referencia: `nivel:${desde}` });
+    }
+    maior = Math.max(maior, s.alvoMin);
+  }
+  return out;
+}
+
 export const referenciaDobro = (i: number, inicioSemana: string) => (i === 0 ? "1" : `semana:${inicioSemana}`);
 
 export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] {
@@ -261,23 +299,45 @@ export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] 
     if (d) out.push({ codigo: `cardio_${n}` as CodigoCardio, referencia: "1", data: d.validoEm!, descricao: n === 1 ? "Seu primeiro cardio registrado." : `${n} cardios feitos.`, evidencia: { dia: d.data, total: n } });
   }
 
-  // Uma Hora de Chalalá: só para quem tem prescrição de 60+ min e sem passar dela.
-  const umaHora = e.feitos.find(
-    (f) =>
-      f.status === "concluido" &&
-      f.planejadoMin != null &&
-      f.planejadoMin >= LIMITES_CARDIO.umaHoraMin &&
-      f.duracaoMin >= LIMITES_CARDIO.umaHoraMin &&
-      f.duracaoMin <= Math.ceil(f.planejadoMin * (1 + LIMITES_CARDIO.toleranciaUmaHora))
-  );
-  if (umaHora) out.push({ codigo: "cardio_uma_hora", referencia: "1", data: umaHora.realizadoEm, descricao: `${umaHora.duracaoMin} min de cardio, como o personal prescreveu.`, evidencia: { registro: umaHora.id, prescrito: umaHora.planejadoMin } });
-
-  // Semanas: Semana no Ritmo (sessões), 100% no Plano (minutos), Fôlego de Ferro (4 seguidas).
+  // Semanas: Semana no Ritmo (sessões), 100% no Plano (minutos), Fôlego de Ferro (4 seguidas) e
+  // Uma Hora de Chalalá valem 1 vez POR NÍVEL de meta (18/11/2026, pedido do Montinho: “os troféus
+  // voltam para a nova meta, começa a valer todos novamente”). Nível 1 = como sempre foi (referência
+  // "1"); cada vez que o personal intensifica o cardio, um nível novo (referência `nivel:<segunda>`).
   const semanas = semanasDeCardio({ prescricoes: e.prescricoes, feitos: e.feitos, hoje, semanasPausadas: e.semanasPausadas });
-  const ritmo = semanas.find((s) => s.sessoesEm);
-  if (ritmo) out.push({ codigo: "cardio_semana_ritmo", referencia: "1", data: ritmo.sessoesEm!, descricao: `Todos os ${ritmo.alvoSessoes} cardios prescritos na semana de ${fmtData(ritmo.inicio)}.`, evidencia: { semana: ritmo.inicio, alvo: ritmo.alvoSessoes } });
-  const plano = semanas.find((s) => s.minutosEm);
-  if (plano) out.push({ codigo: "cardio_meta_semana", referencia: "1", data: plano.minutosEm!, descricao: `Meta de ${plano.alvoMin} min cumprida na semana de ${fmtData(plano.inicio)}.`, evidencia: { semana: plano.inicio, alvoMin: plano.alvoMin } });
+  const niveis = niveisDoCardio(semanas, e.prescricoes, hoje);
+  // Sem semanas com meta (ex.: cardio só anotado), o nível 1 vale do mesmo jeito (Uma Hora depende do prescrito no registro).
+  if (!niveis.length) niveis.push({ nivel: 1, desde: "", subiuEm: null, alvoMin: 0, anteriorMin: null, referencia: "1" });
+  const umaHoraOk = (f: CardioFeito) =>
+    f.status === "concluido" && f.planejadoMin != null && f.planejadoMin >= LIMITES_CARDIO.umaHoraMin && f.duracaoMin >= LIMITES_CARDIO.umaHoraMin && f.duracaoMin <= Math.ceil(f.planejadoMin * (1 + LIMITES_CARDIO.toleranciaUmaHora));
+  const longos = [...e.feitos].filter(umaHoraOk).sort((a, b) => (a.realizadoEm < b.realizadoEm ? -1 : 1));
+  // Cada nível só aceita o que veio DEPOIS do troféu do nível anterior (a mesma semana nunca vale 2 vezes).
+  let antes = { ritmo: "", plano: "", ferro: "", hora: "" };
+  for (const n of niveis) {
+    const ref = n.referencia;
+    const sufixo = n.nivel > 1 ? ` Meta nova: ${n.alvoMin} min por semana.` : "";
+    const ritmo = semanas.find((s) => s.sessoesEm && s.inicio >= n.desde && s.inicio > antes.ritmo);
+    if (ritmo) out.push({ codigo: "cardio_semana_ritmo", referencia: ref, data: ritmo.sessoesEm!, descricao: `Todos os ${ritmo.alvoSessoes} cardios prescritos na semana de ${fmtData(ritmo.inicio)}.${sufixo}`, evidencia: { semana: ritmo.inicio, alvo: ritmo.alvoSessoes, nivel: n.nivel } });
+    const plano = semanas.find((s) => s.minutosEm && s.inicio >= n.desde && s.inicio > antes.plano);
+    if (plano) out.push({ codigo: "cardio_meta_semana", referencia: ref, data: plano.minutosEm!, descricao: `Meta de ${plano.alvoMin} min cumprida na semana de ${fmtData(plano.inicio)}.`, evidencia: { semana: plano.inicio, alvoMin: plano.alvoMin, nivel: n.nivel } });
+    const hora = longos.find((f) => f.data >= n.desde && f.realizadoEm > antes.hora);
+    if (hora) out.push({ codigo: "cardio_uma_hora", referencia: ref, data: hora.realizadoEm, descricao: `${hora.duracaoMin} min de cardio, como o personal prescreveu.`, evidencia: { registro: hora.id, prescrito: hora.planejadoMin, nivel: n.nivel } });
+    let seq = 0;
+    let ferro: SemanaCardio | null = null;
+    for (const s of semanas.filter((x) => x.inicio >= n.desde && x.inicio > antes.ferro)) {
+      if (s.status === "cumprida") {
+        seq++;
+        if (seq === LIMITES_CARDIO.semanasFerro) {
+          ferro = s;
+          break;
+        }
+      } else if (s.status === "parcial" || s.status === "sem_cardio") {
+        // Semana em que a prescrição começou no meio não quebra.
+        if (!s.inicioPrescricao) seq = 0;
+      }
+    }
+    if (ferro) out.push({ codigo: "cardio_4_semanas", referencia: ref, data: ferro.cumpridaEm!, descricao: `${LIMITES_CARDIO.semanasFerro} semanas seguidas cumprindo o cardio prescrito.${sufixo}`, evidencia: { ate: ferro.inicio, nivel: n.nivel } });
+    antes = { ritmo: ritmo?.inicio ?? antes.ritmo, plano: plano?.inicio ?? antes.plano, ferro: ferro?.inicio ?? antes.ferro, hora: hora?.realizadoEm ?? antes.hora };
+  }
   // Foi além do prescrito na semana: 150% (Fôlego Extra) e 200% (Dobro de Fôlego) dos minutos.
   // Fôlego Extra também vale de novo a cada semana (pedido do Montinho, 15/11/2026); mesma referência do Dobro.
   semanas.filter((s) => s.extra150Em && !pausaSemana(s)).forEach((s150, i) => {
@@ -292,20 +352,6 @@ export function trofeusDoCardio(e: EntradaCardio, hoje: string): TrofeuCardio[] 
   semanas.filter((s) => s.extra300Em && !pausaSemana(s)).forEach((s300) => {
     out.push({ codigo: "cardio_triplo", referencia: `semana:${s300.inicio}`, data: s300.extra300Em!, descricao: `O triplo dos ${s300.alvoMin} min prescritos na semana de ${fmtData(s300.inicio)}.`, evidencia: { semana: s300.inicio, alvoMin: s300.alvoMin } });
   });
-  let seq = 0;
-  for (const s of semanas) {
-    if (s.status === "cumprida") {
-      seq++;
-      if (seq === LIMITES_CARDIO.semanasFerro) {
-        out.push({ codigo: "cardio_4_semanas", referencia: "1", data: s.cumpridaEm!, descricao: `${LIMITES_CARDIO.semanasFerro} semanas seguidas cumprindo o cardio prescrito.`, evidencia: { ate: s.inicio } });
-        break;
-      }
-    } else if (s.status === "parcial" || s.status === "sem_cardio") {
-      // Semana em que a prescrição começou no meio não quebra.
-      if (!s.inicioPrescricao) seq = 0;
-    }
-  }
-
   // Voltei a Respirar: dia válido depois de 14+ dias sem cardio (repete, uma por volta).
   for (let i = 1; i < dias.length; i++) {
     const gap = (Date.parse(dias[i].data) - Date.parse(dias[i - 1].data)) / 86_400_000;

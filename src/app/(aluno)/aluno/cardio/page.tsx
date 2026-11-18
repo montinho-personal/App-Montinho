@@ -7,7 +7,8 @@ import { getAluno } from "@/lib/db";
 import { cardioDoAluno } from "@/lib/data/cardio";
 import { aderenciaDoAluno } from "@/lib/data/aderencia";
 import { dataLocal } from "@/lib/aderencia/calcular";
-import { esforcoPorSemana, pendentesHoje } from "@/lib/cardio/regras";
+import { esforcoPorSemana, niveisDoCardio, pendentesHoje } from "@/lib/cardio/regras";
+import { IntensificarCardio } from "@/components/cardio/IntensificarCardio";
 import { DIAS_SEMANA, INTENSIDADES, infoModalidade } from "@/lib/cardio/modalidades";
 import { CATALOGO, type CodigoConquista } from "@/lib/conquistas/regras";
 import { CardioHoje } from "@/components/cardio/CardioHoje";
@@ -56,6 +57,7 @@ export default async function CardioPage() {
       </header>
 
       <SemanaCardioCard semana={atual} />
+      {c.prescricoes.length ? <IntensificarCardio nivel={niveisDoCardio(c.semanas, c.todasPrescricoes, hoje).at(-1) ?? null} semana={atual} hoje={hoje} alunoId={aluno.id} comoPersonal={!!sessao.comoPersonal} visitante={visitante} /> : null}
       <CardioHoje pendentes={pendentes} nome={nome} />
 
       {c.marco.proximo ? (
