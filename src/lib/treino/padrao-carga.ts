@@ -68,3 +68,14 @@ export function anotaCarga(equipamento: readonly string[] | null | undefined): b
   const eq = equipamento ?? [];
   return eq.length === 0 || eq.some((e) => !SEM_CARGA.has(e));
 }
+
+/** Máquina (pilha de pesos ou de anilhas): o lembrete também aparece (19/11/2026, caso do Montinho no supino inclinado na máquina). */
+export function ehMaquina(equipamento: readonly string[] | null | undefined): boolean {
+  return (equipamento ?? []).includes("maquina");
+}
+
+/** Lembrete nas máquinas: pilha = o número da placa; de anilhas = o mesmo jeito das anilhas da pessoa. */
+export function instrucaoMaquina(modoAnilhas: ModoCarga | null): { titulo: string; detalhe: string } {
+  const anilhas = modoAnilhas === "total" ? "some os dois lados, como você faz com as anilhas" : modoAnilhas === "por_lado" ? "anote só um lado, como você faz com as anilhas" : "some os dois lados ou anote só um, sempre do mesmo jeito (escolha no Perfil)";
+  return { titulo: "Máquina: anote o número da pilha de pesos", detalhe: `Se for máquina de anilhas, ${anilhas}.` };
+}

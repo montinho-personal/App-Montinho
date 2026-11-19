@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anotaCarga, rotuloColunaCarga, tipoDePeso } from "./padrao-carga";
+import { anotaCarga, ehMaquina, instrucaoMaquina, rotuloColunaCarga, tipoDePeso } from "./padrao-carga";
 
 describe("padrão de carga", () => {
   it("reconhece anilhas e halteres", () => {
@@ -38,5 +38,14 @@ describe("instrução à vista (04/11/2026)", () => {
     expect(instrucaoPadrao("anilhas", "por_lado")).toBe("Anote só um lado");
     expect(instrucaoPadrao("halteres", "total")).toBe("Anote os dois halteres somados");
     expect(instrucaoPadrao("halteres", "por_lado")).toBe("Anote o peso de um halter");
+  });
+});
+
+describe("lembrete nas máquinas", () => {
+  it("máquina mostra a pilha e o jeito das anilhas da pessoa", () => {
+    expect(ehMaquina(["maquina"])).toBe(true);
+    expect(ehMaquina(["barra"])).toBe(false);
+    expect(instrucaoMaquina("total").detalhe).toBe("Se for máquina de anilhas, some os dois lados, como você faz com as anilhas.");
+    expect(instrucaoMaquina(null).detalhe).toContain("sempre do mesmo jeito");
   });
 });

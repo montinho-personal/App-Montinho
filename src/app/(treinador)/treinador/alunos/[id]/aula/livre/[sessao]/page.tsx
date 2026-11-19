@@ -9,7 +9,7 @@ import { getAluno } from "@/lib/db";
 import { getSessao, ultimasExecucoes } from "@/lib/data/sessoes";
 import { listarBiblioteca } from "@/lib/data/biblioteca";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
-import { tipoDePeso } from "@/lib/treino/padrao-carga";
+import { tipoDePeso, ehMaquina } from "@/lib/treino/padrao-carga";
 import { ehSessaoLivre, textoUltimaVez } from "@/lib/treino/livre";
 import { juntarBlocosAdjacentes } from "@/lib/treino/tecnica-aluno";
 import type { ConfigTecnica } from "@/lib/treino/tecnica-config";
@@ -39,6 +39,7 @@ export default async function AulaLivrePage({ params }: { params: Promise<{ id: 
     nome: e.nome,
     grupo: e.grupo_muscular,
     tipoPeso: tipoDePeso({ nome: e.nome, equipamento: itens.find((i) => i.id === e.biblioteca_id)?.equipamento ?? [] }),
+    maquina: ehMaquina(itens.find((i) => i.id === e.biblioteca_id)?.equipamento),
     tecnica: tecnicaDe(e.prescricao),
     config: presc(e.prescricao).tecnica_config ?? null,
     bloco: presc(e.prescricao).bloco ?? null,

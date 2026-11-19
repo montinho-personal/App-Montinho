@@ -94,7 +94,7 @@ import { TrofeusDoTreino } from "@/components/conquistas/TrofeusDoTreino";
 import { FRASES, avaliarProgressao, chalalaDaDescoberta, fraseDaTecnica, podeIntervir, serieDaTecnica, textoProgressao, type Registro } from "@/lib/chalala/treino";
 import type { PercepcaoExercicio } from "@/lib/supabase/types-sessoes";
 import { PRAZO_LEITURA_MS, fetchComPrazo } from "@/lib/sync/rede";
-import { PADRAO_CARGA_VAZIO, anotaCarga, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
+import { PADRAO_CARGA_VAZIO, anotaCarga, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso, ehMaquina, instrucaoMaquina } from "@/lib/treino/padrao-carga";
 import { EscolherPadraoCarga, LembreteAparelho, salvarPadraoCarga } from "@/components/treinos/PadraoCarga";
 import { EscolherExercicio, type ItemBusca } from "@/components/livre/EscolherExercicio";
 import { ehExercicioExtra, exercicioDoExtra, extrasQueCabem } from "@/lib/treino/exercicio-extra";
@@ -1885,6 +1885,12 @@ export function TreinoAtivoClient({ treino, exercicios: exerciciosPlano, ultimas
                         <button type="button" onClick={() => setTrocandoPadrao(tipoPeso)} className="alvo font-semibold text-accent underline-offset-2 hover:underline">
                           mudar
                         </button>
+                      </p>
+                    ) : null}
+                    {/* Máquina (19/11/2026, caso do Montinho): pilha = o número da placa; de anilhas = o jeito das anilhas. */}
+                    {!tipoPeso && !ehPorTempo(ex) && ehMaquina(equipamento) && !outro ? (
+                      <p className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-xs text-fg-muted">
+                        ⚖️ <span className="font-semibold text-fg">{instrucaoMaquina(padrao.anilhas).titulo}</span>. {instrucaoMaquina(padrao.anilhas).detalhe}
                       </p>
                     ) : null}
                     <div className="space-y-2">

@@ -4,7 +4,7 @@
 // séries (carga × repetições, normal/aquecimento/técnica), a técnica do
 // exercício e uma anotação. Cada série é gravada ao tocar no ✓.
 import Link from "next/link";
-import { PADRAO_CARGA_VAZIO, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
+import { PADRAO_CARGA_VAZIO, ehMaquina, instrucaoMaquina, instrucaoPadrao, resumoPadrao, rotuloColunaCarga, tipoDePeso, type PadraoCarga, type TipoPeso } from "@/lib/treino/padrao-carga";
 import { RecadosAoVivo } from "@/components/ao-vivo/RecadosAoVivo";
 import { CABECALHO_ALUNO } from "@/lib/auth/cabecalho";
 import { TelaAcesaTreino } from "@/components/treinos/TelaAcesa";
@@ -30,7 +30,7 @@ import { PlacarMetas } from "@/components/livre-metas/PlacarMetas";
 import { avisoDaSerie, contaNoPlacar, linhaDoGrupo, somarNoPlacar, sugestaoDeAgora, type LinhaPlacar } from "@/lib/treino/livre-metas";
 
 export type SerieTela = { key: string; serie: number; tipo: SerieTipo; carga: string; reps: string; salva: boolean; /** Série em blocos (rest-pause, drop-set…): cada pedaço. */ blocos?: BlocoDigitado[]; /** Técnica só desta série (ex.: pirâmide e, na última, um drop-set). */ tec?: { tecnica: string; config: ConfigTecnica | null } };
-export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; /** Anilhas/halteres (como anotar o peso). */ tipoPeso?: TipoPeso | null; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[]; /** Meta do treino escolhido como base (Meu treino do personal). */ meta?: { series: number; reps: string | null } | null };
+export type ExercicioTela = { seId: string; nome: string; grupo: GrupoMuscular | null; /** Anilhas/halteres (como anotar o peso). */ tipoPeso?: TipoPeso | null; /** Máquina (pilha ou anilhas): lembrete de como anotar. */ maquina?: boolean; tecnica: string; /** Como a técnica é feita (finalização × séries, blocos). */ config: ConfigTecnica | null; /** Bi-set/tri-set: mesmo código = juntos. */ bloco: string | null; observacao: string; ultima: string | null; series: SerieTela[]; /** Meta do treino escolhido como base (Meu treino do personal). */ meta?: { series: number; reps: string | null } | null };
 
 /** Técnicas que dá para pôr numa série só (“⚡ Série com técnica”). */
 const TECNICAS_DA_SERIE = ["dropset", "rest_pause", "myo_reps", "cluster", "tres_sete"] as const;
@@ -226,7 +226,7 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
       return setErro(String(r.json.error ?? "Não foi possível adicionar agora."));
     }
     const seId = String(r.json.id);
-    setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tipoPeso: tipoDePeso({ nome: String(r.json.nome), equipamento: itens.find((i) => i.id === corpo.biblioteca_id)?.equipamento ?? [] }), tecnica: "normal", config: null, bloco: null, observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
+    setExs((l) => [...l, { seId, nome: String(r.json.nome), grupo: (r.json.grupo as GrupoMuscular | null) ?? null, tipoPeso: tipoDePeso({ nome: String(r.json.nome), equipamento: itens.find((i) => i.id === corpo.biblioteca_id)?.equipamento ?? [] }), maquina: ehMaquina(itens.find((i) => i.id === corpo.biblioteca_id)?.equipamento), tecnica: "normal", config: null, bloco: null, observacao: "", ultima: (r.json.ultima as string | null) ?? null, series: [{ key: novaChave(), serie: 1, tipo: "valida", carga: "", reps: "", salva: false }] }]);
     setBuscando(false);
     // Bi-set/tri-set esperando este exercício: entra junto.
     if (aJuntar) {
@@ -447,6 +447,11 @@ export function LivreClient({ sessaoId, iniciadoEm, itens, inicial, extra = fals
                     <p className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-xs text-fg-muted">
                       ⚖️ {padraoCarga[e.tipoPeso] ? <><span className="font-semibold text-fg">{instrucaoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}</span> ({resumoPadrao(e.tipoPeso, padraoCarga[e.tipoPeso]!)}) · </> : alunoAula ? "Jeito de anotar o peso ainda não escolhido · " : "Como você anota o peso? "}
                       {alunoAula ? <span>{padraoCarga[e.tipoPeso] ? "o aluno muda no Perfil dele" : "o aluno escolhe no Perfil dele"}</span> : <Link href="/aluno/perfil" className="font-semibold text-accent underline-offset-2 hover:underline">{padraoCarga[e.tipoPeso] ? "mudar no Perfil" : "Escolher no Perfil"}</Link>}
+                    </p>
+                  ) : null}
+                  {!e.tipoPeso && e.maquina ? (
+                    <p className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-xs text-fg-muted">
+                      ⚖️ <span className="font-semibold text-fg">{instrucaoMaquina(padraoCarga.anilhas).titulo}</span>. {instrucaoMaquina(padraoCarga.anilhas).detalhe}
                     </p>
                   ) : null}
                   <div className="space-y-2">

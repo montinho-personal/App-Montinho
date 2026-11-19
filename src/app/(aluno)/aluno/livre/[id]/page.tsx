@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { SalvarParaAlunos } from "@/components/treinos-montinho/SalvarParaAlunos";
 import { getPadraoCarga } from "@/lib/data/padrao-carga";
-import { tipoDePeso } from "@/lib/treino/padrao-carga";
+import { tipoDePeso, ehMaquina } from "@/lib/treino/padrao-carga";
 import { notFound, redirect } from "next/navigation";
 import { requireAlunoPage } from "@/lib/auth/session";
 import { ehVisitante } from "@/lib/auth/guards";
@@ -55,6 +55,7 @@ export default async function TreinoLivrePage({ params }: { params: Promise<{ id
     grupo: e.grupo_muscular,
     // Anilhas/halteres: a tela mostra como anotar o peso (padrão do Perfil).
     tipoPeso: tipoDePeso({ nome: e.nome, equipamento: itens.find((i) => i.id === e.biblioteca_id)?.equipamento ?? [] }),
+    maquina: ehMaquina(itens.find((i) => i.id === e.biblioteca_id)?.equipamento),
     tecnica: tecnicaDe(e.prescricao),
     config: presc(e.prescricao).tecnica_config ?? null,
     bloco: presc(e.prescricao).bloco ?? null,
