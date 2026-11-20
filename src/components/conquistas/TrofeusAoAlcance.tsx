@@ -79,7 +79,14 @@ export function TrofeusHojeEProximos({ itens }: { itens: ItemAlcance[] }) {
           <span>{titulo} · {lista.length}</span>
           <span aria-hidden className="text-fg-subtle group-open:rotate-180">▾</span>
         </summary>
-        <ul className="divide-y divide-border/60">{lista.map((i) => <Linha key={i.codigo} i={i} />)}</ul>
+        {/* Os 3 mais perto à vista; o resto abre no toque (20/11/2026: a lista com 9 ocupava mais de uma tela do Início). */}
+        <ul className="divide-y divide-border/60">{lista.slice(0, 3).map((i) => <Linha key={i.codigo} i={i} />)}</ul>
+        {lista.length > 3 ? (
+          <details className="group/mais border-t border-border/60">
+            <summary className="alvo flex min-h-10 cursor-pointer list-none items-center justify-center gap-1 text-xs font-semibold text-accent group-open/mais:hidden">Ver mais {lista.length - 3} ▾</summary>
+            <ul className="divide-y divide-border/60">{lista.slice(3).map((i) => <Linha key={i.codigo} i={i} />)}</ul>
+          </details>
+        ) : null}
       </details>
     ) : null;
   return (

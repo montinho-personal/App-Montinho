@@ -150,7 +150,12 @@ export default async function EvolucaoPage({ searchParams }: { searchParams: Pro
         const r = d ? resumoDaAvaliacao(evolucao, d.id, aluno?.altura_cm ?? null) : null;
         return r ? <PainelAvaliacao r={r} compacto relatorioHref={`/avaliacao/${r.id}`} medidasHref="/aluno/medidas" titulo="🩺 Minha avaliação física" /> : null;
       })()}
-      {evolucao.length >= 2 ? <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" compartilhar={{ nome: nomeAluno, hoje }} /> : null}
+      {/* Recolhido (20/11/2026, auditoria): o comparador inteiro ocupava 2 telas no fim; continua aqui, a um toque, e em Medidas. */}
+      {evolucao.length >= 2 ? (
+        <Acordeao titulo="📏 Suas medidas: antes × depois" resumo="Peso, composição e circunferências lado a lado">
+          <ComparadorMedidas evolucao={evolucao} titulo="Suas medidas: antes × depois" compartilhar={{ nome: nomeAluno, hoje }} />
+        </Acordeao>
+      ) : null}
     </div>
   );
 }

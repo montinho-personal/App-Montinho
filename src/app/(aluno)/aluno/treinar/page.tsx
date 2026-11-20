@@ -99,36 +99,8 @@ export default async function TreinarPage() {
         </Link>
       ) : null}
 
-      {treinosMontinho.length && !emAndamento ? (
-        <Link href="/aluno/treinos-do-montinho" className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 hover:bg-accent/15">
-          <span className="text-2xl" aria-hidden>🔥</span>
-          <span className="min-w-0 flex-1"><span className="block font-bold">Treinos que o Montinho fez</span><span className="block truncate text-xs text-fg-muted">{treinosMontinho.length === 1 ? treinosMontinho[0].titulo : `${treinosMontinho.length} treinos · o mais novo: ${treinosMontinho[0].titulo}`}</span></span>
-          <span className="shrink-0 text-accent" aria-hidden>→</span>
-        </Link>
-      ) : null}
-
-      <Link href="/aluno/cardio" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
-        <span className="text-2xl" aria-hidden>❤️‍🔥</span>
-        <span><span className="block font-bold">Montinho Cardio</span><span className="block text-xs text-fg-muted">Caminhada, esteira, bike… veja o prescrito e registre em segundos.</span></span>
-      </Link>
-
-      {mobInd ? <MobilidadeHoje dados={mobInd} hoje={dataLocal(new Date())} trofeus={conqMob.map((c) => c.codigo as string)} compacto /> : null}
-      <Link href="/aluno/mobilidade" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
-        <span className="text-2xl" aria-hidden>🧘</span>
-        <span><span className="block font-bold">Mobilidade e alongamento</span><span className="block text-xs text-fg-muted">Superiores e inferiores, ~22 min com o vídeo do Montinho. Vale troféu.</span></span>
-      </Link>
-
-      {FEATURES.multimodalidade && !emAndamento && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null) ? (
-        <Link href="/aluno/wod/livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
-          <span className="text-2xl" aria-hidden>📝</span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-bold">WOD livre</span>
-            <span className="block text-xs text-fg-muted">Fez um Cross Training, HYROX ou funcional fora da ficha? Monte e anote aqui.</span>
-          </span>
-          <span className="shrink-0 text-accent" aria-hidden>→</span>
-        </Link>
-      ) : null}
-
+      {/* Ordem da tela (20/11/2026, auditoria das telas do aluno): os treinos da ficha vêm PRIMEIRO; cardio, mobilidade,
+          WOD livre e os treinos do Montinho ficam depois, em “Mais formas de treinar”. */}
       {/* Atalho para a vitrine (04/11/2026, pedido do Montinho): antes só se chegava por Meus treinos. */}
       {podeMontar ? (
         <Link href="/aluno/treinos-prontos" className={`flex items-center gap-3 rounded-xl border bg-card px-4 py-3 hover:border-accent/60 ${treinos.length ? "border-border" : "border-accent"}`}>
@@ -147,6 +119,9 @@ export default async function TreinarPage() {
         </Link>
       ) : null}
 
+      {treinos.length ? (
+        <h2 className="flex items-center gap-3 pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-fg-subtle"><span>Seus treinos</span><span aria-hidden className="h-px flex-1 bg-border" /></h2>
+      ) : null}
       {treinos.length === 0 ? (
         <Card className="border-dashed">
           <CardBody className="text-center py-8 text-sm text-fg-muted">{visitante ? "Você ainda não tem treinos. Escolha um pronto ou monte o seu nos botões acima." : `Nenhum treino liberado ainda. Fale com o ${BRAND.name}.`}</CardBody>
@@ -190,6 +165,38 @@ export default async function TreinarPage() {
       )}
 
       {mostrarLivre ? <FacaOQueQuiser p={placar} /> : null}
+
+      <h2 className="flex items-center gap-3 pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-fg-subtle"><span>Mais formas de treinar</span><span aria-hidden className="h-px flex-1 bg-border" /></h2>
+      {treinosMontinho.length && !emAndamento ? (
+        <Link href="/aluno/treinos-do-montinho" className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 hover:bg-accent/15">
+          <span className="text-2xl" aria-hidden>🔥</span>
+          <span className="min-w-0 flex-1"><span className="block font-bold">Treinos que o Montinho fez</span><span className="block truncate text-xs text-fg-muted">{treinosMontinho.length === 1 ? treinosMontinho[0].titulo : `${treinosMontinho.length} treinos · o mais novo: ${treinosMontinho[0].titulo}`}</span></span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
+
+      <Link href="/aluno/cardio" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+        <span className="text-2xl" aria-hidden>❤️‍🔥</span>
+        <span><span className="block font-bold">Montinho Cardio</span><span className="block text-xs text-fg-muted">Caminhada, esteira, bike… veja o prescrito e registre em segundos.</span></span>
+      </Link>
+
+      {mobInd ? <MobilidadeHoje dados={mobInd} hoje={dataLocal(new Date())} trofeus={conqMob.map((c) => c.codigo as string)} compacto /> : null}
+      <Link href="/aluno/mobilidade" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+        <span className="text-2xl" aria-hidden>🧘</span>
+        <span><span className="block font-bold">Mobilidade e alongamento</span><span className="block text-xs text-fg-muted">Superiores e inferiores, ~22 min com o vídeo do Montinho. Vale troféu.</span></span>
+      </Link>
+
+      {FEATURES.multimodalidade && !emAndamento && podeRegistrar(sessao.modalidade ?? "consultoria", sessao.acessoFim ?? null) ? (
+        <Link href="/aluno/wod/livre" className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:border-accent/60">
+          <span className="text-2xl" aria-hidden>📝</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">WOD livre</span>
+            <span className="block text-xs text-fg-muted">Fez um Cross Training, HYROX ou funcional fora da ficha? Monte e anote aqui.</span>
+          </span>
+          <span className="shrink-0 text-accent" aria-hidden>→</span>
+        </Link>
+      ) : null}
+
     </div>
   );
 }

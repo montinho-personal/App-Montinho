@@ -42,6 +42,11 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
   const podeCompartilhar = modo === "aluno";
   const [aba, setAba] = useState<Aba>(dados.forca.length ? "forca" : dados.benchmarks.length ? "benchmarks" : "marcas");
   const [anotar, setAnotar] = useState(false);
+  // Cargas: os 8 recordes mais recentes à vista + busca; o resto no toque (20/11/2026, auditoria: 25 cartões = 5 telas).
+  const [verCargas, setVerCargas] = useState(8);
+  const [buscaCarga, setBuscaCarga] = useState("");
+  const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const cargas = buscaCarga.trim() ? dados.forca.filter((ex) => semAcento(ex.nome).includes(semAcento(buscaCarga.trim()))) : dados.forca;
   const primeiros = dados.marcas.filter((m) => m.tipo === "primeiro");
   const outras = dados.marcas.filter((m) => m.tipo !== "primeiro" && !m.tipo.endsWith("rm"));
   // Universal (pedido do Montinho, 01/11/2026): a aba de WOD só aparece para quem já tem resultado de WOD.
@@ -65,7 +70,13 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
         dados.forca.length ? (
           <ul className="space-y-2">
             <li className="px-1 text-xs text-fg-muted">O maior peso que você já levantou em cada exercício para 1, 2, 3, 5 ou 10 repetições. Comparação justa: 10 repetições só com 10 repetições.</li>
-            {dados.forca.map((ex) => (
+            {dados.forca.length > 8 ? (
+              <li>
+                <input value={buscaCarga} onChange={(e) => setBuscaCarga(e.target.value)} placeholder={`Buscar entre os ${dados.forca.length} exercícios…`} aria-label="Buscar exercício" className="h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm" />
+              </li>
+            ) : null}
+            {buscaCarga.trim() && !cargas.length ? <li className="px-1 text-sm text-fg-muted">Nenhum exercício com esse nome.</li> : null}
+            {(buscaCarga.trim() ? cargas : cargas.slice(0, verCargas)).map((ex) => (
               <li key={ex.chave} className="rounded-2xl border border-border bg-card p-3">
                 <p className="font-bold">{ex.nome}</p>
                 <ul className="mt-2 space-y-2">
@@ -89,6 +100,12 @@ export function MeusRecordes({ dados, modo, alunoId, nome = "", hoje }: { dados:
                 </ul>
               </li>
             ))}
+            {!buscaCarga.trim() && cargas.length > verCargas ? (
+              <li className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setVerCargas((n) => n + 12)} className="touch flex-1 rounded-xl border border-accent/50 px-4 text-sm font-bold text-accent">Ver mais 12 · faltam {cargas.length - verCargas}</button>
+                <button type="button" onClick={() => setVerCargas(9999)} className="touch rounded-xl border border-border px-4 text-sm font-semibold text-fg-muted">Ver todos</button>
+              </li>
+            ) : null}
           </ul>
         ) : (
           <Vazio texto="Ainda não tem recorde de carga. Eles aparecem sozinhos quando você faz 1, 2, 3, 5 ou 10 repetições com peso em qualquer exercício e depois supera essa marca." />

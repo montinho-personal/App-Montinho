@@ -50,8 +50,6 @@ export default async function RankingPage() {
   return (
     <div className="space-y-5">
       <NarrativaRanking />
-      <CutucadasRecebidas cutucadas={cutucadas} />
-      <EntradaDesafios desafios={desafios} />
       <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3" style={p ? { borderColor: `${PODIO[p].cor}80` } : undefined}>
         {sessao.comoPersonal ? <p className="text-xs text-fg-muted">🏋️ Você está como aluno pelo “Meu treino”: seus troféus contam para você, mas você fica fora do ranking.</p> : null}
         {eu ? <p className="text-3xl font-black">{p ? PODIO[p].emoji : `${eu.posicao}º`} <span className="text-base font-bold">{eu.trofeus} {eu.trofeus === 1 ? "troféu" : "troféus"}</span></p> : null}
@@ -63,11 +61,14 @@ export default async function RankingPage() {
         {eu && !sessao.comoPersonal ? <div className="mt-3"><CompartilharRanking dados={{ posicao: eu.posicao, trofeus: eu.trofeus, total: linhas.length, nome: (aluno?.profile?.nome ?? sessao.nome).split(" ")[0] }} /></div> : null}
       </div>
       {sessao.comoPersonal ? null : <TopoDoRanking modo="aluno" dias={meuTopo} ganhos={ganhosTopo} />}
+      {/* A lista vem logo depois da sua posição (20/11/2026, auditoria): antes ficava na 3ª tela. */}
+      <RankingTrofeus linhas={linhas} desafiar passaram={passaram?.map((p) => p.ref)} />
+      <CutucadasRecebidas cutucadas={cutucadas} />
+      <EntradaDesafios desafios={desafios} />
       {/* O personal no app como aluno vê a prévia do cartão (sem a comparação com ele mesmo). */}
       {montinho && sessao.comoPersonal ? <p className="-mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">👀 Prévia: é assim que os alunos veem</p> : null}
       {montinho ? <MontinhoNoRanking dados={montinho} meusTrofeus={sessao.comoPersonal ? null : (eu?.trofeus ?? null)} minhaPosicao={sessao.comoPersonal ? null : (eu?.posicao ?? null)} nome={aluno?.profile?.nome ?? sessao.nome} visitante={ehVisitante(sessao)} whatsapp={BRAND.contact.whatsapp ?? null} /> : null}
       {passaram ? <QuemPassouOMontinho pessoas={passaram} lideranca={liderancaDoMontinho(montinho?.posicao, linhas)} /> : null}
-      <RankingTrofeus linhas={linhas} desafiar passaram={passaram?.map((p) => p.ref)} />
       {incentivo ? <IncentivoIndicacao momento="ranking" aluno={incentivo.aluno} fecharam={incentivo.fecharam} /> : null}
       <p className="text-[11px] text-fg-subtle">No ranking aparecem só o primeiro nome e a inicial do sobrenome. Não quer aparecer para os outros? Desligue em Perfil → “Aparecer no ranking”.</p>
     </div>

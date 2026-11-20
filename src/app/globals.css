@@ -398,3 +398,6 @@ body.folha-tecnica-aberta .pilha-toasts { display: none !important; }
   .tabela-ex .c-series, .tabela-ex .c-desc, .tabela-ex .c-rir { text-align: left; }
   .tabela-ex .c-series > div { justify-content: flex-start; }
 }
+
+/* Início do aluno em seções: a seção sem nenhum cartão dentro não aparece (nem o título). */
+.secao-inicio:not(:has(> div > *)) { display: none; }

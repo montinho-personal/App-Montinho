@@ -1,3 +1,4 @@
+import { SecaoInicio } from "@/components/inicio/SecaoInicio";
 import { saudacao as saudacaoSP } from "@/components/brand/BrandLockup";
 import { SincronizarCardios } from "@/components/strava/SincronizarCardios";
 import { CODIGOS_MANUAIS, LENDARIAS } from "@/lib/conquistas/regras";
@@ -231,24 +232,16 @@ export default async function AlunoHomePage() {
         return fer ? <FeriadoDestaque d={fer} conquistas={conquistas} /> : null;
       })()}
 
-      <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
+      {mudancaProtocolo ? <AvisoProtocoloNovo versaoId={mudancaProtocolo.versaoId} aviso={mudancaProtocolo.aviso} cor={mudancaProtocolo.mudanca.faseDepois && mudancaProtocolo.mudanca.mudouFase ? FASE_INFO[mudancaProtocolo.mudanca.faseDepois].cor : null} /> : null}
 
-      {recadoTribo ? (
-        <Link href="/aluno/conquistas/tribo" className="flex items-center justify-between gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-2.5 text-sm font-semibold">
-          <span>🤝 {recadoTribo}</span>
-          <span aria-hidden className="text-accent">→</span>
-        </Link>
-      ) : null}
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
 
       {/* Depois do fim do acesso, a oferta já vem no topo de todas as telas (layout). */}
       {campanha?.oferta && ofertaHref && estadoDoAcesso(sessao.acessoFim ?? null).estado !== "vencido" ? <OfertaVisitante oferta={campanha.oferta} href={ofertaHref} tela="inicio" /> : null}
 
-      {FEATURES.modoVisitante && ehVisitante(sessao) && !aluno.telefone?.trim() ? <PedirWhatsapp /> : null}
-
-      {mudancaProtocolo ? <AvisoProtocoloNovo versaoId={mudancaProtocolo.versaoId} aviso={mudancaProtocolo.aviso} cor={mudancaProtocolo.mudanca.faseDepois && mudancaProtocolo.mudanca.mudouFase ? FASE_INFO[mudancaProtocolo.mudanca.faseDepois].cor : null} /> : null}
-
-      {meuTopo ? <TopoDoRanking modo="aluno" dias={meuTopo} ganhos={new Set(conquistas.map((c) => c.codigo as string))} link /> : null}
-
+      {/* Início em seções (20/11/2026, auditoria das telas do aluno): o que fazer HOJE primeiro, depois a semana, os troféus,
+          a evolução, os recados e, por último, o resto. Seção sem nada dentro some sozinha (CSS .secao-inicio). */}
+      <SecaoInicio titulo="Hoje">
       {/* 1. Sessão em andamento, dia concluído ou próximo treino — CTA prioritário */}
       {estadoDia !== "a_fazer" && treinoDeHoje ? (
         <DiaConcluido estado={estadoDia} nome={primeiroNome} treinoHoje={treinoDeHoje.letra ? `Treino ${treinoDeHoje.letra}${treinoDeHoje.nome_treino ? ` · ${treinoDeHoje.nome_treino}` : ""}` : (treinoDeHoje.nome_treino ?? "Treino")} cardioMinHoje={cardioMinHoje} frase={fraseDoDia(hojeSP, estadoDia === "completo" && cardioMinHoje > 0)} trofeus={contagem.ganhos} carimbos={carimbos} pendentes={cardioPendentes} extraLiberado={!!configExtra?.habilitado} valeDoseDupla={!medalhas.some((m) => m.codigo === "dose_dupla" && m.conquistada)} valeDoisFolegos={cardioMinHoje >= LIMITES_CARDIO.minutosMin && !medalhas.some((m) => m.codigo === "dois_folegos" && m.conquistada)} />
@@ -319,15 +312,6 @@ export default async function AlunoHomePage() {
         )
       )}
 
-      {/* A obra da tribo logo depois do treino de hoje (o card fica sempre à vista enquanto a obra anda). */}
-      <AcademiaNaHome modo="compacto" ativa={obraAtiva} inaugurada={null} destaque={destaqueObra} />
-      {mobIndicada ? <MobilidadeHoje dados={mobIndicada} hoje={hojeSP} trofeus={conquistas.map((c) => c.codigo as string)} compacto /> : null}
-      <TrofeusHojeEProximos itens={aoAlcance} />
-      {(() => {
-        const r = resumoRevisao(album.progresso, new Date().toISOString(), new Set(album.itens.map((i) => i.conteudo.id)));
-        return <RevisarConhecimento agora={r.agora} primeira={r.primeira} aprendidas={r.aprendidas} compacto />;
-      })()}
-
       {FEATURES.modoVisitante && ehVisitante(sessao) && !emAndamento && !proximo && podeRegistrar("visitante", sessao.acessoFim ?? null) ? <ComeceAquiSite tela="inicio" /> : null}
       {cardio?.prescricoes.length ? (
         <div className="space-y-2">
@@ -344,59 +328,60 @@ export default async function AlunoHomePage() {
           <Link href="/aluno/cardio" className="touch shrink-0 rounded-lg border border-accent/60 px-3 py-2 text-sm font-semibold text-accent">Anotar</Link>
         </div>
       ) : null}
-      {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
-      {FEATURES.modoVisitante && ehVisitante(sessao) && !sessao.comoPersonal ? <ConhecaOMontinho /> : null}
-      {indicacao?.pct ? <DescontoIndicacao r={indicacao} nome={sessao.nome} link aluno={!ehVisitante(sessao)} /> : null}
-      {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}
-      {FEATURES.modoVisitante && !ehVisitante(sessao) && !sessao.comoPersonal && !indicacao?.pct ? <IncentivoIndicacao momento="inicio" aluno fecharam={indicacao?.fecharam ?? 0} /> : null}
-      {/* No máximo um convite por tela: com campanha em destaque, sai o convite comum. */}
-      {FEATURES.modoVisitante && ehVisitante(sessao) && !campanha?.oferta && !mostrarConvite ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
-      {/* Oferta dos planos (Consultoria/Pacote Flexível), com limite e pausas; a oferta do fim do acesso do visitante tem a vez. */}
-      {!sessao.comoPersonal && !campanha?.oferta && BRAND.contact.whatsapp ? <OfertaPlano tela="inicio" whatsapp={BRAND.contact.whatsapp} /> : null}
+      {mobIndicada ? <MobilidadeHoje dados={mobIndicada} hoje={hojeSP} trofeus={conquistas.map((c) => c.codigo as string)} compacto /> : null}
+      {/* Montinho Pulso: no Início só para quem está voltando (o check-in diário 1–10 foi aposentado). */}
+      {pulsoInicio ? <PulsoCard ctx={pulsoInicio} momento="inicio" /> : null}
 
-      {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
-      <Link href="/aluno/vitorias" className="block">
-        <Card className={`transition-colors hover:border-accent/40 ${vitoria ? "border-accent/40" : ""}`}>
-          <CardBody className="space-y-1 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua pequena vitória da semana</p>
-            {vitoria ? (
-              <>
-                <p className="font-semibold leading-tight">{vitoria.mensagem}</p>
-                <p className="text-xs font-semibold text-accent">Entenda sua evolução →</p>
-              </>
-            ) : (
-              <p className="text-sm text-fg-muted">{VITORIA_NEUTRA}</p>
-            )}
-          </CardBody>
-        </Card>
-      </Link>
-
-      <AnuncioDescoberta candidatas={candidatasAnuncio(album.itens).slice(0, 8).map(paraVisao)} explorados={albumResumo.explorados} total={albumResumo.total} origem="inicio" />
-
-      {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
-
-      {proximaMed ? (
-        <Link href="/aluno/jornada" className="block">
-          <Card className="transition-colors hover:border-accent/40">
+      {/* Treino extra: só aparece se o personal liberou (nunca empurra treino a mais) */}
+      {configExtra?.habilitado && !emAndamento ? (
+        <Link href="/aluno/extra" className="block">
+          <Card className="hover:border-accent/40 transition-colors">
             <CardBody className="flex items-center gap-3 py-3">
-              <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} lendaria={LENDARIAS.has(proximaMed.codigo)} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Sua próxima medalha · {ganhas} de {contagem.total}</p>
-                <p className="font-semibold leading-tight">{proximaMed.titulo}</p>
-                {proximaMed.alvo ? (
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(((proximaMed.atual ?? 0) / proximaMed.alvo) * 100)}%` }} />
-                  </div>
-                ) : null}
-                {proximaMed.falta ? <p className="mt-1 text-xs text-fg-muted">{proximaMed.falta}</p> : null}
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Quero fazer um treino extra</p>
+                <p className="text-xs text-fg-subtle">Está com disposição para treinar mais hoje? Veja se existe uma sessão extra liberada para você.</p>
               </div>
+              <Icon name="chevron" className="text-fg-subtle" />
             </CardBody>
           </Card>
         </Link>
       ) : null}
 
-      <AvisoInstalar />
+      </SecaoInicio>
 
+      <SecaoInicio titulo={`Do ${BRAND.name} para você`}>
+      {/* Reconhecimento escrito pelo personal (recente) */}
+      {reconhecimentos[0] && Date.parse(reconhecimentos[0].created_at) > new Date().getTime() - 14 * 86_400_000 ? (
+        <Link href="/aluno/conquistas" className="block">
+          <Card className="border-accent/50 hover:border-accent transition-colors">
+            <CardBody className="space-y-1 py-3">
+              <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Reconhecimento do {BRAND.name}</p>
+              <p className="text-sm">“{reconhecimentos[0].mensagem}”</p>
+              <p className="text-[11px] text-fg-subtle">Escrita pelo seu personal · {dataBR(reconhecimentos[0].created_at)}</p>
+            </CardBody>
+          </Card>
+        </Link>
+      ) : null}
+
+      {/* Mensagens reais do treinador (autoria identificada) */}
+      {visiveis.length ? (
+        <section className="space-y-2">
+          {visiveis.map((i) => (
+            <Card key={i.id}>
+              <CardBody className="py-3">
+                <p className="text-sm">{i.descricao}</p>
+                <p className="text-[11px] text-fg-subtle mt-1">
+                  {i.autor?.nome ?? BRAND.name} · {dataBR(i.created_at)}
+                </p>
+              </CardBody>
+            </Card>
+          ))}
+        </section>
+      ) : null}
+
+      </SecaoInicio>
+
+      <SecaoInicio titulo="Sua semana">
       {/* 2. Progresso da semana em relação à meta individual */}
       {aderencia.semanaAtual?.meta ? (
         <Card>
@@ -418,33 +403,63 @@ export default async function AlunoHomePage() {
         </Card>
       ) : null}
 
-      {/* Treino extra: só aparece se o personal liberou (nunca empurra treino a mais) */}
-      {configExtra?.habilitado && !emAndamento ? (
-        <Link href="/aluno/extra" className="block">
-          <Card className="hover:border-accent/40 transition-colors">
+      </SecaoInicio>
+
+      <SecaoInicio titulo="Troféus e desafios">
+      {meuTopo ? <TopoDoRanking modo="aluno" dias={meuTopo} ganhos={new Set(conquistas.map((c) => c.codigo as string))} link /> : null}
+
+      <TrofeusHojeEProximos itens={aoAlcance} />
+      {proximaMed ? (
+        <Link href="/aluno/jornada" className="block">
+          <Card className="transition-colors hover:border-accent/40">
             <CardBody className="flex items-center gap-3 py-3">
-              <div className="flex-1">
-                <p className="font-semibold text-sm">Quero fazer um treino extra</p>
-                <p className="text-xs text-fg-subtle">Está com disposição para treinar mais hoje? Veja se existe uma sessão extra liberada para você.</p>
+              <MedalhaIcone selo={proximaMed.selo} conquistada={false} atual={proximaMed.atual} alvo={proximaMed.alvo} tamanho={52} lendaria={LENDARIAS.has(proximaMed.codigo)} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Sua próxima medalha · {ganhas} de {contagem.total}</p>
+                <p className="font-semibold leading-tight">{proximaMed.titulo}</p>
+                {proximaMed.alvo ? (
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(((proximaMed.atual ?? 0) / proximaMed.alvo) * 100)}%` }} />
+                  </div>
+                ) : null}
+                {proximaMed.falta ? <p className="mt-1 text-xs text-fg-muted">{proximaMed.falta}</p> : null}
               </div>
-              <Icon name="chevron" className="text-fg-subtle" />
             </CardBody>
           </Card>
         </Link>
       ) : null}
 
-      {/* Reconhecimento escrito pelo personal (recente) */}
-      {reconhecimentos[0] && Date.parse(reconhecimentos[0].created_at) > new Date().getTime() - 14 * 86_400_000 ? (
-        <Link href="/aluno/conquistas" className="block">
-          <Card className="border-accent/50 hover:border-accent transition-colors">
-            <CardBody className="space-y-1 py-3">
-              <p className="text-[11px] uppercase tracking-wider text-accent font-bold">Reconhecimento do {BRAND.name}</p>
-              <p className="text-sm">“{reconhecimentos[0].mensagem}”</p>
-              <p className="text-[11px] text-fg-subtle">Escrita pelo seu personal · {dataBR(reconhecimentos[0].created_at)}</p>
-            </CardBody>
-          </Card>
+      <EntradaDesafios desafios={desafios} compacto recados={recadosDesafio} cutucadas={cutucadas} />
+
+      {FEATURES.modoVisitante && ehVisitante(sessao) ? <DesafioDoVisitante alunoId={alunoId} /> : null}
+      {recadoTribo ? (
+        <Link href="/aluno/conquistas/tribo" className="flex items-center justify-between gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-2.5 text-sm font-semibold">
+          <span>🤝 {recadoTribo}</span>
+          <span aria-hidden className="text-accent">→</span>
         </Link>
       ) : null}
+
+      {/* A obra da tribo logo depois do treino de hoje (o card fica sempre à vista enquanto a obra anda). */}
+      <AcademiaNaHome modo="compacto" ativa={obraAtiva} inaugurada={null} destaque={destaqueObra} />
+      </SecaoInicio>
+
+      <SecaoInicio titulo="Sua evolução">
+      {/* Pequena vitória da semana: só evidência real; sem ela, texto neutro */}
+      <Link href="/aluno/vitorias" className="block">
+        <Card className={`transition-colors hover:border-accent/40 ${vitoria ? "border-accent/40" : ""}`}>
+          <CardBody className="space-y-1 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-accent">Sua pequena vitória da semana</p>
+            {vitoria ? (
+              <>
+                <p className="font-semibold leading-tight">{vitoria.mensagem}</p>
+                <p className="text-xs font-semibold text-accent">Entenda sua evolução →</p>
+              </>
+            ) : (
+              <p className="text-sm text-fg-muted">{VITORIA_NEUTRA}</p>
+            )}
+          </CardBody>
+        </Card>
+      </Link>
 
       {/* 3. Último progresso relevante (só o que os registros provam) */}
       {resumo30.conquistas.length || emAlta.length ? (
@@ -470,26 +485,21 @@ export default async function AlunoHomePage() {
         </Card>
       ) : null}
 
-      {/* Montinho Pulso: no Início só para quem está voltando (o check-in diário 1–10 foi aposentado). */}
-      {pulsoInicio ? <PulsoCard ctx={pulsoInicio} momento="inicio" /> : null}
+      {estrategia ? <SuaEstrategiaCard e={estrategia.dados} fase={faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), dataLocal(new Date()))} /> : null}
 
-      {/* Mensagens reais do treinador (autoria identificada) */}
-      {visiveis.length ? (
-        <section className="space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-fg-muted">Do {BRAND.name} para você</h2>
-          {visiveis.map((i) => (
-            <Card key={i.id}>
-              <CardBody className="py-3">
-                <p className="text-sm">{i.descricao}</p>
-                <p className="text-[11px] text-fg-subtle mt-1">
-                  {i.autor?.nome ?? BRAND.name} · {dataBR(i.created_at)}
-                </p>
-              </CardBody>
-            </Card>
-          ))}
-        </section>
-      ) : null}
+      </SecaoInicio>
 
+      <SecaoInicio titulo="Aprender">
+      {(() => {
+        const r = resumoRevisao(album.progresso, new Date().toISOString(), new Set(album.itens.map((i) => i.conteudo.id)));
+        return <RevisarConhecimento agora={r.agora} primeira={r.primeira} aprendidas={r.aprendidas} compacto />;
+      })()}
+
+      <AnuncioDescoberta candidatas={candidatasAnuncio(album.itens).slice(0, 8).map(paraVisao)} explorados={albumResumo.explorados} total={albumResumo.total} origem="inicio" />
+
+      </SecaoInicio>
+
+      <SecaoInicio titulo="Mais para você">
       {dieta.length ? (
         <Link href="/aluno/dieta" className="block">
           <Card className="hover:border-accent/40 transition-colors">
@@ -503,6 +513,19 @@ export default async function AlunoHomePage() {
           </Card>
         </Link>
       ) : null}
+      {indicacao?.pct ? <DescontoIndicacao r={indicacao} nome={sessao.nome} link aluno={!ehVisitante(sessao)} /> : null}
+      {mostrarConvite && campanha ? <ConviteAmigo amigos={campanha.indicacao.amigos} diasGanhos={campanha.indicacao.diasGanhos} tela="inicio" /> : null}
+      {FEATURES.modoVisitante && !ehVisitante(sessao) && !sessao.comoPersonal && !indicacao?.pct ? <IncentivoIndicacao momento="inicio" aluno fecharam={indicacao?.fecharam ?? 0} /> : null}
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !sessao.comoPersonal ? <ConhecaOMontinho /> : null}
+      {/* No máximo um convite por tela: com campanha em destaque, sai o convite comum. */}
+      {FEATURES.modoVisitante && ehVisitante(sessao) && !campanha?.oferta && !mostrarConvite ? <CtaVisitante alunoId={alunoId} tela="inicio" acessoFim={sessao.acessoFim ?? null} /> : null}
+      {/* Oferta dos planos (Consultoria/Pacote Flexível), com limite e pausas; a oferta do fim do acesso do visitante tem a vez. */}
+      {!sessao.comoPersonal && !campanha?.oferta && BRAND.contact.whatsapp ? <OfertaPlano tela="inicio" whatsapp={BRAND.contact.whatsapp} /> : null}
+
+      <AvisoInstalar />
+
+      </SecaoInicio>
+
     </div>
   );
 }

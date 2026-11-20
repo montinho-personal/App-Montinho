@@ -35,6 +35,8 @@ function cardDaConquista(c: Conquista): { dados: DadosCard; modelo: ModeloId } {
 export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, destaque, proximas, ganhas, total, novas, jornada, reconhecimentosPorCodigo }: { nome: string; mensal: ResumoMensal; conquistas: Conquista[]; reconhecimentos: Reconhecimento[]; destaque: Medalha[]; proximas: Medalha[]; ganhas: number; total: number; novas: Array<{ id: string; codigo: string }>; jornada: string | null; reconhecimentosPorCodigo: Record<string, { mensagem: string; data: string }> }) {
   const [editor, setEditor] = useState<{ dados: DadosCard; modelo: ModeloId; origem: "historico" | "mensal" | "reconhecimento"; ref?: string } | null>(null);
   const [todosRecordes, setTodosRecordes] = useState(false);
+  // Linha do tempo de 6 em 6 (20/11/2026, auditoria: com todos abertos a tela tinha 12 telas de altura).
+  const [naLinha, setNaLinha] = useState(6);
   const recordes = conquistas.filter((c) => c.codigo === "recorde");
   const visiveis = conquistas.filter((c) => c.codigo !== "recorde");
   const novasMedalhas = destaque.filter((m) => novas.some((n) => n.codigo === m.codigo));
@@ -207,11 +209,11 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
 
       <section className="space-y-2" aria-labelledby="hist-titulo">
         <h2 id="hist-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">
-          Linha do tempo
+          Linha do tempo{visiveis.length ? ` · ${visiveis.length}` : ""}
         </h2>
         {visiveis.length ? (
           <ol className="space-y-2">
-            {visiveis.map((c) => (
+            {visiveis.slice(0, naLinha).map((c) => (
               <li key={c.id}>
                 <Card>
                   <CardBody className="space-y-1">
@@ -237,6 +239,12 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
                 </Card>
               </li>
             ))}
+            {visiveis.length > naLinha ? (
+              <li className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setNaLinha((n) => n + 12)} className="touch flex-1 rounded-xl border border-accent/50 px-4 text-sm font-bold text-accent">Ver mais 12 · faltam {visiveis.length - naLinha}</button>
+                <button type="button" onClick={() => setNaLinha(9999)} className="touch rounded-xl border border-border px-4 text-sm font-semibold text-fg-muted">Ver todas</button>
+              </li>
+            ) : null}
           </ol>
         ) : (
           <div className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-fg-muted">Suas conquistas aparecem aqui a partir do primeiro treino concluído.</div>

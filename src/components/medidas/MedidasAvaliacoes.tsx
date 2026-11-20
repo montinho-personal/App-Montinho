@@ -42,6 +42,8 @@ type Modo = "arquivo" | "caseiro" | "completa";
 export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = false, doPersonal = false, sexo = null, nascimento = null }: { alunoId: string; medidas: Evolucao[]; arquivos: AvaliacaoArquivo[]; nome: string; demo?: boolean; doPersonal?: boolean; sexo?: SexoAvaliacao | null; nascimento?: string | null }) {
   const router = useRouter();
   const [modo, setModo] = useState<Modo | null>(null);
+  // Registros: os 2 mais recentes à vista, o resto no toque (20/11/2026, auditoria: a lista empurrava os gráficos para o fim).
+  const [todosRegistros, setTodosRegistros] = useState(false);
   const setAberto = (v: boolean) => setModo(v ? modo : null);
   const [data, setData] = useState(hojeBR());
   const [valores, setValores] = useState<Partial<Record<ChaveMedida, string>>>({});
@@ -221,9 +223,9 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
 
       {medidas.length ? (
         <section className="space-y-2" aria-labelledby="hist-titulo">
-          <h3 id="hist-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Registros</h3>
+          <h3 id="hist-titulo" className="text-xs font-bold uppercase tracking-wider text-fg-muted">Registros · {medidas.length}</h3>
           <ul className="space-y-2">
-            {medidas.slice(0, 12).map((m) => {
+            {medidas.slice(0, todosRegistros ? 12 : 2).map((m) => {
               const itens = CAMPOS_MEDIDA.filter((c) => typeof m[c.chave] === "number");
               const extras = m.extras ?? [];
               return (
@@ -237,6 +239,11 @@ export function MedidasAvaliacoes({ alunoId, medidas, arquivos, nome, demo = fal
               );
             })}
           </ul>
+          {medidas.length > 2 ? (
+            <button type="button" onClick={() => setTodosRegistros((v) => !v)} className="touch w-full rounded-xl border border-border px-4 text-sm font-semibold text-accent">
+              {todosRegistros ? "Mostrar só os 2 mais recentes ▴" : `Ver os outros ${Math.min(12, medidas.length) - 2} registros ▾`}
+            </button>
+          ) : null}
         </section>
       ) : null}
 
