@@ -13,6 +13,9 @@ import { tipoDePeso, ehMaquina } from "@/lib/treino/padrao-carga";
 import { ehSessaoLivre, textoUltimaVez } from "@/lib/treino/livre";
 import { juntarBlocosAdjacentes } from "@/lib/treino/tecnica-aluno";
 import type { ConfigTecnica } from "@/lib/treino/tecnica-config";
+import { TelaChalala } from "@/components/chalala/TelaChalala";
+import { dataLocal } from "@/lib/aderencia/calcular";
+import { CABECALHO_ALUNO } from "@/lib/auth/cabecalho";
 import { LivreClient, type ExercicioTela } from "@/app/(aluno)/aluno/livre/[id]/LivreClient";
 
 export const metadata = { title: "Aula presencial · treino livre" };
@@ -24,7 +27,20 @@ export default async function AulaLivrePage({ params }: { params: Promise<{ id: 
   if (!aluno) notFound();
   const s = await getSessao(id, sessaoId);
   if (!s || !ehSessaoLivre(s)) notFound();
-  if (s.status !== "em_andamento") redirect(`/treinador/alunos/${id}/treinos-feitos`);
+  const nome = aluno.profile?.nome?.split(" ")[0] ?? "Aluno";
+  // Fim da aula em treino livre = a MESMA tela de fim dos outros treinos (20/11/2026, caso da Carol: o Montinho terminou
+  // o treino livre da aula e as medalhas não apareceram — a tela ia direto para “Treinos feitos”, sem comemorar).
+  if (s.status === "abandonada") redirect(`/treinador/alunos/${id}/treinos-feitos`);
+  if (s.status !== "em_andamento") {
+    const duracaoMin = s.duracao_seg != null ? Math.max(1, Math.round(s.duracao_seg / 60)) : null;
+    const base = { sessaoId: s.id, status: "concluida" as const, nomeTreino: s.nome_treino ?? "Treino livre", series: s.series_concluidas, seriesPlanejadas: s.series_planejadas, duracaoMin, data: dataLocal(new Date(s.finalizado_em ?? s.iniciado_em)) };
+    return (
+      <div className="mx-auto max-w-md space-y-3">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-accent">👥 Aula presencial · {nome}</p>
+        <TelaChalala base={base} nome={nome} presencial={{ nomeAluno: nome, voltarHref: `/treinador/alunos/${id}/treinos-feitos`, cabecalhos: { [CABECALHO_ALUNO]: id } }} />
+      </div>
+    );
+  }
   const tecnicaDe = (p: unknown) => ((p as { tecnica?: string } | null)?.tecnica ?? "normal");
   const [biblioteca, ultimas, padraoCarga] = await Promise.all([
     listarBiblioteca(),
@@ -48,11 +64,10 @@ export default async function AulaLivrePage({ params }: { params: Promise<{ id: 
     meta: null,
     series: [...e.series].sort((a, b) => a.serie - b.serie).map((x) => ({ key: x.client_key.replace(/^livre:/, ""), serie: x.serie, tipo: x.tipo, carga: txt(x.carga_kg), reps: x.reps != null ? String(x.reps) : "", salva: true, ...(x.blocos?.length ? { blocos: x.blocos.map((b) => ({ carga: txt(b.carga), reps: b.reps != null ? String(b.reps) : "" })) } : {}) })),
   })));
-  const nome = aluno.profile?.nome?.split(" ")[0] ?? "Aluno";
   return (
     <div className="mx-auto max-w-md space-y-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-accent">👥 Aula presencial · {nome}</p>
-      <LivreClient titulo={`Treino livre de ${nome}`} padraoCarga={padraoCarga} sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} voltar={`/treinador/alunos/${id}/aula`} alunoAula={id} aoTerminar={`/treinador/alunos/${id}/treinos-feitos`} />
+      <LivreClient titulo={`Treino livre de ${nome}`} padraoCarga={padraoCarga} sessaoId={s.id} iniciadoEm={s.iniciado_em} itens={itens} inicial={inicial} voltar={`/treinador/alunos/${id}/aula`} alunoAula={id} />
     </div>
   );
 }

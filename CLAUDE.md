@@ -220,6 +220,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - Auditoria do painel, 2ª rodada (20/11/2026): sala de troféus do aluno (`alunos/[id]/conquistas`) = resumo → Ver jornada/Enviar reconhecimento → Olhar de Águia → recordes recentes → carimbos → feriados → vitrine inteira por último; Conquistas da Tribo do painel = números → missões (atuais e histórico) → nova missão → quem somou → marcos → curiosidades; Ranking do painel = líder → pódio e lista → clube → cliques do “Você sabia?” (as dicas do `NarrativaRanking` ficam recolhidas em “💡 Como subir no ranking”, também no aluno). Medidas e Recordes do aluno no painel usam os mesmos componentes do app (registros 2 + “ver os outros”; cargas com busca e 8 por vez). “Protocolo e semana” do montador já abre recolhido; a faixa da fase fica à vista por pedido do Montinho (10/11/2026).
 
+- Fim do treino livre da AULA PRESENCIAL com comemoração (20/11/2026, caso da Carol: o Montinho terminou o treino livre da aula e as medalhas não apareceram): antes o `LivreClient` ia direto para “Treinos feitos” (`aoTerminar`); agora `/treinador/alunos/[id]/aula/livre/[sessao]` com a sessão concluída mostra a MESMA `TelaChalala` da aula normal (`presencial`: medalhas do treino, relatório, “📸 Card do treino de …”, “Voltar para …” → Treinos feitos do aluno); cancelada continua indo para Treinos feitos. Os troféus já eram gravados; faltava só a tela.
+
 ## Ao editar
 - Português correto, com acentos. Horários/datas/kg/cm no padrão do Brasil.
 - Removeu uma tela? Remova os links em `src/app/(treinador)/layout.tsx` (NAV) e `src/app/(aluno)/layout.tsx` (TABS).
