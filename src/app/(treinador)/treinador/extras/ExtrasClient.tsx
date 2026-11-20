@@ -164,9 +164,15 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
 
       {detalhe && cfg ? (
         <div className="grid gap-5 lg:grid-cols-2">
-          <Card>
-            <CardBody className="space-y-3 text-sm">
-              <h2 className="font-bold">Regras do aluno</h2>
+          {/* Regras = ajuste de vez em quando: recolhidas e, no celular, depois dos extras (20/11/2026, auditoria). */}
+          <Card className="max-lg:order-last">
+            <CardBody className="text-sm">
+              <details className="group">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2">
+                <span><span className="block font-bold">⚙️ Regras do aluno</span><span className="block text-xs text-fg-muted">{cfg.habilitado ? "Treinos extras permitidos" : "Treinos extras desligados"} · toque para ajustar</span></span>
+                <span className="text-fg-subtle transition-transform group-open:rotate-180" aria-hidden>▾</span>
+              </summary>
+              <div className="space-y-3 pt-3">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={cfg.habilitado} onChange={(e) => setCfg({ ...cfg, habilitado: e.target.checked })} className="h-4 w-4 accent-[var(--color-accent)]" />
                 Permitir treinos extras
@@ -227,6 +233,8 @@ export function ExtrasClient({ alunos, pendentes, detalhe }: { alunos: Array<{ i
               <button type="button" disabled={salvando} onClick={() => void enviar(`/api/alunos/${detalhe.alunoId}/extras`, "PUT", cfg, "Regras salvas.")} className="touch rounded-lg bg-accent px-4 py-2 font-bold text-bg disabled:opacity-60">
                 Salvar regras
               </button>
+              </div>
+              </details>
             </CardBody>
           </Card>
 

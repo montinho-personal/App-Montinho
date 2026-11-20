@@ -174,6 +174,30 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               <Field label="Início" value={dataBR(aluno.data_inicio)} />
               <Field label="Acesso até" value={dataBR(aluno.acesso_ate)} hint={diasAcesso !== null ? (diasAcesso < 0 ? `vencido há ${Math.abs(diasAcesso)}d` : diasAcesso === 0 ? "último dia" : `${diasAcesso}d restantes`) : undefined} tone={diasAcesso !== null && diasAcesso < 0 ? "red" : diasAcesso !== null && diasAcesso <= 7 ? "gold" : "neutral"} />
             </div>
+            {/* Restrições logo no topo (20/11/2026, auditoria): é a 1ª coisa a lembrar antes de montar ou dar aula. */}
+            {a?.lesoes || a?.dores_atuais || aluno.observacoes ? (
+              <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 px-3 py-2.5">
+                <div className="text-xs font-bold text-gold uppercase tracking-wider mb-1">⚠️ Restrições e contexto (privado)</div>
+                {a?.lesoes ? <p className="text-sm">Lesões: {a.lesoes}</p> : null}
+                {a?.dores_atuais ? <p className="text-sm">Dores atuais: {a.dores_atuais}</p> : null}
+                {aluno.observacoes ? <p className="text-sm text-fg-muted">{aluno.observacoes}</p> : null}
+              </div>
+            ) : null}
+            {aderencia.semanas.length >= 2 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-bg/40 px-3 py-3">
+                <div className="flex items-center gap-3">
+                  <AnelPercentual valor={aderencia.indices.d28.pct} rotulo="Aderência nas últimas 4 semanas" tamanho={52} />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-fg-subtle">Aderência 4 semanas</p>
+                    <p className="text-sm font-semibold">{aderencia.semanaAtual?.meta ? `Esta semana: ${aderencia.semanaAtual.pontos.toLocaleString("pt-BR")}/${aderencia.semanaAtual.meta}` : "Sem meta nesta semana"}</p>
+                  </div>
+                </div>
+                <div className="min-w-[180px] flex-1 max-w-xs">
+                  <p className="text-[10px] uppercase tracking-wider text-fg-subtle mb-1">Últimas 8 semanas</p>
+                  <SemanasBarras semanas={aderencia.semanas} quantidade={8} altura={44} />
+                </div>
+              </div>
+            ) : null}
             {/* Ações: as duas principais em destaque e atalhos com ícone (fácil de achar no celular). */}
             <div className="mt-5 space-y-2">
               <Link href={`/treinador/alunos/${id}/aula`} className="touch flex items-center justify-center gap-2 rounded-xl bg-accent px-3 py-3 text-center font-bold text-bg hover:bg-accent-hover">
@@ -182,15 +206,6 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
               </Link>
               {/* Montar/revisar o treino: duas portas, musculação e cardio. */}
               <AbasTreinoCardio alunoId={id} resumoCardio={resumoDoCardio(cardioAluno)} />
-              {FEATURES.multimodalidade ? (
-                <Link href={`/treinador/alunos/${id}/recordes`} className="touch flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-                  <span className="min-w-0"><span className="block font-bold">🏅 Recordes e benchmarks</span><span className="block truncate text-xs text-fg-muted">1RM, 3RM, 5RM, WODs de referência e primeiros movimentos</span></span>
-                  <span aria-hidden className="text-accent">→</span>
-                </Link>
-              ) : null}
-              {FEATURES.multimodalidade && aluno.modalidades_interesse?.length ? (
-                <p className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm"><span className="text-fg-muted">🏟️ Gosta de treinar:</span> <strong>{textoInteresse(aluno.modalidades_interesse)}</strong></p>
-              ) : null}
               {/* Treinos feitos: o que o aluno fez e anotou, treino a treino. */}
               {(() => {
                 const feitos = treinosFeitos(sessoes);
@@ -206,15 +221,6 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                   </Link>
                 );
               })()}
-              <CopiarResumoFase alunoId={id} />
-              {avResumo ? (
-                <PainelAvaliacao r={avResumo} compacto relatorioHref={`/avaliacao/${avResumo.id}`} medidasHref={`/treinador/alunos/${id}/medidas`} />
-              ) : (
-                <Link href={`/treinador/alunos/${id}/medidas`} className="touch flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-3">
-                  <span><span className="block font-bold">🩺 Avaliação física</span><span className="block text-xs text-fg-muted">Nenhuma avaliação registrada ainda · registrar ou subir o laudo</span></span>
-                  <span aria-hidden>→</span>
-                </Link>
-              )}
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <Link href={`/treinador/alunos/${id}/conquistas`} className={ATALHO}>
                   <span aria-hidden className="text-lg">🏆</span>
@@ -243,57 +249,10 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
                 <EnviarAcessoButton alunoId={aluno.id} nome={aluno.profile?.nome ?? ""} email={aluno.profile?.email ?? null} telefone={aluno.telefone ?? null} className={ATALHO} />
               </div>
             </div>
-            {aderencia.semanas.length >= 2 ? (
-              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
-                <div className="flex items-center gap-3">
-                  <AnelPercentual valor={aderencia.indices.d28.pct} rotulo="Aderência nas últimas 4 semanas" tamanho={52} />
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-fg-subtle">Aderência 4 semanas</p>
-                    <p className="text-sm font-semibold">{aderencia.semanaAtual?.meta ? `Esta semana: ${aderencia.semanaAtual.pontos.toLocaleString("pt-BR")}/${aderencia.semanaAtual.meta}` : "Sem meta nesta semana"}</p>
-                  </div>
-                </div>
-                <div className="min-w-[180px] flex-1 max-w-xs">
-                  <p className="text-[10px] uppercase tracking-wider text-fg-subtle mb-1">Últimas 8 semanas</p>
-                  <SemanasBarras semanas={aderencia.semanas} quantidade={8} altura={44} />
-                </div>
-              </div>
-            ) : null}
           </div>
         </CardBody>
       </Card>
 
-      {mobAluno ? <PrescreverMobilidade alunoId={aluno.id} nome={aluno.profile?.nome ?? ""} telefone={aluno.telefone ?? null} e={estadoParaPainel(mobAluno)} abertoInicial={mobAluno.m?.origem === "anamnese"} /> : null}
-
-      {cardio.length ? (
-        <Card>
-          <CardBody className="space-y-1.5 text-sm">
-            <div className="text-xs font-bold uppercase tracking-wider text-accent">⌚ Batimento do relógio (Strava)</div>
-            <ul className="space-y-1">
-              {cardio.map((c) => (
-                <li key={c.session_id} className="flex flex-wrap justify-between gap-x-3 border-t border-border pt-1 text-xs">
-                  <span className="text-fg-muted">{c.inicio_atividade ? dataBR(c.inicio_atividade) : "—"}{c.dispositivo ? ` · ${c.dispositivo}` : ""}</span>
-                  <span>❤️ {textoCardio(c)}</span>
-                </li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      <CardiosStrava cardios={cardiosStrava} hoje={hojeLocal} />
-
-      {a?.lesoes || a?.dores_atuais || aluno.observacoes ? (
-        <Card className="border-gold/20 bg-gold/5">
-          <CardBody>
-            <div className="text-xs font-bold text-gold uppercase tracking-wider mb-1">Restrições e contexto (privado)</div>
-            {a?.lesoes ? <p className="text-sm">Lesões: {a.lesoes}</p> : null}
-            {a?.dores_atuais ? <p className="text-sm">Dores atuais: {a.dores_atuais}</p> : null}
-            {aluno.observacoes ? <p className="text-sm text-fg-muted">{aluno.observacoes}</p> : null}
-          </CardBody>
-        </Card>
-      ) : null}
-
-      <EstrategiaPerfilCard alunoId={id} vigente={estrategia?.dados ?? null} importadaEm={estrategia?.created_at ?? null} fase={estrategia ? faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), hojeLocal) : null} />
       {prescricoesParaAluno(aluno.profile?.nome).map((pr) => (
         <PrescricaoProntaCard
           key={pr.id}
@@ -310,16 +269,17 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
         const fora = plano.programa && !prontaPendente ? exerciciosForaDoPadrao(plano.treinos.map((t) => paraTreinoInput(t))) : 0;
         return fora > 0 ? <AplicarPadraoCard alunoId={id} fora={fora} /> : null;
       })()}
-      {importacoesParaAluno(aluno.profile?.nome).map((imp) => (
-        <HistoricoResumoCard
-          key={imp.id}
-          alunoId={id}
-          importacao={{ id: imp.id, titulo: imp.titulo, linhas: imp.linhas, avisos: imp.avisos }}
-          gravadas={historicoResumo.filter((r) => r.importacao === imp.id).length}
-          diasRegistrados={sessoes.filter((s) => s.client_key?.startsWith(`hist:${imp.id}:`)).length}
-          diasSemSeries={sessoes.filter((s) => s.client_key?.startsWith(`hist:${imp.id}:`) && s.exercicios.length === 0).length}
-        />
-      ))}
+      {mobAluno ? <PrescreverMobilidade alunoId={aluno.id} nome={aluno.profile?.nome ?? ""} telefone={aluno.telefone ?? null} e={estadoParaPainel(mobAluno)} abertoInicial={false} /> : null}
+      <div className="space-y-2">
+              {avResumo ? (
+                <PainelAvaliacao r={avResumo} compacto relatorioHref={`/avaliacao/${avResumo.id}`} medidasHref={`/treinador/alunos/${id}/medidas`} />
+              ) : (
+                <Link href={`/treinador/alunos/${id}/medidas`} className="touch flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-3">
+                  <span><span className="block font-bold">🩺 Avaliação física</span><span className="block text-xs text-fg-muted">Nenhuma avaliação registrada ainda · registrar ou subir o laudo</span></span>
+                  <span aria-hidden>→</span>
+                </Link>
+              )}
+      </div>
       <Tabs
         tabs={[
           {
@@ -456,6 +416,49 @@ export default async function AlunoDetailPage({ params, searchParams }: PageProp
           },
         ]}
       />
+      {/* Ferramentas e registros de apoio (20/11/2026, auditoria): tudo continua aqui, abaixo do plano, para o topo ficar com o que se usa toda hora. */}
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-fg-subtle">Mais sobre {(aluno.profile?.nome ?? "o aluno").split(" ")[0]}</h2>
+        <div className="space-y-2">
+              {FEATURES.multimodalidade ? (
+                <Link href={`/treinador/alunos/${id}/recordes`} className="touch flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                  <span className="min-w-0"><span className="block font-bold">🏅 Recordes e benchmarks</span><span className="block truncate text-xs text-fg-muted">1RM, 3RM, 5RM, WODs de referência e primeiros movimentos</span></span>
+                  <span aria-hidden className="text-accent">→</span>
+                </Link>
+              ) : null}
+              {FEATURES.multimodalidade && aluno.modalidades_interesse?.length ? (
+                <p className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm"><span className="text-fg-muted">🏟️ Gosta de treinar:</span> <strong>{textoInteresse(aluno.modalidades_interesse)}</strong></p>
+              ) : null}
+              <CopiarResumoFase alunoId={id} />
+        </div>
+      <EstrategiaPerfilCard alunoId={id} vigente={estrategia?.dados ?? null} importadaEm={estrategia?.created_at ?? null} fase={estrategia ? faseAtual(estrategia.dados.fases, inicioDasFases(aluno.data_inicio, estrategia.dados.data), hojeLocal) : null} />
+      {cardio.length ? (
+        <Card>
+          <CardBody className="space-y-1.5 text-sm">
+            <div className="text-xs font-bold uppercase tracking-wider text-accent">⌚ Batimento do relógio (Strava)</div>
+            <ul className="space-y-1">
+              {cardio.map((c) => (
+                <li key={c.session_id} className="flex flex-wrap justify-between gap-x-3 border-t border-border pt-1 text-xs">
+                  <span className="text-fg-muted">{c.inicio_atividade ? dataBR(c.inicio_atividade) : "—"}{c.dispositivo ? ` · ${c.dispositivo}` : ""}</span>
+                  <span>❤️ {textoCardio(c)}</span>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      ) : null}
+      <CardiosStrava cardios={cardiosStrava} hoje={hojeLocal} />
+      {importacoesParaAluno(aluno.profile?.nome).map((imp) => (
+        <HistoricoResumoCard
+          key={imp.id}
+          alunoId={id}
+          importacao={{ id: imp.id, titulo: imp.titulo, linhas: imp.linhas, avisos: imp.avisos }}
+          gravadas={historicoResumo.filter((r) => r.importacao === imp.id).length}
+          diasRegistrados={sessoes.filter((s) => s.client_key?.startsWith(`hist:${imp.id}:`)).length}
+          diasSemSeries={sessoes.filter((s) => s.client_key?.startsWith(`hist:${imp.id}:`) && s.exercicios.length === 0).length}
+        />
+      ))}
+      </section>
     </div>
   );
 }

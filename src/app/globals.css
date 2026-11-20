@@ -341,3 +341,60 @@
 
 /* Folha da técnica aberta (montador): os avisos de tempo não cobrem o botão “Pronto”. */
 body.folha-tecnica-aberta .pilha-toasts { display: none !important; }
+
+/* Montador no celular (20/11/2026, auditoria do painel): cada exercício vira um cartão — nome em cima,
+   séries · reps · descanso · RIR numa linha só, músculo e ações embaixo — em vez da tabela que rolava para o lado.
+   No computador (768 px+) a tabela continua igual. */
+@media (max-width: 767px) {
+  .tabela-ex, .tabela-ex tbody, .tabela-ex tr, .tabela-ex td { display: block; }
+  .tabela-ex thead { display: none; }
+  .tabela-ex td { min-width: 0; }
+  .tabela-ex tr.linha-ex {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 0.8fr) minmax(0, 1.9fr) minmax(0, 0.8fr) minmax(0, 0.6fr);
+    grid-template-areas:
+      "ordem nome nome nome nome"
+      "ordem series reps desc rir"
+      "ordem grupo grupo grupo grupo"
+      "ordem obs obs obs obs"
+      "ordem acoes acoes acoes acoes";
+    padding: 6px 4px 10px 0;
+  }
+  .tabela-ex tr.linha-ex.linha-ex-det {
+    grid-template-areas:
+      "ordem nome nome nome nome"
+      "ordem series series rir rir"
+      "ordem reps reps reps reps"
+      "ordem grupo grupo grupo grupo"
+      "ordem obs obs obs obs"
+      "ordem acoes acoes acoes acoes";
+  }
+  .tabela-ex .c-ordem { grid-area: ordem; align-self: stretch; display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; }
+  .tabela-ex .c-nome { grid-area: nome; }
+  .tabela-ex .c-series { grid-area: series; }
+  .tabela-ex .c-reps { grid-area: reps; }
+  .tabela-ex .c-desc { grid-area: desc; }
+  .tabela-ex .c-rir { grid-area: rir; }
+  .tabela-ex tr.linha-ex-det .c-desc { display: none; }
+  .tabela-ex .c-grupo { grid-area: grupo; }
+  .tabela-ex .c-acoes { grid-area: acoes; align-self: end; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-bottom: 2px; }
+  .tabela-ex .c-acoes button { margin-left: 0; min-height: 36px; min-width: 36px; padding-left: 10px; padding-right: 10px; font-size: 12px; }
+  .tabela-ex .c-reps input, .tabela-ex .c-series input, .tabela-ex .c-desc input, .tabela-ex .c-rir input { width: 100%; }
+  .tabela-ex .c-reps > input { padding-left: 6px; padding-right: 4px; font-size: 12px; }
+  .tabela-ex .c-obs { grid-area: obs; }
+  .tabela-ex .c-obs textarea { min-width: 0; }
+  .tabela-ex td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    display: block;
+    margin-bottom: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .tabela-ex .c-series, .tabela-ex .c-desc, .tabela-ex .c-rir { text-align: left; }
+  .tabela-ex .c-series > div { justify-content: flex-start; }
+}

@@ -52,6 +52,8 @@ export function ConhecimentoClient({ conteudos, problemas, fontes, medalhas, alu
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos");
   const [filtroCat, setFiltroCat] = useState<string>("todas");
   const [busca, setBusca] = useState("");
+  // Lista em páginas (20/11/2026, auditoria): com 142 perguntas a tela tinha 29 telas de altura; a busca e os filtros continuam olhando TODAS.
+  const [mostrar, setMostrar] = useState(15);
   const [editando, setEditando] = useState<ConteudoConhecimento | null>(null);
   const rolagem = useRef(0);
   const lista = useMemo(() => {
@@ -168,7 +170,7 @@ export function ConhecimentoClient({ conteudos, problemas, fontes, medalhas, alu
 
       {lista.length ? (
         <ul className="space-y-2">
-          {lista.map((c) => {
+          {lista.slice(0, mostrar).map((c) => {
             const u = a.porConteudo[c.id];
             const p = problemas[c.id] ?? [];
             const cat = CATEGORIAS.find((k) => k.id === c.categoria);
@@ -199,6 +201,12 @@ export function ConhecimentoClient({ conteudos, problemas, fontes, medalhas, alu
               </li>
             );
           })}
+          {lista.length > mostrar ? (
+            <li className="flex flex-wrap gap-2 pt-1">
+              <button type="button" onClick={() => setMostrar((n) => n + 30)} className="touch flex-1 rounded-xl border border-accent/50 px-4 text-sm font-bold text-accent">Mostrar mais 30 · faltam {lista.length - mostrar}</button>
+              <button type="button" onClick={() => setMostrar(9999)} className="touch rounded-xl border border-border px-4 text-sm font-semibold text-fg-muted">Mostrar todas</button>
+            </li>
+          ) : null}
         </ul>
       ) : (
         <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">Nenhuma pergunta encontrada. Tente outro filtro ou limpe a busca.</p>

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { Fragment, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { BrandLockup, FioMarca } from "@/components/brand/BrandLockup";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { apagarTelasGuardadas } from "@/lib/offline/paginas";
 import { BuscaRapida } from "./BuscaRapida";
 
-type NavItem = { label: string; href: string; icon: IconName };
+type NavItem = { label: string; href: string; icon: IconName; /** Seção do menu (20/11/2026: o menu do personal tinha 27 itens soltos). */ grupo?: string };
 
 type SidebarProps = { items: NavItem[]; usuario?: { nome: string } };
 
@@ -52,20 +52,23 @@ export function Sidebar({ items, usuario }: SidebarProps) {
 
   const nav = (
     <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1" aria-label="Menu do treinador">
-      {items.map((item) => {
+      {items.map((item, idx) => {
         const active = item.href === "/treinador" ? pathname === "/treinador" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const novoGrupo = item.grupo && item.grupo !== items[idx - 1]?.grupo;
         return (
+          <Fragment key={item.href}>
+          {novoGrupo ? (collapsed ? <div className="mx-2 my-2 border-t border-border" aria-hidden /> : <p className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-fg-subtle first:pt-1">{item.grupo}</p>) : null}
           <Link
-            key={item.href}
             href={item.href}
             title={collapsed ? item.label : undefined}
             aria-current={active ? "page" : undefined}
             onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${collapsed ? "justify-center" : ""} ${active ? "bg-accent/10 text-accent border border-accent/20" : "text-fg-muted hover:bg-card hover:text-fg"}`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[42px] ${collapsed ? "justify-center" : ""} ${active ? "bg-accent/10 text-accent border border-accent/20" : "text-fg-muted hover:bg-card hover:text-fg"}`}
           >
             <Icon name={item.icon} size={18} />
             {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
           </Link>
+          </Fragment>
         );
       })}
     </nav>

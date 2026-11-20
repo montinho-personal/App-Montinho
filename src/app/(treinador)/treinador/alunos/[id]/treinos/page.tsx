@@ -75,15 +75,7 @@ export default async function MontadorPage({ params }: PageProps) {
     <>
     <div className="mb-4">
       <AbasTreinoCardio alunoId={id} ativo="musculacao" />
-      <Link href={`/treinador/alunos/${id}/livre-metas`} className={`touch mt-2 flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${ehLivreMetas(plano.programa) ? "border-success/60 bg-success/10" : "border-border bg-card"}`}>
-        <span>
-          <span className="block font-semibold">🎯 Protocolo livre (por metas) {ehLivreMetas(plano.programa) ? "· LIGADO" : ""}</span>
-          <span className="block text-xs text-fg-muted">Sem A/B/C: você define só as séries por semana de cada músculo e o aluno monta na hora.</span>
-        </span>
-        <span aria-hidden className="text-accent">→</span>
-      </Link>
       <div className="mt-2"><ProtocoloEmAcao alunoId={id} nome={aluno.profile?.nome ?? "Aluno"} d={emAcao} /></div>
-      <CopiarProtocolo alunoId={id} alunoNome={aluno.profile?.nome ?? "Aluno"} opcoes={outros} treinos={plano.treinos.filter((t) => t.ativo).length} />
     </div>
     <MontadorClient
       multimodalidade={FEATURES.multimodalidade}
@@ -109,6 +101,18 @@ export default async function MontadorPage({ params }: PageProps) {
       porques={porques}
       versoes={versoes}
     />
+    {/* Opções do protocolo que se usam de vez em quando ficam no fim (20/11/2026, auditoria): o topo é para montar. */}
+    <section className="mt-6 space-y-2">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-fg-subtle">Outras opções deste protocolo</h2>
+      <Link href={`/treinador/alunos/${id}/livre-metas`} className={`touch flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${ehLivreMetas(plano.programa) ? "border-success/60 bg-success/10" : "border-border bg-card"}`}>
+        <span>
+          <span className="block font-semibold">🎯 Protocolo livre (por metas) {ehLivreMetas(plano.programa) ? "· LIGADO" : ""}</span>
+          <span className="block text-xs text-fg-muted">Sem A/B/C: você define só as séries por semana de cada músculo e o aluno monta na hora.</span>
+        </span>
+        <span aria-hidden className="text-accent">→</span>
+      </Link>
+      <CopiarProtocolo alunoId={id} alunoNome={aluno.profile?.nome ?? "Aluno"} opcoes={outros} treinos={plano.treinos.filter((t) => t.ativo).length} />
+    </section>
     </>
   );
 }

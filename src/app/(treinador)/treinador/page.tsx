@@ -106,54 +106,7 @@ export default async function TreinadorDashboardPage() {
         <StatCard label="Pendentes / pausados" value={`${m.pendentes} / ${m.pausados}`} hint="cadastro ou acesso" tone="neutral" />
       </div>
 
-      <Link href="/treinador/ao-vivo" className="flex items-center gap-3 rounded-2xl border border-success/40 bg-success/5 px-4 py-3 hover:border-success">
-        <span className={`h-3 w-3 shrink-0 rounded-full ${aoVivo.length || outrasAoVivo.length ? "bg-success motion-safe:animate-pulse" : "bg-border"}`} aria-hidden />
-        <span className="flex-1">
-          <span className="block font-bold">{aoVivo.length ? `${aoVivo.length} ${aoVivo.length === 1 ? "pessoa treinando" : "pessoas treinando"} agora` : outrasAoVivo.length ? "Ninguém na musculação agora" : "Ninguém treinando agora"}{outrasAoVivo.length ? ` · ${outrasAoVivo.length} no cardio/mobilidade` : ""}</span>
-          <span className="block text-xs text-fg-muted">{aoVivo.length ? aoVivo.slice(0, 3).map((t) => t.nome.split(" ")[0]).join(", ") + (aoVivo.length > 3 ? "…" : "") + " · toque para ver e mandar um recado" : "Toque para acompanhar ao vivo"}</span>
-        </span>
-        <span aria-hidden className="text-fg-muted">›</span>
-      </Link>
-      {(() => {
-        const hojeSP = dataLocal(new Date());
-        const deHoje = feitosRecentes.filter((t) => t.data === hojeSP);
-        const notas = deHoje.filter((t) => t.anotacoes.length).length;
-        const alerta = deHoje.filter((t) => t.sinais.some((x) => x === "dor" || x === "desconforto" || x === "nao_consegui")).length;
-        return (
-          <Link href="/treinador/treinos-feitos?dias=1" className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 hover:border-accent">
-            <span aria-hidden className="text-2xl">📋</span>
-            <span className="flex-1">
-              <span className="block font-bold">{deHoje.length ? `${deHoje.length} ${deHoje.length === 1 ? "treino feito" : "treinos feitos"} hoje` : "Treinos feitos e anotações"}</span>
-              <span className="block text-xs text-fg-muted">{deHoje.length ? `${notas ? `📝 ${notas} com anotações` : "sem anotações"}${alerta ? ` · ⚠️ ${alerta} com alerta` : ""} · toque para ver cada treino` : "Veja o que cada aluno fez e escreveu, treino a treino"}</span>
-            </span>
-            <span aria-hidden className="text-fg-muted">›</span>
-          </Link>
-        );
-      })()}
-      {acessos ? <AcessosDoDia r={acessos} /> : null}
-
-      <ExerciciosSemVideo lista={semVideo} />
-
-      {turmaBarras.length >= 2 ? (
-        <Card>
-          <CardBody className="flex flex-wrap items-center gap-x-8 gap-y-4">
-            <div className="flex items-center gap-3">
-              <AnelPercentual valor={turma4} rotulo="Aderência da turma nas últimas 4 semanas" tamanho={64} espessura={7} />
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Consistência da turma</p>
-                <p className="text-sm text-fg-muted">últimas 4 semanas fechadas</p>
-                {semanaTurma ? <p className="mt-0.5 text-sm"><span className="font-semibold">{semanaTurma.cumpriram} de {semanaTurma.alunos}</span> já cumpriram a meta desta semana</p> : null}
-              </div>
-            </div>
-            <div className="min-w-[220px] flex-1">
-              <p className="mb-1 text-[10px] uppercase tracking-wider text-fg-subtle">Treinos feitos ÷ previstos, por semana</p>
-              <SemanasBarras semanas={turmaBarras} quantidade={8} altura={56} textoDica={dicaTurma} />
-            </div>
-            <Link href="/treinador/aderencia" className="alvo text-sm text-accent underline-offset-2 hover:underline">Central de aderência →</Link>
-          </CardBody>
-        </Card>
-      ) : null}
-
+      {/* Ordem (20/11/2026, auditoria): primeiro o que pede ação; depois o que está acontecendo; por último os números de fundo. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -255,6 +208,54 @@ export default async function TreinadorDashboardPage() {
           </CardBody>
         </Card>
       ) : null}
+      <Link href="/treinador/ao-vivo" className="flex items-center gap-3 rounded-2xl border border-success/40 bg-success/5 px-4 py-3 hover:border-success">
+        <span className={`h-3 w-3 shrink-0 rounded-full ${aoVivo.length || outrasAoVivo.length ? "bg-success motion-safe:animate-pulse" : "bg-border"}`} aria-hidden />
+        <span className="flex-1">
+          <span className="block font-bold">{aoVivo.length ? `${aoVivo.length} ${aoVivo.length === 1 ? "pessoa treinando" : "pessoas treinando"} agora` : outrasAoVivo.length ? "Ninguém na musculação agora" : "Ninguém treinando agora"}{outrasAoVivo.length ? ` · ${outrasAoVivo.length} no cardio/mobilidade` : ""}</span>
+          <span className="block text-xs text-fg-muted">{aoVivo.length ? aoVivo.slice(0, 3).map((t) => t.nome.split(" ")[0]).join(", ") + (aoVivo.length > 3 ? "…" : "") + " · toque para ver e mandar um recado" : "Toque para acompanhar ao vivo"}</span>
+        </span>
+        <span aria-hidden className="text-fg-muted">›</span>
+      </Link>
+      {(() => {
+        const hojeSP = dataLocal(new Date());
+        const deHoje = feitosRecentes.filter((t) => t.data === hojeSP);
+        const notas = deHoje.filter((t) => t.anotacoes.length).length;
+        const alerta = deHoje.filter((t) => t.sinais.some((x) => x === "dor" || x === "desconforto" || x === "nao_consegui")).length;
+        return (
+          <Link href="/treinador/treinos-feitos?dias=1" className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 hover:border-accent">
+            <span aria-hidden className="text-2xl">📋</span>
+            <span className="flex-1">
+              <span className="block font-bold">{deHoje.length ? `${deHoje.length} ${deHoje.length === 1 ? "treino feito" : "treinos feitos"} hoje` : "Treinos feitos e anotações"}</span>
+              <span className="block text-xs text-fg-muted">{deHoje.length ? `${notas ? `📝 ${notas} com anotações` : "sem anotações"}${alerta ? ` · ⚠️ ${alerta} com alerta` : ""} · toque para ver cada treino` : "Veja o que cada aluno fez e escreveu, treino a treino"}</span>
+            </span>
+            <span aria-hidden className="text-fg-muted">›</span>
+          </Link>
+        );
+      })()}
+      {turmaBarras.length >= 2 ? (
+        <Card>
+          <CardBody className="flex flex-wrap items-center gap-x-8 gap-y-4">
+            <div className="flex items-center gap-3">
+              <AnelPercentual valor={turma4} rotulo="Aderência da turma nas últimas 4 semanas" tamanho={64} espessura={7} />
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">Consistência da turma</p>
+                <p className="text-sm text-fg-muted">últimas 4 semanas fechadas</p>
+                {semanaTurma ? <p className="mt-0.5 text-sm"><span className="font-semibold">{semanaTurma.cumpriram} de {semanaTurma.alunos}</span> já cumpriram a meta desta semana</p> : null}
+              </div>
+            </div>
+            <div className="min-w-[220px] flex-1">
+              <p className="mb-1 text-[10px] uppercase tracking-wider text-fg-subtle">Treinos feitos ÷ previstos, por semana</p>
+              <SemanasBarras semanas={turmaBarras} quantidade={8} altura={56} textoDica={dicaTurma} />
+            </div>
+            <Link href="/treinador/aderencia" className="alvo text-sm text-accent underline-offset-2 hover:underline">Central de aderência →</Link>
+          </CardBody>
+        </Card>
+      ) : null}
+
+      {acessos ? <AcessosDoDia r={acessos} /> : null}
+
+      <ExerciciosSemVideo lista={semVideo} />
+
     </div>
   );
 }

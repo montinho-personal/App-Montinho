@@ -355,6 +355,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [ferramentas, setFerramentas] = useState(false);
   const [avancado, setAvancado] = useState(false);
   const [incluirSecundario, setIncluirSecundario] = useState(true);
   // Regra das técnicas avançadas e ajuste por RIR: preferência do treinador neste navegador.
@@ -1047,14 +1048,19 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
         <div className="flex flex-wrap gap-2 items-center">
           <button type="button" onClick={undo} disabled={!hist.passado} className="touch rounded-md border border-border px-3 text-fg-muted hover:text-fg disabled:opacity-40" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><Icon name="undo" /></button>
           <button type="button" onClick={redo} disabled={!hist.futuro} className="touch rounded-md border border-border px-3 text-fg-muted hover:text-fg disabled:opacity-40" title="Refazer (Ctrl+Y)" aria-label="Refazer"><Icon name="redo" /></button>
+          <button type="button" onClick={() => setFerramentas((v) => !v)} aria-expanded={ferramentas} className="touch md:hidden rounded-md border border-border px-3 text-sm font-semibold text-fg-muted">⚙️ Ferramentas {ferramentas ? "▲" : "▼"}</button>
+          <button type="button" onClick={() => void salvar()} disabled={saving} className="touch md:hidden ml-auto rounded-md bg-accent px-5 text-sm font-bold text-bg disabled:opacity-50">{saving ? "Salvando…" : "Salvar"}</button>
+          {/* No celular estas ferramentas ficam atrás de “⚙️ Ferramentas” (20/11/2026, auditoria); no computador, sempre à vista. */}
+          <div className={`${ferramentas ? "flex" : "hidden"} w-full flex-wrap items-center gap-2 md:contents`}>
           <label className="inline-flex items-center gap-1.5 text-xs text-fg-muted rounded-md border border-border px-3 h-11">
             <input type="checkbox" checked={avancado} onChange={(e) => setAvancado(e.target.checked)} /> campos avançados
           </label>
           <button type="button" onClick={usarDescansoPadrao} className="touch rounded-md border border-border px-3 text-sm text-fg-muted hover:text-fg inline-flex items-center gap-1.5" title="Limpa os descansos individuais: passa a valer o padrão"><Icon name="timer" size={16} /> Usar descanso padrão</button>
           <button type="button" onClick={aplicarPadraoFicha} className="touch rounded-md border border-border px-3 text-sm text-fg-muted hover:text-fg" title="Todo exercício até a falha (RIR 0) e aquecimento no 1º exercício de cada treino (prancha e cardio ficam de fora)">Padrão: falha + aquecimento</button>
           <button type="button" onClick={() => setShowExemplos((v) => !v)} className="touch rounded-md border border-accent/40 px-3 text-sm font-semibold text-accent hover:bg-accent/10 inline-flex items-center gap-1.5"><Icon name="sparkles" size={16} /> Já montei algo parecido?</button>
-          <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo da alteração (opcional)" aria-label="Motivo da alteração" className="h-11 rounded-md border border-border bg-bg px-3 text-sm w-56" maxLength={300} />
-          <button type="button" onClick={() => void salvar()} disabled={saving} className="touch rounded-md bg-accent px-5 text-sm font-bold text-bg hover:bg-accent-hover disabled:opacity-50">{saving ? "Salvando…" : "Salvar (Ctrl+S)"}</button>
+          <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo da alteração (opcional)" aria-label="Motivo da alteração" className="h-11 rounded-md border border-border bg-bg px-3 text-sm w-full md:w-56" maxLength={300} />
+          </div>
+          <button type="button" onClick={() => void salvar()} disabled={saving} className="touch max-md:hidden rounded-md bg-accent px-5 text-sm font-bold text-bg hover:bg-accent-hover disabled:opacity-50">{saving ? "Salvando…" : "Salvar (Ctrl+S)"}</button>
         </div>
       </header>
 
@@ -1324,31 +1330,6 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
               </ul>
             </section>
           ) : null}
-          <details className={`rounded-xl border px-4 py-3 ${prontidao.pronto ? "border-success/40 bg-success/5" : "border-accent/40 bg-accent/5"}`}>
-            <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm">
-              <span className="font-bold">{prontidao.pronto ? "✅ Protocolo pronto para o aluno" : "🧩 Seu protocolo está quase pronto"}</span>
-              <span className="flex items-center gap-2 text-xs text-fg-muted">
-                <span className="h-1.5 w-20 overflow-hidden rounded-full bg-border" aria-hidden><span className={`block h-full rounded-full transition-[width] motion-reduce:transition-none ${prontidao.pronto ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round((prontidao.prontos / prontidao.total) * 100)}%` }} /></span>
-                {prontidao.prontos} de {prontidao.total}
-              </span>
-            </summary>
-            <ul className="mt-3 space-y-1.5 text-sm">
-              {prontidao.itens.map((i) => (
-                <li key={i.id} className="flex items-start gap-2">
-                  <span aria-hidden className={i.ok ? "text-success" : "text-fg-subtle"}>{i.ok ? "✓" : "○"}</span>
-                  <span className={i.ok ? "" : "text-fg-muted"}>
-                    {i.texto}
-                    {i.opcional ? <span className="text-[11px] text-fg-subtle"> (opcional)</span> : null}
-                    {!i.ok && i.detalhe ? <span className="block text-xs text-fg-subtle">{i.detalhe}</span> : null}
-                    {!i.ok && (i.id === "divisao" || i.id === "fase" || i.id === "nome" || i.id === "calendario") ? (
-                      <button type="button" onClick={() => setShowPrograma(true)} className="ml-1 text-xs font-semibold text-accent underline-offset-2 hover:underline">ajustar</button>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-[11px] text-fg-subtle">Só um guia: dá para salvar a qualquer momento. Nada aqui avalia a qualidade da prescrição.</p>
-          </details>
           <FaltaParaMeta
             faltas={faltas}
             acima={acima}
@@ -1460,7 +1441,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                   </div>
                 ) : null}
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
+                  <table className="tabela-ex w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-surface text-fg-subtle text-[10px] uppercase tracking-wider">
                         <th className="w-8" aria-label="Ordem" />
@@ -1505,16 +1486,16 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                             onDragStart={() => (dragRef.current = { letra: t.letra, key: r.key })}
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => { if (dragRef.current && dragRef.current.letra === t.letra) moverRowPara(t.key, dragRef.current.key, r.key); dragRef.current = null; }}
-                            className={`group align-top hover:bg-card-hover/40 ${bloco ? `bg-accent/[0.06] ${inicioBloco ? "" : "border-t border-dashed border-accent/30"}` : "border-t border-border"} ${alertas.length ? (altoRisco ? "bg-red/[0.06]" : "bg-gold/[0.05]") : ""}`}
+                            className={`linha-ex ${det ? "linha-ex-det" : ""} group align-top hover:bg-card-hover/40 ${bloco ? `bg-accent/[0.06] ${inicioBloco ? "" : "border-t border-dashed border-accent/30"}` : "border-t border-border"} ${alertas.length ? (altoRisco ? "bg-red/[0.06]" : "bg-gold/[0.05]") : ""}`}
                           >
-                            <td className={`px-1 py-1.5 text-center align-middle ${bloco || COR_TECNICA[r.tecnica] ? "border-l-4" : ""}`} style={COR_TECNICA[r.tecnica] ? { borderLeftColor: COR_TECNICA[r.tecnica]! } : undefined}>
+                            <td className={`c-ordem px-1 py-1.5 text-center align-middle ${bloco || COR_TECNICA[r.tecnica] ? "border-l-4" : ""}`} style={COR_TECNICA[r.tecnica] ? { borderLeftColor: COR_TECNICA[r.tecnica]! } : undefined}>
                               <div className="flex flex-col items-center">
                                 <button type="button" onClick={() => moverRow(t.key, r.key, -1)} disabled={i === 0} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para cima"><Icon name="up" size={14} /></button>
                                 <span className="text-[10px] text-fg-subtle font-mono cursor-grab" title="Arraste para reordenar">{i + 1}</span>
                                 <button type="button" onClick={() => moverRow(t.key, r.key, 1)} disabled={i === t.rows.length - 1} className="alvo text-fg-subtle hover:text-fg disabled:opacity-30 p-0.5" aria-label="Mover para baixo"><Icon name="down" size={14} /></button>
                               </div>
                             </td>
-                            <td className="p-0 align-top">
+                            <td className="c-nome p-0 align-top">
                               <div>
                                 <div className="flex items-center gap-1.5 pr-1">
                                   {(() => {
@@ -1602,7 +1583,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                 </div>
                               ) : null}
                             </td>
-                            <td className="px-2 py-1.5 align-top">
+                            <td data-rotulo="Músculo" className="c-grupo px-2 py-1.5 align-top">
                               <div className="flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cor }} aria-hidden />
                                 <select
@@ -1618,7 +1599,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               </div>
                               {g.revisar && r.nome.trim() ? <span className="block text-[10px] text-warning mt-0.5">{g.origem === "heuristica" ? "detectado pelo nome — confirme" : "legado: reclassifique"}</span> : null}
                             </td>
-                            <td className="px-2 py-1.5 text-center align-top">
+                            <td data-rotulo="Séries" className="c-series px-2 py-1.5 text-center align-top">
                               <CampoNumero min={1} max={20} valor={totalSeries(r.seriesConfig)} onChange={(v) => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, v) })} aria-label="Número de séries" className="h-8 w-12 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" />
                               <div className="mt-1 flex justify-center gap-1">
                                 <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: ajustarNumeroSeries(r.seriesConfig, Math.max(1, totalSeries(r.seriesConfig) - 1)) })} aria-label="Uma série a menos" className="h-6 w-6 rounded border border-border text-xs text-fg-muted hover:text-fg">−</button>
@@ -1626,7 +1607,7 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                               </div>
                               {r.aquecimento ? <span className="block text-[10px] text-fg-subtle">−{r.aquecimento} aq.</span> : null}
                             </td>
-                            <td className="px-2 py-1.5 align-top">
+                            <td data-rotulo={det ? "Reps e descanso de cada série" : "Reps / tempo"} className="c-reps px-2 py-1.5 align-top">
                               {r.seriesConfig.modo === "detalhado" ? (
                                 <div className="space-y-1">
                                   {r.seriesConfig.series.map((s, si) => (
@@ -1655,18 +1636,18 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
                                 );
                               })()}
                             </td>
-                            <td className="px-2 py-1.5 text-center align-top">
+                            <td data-rotulo="Desc. (s)" className={`c-desc px-2 py-1.5 text-center align-top ${det ? "max-md:hidden" : ""}`}>
                               {!det ? <input inputMode="numeric" value={(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>).descanso_seg ?? ""} onChange={(e) => updRow(t.key, r.key, { seriesConfig: { ...(r.seriesConfig as Extract<SerieConfig, { modo: "iguais" }>), descanso_seg: e.target.value ? Number(e.target.value) : null } })} aria-label="Descanso entre séries em segundos" placeholder={String(duracoes[t.key]?.efetivos.descansoEntreSeriesSeg ?? 90)} title="Descanso entre séries (s). Em branco = padrão do treino." className="h-8 w-14 rounded border border-border bg-bg px-1 text-center font-mono text-[12px]" /> : <span className="text-[10px] text-fg-subtle">por série</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-center align-top">
+                            <td data-rotulo="RIR" className="c-rir px-2 py-1.5 text-center align-top">
                               <input inputMode="numeric" value={r.rir} onChange={(e) => updRow(t.key, r.key, { rir: e.target.value.replace(/[^0-9]/g, "").slice(0, 2) })} aria-label="RIR alvo" className="h-8 w-10 rounded border border-border bg-bg px-1 text-center font-mono text-[12px] text-accent font-bold" />
                             </td>
-                            <td className="px-2 py-1.5 align-top">
+                            <td data-rotulo="Recado para o aluno" className="c-obs px-2 py-1.5 align-top">
                               <textarea value={r.observacoes} onChange={(e) => updRow(t.key, r.key, { observacoes: e.target.value.slice(0, LIMITE_NOTA) })} placeholder="nota para o aluno" aria-label="Observação para o aluno" rows={Math.min(6, Math.max(1, Math.ceil(r.observacoes.length / 38) + (r.observacoes.match(/\n/g)?.length ?? 0)))} className="min-h-8 w-full min-w-[13rem] resize-y rounded border border-border bg-bg px-2 py-1 text-[12px] leading-snug" />
                               <OrientacoesProntas nota={r.observacoes} onChange={(observacoes) => updRow(t.key, r.key, { observacoes })} />
                               {r.id ? <PorqueExercicio exercicioId={r.id} inicial={porques[r.id] ?? ""} /> : null}
                             </td>
-                            <td className="px-1 py-1.5 text-right whitespace-nowrap align-top">
+                            <td className="c-acoes px-1 py-1.5 text-right whitespace-nowrap align-top">
                               <button type="button" onClick={() => updRow(t.key, r.key, { seriesConfig: det ? configIgual(totalSeries(r.seriesConfig), repsResumo(r.seriesConfig), null) : detalhar(r.seriesConfig) })} className="rounded border border-border px-1.5 py-1 text-[10px] font-semibold text-fg-muted hover:text-accent" title="Séries iguais ou série a série (pirâmide)">{det ? "Iguais" : "Série a série"}</button>
                               <button type="button" onClick={() => duplicarRow(t.key, r.key)} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded border border-border px-1.5 py-1 text-fg-muted hover:text-fg" title="Duplicar" aria-label="Duplicar exercício"><Icon name="copy" size={12} /></button>
                               <button type="button" onClick={() => removeRow(t.key, r.key)} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded border border-border px-1.5 py-1 text-fg-subtle hover:text-red" title={r.id ? "Remover (o histórico de sessões anteriores é preservado)" : "Remover"} aria-label="Remover exercício"><Icon name="trash" size={12} /></button>
@@ -1720,6 +1701,31 @@ export function MontadorClient({ alunoId, alunoNome, programa, treinosIniciais, 
 
           {/* “Finalizados” aqui = fichas antigas arquivadas. Os treinos FEITOS pelo aluno ficam na ficha (abas Evolução e Consistência). */}
           <div>
+          <details className={`rounded-xl border px-4 py-3 ${prontidao.pronto ? "border-success/40 bg-success/5" : "border-accent/40 bg-accent/5"}`}>
+            <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+              <span className="font-bold">{prontidao.pronto ? "✅ Protocolo pronto para o aluno" : "🧩 Seu protocolo está quase pronto"}</span>
+              <span className="flex items-center gap-2 text-xs text-fg-muted">
+                <span className="h-1.5 w-20 overflow-hidden rounded-full bg-border" aria-hidden><span className={`block h-full rounded-full transition-[width] motion-reduce:transition-none ${prontidao.pronto ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round((prontidao.prontos / prontidao.total) * 100)}%` }} /></span>
+                {prontidao.prontos} de {prontidao.total}
+              </span>
+            </summary>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {prontidao.itens.map((i) => (
+                <li key={i.id} className="flex items-start gap-2">
+                  <span aria-hidden className={i.ok ? "text-success" : "text-fg-subtle"}>{i.ok ? "✓" : "○"}</span>
+                  <span className={i.ok ? "" : "text-fg-muted"}>
+                    {i.texto}
+                    {i.opcional ? <span className="text-[11px] text-fg-subtle"> (opcional)</span> : null}
+                    {!i.ok && i.detalhe ? <span className="block text-xs text-fg-subtle">{i.detalhe}</span> : null}
+                    {!i.ok && (i.id === "divisao" || i.id === "fase" || i.id === "nome" || i.id === "calendario") ? (
+                      <button type="button" onClick={() => setShowPrograma(true)} className="ml-1 text-xs font-semibold text-accent underline-offset-2 hover:underline">ajustar</button>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-fg-subtle">Só um guia: dá para salvar a qualquer momento. Nada aqui avalia a qualidade da prescrição.</p>
+          </details>
             <Link href={`/treinador/alunos/${alunoId}/treinos-feitos`} className="touch flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold">
               <span>📋 Treinos que {alunoNome.split(" ")[0]} já fez e anotações</span><span aria-hidden className="text-accent">→</span>
             </Link>
