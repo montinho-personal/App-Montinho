@@ -40,7 +40,34 @@ export default async function TriboTreinadorPage() {
         <p className="mt-1 text-sm text-fg-muted">O esforço de cada aluno vira conquista coletiva. Contam os cardios válidos e os treinos de musculação concluídos (as mesmas regras do app). Os alunos veem os números da tribo, nunca os dados dos outros.</p>
       </div>
       <ResumoColetivo r={r} />
-      <CuriosidadesTribo itens={curiosidades(r, dados.contribuicoes)} />
+      {/* Ordem (20/11/2026, auditoria): o que o personal FAZ aqui (missões) vem logo depois dos números; marcos e curiosidades depois. */}
+      <section className="space-y-3" aria-label="Missões">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-fg-muted">Missões (atuais e histórico)</h2>
+        {missoes.length ? missoes.map((m) => (
+          <div key={m.id} className="space-y-1">
+            <MissaoCard m={m} compartilhar={false} />
+            <p className="px-1 text-[11px] text-fg-subtle">{ganhosPor("tribo_missao", m.id).length} {ganhosPor("tribo_missao", m.id).length === 1 ? "troféu entregue" : "troféus entregues"}</p>
+            <MissoesAdmin hoje={hoje} alternar={{ id: m.id, ativa: m.ativa }} />
+          </div>
+        )) : <p className="text-sm text-fg-muted">Nenhuma missão criada ainda. Crie a primeira acima.</p>}
+      </section>
+      <MissoesAdmin hoje={hoje} />
+      <section className="rounded-2xl border border-border bg-surface p-4" aria-labelledby="contribuintes">
+        <h2 id="contribuintes" className="text-sm font-bold">🤝 Quem somou nos últimos 30 dias</h2>
+        {contribuintes.length ? (
+          <ul className="mt-2 divide-y divide-border text-sm">
+            {contribuintes.map(([id, x]) => (
+              <li key={id} className="flex flex-wrap justify-between gap-2 py-1.5">
+                <span>{nomes.get(id) ?? "Aluno"}</span>
+                <span className="text-xs text-fg-muted">{[x.treinos ? unidade("treinos", x.treinos) : null, x.cardios ? `${x.cardios} ${x.cardios === 1 ? "cardio" : "cardios"} (${fmt(x.minutos)} min)` : null].filter(Boolean).join(" · ")}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-sm text-fg-muted">Ninguém somou nos últimos 30 dias.</p>
+        )}
+        <p className="mt-2 text-[11px] text-fg-subtle">Lista em ordem alfabética, só para você: a tribo valoriza constância, não quem fez mais.</p>
+      </section>
       {(["cardio", "treinos"] as const).map((trilha) => {
         const p = proximoMarco(dados, trilha);
         return (
@@ -61,33 +88,7 @@ export default async function TriboTreinadorPage() {
           </section>
         );
       })}
-      <section className="rounded-2xl border border-border bg-surface p-4" aria-labelledby="contribuintes">
-        <h2 id="contribuintes" className="text-sm font-bold">🤝 Quem somou nos últimos 30 dias</h2>
-        {contribuintes.length ? (
-          <ul className="mt-2 divide-y divide-border text-sm">
-            {contribuintes.map(([id, x]) => (
-              <li key={id} className="flex flex-wrap justify-between gap-2 py-1.5">
-                <span>{nomes.get(id) ?? "Aluno"}</span>
-                <span className="text-xs text-fg-muted">{[x.treinos ? unidade("treinos", x.treinos) : null, x.cardios ? `${x.cardios} ${x.cardios === 1 ? "cardio" : "cardios"} (${fmt(x.minutos)} min)` : null].filter(Boolean).join(" · ")}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-1 text-sm text-fg-muted">Ninguém somou nos últimos 30 dias.</p>
-        )}
-        <p className="mt-2 text-[11px] text-fg-subtle">Lista em ordem alfabética, só para você: a tribo valoriza constância, não quem fez mais.</p>
-      </section>
-      <MissoesAdmin hoje={hoje} />
-      <section className="space-y-3" aria-label="Missões">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-fg-muted">Missões (atuais e histórico)</h2>
-        {missoes.length ? missoes.map((m) => (
-          <div key={m.id} className="space-y-1">
-            <MissaoCard m={m} compartilhar={false} />
-            <p className="px-1 text-[11px] text-fg-subtle">{ganhosPor("tribo_missao", m.id).length} {ganhosPor("tribo_missao", m.id).length === 1 ? "troféu entregue" : "troféus entregues"}</p>
-            <MissoesAdmin hoje={hoje} alternar={{ id: m.id, ativa: m.ativa }} />
-          </div>
-        )) : <p className="text-sm text-fg-muted">Nenhuma missão criada ainda. Crie a primeira acima.</p>}
-      </section>
+      <CuriosidadesTribo itens={curiosidades(r, dados.contribuicoes)} />
     </div>
   );
 }

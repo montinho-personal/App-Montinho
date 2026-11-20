@@ -32,9 +32,10 @@ export default async function RankingTreinadorPage() {
     <div className="max-w-2xl space-y-5">
       <NarrativaRanking />
       <TopoDoRanking modo="personal" dias={topo?.dias ?? null} nome={nomeTopo} />
-      {cliques ? <CliquesMontinhoRanking r={cliques} dias={90} /> : null}
-      {passaram ? <QuemPassouOMontinho pessoas={passaram} personal lideranca={liderancaDoMontinho(montinho?.posicao, linhas)} /> : null}
+      {/* A lista logo depois do líder (20/11/2026, auditoria); curiosidades depois. */}
       <RankingTrofeus linhas={linhas} nomeCompleto passaram={passaram?.map((p) => p.ref)} />
+      {passaram ? <QuemPassouOMontinho pessoas={passaram} personal lideranca={liderancaDoMontinho(montinho?.posicao, linhas)} /> : null}
+      {cliques ? <CliquesMontinhoRanking r={cliques} dias={90} /> : null}
       <p className="text-[11px] text-fg-subtle">Aqui você vê o nome completo de todos. Os alunos veem só o primeiro nome e a inicial, e quem desligou “Aparecer no ranking” não aparece para eles.</p>
     </div>
   );

@@ -44,8 +44,6 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
       <Link href={`/treinador/alunos/${id}`} className="inline-flex min-h-6 items-center text-sm text-fg-muted hover:text-fg">
         ← {nome}
       </Link>
-      <CartaoCarimbos total={contarCarimbos(sessoes)} titulo={`Carimbos de ${nome.split(" ")[0]}`} />
-      <MeusFeriados conquistas={conquistas} hoje={dataLocal(new Date())} nome={nome.split(" ")[0]} />
       <div className="rounded-2xl border border-accent/40 bg-grain-strong p-4">
         <p className="text-[11px] font-bold uppercase tracking-wider text-accent">🏆 Sala de troféus</p>
         <h1 className="text-2xl font-bold">{nome}</h1>
@@ -68,13 +66,16 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
+      {/* Ordem (20/11/2026, auditoria): resumo e ações em cima; a vitrine inteira (a parte comprida) por último. */}
+      <div className="grid grid-cols-2 gap-2">
+        <Link href={`/treinador/alunos/${id}/jornada`} className="touch flex items-center justify-center rounded-xl border border-border px-3 py-3 text-sm font-semibold text-fg-muted hover:text-fg">
+          🗺️ Ver jornada
+        </Link>
+        <Link href="/treinador/conquistas" className="touch flex items-center justify-center rounded-xl border border-accent/50 px-3 py-3 text-sm font-semibold text-accent">
+          👏 Enviar reconhecimento
+        </Link>
+      </div>
       <AtivarOlharDeAguia alunoId={id} ativo={conquistas.some((c) => c.codigo === "olhar_de_aguia")} />
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-bold">Medalhas</h2>
-        <p className="text-xs text-fg-muted">Toque numa medalha: nas douradas (já conquistadas) dá para ver como o aluno vê, com a animação; nas cinzas aparece o desafio para conquistar.</p>
-        <VitrineMedalhas medalhas={medalhas} nome={nome.split(" ")[0]} reconhecimentos={reconhecimentosPorCodigo} comPrevia />
-      </section>
 
       {recordes.length ? (
         <Card>
@@ -91,15 +92,15 @@ export default async function SalaDeTrofeusPage({ params }: { params: Promise<{ 
           </CardBody>
         </Card>
       ) : null}
+      <CartaoCarimbos total={contarCarimbos(sessoes)} titulo={`Carimbos de ${nome.split(" ")[0]}`} />
+      <MeusFeriados conquistas={conquistas} hoje={dataLocal(new Date())} nome={nome.split(" ")[0]} />
+      <section className="space-y-2">
+        <h2 className="text-sm font-bold">Medalhas</h2>
+        <p className="text-xs text-fg-muted">Toque numa medalha: nas douradas (já conquistadas) dá para ver como o aluno vê, com a animação; nas cinzas aparece o desafio para conquistar.</p>
+        <VitrineMedalhas medalhas={medalhas} nome={nome.split(" ")[0]} reconhecimentos={reconhecimentosPorCodigo} comPrevia />
+      </section>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Link href={`/treinador/alunos/${id}/jornada`} className="touch flex items-center justify-center rounded-xl border border-border px-3 py-3 text-sm font-semibold text-fg-muted hover:text-fg">
-          🗺️ Ver jornada
-        </Link>
-        <Link href="/treinador/conquistas" className="touch flex items-center justify-center rounded-xl border border-accent/50 px-3 py-3 text-sm font-semibold text-accent">
-          👏 Enviar reconhecimento
-        </Link>
-      </div>
+
     </div>
   );
 }
