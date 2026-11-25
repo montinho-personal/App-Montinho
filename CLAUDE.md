@@ -222,6 +222,8 @@ App web do **Montinho Personal Trainer**: app do aluno (mobile-first) + painel d
 
 - Fim do treino livre da AULA PRESENCIAL com comemoração (20/11/2026, caso da Carol: o Montinho terminou o treino livre da aula e as medalhas não apareceram): antes o `LivreClient` ia direto para “Treinos feitos” (`aoTerminar`); agora `/treinador/alunos/[id]/aula/livre/[sessao]` com a sessão concluída mostra a MESMA `TelaChalala` da aula normal (`presencial`: medalhas do treino, relatório, “📸 Card do treino de …”, “Voltar para …” → Treinos feitos do aluno); cancelada continua indo para Treinos feitos. Os troféus já eram gravados; faltava só a tela.
 
+- “Soma ou não no ranking” na comemoração (25/11/2026, pedido do Montinho: o “Novo recorde pessoal” dava a impressão de contar sempre): ao gravar, cada troféu novo leva `dados.ranking` = `conta` | `ja_contou` | `fora` (`marcarRankingDosNovos` em `src/lib/conquistas/no-ranking.ts`, mesma chave do ranking `chaveNoRanking`; chamado em `sincronizarConquistas`). A `CelebracaoMedalha` mostra embaixo da frase: “🏆 +1 troféu no ranking” (verde) ou “Este recorde não soma no ranking — o Novo recorde pessoal conta 1 vez só… soma no Caçador de Recordes” / “Este não soma de novo no ranking” / “não conta no ranking (Multimodalidade)” (`textoRanking`); troféus antigos sem a marca usam o código (`rankingParaMostrar`: os que repetem — recorde, Eu voltei… — avisam “conta 1 vez só”). Tribo não mostra (não é do ranking). Sem migration.
+
 ## Ao editar
 - Português correto, com acentos. Horários/datas/kg/cm no padrão do Brasil.
 - Removeu uma tela? Remova os links em `src/app/(treinador)/layout.tsx` (NAV) e `src/app/(aluno)/layout.tsx` (TABS).

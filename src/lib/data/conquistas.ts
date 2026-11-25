@@ -5,6 +5,7 @@
 // reconhecimentos. Inserção idempotente (aluno, código, referência).
 // ============================================================================
 
+import { marcarRankingDosNovos } from "@/lib/conquistas/no-ranking";
 import { listaDoTreino, type ItemListaTreino } from "@/lib/chalala/card";
 import { primeiraAvaliacao, registrosDeAvaliacao } from "@/lib/data/medidas";
 import { entradaCardio } from "@/lib/data/cardio";
@@ -148,7 +149,10 @@ export async function sincronizarConquistas(aluno: AlunoBase): Promise<{ todas: 
   const faltam = detectadas.filter((d) => !ja.has(chave(d)));
   if (!faltam.length) return { todas: existentes, novas: [], sessoes, aderencia };
 
-  const linhas = faltam.map((d) => ({ aluno_id: aluno.id, codigo: d.codigo, referencia: d.referencia, conquistado_em: d.data, session_id: d.sessaoId, titulo: d.titulo, descricao: d.descricao, dados: d.dados ?? {}, criterio_versao: d.versao, evidencia: d.evidencia, origem: d.origem, vista_em: null }));
+  // Na hora de gravar, cada troféu já sai marcado: soma no ranking, já tinha contado ou fica fora (25/11/2026).
+  const marcaRanking = marcarRankingDosNovos(faltam.map((d) => ({ codigo: d.codigo, referencia: d.referencia, conquistado_em: d.data, d })), existentes);
+  const rankingDe = new Map([...marcaRanking].map(([k, v]) => [k.d, v]));
+  const linhas = faltam.map((d) => ({ aluno_id: aluno.id, codigo: d.codigo, referencia: d.referencia, conquistado_em: d.data, session_id: d.sessaoId, titulo: d.titulo, descricao: d.descricao, dados: { ...(d.dados ?? {}), ranking: rankingDe.get(d) }, criterio_versao: d.versao, evidencia: d.evidencia, origem: d.origem, vista_em: null }));
   if (isDemoMode()) {
     const st = demo();
     const agora = new Date().toISOString();

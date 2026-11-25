@@ -3,6 +3,7 @@
 // Medalha nova na hora de concluir o treino: tela cheia, "toque para abrir",
 // a medalha gira e aparece com confete e vibração. Uma por vez quando há mais
 // de uma. Respeita "animações desligadas" e "reduzir movimento".
+import { textoRanking } from "@/lib/conquistas/no-ranking";
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { BRAND } from "@/config/brand";
@@ -140,6 +141,16 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
             {card.destaque ? <p className="text-sm font-semibold text-accent">{card.destaque}</p> : null}
             <p className="mt-1 text-lg font-bold leading-snug">“{card.frase}”</p>
             {card.porque ? <p className="text-xs text-fg-muted">{card.porque}</p> : null}
+            {/* Soma ou não no ranking (25/11/2026, pedido do Montinho: o recorde dava a impressão de contar sempre). */}
+            {!tribo && atual ? (() => {
+              const r = textoRanking(atual);
+              return (
+                <div className={`w-full rounded-xl border px-3 py-2 text-center ${r.conta ? "border-success/50 bg-success/10" : "border-border bg-card"}`}>
+                  <p className={`text-xs font-bold ${r.conta ? "text-success" : "text-fg"}`}>{r.titulo}</p>
+                  {r.detalhe ? <p className="mt-0.5 text-[11px] leading-snug text-fg-muted">{r.detalhe}</p> : null}
+                </div>
+              );
+            })() : null}
             {lendaria && !tribo ? <p className="rounded-full border border-[#f59e0b]/60 bg-[#f59e0b]/10 px-3 py-1 text-[11px] font-bold text-[#f5c451]">Só quem cumpre a meta 12 semanas seguidas chega aqui.</p> : null}
             <button type="button" onClick={() => void compartilhar()} disabled={enviando} className="touch mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-bg disabled:opacity-60">
               {enviando ? "Preparando a imagem…" : "📲 Compartilhar no Story / WhatsApp"}
