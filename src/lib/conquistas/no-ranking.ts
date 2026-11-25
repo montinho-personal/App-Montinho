@@ -41,23 +41,34 @@ export function rankingParaMostrar(c: { codigo: string; dados?: unknown }): Rank
   return repeteSemContar(c.codigo) ? "uma_vez" : "conta";
 }
 
-/** Frase curta para a comemoração. */
-export function textoRanking(c: { codigo: string; titulo?: string | null; dados?: unknown }): { conta: boolean; titulo: string; detalhe: string | null } {
-  const estado = rankingParaMostrar(c);
-  const nome = c.titulo?.trim() || CATALOGO[c.codigo as CodigoConquista]?.titulo || "Este troféu";
-  const recorde = c.codigo === "recorde";
-  if (estado === "conta") return { conta: true, titulo: "🏆 +1 troféu no ranking", detalhe: null };
-  if (estado === "fora") return { conta: false, titulo: "Este troféu não conta no ranking", detalhe: "Os troféus da Multimodalidade ficam fora do ranking." };
-  if (recorde) {
-    return {
-      conta: false,
-      titulo: estado === "ja_contou" ? "Este recorde não soma no ranking" : "O “Novo recorde pessoal” conta 1 vez só no ranking",
-      detalhe: estado === "ja_contou" ? "O “Novo recorde pessoal” conta 1 vez só, e o seu primeiro já contou. Cada recorde novo soma no Caçador de Recordes, e esse vale troféu no ranking." : "O primeiro recorde soma 1 troféu. Os próximos somam no Caçador de Recordes, que vale troféu no ranking.",
-    };
+/** Onde a repetição continua valendo, para cada troféu que conta 1 vez só (o que dizer depois do “já contou”). */
+const ONDE_CONTA: Record<string, string> = {
+  recorde: "Cada recorde novo soma no Caçador de Recordes, e esse vale troféu no ranking.",
+  eu_voltei: "Os treinos da volta somam nos troféus de treinos e de semanas, que valem no ranking.",
+  retomada_30: "Os treinos da volta somam nos troféus de treinos e de semanas, que valem no ranking.",
+  cardio_voltei: "Os cardios da volta somam nos troféus de cardio e de minutos, que valem no ranking.",
+  desafio_concluido: "Cada desafio vencido soma nos troféus de desafios, que valem no ranking.",
+};
+
+/** Estado de cada troféu de uma lista completa (troféus antigos sem marca: o mais antigo de cada código conta). */
+export function rankingDaLista<T extends Trofeu & { id: string; conquistado_em: string; dados?: unknown }>(lista: T[]): Map<string, RankingDoTrofeu> {
+  const calculado = marcarRankingDosNovos(lista, []);
+  const out = new Map<string, RankingDoTrofeu>();
+  for (const c of lista) {
+    const gravado = (c.dados as { ranking?: unknown } | null | undefined)?.ranking;
+    out.set(c.id, gravado === "conta" || gravado === "ja_contou" || gravado === "fora" ? gravado : calculado.get(c) ?? "conta");
   }
-  return {
-    conta: false,
-    titulo: estado === "ja_contou" ? "Este não soma de novo no ranking" : `“${nome}” conta 1 vez só no ranking`,
-    detalhe: estado === "ja_contou" ? `“${nome}” conta 1 vez só no ranking, e a primeira já contou.` : null,
-  };
+  return out;
+}
+
+/** Frase curta para a comemoração (e para a linha do tempo, com o estado já calculado). */
+export function textoRanking(c: { codigo: string; titulo?: string | null; dados?: unknown }, estadoCalculado?: RankingDoTrofeu): { conta: boolean; titulo: string; detalhe: string | null } {
+  const estado = estadoCalculado ?? rankingParaMostrar(c);
+  const nome = c.codigo === "recorde" ? "Novo recorde pessoal" : c.titulo?.trim() || CATALOGO[c.codigo as CodigoConquista]?.titulo || "Este troféu";
+  const onde = ONDE_CONTA[c.codigo] ?? null;
+  if (estado === "conta") return { conta: true, titulo: "🏆 +1 troféu no ranking", detalhe: repeteSemContar(c.codigo) ? `Foi o seu primeiro “${nome}”: ele conta 1 vez só no ranking.` : null };
+  if (estado === "fora") return { conta: false, titulo: "Este troféu não conta no ranking", detalhe: "Os troféus da Multimodalidade ficam fora do ranking." };
+  const oQue = c.codigo === "recorde" ? "Este recorde" : "Este troféu";
+  if (estado === "ja_contou") return { conta: false, titulo: `${oQue} não soma de novo no ranking`, detalhe: [`O “${nome}” conta 1 vez só, e o seu primeiro já contou.`, onde].filter(Boolean).join(" ") };
+  return { conta: false, titulo: `O “${nome}” conta 1 vez só no ranking`, detalhe: [`Só o primeiro soma 1 troféu.`, onde].filter(Boolean).join(" ") };
 }

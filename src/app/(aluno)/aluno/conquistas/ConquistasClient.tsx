@@ -1,7 +1,8 @@
 "use client";
 
+import { rankingDaLista, repeteSemContar, textoRanking } from "@/lib/conquistas/no-ranking";
 import { LENDARIAS } from "@/lib/conquistas/regras";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { VitrineMedalhas } from "@/components/conquistas/VitrineMedalhas";
 import { enviarEvento } from "@/components/chalala/evento";
@@ -18,7 +19,7 @@ import type { Medalha } from "@/lib/conquistas/vitrine";
 
 const EditorCard = dynamic(() => import("@/components/chalala/EditorCard"), { ssr: false });
 
-type Conquista = { id: string; codigo: string; titulo: string; descricao: string | null; conquistado_em: string; dados: { recordes?: ItemRecorde[]; meta?: number } };
+type Conquista = { id: string; codigo: string; referencia?: string | null; titulo: string; descricao: string | null; conquistado_em: string; dados: { recordes?: ItemRecorde[]; meta?: number } };
 type Reconhecimento = { id: string; mensagem: string; created_at: string; conquista: string | null };
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -39,6 +40,13 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
   const [naLinha, setNaLinha] = useState(6);
   const recordes = conquistas.filter((c) => c.codigo === "recorde");
   const visiveis = conquistas.filter((c) => c.codigo !== "recorde");
+  // Soma ou não no ranking (25/11/2026): troféus que se repetem (recorde, Eu voltei…) contam 1 vez só.
+  const noRanking = useMemo(() => rankingDaLista(conquistas), [conquistas]);
+  const seloRanking = (c: Conquista) => {
+    if (!repeteSemContar(c.codigo)) return null;
+    const r = textoRanking(c, noRanking.get(c.id));
+    return <p className={`text-[11px] font-semibold ${r.conta ? "text-success" : "text-fg-subtle"}`}>{r.conta ? "🏆 Contou no ranking (o primeiro)" : "Não somou de novo no ranking (o primeiro já contou)"}</p>;
+  };
   const novasMedalhas = destaque.filter((m) => novas.some((n) => n.codigo === m.codigo));
   // Vitrine vista (métrica agregada) e celebração mostrada uma vez só.
   useEffect(() => {
@@ -137,6 +145,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
                       ))}
                       {!c.dados.recordes?.length && c.descricao ? <li className="text-fg-muted">{c.descricao}</li> : null}
                     </ul>
+                    {seloRanking(c)}
                     <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico", ...(c.codigo !== "recorde" && c.codigo !== "eu_voltei" ? { ref: `medalha:${c.codigo}` } : {}) })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">Gerar card</button>
                   </CardBody>
                 </Card>
@@ -224,6 +233,7 @@ export function ConquistasClient({ nome, mensal, conquistas, reconhecimentos, de
                       </time>
                     </div>
                     {c.descricao ? <p className="text-sm text-fg-muted">{c.descricao}</p> : null}
+                    {seloRanking(c)}
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       {c.codigo !== "relatorio_mensal" ? (
                         <button type="button" onClick={() => setEditor({ ...cardDaConquista(c), origem: "historico", ...(c.codigo !== "recorde" && c.codigo !== "eu_voltei" ? { ref: `medalha:${c.codigo}` } : {}) })} className="alvo text-xs font-semibold text-accent underline-offset-2 hover:underline">

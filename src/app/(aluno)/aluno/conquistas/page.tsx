@@ -124,7 +124,7 @@ export default async function ConquistasPage({ searchParams }: { searchParams: P
       <ConquistasClient
         nome={(aluno.profile?.nome ?? sessao.nome).split(" ")[0]}
         mensal={mensal}
-        conquistas={conquistas.map((c) => ({ id: c.id, codigo: c.codigo, titulo: c.titulo, descricao: c.descricao, conquistado_em: c.conquistado_em, dados: c.dados }))}
+        conquistas={conquistas.map((c) => ({ id: c.id, codigo: c.codigo, referencia: c.referencia, titulo: c.titulo, descricao: c.descricao, conquistado_em: c.conquistado_em, dados: c.dados }))}
         reconhecimentos={reconhecimentos.map((r) => ({ id: r.id, mensagem: r.mensagem, created_at: r.created_at, conquista: r.conquista_id ? (titulos.get(r.conquista_id) ?? null) : null }))}
         destaque={medalhasEmDestaque(medalhas, hoje)}
         proximas={proximasMedalhas(medalhas, 3)}
