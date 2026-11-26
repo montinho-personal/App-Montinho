@@ -4,7 +4,7 @@
 // a medalha gira e aparece com confete e vibração. Uma por vez quando há mais
 // de uma. Respeita "animações desligadas" e "reduzir movimento".
 import { textoRanking } from "@/lib/conquistas/no-ranking";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BRAND } from "@/config/brand";
 import { MedalhaIcone } from "@/components/conquistas/MedalhaIcone";
@@ -39,6 +39,7 @@ export type ConquistaCelebravel = Pick<ConquistaRow, "codigo" | "titulo" | "desc
 
 export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa = false, onFechar }: { conquistas: ConquistaCelebravel[]; nome?: string; animacoes?: boolean; /** Personal vendo como o aluno vê (nada é gravado). */ previa?: boolean; onFechar: () => void }) {
   const [i, setI] = useState(0);
+  const caixa = useRef<HTMLDivElement>(null);
   const [aberta, setAberta] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -92,6 +93,8 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
     if (i + 1 < lista.length) {
       setI(i + 1);
       setAberta(false);
+      // A próxima medalha começa do topo (a tela pequena pode ter rolado).
+      caixa.current?.scrollTo({ top: 0 });
     } else {
       if (!previa) marcarVistas(extras.map((x) => x.id));
       onFechar();
@@ -99,19 +102,20 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
   }
 
   return createPortal(
-    <div className={`fixed inset-0 z-[90] flex items-center justify-center overflow-hidden px-6 backdrop-blur-sm ${lendaria ? "bg-[radial-gradient(circle_at_50%_40%,rgba(120,40,8,0.92),rgba(0,0,0,0.95)_70%)]" : "bg-black/85"} ${animacoes ? "" : "sem-animacao"}`} role="dialog" aria-modal="true" aria-label={lendaria ? "Troféu lendário" : "Nova medalha"}>
-      {lendaria ? <div aria-hidden className="raios-lendarios pointer-events-none absolute left-1/2 top-[42%] h-[180vmax] w-[180vmax] -translate-x-1/2 -translate-y-1/2" /> : null}
+    <div ref={caixa} className={`fixed inset-0 z-[90] flex flex-col items-center overflow-y-auto overscroll-contain px-6 backdrop-blur-sm ${lendaria ? "bg-[radial-gradient(circle_at_50%_40%,rgba(120,40,8,0.92),rgba(0,0,0,0.95)_70%)]" : "bg-black/85"} ${animacoes ? "" : "sem-animacao"}`} role="dialog" aria-modal="true" aria-label={lendaria ? "Troféu lendário" : "Nova medalha"}>
+      {lendaria ? <div aria-hidden className="raios-lendarios pointer-events-none fixed left-1/2 top-[42%] h-[180vmax] w-[180vmax] -translate-x-1/2 -translate-y-1/2" /> : null}
       {aberta ? (
-        <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div aria-hidden className="pointer-events-none fixed inset-0">
           {confete.map((c, k) => (
             <span key={`${i}-${k}`} className="confete" style={{ left: c.left, background: c.cor, animationDelay: c.delay, ["--dx" as string]: c.dx }} />
           ))}
         </div>
       ) : null}
 
-      <div className="relative w-full max-w-sm text-center">
+      {/* A janela rola quando o conteúdo passa da tela (25/11/2026: cortava o logo e o “Continuar” no celular); my-auto centraliza quando cabe. */}
+      <div className="relative my-auto w-full max-w-sm py-6 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- logo SVG oficial */}
-        <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-4 h-auto w-[150px]" />
+        <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-3 h-auto w-[120px] [@media(min-height:760px)]:w-[150px]" />
         {previa ? <p className="mb-3 inline-block rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-accent">👁 Pré-visualização · assim o aluno vê</p> : null}
         {lista.length > 1 ? <p className="mb-2 text-xs font-semibold text-fg-subtle">{tribo ? "Conquista" : "Medalha"} {i + 1} de {lista.length}</p> : null}
         {!aberta ? (
