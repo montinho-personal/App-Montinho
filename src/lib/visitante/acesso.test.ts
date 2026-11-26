@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appEncerrado, codigoValido, DIAS_APP_APOS_FIM, fechamentoDoApp, descreverPrazo, estadoDoAcesso, fimDoAcesso, gerarCodigo, normalizarCodigo, podeRegistrar, situacaoConvite, type ConviteRegra } from "./acesso";
+import { appEncerrado, codigoValido, DIAS_APP_APOS_FIM, fechamentoDoApp, descreverPrazo, estadoDoAcesso, fimDoAcesso, fimDoDiaBrasilia, gerarCodigo, normalizarCodigo, podeRegistrar, situacaoConvite, type ConviteRegra } from "./acesso";
 import { REGRAS_OFERTA } from "./campanhas";
 
 const base: ConviteRegra = { codigo: "DESAFIO-21", tipo_acesso: "dias", dias: 21, acesso_ate: null, max_usos: 50, usos: 0, valido_ate: null, ativo: true };
@@ -65,5 +65,11 @@ describe("depois dos 30 dias", () => {
   });
   it("a oferta do fim vale enquanto o app está aberto", () => {
     expect(REGRAS_OFERTA.diasDepois).toBe(DIAS_APP_APOS_FIM);
+  });
+});
+
+describe("fimDoDiaBrasilia", () => {
+  it("vale o dia inteiro em Brasília", () => {
+    expect(fimDoDiaBrasilia("2026-12-31")).toBe("2027-01-01T02:59:59.000Z");
   });
 });

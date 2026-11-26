@@ -128,3 +128,12 @@ export function descreverPrazo(c: Pick<ConviteRegra, "tipo_acesso" | "dias" | "a
 export function dataBR(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
+
+/**
+ * Fim do dia (23:59:59, horário de Brasília) de uma data "AAAA-MM-DD", em ISO.
+ * Usado quando o personal muda o “Acesso até” de um visitante na ficha: o
+ * acesso vale o dia inteiro escolhido.
+ */
+export function fimDoDiaBrasilia(dia: string): string {
+  return new Date(`${dia}T23:59:59-03:00`).toISOString();
+}
