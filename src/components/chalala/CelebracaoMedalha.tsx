@@ -113,7 +113,7 @@ export function CelebracaoMedalha({ conquistas, nome, animacoes = true, previa =
       ) : null}
 
       {/* A janela rola quando o conteúdo passa da tela (25/11/2026: cortava o logo e o “Continuar” no celular); my-auto centraliza quando cabe. */}
-      <div className="relative my-auto w-full max-w-sm py-6 text-center">
+      <div className="relative z-10 my-auto w-full max-w-sm py-6 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- logo SVG oficial */}
         <img src="/brand/logo.svg" alt="Montinho Personal Trainer" width={150} height={103} className="mx-auto mb-3 h-auto w-[120px] [@media(min-height:760px)]:w-[150px]" />
         {previa ? <p className="mb-3 inline-block rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-accent">👁 Pré-visualização · assim o aluno vê</p> : null}
